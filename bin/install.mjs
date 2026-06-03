@@ -26,8 +26,8 @@ function usage() {
   return `Minecraft Builder Skill installer
 
 Usage:
-  npx --yes minecraft-builder-skill
-  npx --yes minecraft-builder-skill install [--target <skills-dir>] [--force] [--no-deps]
+  npx --yes github:mattzh72/minecraft-builder-skill
+  npx --yes github:mattzh72/minecraft-builder-skill install [--target <skills-dir>] [--force] [--no-deps]
 
 Options:
   --target <skills-dir>  Install into this Codex skills directory.

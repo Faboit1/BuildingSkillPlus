@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
-    "minecraft-builder-skill": "./bin/install.mjs"
+    "minecraft-builder-skill": "bin/install.mjs"
   },
   "files": [
     "SKILL.md",
