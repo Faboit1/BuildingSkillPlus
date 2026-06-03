@@ -12,7 +12,7 @@ Create Minecraft builds by writing small JavaScript recipes that use Lodestone-b
 ## Workflow
 
 1. Work from the installed skill directory. Do not rerun `npx` after installation; use this skill's local `scripts/` and `assets/`.
-2. Write an ESM recipe file. Use `assets/examples/watchtower.mjs` as the compact pattern.
+2. Write an ESM recipe file. Use `assets/examples/watchtower.mjs` as the compact starter pattern, or `assets/examples/celestial-observatory.mjs` as a larger showcase pattern.
 3. Generate NBT:
 
 ```bash
