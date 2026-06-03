@@ -51,7 +51,9 @@ Available helpers include `createStructure`, `setBlock`, `fill`, `hollowBox`, `l
 
 ## Reference Lookup
 
-- Before choosing nontrivial block-state values, search `references/lodestone/default-pack-block-states.md` by block id and property name, for example `rg -n "minecraft:oak_stairs|shape|waterlogged" references/lodestone/default-pack-block-states.md`.
+- Before choosing nontrivial block-state values, search `references/lodestone/default-pack-block-states.md`.
+- For one block, print its exact section, for example ``rg -n -A 80 '### `minecraft:oak_stairs`' references/lodestone/default-pack-block-states.md``.
+- For global property enums, search property-index lines, for example ``rg -n '^- `shape`|^- `waterlogged`' references/lodestone/default-pack-block-states.md``.
 - Before relying on automatic connection behavior, search `references/lodestone/structure.md` for `updateBlockStates()` and check the supported and unsupported coverage.
 - When writing block entities or custom NBT, search `references/lodestone/nbt.md` and `references/recipe-api.md` before constructing tags.
 

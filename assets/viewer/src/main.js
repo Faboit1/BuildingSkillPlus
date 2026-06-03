@@ -2,6 +2,12 @@ import { mat4, vec3 } from 'gl-matrix'
 import { NbtFile, Structure, ThreeStructureRenderer, loadDefaultPackResources } from '@mattzh72/lodestone'
 import './style.css'
 
+const originalWarn = console.warn.bind(console)
+console.warn = (...args) => {
+  if (args.length === 1 && args[0] === 'parent minecraft:builtin/entity does not exist!') return
+  originalWarn(...args)
+}
+
 class OrbitCamera {
   constructor(canvas, center, distance) {
     this.canvas = canvas
