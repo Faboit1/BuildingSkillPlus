@@ -13,7 +13,7 @@ const viewerRoot = path.join(skillRoot, 'assets', 'viewer')
 
 function usage() {
   return `Usage:
-  node scripts/preview.mjs --nbt <path/to/build.nbt> [--host 127.0.0.1] [--port 5173] [--open|--no-open]
+  node scripts/preview.mjs --nbt <path/to/build.nbt> [--host 127.0.0.1] [--port 5173] [--lighting day|night] [--open|--no-open]
 `
 }
 
@@ -22,6 +22,7 @@ function parseArgs(argv) {
     nbt: undefined,
     host: '127.0.0.1',
     port: 5173,
+    lighting: 'day',
     open: true,
     help: false,
   }
@@ -41,6 +42,10 @@ function parseArgs(argv) {
       options.port = Number(argv[++index])
     } else if (arg.startsWith('--port=')) {
       options.port = Number(arg.slice('--port='.length))
+    } else if (arg === '--lighting') {
+      options.lighting = argv[++index]
+    } else if (arg.startsWith('--lighting=')) {
+      options.lighting = arg.slice('--lighting='.length)
     } else if (arg === '--open') {
       options.open = true
     } else if (arg === '--no-open') {
@@ -53,6 +58,9 @@ function parseArgs(argv) {
   }
   if (!Number.isInteger(options.port) || options.port < 0) {
     throw new Error('--port must be a non-negative integer')
+  }
+  if (!['day', 'night'].includes(options.lighting)) {
+    throw new Error('--lighting must be day or night')
   }
   return options
 }
@@ -157,6 +165,9 @@ async function main() {
   const url = new URL(local)
   url.searchParams.set('nbt', '/__minecraft_builder__/build.nbt')
   url.searchParams.set('name', path.basename(nbtPath))
+  if (options.lighting !== 'day') {
+    url.searchParams.set('lighting', options.lighting)
+  }
 
   console.log(`Minecraft build preview: ${url.toString()}`)
   if (options.open) {

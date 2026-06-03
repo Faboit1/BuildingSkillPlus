@@ -50,6 +50,47 @@ body {
   white-space: nowrap;
 }
 
+.viewer-actions {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.icon-button {
+  min-width: 76px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  color: #eaf2f7;
+  background: rgba(10, 16, 22, 0.78);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.icon-button:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(16, 27, 36, 0.88);
+}
+
+.icon-button:focus-visible {
+  outline: 2px solid rgba(139, 203, 255, 0.95);
+  outline-offset: 2px;
+}
+
+.icon-button[aria-pressed="true"] {
+  border-color: rgba(151, 188, 255, 0.48);
+  color: #f4f7ff;
+  background: rgba(18, 25, 48, 0.88);
+}
+
 .loading {
   position: fixed;
   inset: 0;
@@ -70,6 +111,12 @@ body {
     left: 12px;
     flex-direction: column;
     gap: 4px;
+  }
+
+  .viewer-actions {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
   }
 
   .hud span {

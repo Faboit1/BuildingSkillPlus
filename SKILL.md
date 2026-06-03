@@ -76,3 +76,9 @@ Use `--no-open` when running in a non-interactive environment:
 ```bash
 node scripts/preview.mjs --nbt path/to/build.nbt --no-open
 ```
+
+Open directly in night lighting when helpful for review:
+
+```bash
+node scripts/preview.mjs --nbt path/to/build.nbt --lighting night
+```
