@@ -46,6 +46,7 @@ Available helpers include `createStructure`, `setBlock`, `fill`, `hollowBox`, `l
 
 - For exact recipe helper signatures, supported option fields, defaults, and unsupported behavior, search `references/recipe-api.md`.
 - For Lodestone classes, structure NBT, block states, renderer APIs, resource pack APIs, supported fields, and unsupported behavior, search `references/lodestone/`.
+- For exact default-pack block ids, rendered block-state value enums, special renderer state values, and generic renderer properties like `waterlogged`, search `references/lodestone/default-pack-block-states.md`.
 - Prefer these local references over guessing. Use `rg` for class names, method names, block-state properties, NBT tag names, and option fields before using advanced APIs.
 
 ## Build Guidance

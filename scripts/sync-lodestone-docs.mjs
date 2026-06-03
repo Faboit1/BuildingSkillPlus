@@ -13,6 +13,7 @@ const DOC_FILES = [
   'nbt.md',
   'rendering.md',
   'resources.md',
+  'default-pack-block-states.md',
   'litematic.md',
   'supported-fields.md',
   'unsupported.md',
