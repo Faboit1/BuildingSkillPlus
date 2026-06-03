@@ -42,6 +42,12 @@ export default function build(api) {
 
 Available helpers include `createStructure`, `setBlock`, `fill`, `hollowBox`, `line`, `sphere`, `cylinder`, `normalizeBlock`, `createBlockNbt`, and Lodestone classes under `api.lodestone`.
 
+## References
+
+- For exact recipe helper signatures, supported option fields, defaults, and unsupported behavior, search `references/recipe-api.md`.
+- For Lodestone classes, structure NBT, block states, renderer APIs, resource pack APIs, supported fields, and unsupported behavior, search `references/lodestone/`.
+- Prefer these local references over guessing. Use `rg` for class names, method names, block-state properties, NBT tag names, and option fields before using advanced APIs.
+
 ## Build Guidance
 
 - Keep all coordinates inside the structure size. The runner validates bounds and fails fast.

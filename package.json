@@ -40,6 +40,8 @@
   "scripts": {
     "build:example": "node scripts/run-build.mjs assets/examples/watchtower.mjs --out-dir minecraft-builds/watchtower",
     "preview:example": "node scripts/preview.mjs --nbt minecraft-builds/watchtower/watchtower.nbt",
+    "docs:sync": "node scripts/sync-lodestone-docs.mjs --from ../lodestone",
+    "docs:check": "node scripts/sync-lodestone-docs.mjs --from ../lodestone --check",
     "pack:dry-run": "npm pack --dry-run"
   },
   "dependencies": {
