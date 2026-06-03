@@ -49,6 +49,12 @@ Available helpers include `createStructure`, `setBlock`, `fill`, `hollowBox`, `l
 - For exact default-pack block ids, rendered block-state value enums, special renderer state values, and generic renderer properties like `waterlogged`, search `references/lodestone/default-pack-block-states.md`.
 - Prefer these local references over guessing. Use `rg` for class names, method names, block-state properties, NBT tag names, and option fields before using advanced APIs.
 
+## Reference Lookup
+
+- Before choosing nontrivial block-state values, search `references/lodestone/default-pack-block-states.md` by block id and property name, for example `rg -n "minecraft:oak_stairs|shape|waterlogged" references/lodestone/default-pack-block-states.md`.
+- Before relying on automatic connection behavior, search `references/lodestone/structure.md` for `updateBlockStates()` and check the supported and unsupported coverage.
+- When writing block entities or custom NBT, search `references/lodestone/nbt.md` and `references/recipe-api.md` before constructing tags.
+
 ## Build Guidance
 
 - Keep all coordinates inside the structure size. The runner validates bounds and fails fast.
