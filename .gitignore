@@ -1,3 +1,10 @@
+# Node dependencies and generated Minecraft Builder outputs
+node_modules/
+package-lock.json
+.vite/
+minecraft-builds/
+*.tgz
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

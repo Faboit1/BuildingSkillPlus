@@ -1,0 +1,51 @@
+{
+  "name": "minecraft-builder-skill",
+  "version": "0.1.0",
+  "description": "Codex skill and CLI installer for generating Minecraft structure NBT builds with Lodestone previews.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "minecraft-builder-skill": "./bin/install.mjs"
+  },
+  "files": [
+    "SKILL.md",
+    "agents/",
+    "scripts/",
+    "assets/",
+    "references/",
+    "bin/",
+    "README.md",
+    "LICENSE",
+    "package.json",
+    "package-lock.json"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mattzh72/minecraft-builder-skill.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mattzh72/minecraft-builder-skill/issues"
+  },
+  "homepage": "https://github.com/mattzh72/minecraft-builder-skill#readme",
+  "keywords": [
+    "codex-skill",
+    "minecraft",
+    "nbt",
+    "lodestone",
+    "schematic"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "build:example": "node scripts/run-build.mjs assets/examples/watchtower.mjs --out-dir minecraft-builds/watchtower",
+    "preview:example": "node scripts/preview.mjs --nbt minecraft-builds/watchtower/watchtower.nbt",
+    "pack:dry-run": "npm pack --dry-run"
+  },
+  "dependencies": {
+    "@mattzh72/lodestone": "0.6.0",
+    "gl-matrix": "3.4.4",
+    "three": "0.164.1",
+    "vite": "8.0.16"
+  }
+}
