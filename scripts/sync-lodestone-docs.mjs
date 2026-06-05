@@ -44,6 +44,12 @@ function parseArgs(argv) {
     help: false,
   }
 
+  const readValue = (arg, index) => {
+    const value = argv[index + 1]
+    if (!value || value.startsWith('-')) throw new Error(`${arg} requires a path`)
+    return value
+  }
+
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
     if (arg === '-h' || arg === '--help') {
@@ -51,9 +57,8 @@ function parseArgs(argv) {
     } else if (arg === '--check') {
       options.check = true
     } else if (arg === '--from') {
-      const value = argv[++index]
-      if (!value) throw new Error('--from requires a path')
-      options.from = value
+      options.from = readValue(arg, index)
+      index += 1
     } else if (arg.startsWith('--from=')) {
       options.from = arg.slice('--from='.length)
     } else {

@@ -26,24 +26,34 @@ function parseArgs(argv) {
     open: true,
     help: false,
   }
+  const readValue = (arg, index) => {
+    const value = argv[index + 1]
+    if (!value || value.startsWith('-')) throw new Error(`${arg} requires a value`)
+    return value
+  }
+
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
     if (arg === '-h' || arg === '--help') {
       options.help = true
     } else if (arg === '--nbt') {
-      options.nbt = argv[++index]
+      options.nbt = readValue(arg, index)
+      index += 1
     } else if (arg.startsWith('--nbt=')) {
       options.nbt = arg.slice('--nbt='.length)
     } else if (arg === '--host') {
-      options.host = argv[++index]
+      options.host = readValue(arg, index)
+      index += 1
     } else if (arg.startsWith('--host=')) {
       options.host = arg.slice('--host='.length)
     } else if (arg === '--port') {
-      options.port = Number(argv[++index])
+      options.port = Number(readValue(arg, index))
+      index += 1
     } else if (arg.startsWith('--port=')) {
       options.port = Number(arg.slice('--port='.length))
     } else if (arg === '--lighting') {
-      options.lighting = argv[++index]
+      options.lighting = readValue(arg, index)
+      index += 1
     } else if (arg.startsWith('--lighting=')) {
       options.lighting = arg.slice('--lighting='.length)
     } else if (arg === '--open') {
@@ -90,13 +100,23 @@ async function openUrl(url) {
     stdio: 'ignore',
     detached: true,
   })
+  child.on('error', () => undefined)
   child.unref()
 }
 
 function serveFile(response, filePath) {
   response.statusCode = 200
   response.setHeader('Content-Type', contentType(filePath))
-  createReadStream(filePath).pipe(response)
+  const stream = createReadStream(filePath)
+  stream.on('error', error => {
+    if (!response.headersSent) {
+      response.statusCode = 500
+      response.end('Failed to read file')
+    } else {
+      response.destroy(error)
+    }
+  })
+  stream.pipe(response)
 }
 
 function createPreviewMiddlewarePlugin(nbtPath, defaultPackRoot) {
@@ -174,7 +194,10 @@ async function main() {
     await openUrl(url.toString())
   }
 
+  let closing = false
   const close = async () => {
+    if (closing) return
+    closing = true
     await server.close()
     process.exit(0)
   }

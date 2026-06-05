@@ -40,6 +40,12 @@ function parseArgs(argv) {
     help: false,
   }
 
+  const readValue = (arg, index) => {
+    const value = argv[index + 1]
+    if (!value || value.startsWith('-')) throw new Error(`${arg} requires a value`)
+    return value
+  }
+
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
     if (arg === '-h' || arg === '--help') {
@@ -49,19 +55,23 @@ function parseArgs(argv) {
     } else if (arg === '--no-block-state-updates') {
       options.updateBlockStates = false
     } else if (arg === '--out-dir') {
-      options.outDir = argv[++index]
+      options.outDir = readValue(arg, index)
+      index += 1
     } else if (arg.startsWith('--out-dir=')) {
       options.outDir = arg.slice('--out-dir='.length)
     } else if (arg === '--name') {
-      options.name = argv[++index]
+      options.name = readValue(arg, index)
+      index += 1
     } else if (arg.startsWith('--name=')) {
       options.name = arg.slice('--name='.length)
     } else if (arg === '--data-version') {
-      options.dataVersion = Number(argv[++index])
+      options.dataVersion = Number(readValue(arg, index))
+      index += 1
     } else if (arg.startsWith('--data-version=')) {
       options.dataVersion = Number(arg.slice('--data-version='.length))
     } else if (arg === '--compression') {
-      options.compression = argv[++index]
+      options.compression = readValue(arg, index)
+      index += 1
     } else if (arg.startsWith('--compression=')) {
       options.compression = arg.slice('--compression='.length)
     } else if (!options.recipe) {
@@ -111,21 +121,36 @@ function normalizeSize(size) {
 
 function normalizeBlock(block, properties) {
   if (block instanceof BlockState) {
-    return { name: block.getName().toString(), properties: block.getProperties() }
+    return { name: block.getName().toString(), properties: normalizeProperties(properties ?? block.getProperties(), 'properties') }
   }
   if (typeof block === 'string') {
     const state = BlockState.parse(block)
     return {
       name: state.getName().toString(),
-      properties: properties ?? state.getProperties(),
+      properties: normalizeProperties(properties ?? state.getProperties(), 'properties'),
     }
   }
   if (block && typeof block === 'object') {
     const name = block.name ?? block.id
     if (!name) throw new Error('block object requires name or id')
-    return { name: String(name), properties: properties ?? block.properties }
+    return { name: String(name), properties: normalizeProperties(properties ?? block.properties, 'properties') }
   }
   throw new Error('block must be a block id string, state string, BlockState, or block object')
+}
+
+function normalizeProperties(properties, label) {
+  if (properties === undefined) return undefined
+  if (!properties || typeof properties !== 'object' || Array.isArray(properties)) {
+    throw new Error(`${label} must be an object with string values`)
+  }
+  const normalized = {}
+  for (const [key, value] of Object.entries(properties)) {
+    if (typeof value !== 'string') {
+      throw new Error(`${label}.${key} must be a string`)
+    }
+    normalized[key] = value
+  }
+  return normalized
 }
 
 function assertInside(structure, pos) {

@@ -81,7 +81,7 @@ const LIGHTING_PRESETS = {
 }
 
 class OrbitCamera {
-  constructor(canvas, center, distance) {
+  constructor(canvas, center, distance, onChange = () => undefined) {
     this.canvas = canvas
     this.center = center
     this.distance = distance
@@ -89,27 +89,38 @@ class OrbitCamera {
     this.yRotation = 0.82
     this.dragging = false
     this.lastPos = null
+    this.onChange = onChange
 
     canvas.addEventListener('pointerdown', event => {
       this.dragging = true
       this.lastPos = [event.clientX, event.clientY]
-      canvas.setPointerCapture(event.pointerId)
+      canvas.setPointerCapture?.(event.pointerId)
     })
-    canvas.addEventListener('pointerup', event => {
+    const stopDragging = event => {
       this.dragging = false
       this.lastPos = null
-      canvas.releasePointerCapture(event.pointerId)
-    })
+      if (event?.pointerId !== undefined && canvas.hasPointerCapture?.(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId)
+      }
+    }
+    canvas.addEventListener('pointerup', stopDragging)
+    canvas.addEventListener('pointercancel', stopDragging)
+    canvas.addEventListener('lostpointercapture', stopDragging)
     canvas.addEventListener('pointermove', event => {
       if (!this.dragging || !this.lastPos) return
       this.yRotation += (event.clientX - this.lastPos[0]) / 160
       this.xRotation += (event.clientY - this.lastPos[1]) / 160
       this.xRotation = Math.max(-1.05, Math.min(1.35, this.xRotation))
       this.lastPos = [event.clientX, event.clientY]
+      this.onChange()
     })
     canvas.addEventListener('wheel', event => {
       event.preventDefault()
-      this.distance = Math.max(4, Math.min(500, this.distance + event.deltaY * 0.08))
+      const distance = Math.max(4, Math.min(500, this.distance + event.deltaY * 0.08))
+      if (distance !== this.distance) {
+        this.distance = distance
+        this.onChange()
+      }
     }, { passive: false })
   }
 
@@ -170,7 +181,9 @@ async function loadStructure() {
 
 function resize(renderer, canvas) {
   const rect = canvas.getBoundingClientRect()
+  if (rect.width <= 0 || rect.height <= 0) return false
   renderer.setViewport(0, 0, rect.width, rect.height, Math.min(window.devicePixelRatio, 1.5))
+  return true
 }
 
 async function main() {
@@ -201,29 +214,39 @@ async function main() {
     sunlight: LIGHTING_PRESETS[lightingMode],
   })
 
+  const center = vec3.fromValues(size[0] / 2, Math.max(1, size[1] / 2.5), size[2] / 2)
+  let frameRequest = 0
+  const camera = new OrbitCamera(canvas, center, Math.max(18, Math.max(...size) * 1.9), requestRender)
+
+  function render() {
+    frameRequest = 0
+    const state = camera.getCamera()
+    renderer.lookAt(state.position, state.target)
+    renderer.drawStructure()
+  }
+
+  function requestRender() {
+    if (frameRequest) return
+    frameRequest = requestAnimationFrame(render)
+  }
+
   lightingToggle.addEventListener('click', () => {
     lightingMode = lightingMode === 'night' ? 'day' : 'night'
     renderer.setSunlight(LIGHTING_PRESETS[lightingMode])
     updateLightingButton(lightingToggle, lightingMode)
     setLightingUrl(lightingMode)
+    requestRender()
   })
 
-  const center = vec3.fromValues(size[0] / 2, Math.max(1, size[1] / 2.5), size[2] / 2)
-  const camera = new OrbitCamera(canvas, center, Math.max(18, Math.max(...size) * 1.9))
   resize(renderer, canvas)
   await renderer.whenReady()
+  render()
   loading.classList.add('hidden')
 
-  const resizeObserver = new ResizeObserver(() => resize(renderer, canvas))
+  const resizeObserver = new ResizeObserver(() => {
+    if (resize(renderer, canvas)) requestRender()
+  })
   resizeObserver.observe(canvas)
-
-  function frame() {
-    const state = camera.getCamera()
-    renderer.lookAt(state.position, state.target)
-    renderer.drawStructure()
-    requestAnimationFrame(frame)
-  }
-  requestAnimationFrame(frame)
 }
 
 main().catch(error => {
