@@ -194,6 +194,11 @@ async function main() {
   const lightingToggle = document.getElementById('lighting-toggle')
   let lightingMode = getLightingMode()
 
+  if (!(canvas instanceof HTMLCanvasElement)) throw new Error('Missing #preview canvas')
+  if (!loading || !nameEl || !statsEl || !(lightingToggle instanceof HTMLButtonElement)) {
+    throw new Error('Missing viewer controls')
+  }
+
   nameEl.textContent = getParam('name', 'Minecraft Build')
   updateLightingButton(lightingToggle, lightingMode)
 

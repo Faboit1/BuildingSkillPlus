@@ -1,6 +1,6 @@
 # Minecraft Builder Skill
 
-Agent skill for programmatic Minecraft builds. Generate JavaScript recipes, export vanilla structure `.nbt` files, and preview builds in a clean Lodestone-powered viewer.
+Reusable skill for programmatic Minecraft builds. Generate JavaScript recipes, export vanilla structure `.nbt` files, and preview builds in a clean Lodestone-powered viewer.
 
 ## Install
 
@@ -12,7 +12,7 @@ Default install:
 npx --yes github:mattzh72/minecraft-builder-skill
 ```
 
-This installs to `$CODEX_HOME/skills/minecraft-builder-skill`, or `~/.codex/skills/minecraft-builder-skill` if `CODEX_HOME` is unset.
+This installs to the default skills directory configured by your environment.
 
 Custom skills directory:
 
@@ -22,22 +22,22 @@ npx --yes github:mattzh72/minecraft-builder-skill install --target /path/to/skil
 
 That creates `/path/to/skills/minecraft-builder-skill`.
 
-## Use With An Agent
+## Use
 
-Ask any compatible agent to use the installed skill:
+Use the installed skill in any compatible environment:
 
 ```text
 Use minecraft-builder-skill to make a floating crystal observatory, export the .nbt file, and open a night-mode preview.
 ```
 
-If your agent supports direct skill mentions, `$minecraft-builder-skill` works too.
+If direct skill mentions are supported, `$minecraft-builder-skill` works too.
 
 ## Try The Showcase
 
 From the installed skill directory:
 
 ```bash
-cd "${CODEX_HOME:-$HOME/.codex}/skills/minecraft-builder-skill"
+cd /path/to/skills/minecraft-builder-skill
 node scripts/run-build.mjs assets/examples/celestial-observatory.mjs --out-dir minecraft-builds/celestial-observatory
 node scripts/preview.mjs --nbt minecraft-builds/celestial-observatory/celestial-observatory.nbt --lighting night
 ```

@@ -15,6 +15,7 @@ const packageItems = [
   'LICENSE',
   'package.json',
   'npm-shrinkwrap.json',
+  'tsconfig.json',
   'agents',
   'scripts',
   'assets',

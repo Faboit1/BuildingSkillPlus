@@ -2,13 +2,13 @@
   "package": "@mattzh72/lodestone",
   "version": "0.6.0",
   "source": "../lodestone/docs",
-  "gitCommit": "bb294cbd2d6af91caf5e41a734c5623065d25ce4",
+  "gitCommit": "dc777081417cf5ca441891eb2f8d56b006702eb6",
   "gitDirty": false,
-  "syncedAt": "2026-06-03T19:57:19.970Z",
+  "syncedAt": "2026-06-07T19:25:13.475Z",
   "files": {
     "README.md": {
-      "sourceSha256": "1b9b0d6711e35dc06b92af43c08892c59e1ba48656aa963d4da6b9fe4de9657c",
-      "vendoredSha256": "82f57740df723fa1c7877d431582f9dc6f6534bc03451643325183edfd710c16"
+      "sourceSha256": "74914943c9114d100a7795e6b8fe600cbe09f933b095a72cdeb90c21a1f396a9",
+      "vendoredSha256": "d6889536683e66b3a5281220f8bb2480746d6ec8d764e02556d4f0fe85125a06"
     },
     "getting-started.md": {
       "sourceSha256": "ae931a6e39fbb89253cfac62e5d67b2a02de645e322455c3a0dd784447f29922",
