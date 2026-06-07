@@ -1,3 +1,5 @@
+<img width="800" height="496" alt="ScreenRecording2026-06-07at3 08 05PM-ezgif com-optimize" src="https://github.com/user-attachments/assets/2bce3efe-68a4-4037-85c7-04435ebbf9e8" />
+
 # Minecraft Builder Skill
 
 Reusable skill for programmatic Minecraft builds. Generate JavaScript recipes, export vanilla structure `.nbt` files, and preview builds in a clean Lodestone-powered viewer.
