@@ -5,21 +5,6 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import * as lodestone from '@mattzh72/lodestone'
 
-/**
- * @typedef {import('@mattzh72/lodestone').BlockPos} BlockPos
- * @typedef {import('@mattzh72/lodestone').NbtCompressionMode} NbtCompressionMode
- * @typedef {{
- *   recipe: string | undefined,
- *   outDir: string | undefined,
- *   name: string | undefined,
- *   dataVersion: number,
- *   compression: NbtCompressionMode,
- *   updateBlockStates: boolean,
- *   json: boolean,
- *   help: boolean,
- * }} BuildOptions
- */
-
 const {
   BlockState,
   NbtByte,
@@ -43,12 +28,7 @@ function usage() {
 `
 }
 
-/**
- * @param {string[]} argv
- * @returns {BuildOptions}
- */
 function parseArgs(argv) {
-  /** @type {BuildOptions} */
   const options = {
     recipe: undefined,
     outDir: undefined,
@@ -90,10 +70,10 @@ function parseArgs(argv) {
     } else if (arg.startsWith('--data-version=')) {
       options.dataVersion = Number(arg.slice('--data-version='.length))
     } else if (arg === '--compression') {
-      options.compression = /** @type {NbtCompressionMode} */ (readValue(arg, index))
+      options.compression = readValue(arg, index)
       index += 1
     } else if (arg.startsWith('--compression=')) {
-      options.compression = /** @type {NbtCompressionMode} */ (arg.slice('--compression='.length))
+      options.compression = arg.slice('--compression='.length)
     } else if (!options.recipe) {
       options.recipe = arg
     } else {
@@ -120,11 +100,6 @@ function slugify(value) {
   return slug || 'minecraft-build'
 }
 
-/**
- * @param {unknown} value
- * @param {string} label
- * @returns {BlockPos}
- */
 function tuple(value, label) {
   if (!Array.isArray(value) || value.length !== 3) {
     throw new Error(`${label} must be a three-number array`)
@@ -133,13 +108,9 @@ function tuple(value, label) {
   if (!out.every(Number.isFinite)) {
     throw new Error(`${label} must contain finite numbers`)
   }
-  return /** @type {BlockPos} */ (out.map(Math.trunc))
+  return out.map(Math.trunc)
 }
 
-/**
- * @param {unknown} size
- * @returns {BlockPos}
- */
 function normalizeSize(size) {
   const out = tuple(size, 'size')
   if (!out.every(value => value > 0)) {

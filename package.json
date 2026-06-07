@@ -17,8 +17,7 @@
     "README.md",
     "LICENSE",
     "package.json",
-    "npm-shrinkwrap.json",
-    "tsconfig.json"
+    "npm-shrinkwrap.json"
   ],
   "repository": {
     "type": "git",
@@ -42,7 +41,6 @@
   "scripts": {
     "build:example": "node scripts/run-build.mjs assets/examples/watchtower.mjs --out-dir minecraft-builds/watchtower",
     "preview:example": "node scripts/preview.mjs --nbt minecraft-builds/watchtower/watchtower.nbt",
-    "check:types": "tsc -p tsconfig.json",
     "docs:sync": "node scripts/sync-lodestone-docs.mjs --from ../lodestone",
     "docs:check": "node scripts/sync-lodestone-docs.mjs --from ../lodestone --check",
     "pack:dry-run": "npm pack --dry-run"
@@ -52,9 +50,5 @@
     "gl-matrix": "3.4.4",
     "three": "0.164.1",
     "vite": "8.0.16"
-  },
-  "devDependencies": {
-    "@types/node": "24.10.1",
-    "typescript": "5.9.3"
   }
 }
