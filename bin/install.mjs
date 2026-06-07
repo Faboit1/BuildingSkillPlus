@@ -30,7 +30,7 @@ Usage:
   npx --yes github:mattzh72/minecraft-builder-skill install [--target <skills-dir>] [--force] [--no-deps]
 
 Options:
-  --target <skills-dir>  Install into this Codex skills directory.
+  --target <skills-dir>  Install into this skills directory.
   --force                Replace an existing minecraft-builder-skill install.
   --no-deps              Copy files only; skip npm install --omit=dev.
   -h, --help             Show this help text.
@@ -150,7 +150,7 @@ async function install(options) {
   console.log(`\nInstalled ${SKILL_NAME} at:`)
   console.log(`  ${installDir}`)
   console.log('\nTry it with:')
-  console.log('  Use $minecraft-builder-skill to create a small medieval watchtower, export the .nbt file, and open a preview.')
+  console.log('  Use minecraft-builder-skill to create a small medieval watchtower, export the .nbt file, and open a preview.')
 }
 
 async function main() {

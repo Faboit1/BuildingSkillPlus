@@ -1,7 +1,7 @@
 {
   "name": "minecraft-builder-skill",
   "version": "0.1.0",
-  "description": "Codex skill and CLI installer for generating Minecraft structure NBT builds with Lodestone previews.",
+  "description": "Agent skill and CLI installer for generating Minecraft structure NBT builds with Lodestone previews.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
@@ -28,6 +28,7 @@
   },
   "homepage": "https://github.com/mattzh72/minecraft-builder-skill#readme",
   "keywords": [
+    "agent-skill",
     "codex-skill",
     "minecraft",
     "nbt",

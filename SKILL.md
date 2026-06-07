@@ -1,6 +1,6 @@
 ---
 name: minecraft-builder-skill
-description: Programmatically generate Minecraft builds as vanilla structure NBT files and open Lodestone-powered previews. Use when Codex needs to create, export, inspect, or iterate on Minecraft structures, schematics, block palettes, or build recipes using JavaScript and .nbt output.
+description: Programmatically generate Minecraft builds as vanilla structure NBT files and open Lodestone-powered previews. Use when an agent needs to create, export, inspect, or iterate on Minecraft structures, schematics, block palettes, or build recipes using JavaScript and .nbt output.
 ---
 
 # Minecraft Builder Skill
