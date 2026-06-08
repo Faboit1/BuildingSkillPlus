@@ -2,7 +2,7 @@
   <img width="560" alt="Minecraft Builder Skill preview" src="https://github.com/user-attachments/assets/2bce3efe-68a4-4037-85c7-04435ebbf9e8" />
 </p>
 
-# Minecraft Builder Skill
+# minecraft-builder-skill
 
 Give your agent Minecraft superpowers: it can design builds, generate JavaScript build recipes, export vanilla `.nbt` structures, and open interactive previews you can inspect before placing anything in-game.
 
