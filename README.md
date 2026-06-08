@@ -10,17 +10,23 @@ Give your agent Minecraft superpowers: it can design builds, generate JavaScript
 
 - Node.js 20.19 or newer
 - `npx`
-- An agent that can load local skills
+- An agent that can load Skills CLI skills
 
 ## Setup
 
 Install it into your agent's skills directory:
 
 ```bash
-npx --yes github:mattzh72/minecraft-builder-skill
+npx skills install mattzh72/minecraft-builder-skill
 ```
 
-Restart or reload your agent so it can discover the skill.
+To target a specific agent, replace `claude-code` with the agent you use:
+
+```bash
+npx skills install mattzh72/minecraft-builder-skill --agent claude-code
+```
+
+Restart or reload your agent so it can discover the skill. On first use, the skill instructs your agent to install its Node dependencies from `package.json` if they are missing.
 
 ## Use
 

@@ -11,21 +11,33 @@ Create Minecraft builds by writing small JavaScript recipes that use Lodestone-b
 
 ## Workflow
 
-1. Work from the installed skill directory. Do not rerun `npx` after installation; use this skill's local `scripts/` and `assets/`.
-2. Write an ESM recipe file. Use `assets/examples/watchtower.mjs` as the compact starter pattern, or `assets/examples/celestial-observatory.mjs` as a larger showcase pattern.
-3. Generate NBT:
+1. Work from the installed skill directory. Do not rerun the Skills CLI after installation; use this skill's local `scripts/` and `assets/`.
+2. Before running any build or preview scripts, ensure dependencies are installed. If `node_modules/@mattzh72/lodestone` is missing, run this from the installed skill directory:
+
+```bash
+npm install --omit=dev
+```
+
+3. Write an ESM recipe file. Use `assets/examples/watchtower.mjs` as the compact starter pattern, or `assets/examples/celestial-observatory.mjs` as a larger showcase pattern.
+4. Generate NBT:
 
 ```bash
 node scripts/run-build.mjs path/to/recipe.mjs --out-dir minecraft-builds/my-build
 ```
 
-4. Open the preview:
+5. Open the preview:
 
 ```bash
 node scripts/preview.mjs --nbt minecraft-builds/my-build/my-build.nbt
 ```
 
-5. Iterate by editing the recipe, regenerating the `.nbt`, and reopening or refreshing the preview.
+6. Iterate by editing the recipe, regenerating the `.nbt`, and reopening or refreshing the preview.
+
+## Dependencies
+
+Skills CLI installs copy the skill files but may not install Node packages. This skill intentionally keeps dependencies in `package.json` and `npm-shrinkwrap.json` instead of vendoring `node_modules`.
+
+Before using `scripts/run-build.mjs` or `scripts/preview.mjs`, check for `node_modules/@mattzh72/lodestone`. If it is absent, run `npm install --omit=dev` from the installed skill directory. Do not install dependencies globally, and do not guess alternate Lodestone versions.
 
 ## Recipe Contract
 
