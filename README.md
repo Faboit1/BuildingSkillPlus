@@ -6,13 +6,21 @@
 
 Give your agent Minecraft superpowers: it can design builds, generate JavaScript build recipes, export vanilla `.nbt` structures, and open interactive previews you can inspect before placing anything in-game.
 
+## Requirements
+
+- Node.js 20.19 or newer
+- `npx`
+- An agent that can load local skills
+
 ## Setup
 
-Requires Node.js 20.19 or newer.
+Install it into your agent's skills directory:
 
 ```bash
 npx --yes github:mattzh72/minecraft-builder-skill
 ```
+
+Restart or reload your agent so it can discover the skill.
 
 ## Use
 
