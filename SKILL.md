@@ -18,7 +18,7 @@ Create Minecraft builds by writing small JavaScript recipes that use Lodestone-b
 npm install --omit=dev
 ```
 
-3. Write an ESM recipe file. Use `assets/examples/watchtower.mjs` as the compact starter pattern, or `assets/examples/celestial-observatory.mjs` as a larger showcase pattern.
+3. Write an ESM recipe file. Use `assets/examples/celestial-forge.mjs` as the canonical example for ambitious floating megastructures.
 4. Generate NBT:
 
 ```bash

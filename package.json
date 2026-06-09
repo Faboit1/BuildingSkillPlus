@@ -35,8 +35,8 @@
     "node": ">=20.19"
   },
   "scripts": {
-    "build:example": "node scripts/run-build.mjs assets/examples/watchtower.mjs --out-dir minecraft-builds/watchtower",
-    "preview:example": "node scripts/preview.mjs --nbt minecraft-builds/watchtower/watchtower.nbt",
+    "build:example": "node scripts/run-build.mjs assets/examples/celestial-forge.mjs --out-dir minecraft-builds/celestial-forge",
+    "preview:example": "node scripts/preview.mjs --nbt minecraft-builds/celestial-forge/celestial-forge.nbt",
     "docs:sync": "node scripts/sync-lodestone-docs.mjs --from ../lodestone",
     "docs:check": "node scripts/sync-lodestone-docs.mjs --from ../lodestone --check",
     "pack:dry-run": "npm pack --dry-run"
