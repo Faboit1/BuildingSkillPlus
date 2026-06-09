@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="560" alt="Minecraft Builder Skill preview" src="https://github.com/user-attachments/assets/2bce3efe-68a4-4037-85c7-04435ebbf9e8" />
+  <img width="560" alt="Minecraft Builder Skill preview" src="https://github.com/user-attachments/assets/5f183bf2-b9f2-4228-979d-d1e55c7d81ad" />
 </p>
 
 # minecraft-builder-skill
