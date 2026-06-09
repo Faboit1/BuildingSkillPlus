@@ -1,3 +1,6 @@
+<p align="center">
+<img width="600" height="338" alt="MyMovie-ezgif com-optimize" src="https://github.com/user-attachments/assets/2a0f99a0-bb8e-42b2-9624-a4d1c1684e84" />
+</p>
 
 # minecraft-builder-skill
 
