@@ -67,9 +67,9 @@ What the kit does, so you can predict the result:
   outermost eave row stays bare unless `eaveTrim: true`. `underside: 'block'` uses full blocks.
 - **`gable: paint`** fills every wall-line cell up to the roof surface (gable triangles, the high
   wall of a shed), replacing underside stairs on that line, so the triangle is solid.
-- **Pitch-list rule:** the level of the wall-line row (index `overhang`) must be whole. The first
-  entry counts as 0.5 if it is ≤ 0.5, otherwise 1; later entries add their rise. Good: `[0.5, 0.5, 1, …]`
-  with overhang 1 or 2, `[1, …]` or `[2, …]` with overhang 1. Bad: `[0.5, 1, …]` with overhang 1.
+- **Pitch lists:** entry 0 only picks the eave element (≤ 0.5 a slab, otherwise a stair); entry i
+  is the rise from row i − 1 to row i. A full rise after a half level snaps up to the next whole
+  block, so a list never turns the whole roof into slabs. The wall-line row always lands on `y`.
 - **A row may rise 0** (`pitch: [1, 1, 0]`): a flat field after two stair rings (Mojang's low hip).
 - **`overwrite: false`** keeps blocks that are already there. Use it for a lower roof that dies into
   a taller wall, so the wall stays whole.
@@ -270,29 +270,27 @@ b.roof({ x0: 8, z0: 10, x1: 22, z1: 18, y: H.F + 4, axis: 'x', material: 'spruce
 b.roof({ x0: 12, z0: 18, x1: 18, z1: 28, y: H.F + 4, axis: 'z', material: 'spruce', gable: 'spruce_planks', eaveTrim: true })   // wing 7 wide
 ```
 
-**One height field (`compoundRoof`):** exact hips, valleys and cross gables over any union of
-rectangles (L, T, U, H, courtyard). It lives in `scripts/lib/kit/roofplan.mjs`; where it is not yet a
-builder method, import it (path relative to your recipe) and call `compoundRoof(b, opts)`.
+**One height field (`b.compoundRoof`):** exact hips, valleys and cross gables over any union of
+rectangles (L, T, U, H, courtyard) or a list of cells, with no overlapping roofs or attic clutter.
+List the main wing first.
 
 ```js
-import { compoundRoof } from '../../scripts/lib/kit/roofplan.mjs'
-export default function build(api) {
-  const b = api.builder([80, 40, 60], { seed: 1 })
-  const L = [[2, 2, 16, 9], [2, 9, 8, 22]]                                        // L plan, wall-line rectangles
-  for (const [x0, z0, x1, z1] of L) b.walls([x0, 0, z0], [x1, 3, z1], 'white_terracotta')
-  compoundRoof(b, { rects: L, y: 4, type: 'hip', material: 'spruce', eaveTrim: true })
-  const C = [[24, 2, 44, 6], [24, 18, 44, 22], [24, 6, 28, 18], [40, 6, 44, 18]]  // courtyard
-  for (const [x0, z0, x1, z1] of C) b.walls([x0, 0, z0], [x1, 3, z1], 'white_terracotta')
-  compoundRoof(b, { rects: C, y: 4, type: 'hip', material: 'deepslate_tile', eaveTrim: true })
-  const T = [[50, 2, 68, 10], [56, 10, 62, 22]]                                   // T plan with gables
-  for (const [x0, z0, x1, z1] of T) b.walls([x0, 0, z0], [x1, 3, z1], 'white_terracotta')
-  compoundRoof(b, { rects: T, y: 4, type: 'gable', material: 'dark_oak', gable: 'spruce_planks' })
-  return b.finish({ name: 'compound-roofs' })
-}
+const L = [[2, 2, 16, 9], [2, 9, 8, 22]]                                          // L plan, wall-line rectangles
+for (const [x0, z0, x1, z1] of L) b.walls([x0, H.F, z0], [x1, H.F + 3, z1], 'white_terracotta')
+b.compoundRoof({ rects: L, y: H.F + 4, type: 'hip', material: 'spruce', eaveTrim: true })
+const C = [[24, 2, 44, 6], [24, 18, 44, 22], [24, 6, 28, 18], [40, 6, 44, 18]]    // courtyard
+for (const [x0, z0, x1, z1] of C) b.walls([x0, H.F, z0], [x1, H.F + 3, z1], 'white_terracotta')
+b.compoundRoof({ rects: C, y: H.F + 4, type: 'hip', material: 'deepslate_tile', eaveTrim: true })
+const T = [[50, 2, 68, 10], [56, 10, 62, 22]]                                     // T plan with gables
+for (const [x0, z0, x1, z1] of T) b.walls([x0, H.F, z0], [x1, H.F + 3, z1], 'white_terracotta')
+b.compoundRoof({ rects: T, y: H.F + 4, type: 'gable', material: 'dark_oak', gable: 'spruce_planks' })
 ```
 
-Options: `type: 'hip' | 'gable' | 'mixed'`, `gableAxes: ['x', 'z', ...]` per rectangle, plus the
-`b.roof` options `material, pitch, overhang, gableOverhang, gable, eaveTrim, underside, ridgeCap`.
+Options: `type: 'hip' | 'gable' | 'mixed'` (in `mixed`, rects with a `gableAxes` entry are gables),
+`gableAxes: ['x', 'z', ...]` per rectangle, plus the `b.roof` options (`material`, `pitch`,
+`overhang`, `gable`, `eaveTrim`...). On a gable plan, an outer corner where two wings are flush gets
+a valley running to the wall: correct, but it reads oddly; set the wing back 1–2 or make the main
+block a hip (`type: 'mixed'`). A full-height wall dormer is a second, narrow rectangle.
 Valleys collect water: give them the darkest or mossiest roof blocks when you texture (§1.18).
 
 ### 1.9 Gambrel, mansard, bell-cast
@@ -421,7 +419,8 @@ b.set(cx, A + 1, cz, 'lightning_rod[facing=up]')
 
 `b.coneRoof([cx, y, cz], radius, { material, pitch, overhang, flare, finial })`: `y` = the level
 above the tower's wall top, `radius` = the tower's radius (as passed to `b.tube`). The pitch list
-works as in `b.roof` (from the eave in; keep the wall-line level whole):
+works as in `b.roof` (from the eave in). With a numeric pitch, `flare: true` (default) starts with a
+slab ring and a stair ring before the steep rows; `flare: false` keeps one pitch:
 
 ```text
 [0.5, 0.5, 2]                            flare: false (pitch 2)                   [1, 1, 2, 2, 3, 3, 3]
@@ -566,11 +565,12 @@ block down, and only the front wall extends down to the roof; it warns if it is 
 ```js
 b.walls([2, H.F, 10], [18, H.F + 4, 20], 'white_terracotta')
 b.roof({ x0: 2, z0: 10, x1: 18, z1: 20, y: H.F + 5, axis: 'x', material: 'spruce', gable: 'spruce_planks', eaveTrim: true })
-b.dormer([6, H.F + 5, 20], 'south', { material: 'spruce', wall: 'spruce_planks', width: 3, height: 3 })              // on the wall line
+b.dormer([6, H.F + 5, 20], 'south', { material: 'spruce', wall: 'spruce_planks', width: 5, height: 3 })              // on the wall line
 b.dormer([14, H.F + 6, 19], 'south', { material: 'dark_oak', wall: 'stripped_spruce_log', width: 3, height: 2 })     // one row in
 ```
 
-- Outer width 3 (1-wide window) or 5 (3-wide window); ridge ≥ 1 below the main ridge.
+- Outer width 3 (1-wide window) or 5 (3-wide window); ridge ≥ 1 below the main ridge. On cottages
+  put the front on the wall line with width 5: a 3-wide dormer set back from the eave reads as a hole.
 - Align dormers with the bays and windows below; odd counts, symmetric on formal fronts; at most
   one per 4–6 blocks of roof length. Use them on every large roof (wiki: avoid "a large expanse of
   blank sloping roof").
@@ -644,8 +644,11 @@ y3   s  s  s  s  s  s  s  s  s  s  s  s  s     stone ground floor (door below)
 - **Beams:** a continuous ring at the sill, every floor line and the top plate (`axis` along the run;
   `*_wood` where bark should show on every face).
 - **Braces:** knee braces (upside-down stairs in the top corners of a bay, leg on the post) in any
-  bay; diagonal log braces only in bays ≥ 4 wide (`braces: true` puts them in the end bays,
-  `'all'` in every bay, mirrored).
+  bay; diagonal braces (`braces: true` in the end bays, `'all'` in every bay, mirrored) read only in
+  panels ≥ 5 wide × 4 tall.
+- **`b.timberWall` options:** `inset: 1` + `facing` (the outward side) puts the infill one block
+  inside so the frame stands proud on a single wall; `posts: [...]` sets explicit post positions;
+  `joints: 'posts'` lets posts run through the beams.
 - **Jetty:** each upper floor 1 wider on the street side, a bracket under every post, joist ends
   between them.
 - **Contrast:** frame vs infill ΔL\* 40–60 (`stripped_dark_oak_log` 25 / `calcite` 89). Infill
@@ -842,7 +845,7 @@ wall plane; the width extends to the viewer's right; `facing` = the wall's outwa
 | `shutters` | none | `true` = the material's trapdoor, open, either side |
 | `flowerBox` | `false` | rooted dirt + flowers + trapdoor faces below the sill line |
 | `recess` | 0 | glass that many cells deeper (needs a wall that thick, or sits in the room's first cell) |
-| `arch` | `false` | upside-down stairs in the top corners (width ≥ 2) |
+| `arch` | `false` | upside-down stairs in the two top corners: a pointed head at width 2, shoulders when wider |
 | `mullion` | none | centre column paint (width ≥ 3) |
 | `material` | `spruce` | family for sill, arch stairs, trapdoors |
 
@@ -1132,7 +1135,8 @@ tube overlapping the house corner by 1–2 with its own cone, rising ≥ 2 above
   crenellations look best (game.guide).
 - `b.battlements([x0, z0], [x1, z1], y, paint, { period, height, cap, offset })` runs round a
   rectangle; corners are always merlons. Two passes with `period: 3` and offsets 0 and 2 give
-  2-on/1-off.
+  2-on/1-off. Walls along any polygon (round towers, walkways, gatehouses) come from
+  `kit.plan.curtainWall`.
 
 ```text
 B1 1-on/1-off, 1 high      B2 2-on/1-off, 2 high      B3 parapet + 2-on/1-off    B4 wall posts + slab caps

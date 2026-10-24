@@ -587,6 +587,7 @@ function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 
   const OUT = s => face(0, s) // outward from the side with sign s
   const FWD = face(-1, 0)
   const AFT = face(1, 0)
+  const ALONG = FWD === 'east' || FWD === 'west' ? 'x' : 'z'
   const outerW = (u, y, sgn) => {
     for (let w = Math.ceil(beam / 2) + 2; w >= 0; w -= 1) if (solidAt(u, sgn * w, y)) return w
     return -1
@@ -609,9 +610,32 @@ function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 
         if (w < 0) continue
         const blk = get(u, sgn * w, y)
         if (!/planks|log/.test(blk.name)) continue
-        const paint = y === 5 || y === 9 ? 'stripped_dark_oak_wood' : y >= 7 ? 'stripped_oak_wood' : null
-        if (paint) put(u, sgn * w, y, paint)
+        // logs laid along the hull where the run is straight; *_wood (bark on every face) where the
+        // hull turns, so no end-grain rings show at the bow and the transom
+        const run = solidAt(u - 1, sgn * w, y) && solidAt(u + 1, sgn * w, y)
+        const tone = y === 5 || y === 9 ? 'stripped_dark_oak' : y >= 7 ? 'stripped_oak' : null
+        if (tone) put(u, sgn * w, y, run ? `${tone}_log[axis=${ALONG}]` : `${tone}_wood`)
       }
+
+  // ---- hull smoothing: a stair on every 1-block tumblehome ledge above the waterline and an
+  // upside-down stair under every 1-block step of the bilge below it. Turns the stepped midship
+  // section into a curve (and is where most of a ship's upside-down stairs come from).
+  const stairOf = y => (y <= 5 || y === 9 ? 'dark_oak' : y === 7 || y === 8 ? 'oak' : 'spruce')
+  for (let u = 1; u < L; u += 1)
+    for (const sgn of [-1, 1])
+      for (let y = 1; y < ship.deckY(u); y += 1) {
+        const w = outerW(u, y, sgn)
+        const wUp = outerW(u, y + 1, sgn)
+        if (w < 0 || wUp < 0) continue
+        if (y >= 5 && wUp === w - 1 && !solidAt(u, sgn * w, y + 1)) put(u, sgn * w, y + 1, kit.stairs(stairOf(y + 1), OUT(-sgn)))
+        if (y <= 4 && wUp === w + 1 && !solidAt(u, sgn * wUp, y)) put(u, sgn * wUp, y, kit.stairs('dark_oak', OUT(-sgn), 'top'))
+      }
+  // sheer steps in the waist deck become two half-steps (a bottom slab on the lower deck cell)
+  for (let u = U_FC + 1; u < U_QD - 1; u += 1)
+    for (const du of [-1, 1]) {
+      if (ship.deckY(u + du) !== ship.deckY(u) + 1) continue
+      for (let w = -deckW[u] + 1; w <= deckW[u] - 1; w += 1) if (!solidAt(u, w, ship.deckY(u) + 1)) put(u, w, ship.deckY(u) + 1, 'spruce_slab[type=bottom]')
+    }
 
   // ---- castles: raised decks fore and aft. Walls follow the hull line and lean inward
   // (tumblehome: 1 block per 4 up), floors at 3-block storeys (1 floor + 2 air).
@@ -651,6 +675,12 @@ function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 
     }
     for (let u = 0; u <= U_FC; u += 1) if (hwAt(u, FC) > 1) put(u, sgn * hwAt(u, FC), FC, 'stripped_dark_oak_wood')
   }
+  // deck edges project one block over the castle walls on upside-down stairs (a cornice)
+  for (const sgn of [-1, 1]) {
+    for (let u = U_QD; u <= L; u += 1) put(u, sgn * (hwAt(u, QD) + 1), QD, kit.stairs('dark_oak', OUT(-sgn), 'top'), { keep: true })
+    for (let u = U_PD; u <= L; u += 1) put(u, sgn * (hwAt(u, PD) + 1), PD, kit.stairs('dark_oak', OUT(-sgn), 'top'), { keep: true })
+    for (let u = 2; u <= U_FC; u += 1) put(u, sgn * (hwAt(u, FC) + 1), FC, kit.stairs('dark_oak', OUT(-sgn), 'top'), { keep: true })
+  }
   // windows between the posts (quarterdeck cabin and poop cabin)
   for (const sgn of [-1, 1])
     for (let u = U_QD + 2; u <= L - 3; u += 3) {
@@ -661,7 +691,7 @@ function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 
   for (const sgn of [-1, 1]) {
     for (let u = L - 4; u <= L - 1; u += 1) {
       const w = hwAt(u, MAIN + 2) + 1
-      put(u, sgn * w, MAIN + 1, 'dark_oak_slab[type=top]')
+      put(u, sgn * w, MAIN + 1, kit.stairs('dark_oak', OUT(-sgn), 'top'))
       put(u, sgn * w, MAIN + 2, u === L - 4 || u === L - 1 ? 'dark_oak_planks' : 'glass_pane')
       put(u, sgn * w, MAIN + 3, `dark_oak_stairs[facing=${OUT(-sgn)},half=bottom]`)
     }
@@ -692,7 +722,7 @@ function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 
   for (let w = -hwAt(L, MAIN + 2) + 1; w <= hwAt(L, MAIN + 2) - 1; w += 1) put(L, w, MAIN + 2, Math.abs(w) % 2 ? 'stripped_dark_oak_log[axis=y]' : 'glass_pane')
   for (let w = -hwS + 1; w <= hwS - 1; w += 1) put(L, w, QD + 2, Math.abs(w) % 2 ? 'stripped_dark_oak_log[axis=y]' : 'glass_pane')
   for (let w = -hwAt(L, QD); w <= hwAt(L, QD); w += 1) {
-    put(L + 1, w, QD, 'dark_oak_slab[type=top]')
+    put(L + 1, w, QD, kit.stairs('dark_oak', FWD, 'top'))
     put(L + 1, w, QD + 1, 'dark_oak_fence')
   }
   for (let w = -hwS; w <= hwS; w += 1) put(L, w, PD, w === 0 ? 'gold_block' : 'stripped_oak_wood')
@@ -715,23 +745,35 @@ function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 
   // set sail between a head yard (yHead, halfHead) and a foot row (yFoot, halfFoot), bellied forward,
   // rasterized 2 thick so neighbouring rows never leave see-through slits
   const setSail = (u, yHead, halfHead, yFoot, halfFoot, belly = 2) => {
-    const rows = yHead - yFoot
+    const rows = new Map()
     for (let y = yFoot; y < yHead; y += 1) {
-      const t = (yHead - y) / rows
+      const t = (yHead - y) / (yHead - yFoot)
       const half = halfHead + (halfFoot - halfHead) * t
+      const row = new Set()
       let prev = null
       for (let s = -half; s <= half + 1e-6; s += 0.25) {
         const q = s / half
         const k = 1 + belly * (1 - q * q) * Math.sin(Math.PI * Math.min(1, 0.15 + t * 0.9))
         const cu = Math.round(u + s * dU + k * nU)
         const cw = Math.round(s * dW + k * nW)
-        const bu = Math.round(u + s * dU + (k - 1) * nU)
-        const bw = Math.round(s * dW + (k - 1) * nW)
-        put(cu, cw, y, 'white_wool', { keep: true })
-        if (k > 1.4) put(bu, bw, y, 'white_wool', { keep: true })
-        if (prev && prev[0] !== cu && prev[1] !== cw) put(prev[0], cw, y, 'white_wool', { keep: true })
+        row.add(`${cu},${cw}`)
+        if (prev && prev[0] !== cu && prev[1] !== cw) row.add(`${prev[0]},${cw}`) // keep the row face-connected
         prev = [cu, cw]
       }
+      rows.set(y, row)
+    }
+    // rows whose cells meet only along an edge leave see-through slits: add the cell above there
+    for (let y = yFoot; y < yHead - 1; y += 1) {
+      const up = rows.get(y + 1)
+      for (const key of rows.get(y)) {
+        if (up.has(key)) continue
+        const [cu, cw] = key.split(',').map(Number)
+        if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, c]) => up.has(`${cu + a},${cw + c}`))) up.add(key)
+      }
+    }
+    for (const [y, row] of rows) for (const key of row) {
+      const [cu, cw] = key.split(',').map(Number)
+      put(cu, cw, y, 'white_wool', { keep: true })
     }
   }
   const mastLine = (u, top, fenceFrom) => {
@@ -785,7 +827,8 @@ function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 
   // beakhead: a projecting grating below the bowsprit with a skull figurehead
   for (let u = -1; u >= -4; u -= 1)
     for (let w = -(4 + u); w <= 4 + u; w += 1) put(u, w, 11, 'spruce_slab[type=top]')
-  put(-5, 0, 11, 'stripped_dark_oak_log[axis=x]')
+  for (let u = -1; u >= -3; u -= 1) put(u, 0, 10, kit.stairs('dark_oak', AFT, 'top'))
+  put(-5, 0, 11, 'stripped_dark_oak_wood')
   put(-5, 0, 12, 'skeleton_skull[rotation=12]')
 
   // ---- rigging: shrouds fan from each masthead to channels (top slabs) outside the rail;
@@ -801,7 +844,7 @@ function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 
       }
   }
   shrouds(uM, 28, 3)
-  shrouds(uF, 26, 3)
+  shrouds(uF, 26, 2)
   shrouds(uZ, 27, 2)
   // stays along the centreline (drawn with keep: they pass behind the sails)
   b.line(at(uF, 0, 26), at(-11, 0, 17), 'spruce_fence', { connect: 6, keep: true })
