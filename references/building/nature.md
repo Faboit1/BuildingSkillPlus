@@ -277,22 +277,64 @@ Bushes go at building corners, path bends, rock bases and forest edges (0.5–2%
 
 ### 1.10 Forest module
 
-`scripts/lib/kit/forest.mjs` adds builder-first generators (see kit-api.md for how they are exposed):
+`scripts/lib/kit/forest.mjs` adds three Builder methods: `b.forest`, `b.spaceColonizationTree` and
+`b.foresterTree` (reference in kit-api.md):
 
 ```js
-forest(b, { x0, z0, x1, z1, ground: (x, z) => y, species: [[6, 'oak'], [3, 'birch'], [1, 'dark_oak']],
-            density: 0.5, minSpacing: 6, clearings: [[cx, cz, r]], seed: 4, sizes: [0.15, 0.45, 0.4] })
-spaceColonizationTree(b, [x, y, z], { height: 18, crown: [7, 5.5, 7], log: 'oak_log', wood: 'oak_wood', leaves: ['oak_leaves'] })
-foresterTree(b, [x, y, z], { height: 18, shape: 'round' | 'cone' })
+const ground = b.terrain({ height: (x, z) => 6 + 5 * (kit.noise.fbm2(x, z, { scale: 48, seed: 2 }) + 0.7) })
+b.path(pathPts, { width: 3, paint: kit.palette({ dirt_path: 6, coarse_dirt: 2, gravel: 1 }, { scale: 2 }) })
+b.scatter({ density: 0.28, paints: [[10, 'short_grass'], [2, 'tall_grass'], [2, 'fern'], [1, 'poppy']] })
+const trees = b.forest({
+  x0: 2, z0: 2, x1: W - 3, z1: D - 3, ground,
+  species: [[5, 'colonized'], [3, 'birch'], [2, 'oak'], [2, 'forester_cone']],
+  density: 0.7, minSpacing: 8, clearings: [[40, 80, 11]], seed: 4,
+  avoid: (x, z) => nearPath(x, z, 3),          // keep trees 3 blocks off the path
+})
+// → [{ x, y, z, species, size: 0 large | 1 medium | 2 small, kind: 'tree' | 'bush' | 'fallen' }]
 ```
 
-- `forest` places trees by Poisson-disc sampling inside the box, thins them with clumping noise, skips
-  clearings and non-soil ground, assigns three size classes, feathers the edge with bushes and small trees,
-  and adds stumps and fallen logs. It returns the placed trees.
-- `spaceColonizationTree` grows branches toward random points inside a crown ellipsoid: the most natural
-  broadleaf crowns of any method tested. Settings: segment 1 block, attraction distance 8, kill distance
-  2.5, 600–900 points; thickness by the pipe model `r = (Σ r_child^2.5)^(1/2.5)`, tip 0.4, capped at 1–1.5.
-- `foresterTree` ports MCEdit's Forester: `round` (deciduous) and `cone` (conifer; the best spruces).
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `x0, z0, x1, z1` | whole canvas | area to plant |
+| `ground(x, z)` | `b.topY` | surface y (use `b.terrain`'s return value) |
+| `species` | oak 6, birch 3, dark oak 1 | `[[weight, name]]`; name = any `b.tree` preset, `'colonized'` / `'colonized_birch'` / `'colonized_dark_oak'`, `'forester_round'`, `'forester_cone'`, or `(b, base, { size, scale, seed, rng }) => …` |
+| `density` | 0.6 | share of free slots that get a tree (modulated by clumping noise) |
+| `minSpacing` | 7 | between medium trunks; large ×1.5, small ×0.65 |
+| `sizes` | `[0.15, 0.45, 0.4]` | large / medium / small shares |
+| `clump` | 18 | size of species and density patches (blocks) |
+| `feather` | 6 | edge band where trees shrink and bushes take over |
+| `bushes` | 0.45 | share of small slots that become bushes |
+| `clearings` | `[]` | `[[x, z, r]]` glades: no trees, only small trees and bushes near the rim |
+| `fallenLogs` | 0.6 | stump + fallen log (moss, mushrooms) per 400 cells |
+| `floor` | true | podzol/coarse dirt under large and medium crowns |
+| `avoid(x, z)` | none | skip spots (paths, buildings, water) |
+| `tidy` | true | removes grass/flowers left on roots and unpaired tall-plant halves |
+
+Trees only stand on soil (grass, dirt, podzol, coarse dirt, moss, rooted dirt, mycelium, snow block)
+with nothing but plants above, so plant forests **after** paths, ponds and scatter. Near the canvas edge
+sizes shrink (no large trees within 15 blocks, no medium within 11, bushes only within 5), so crowns do not clip.
+A 112×112 woodland with `'colonized'` trees takes ~10 s.
+
+Single trees:
+
+```js
+b.spaceColonizationTree([x, y, z], { height: 18, species: 'oak', seed: 1 })                        // natural crown
+b.spaceColonizationTree(base, { height: 13, crown: [9, 3.5, 9], crownY: 10, species: 'acacia' })     // umbrella
+b.spaceColonizationTree(base, { height: 15, species: 'birch', crown: [4, 6, 4], crownY: 11 })       // slender
+b.foresterTree([x, y, z], { height: 18, shape: 'round' })                                           // park tree
+b.foresterTree([x, y, z], { height: 20, shape: 'cone' })                                            // best spruce
+```
+
+- `spaceColonizationTree` grows branches toward 700 random points in a crown ellipsoid (attraction 8,
+  kill 2.5, 1-block segments), sizes limbs with the pipe model `r = (Σ r_child^2.5)^(1/2.5)` (tip 0.4,
+  capped at height/14), puts a leaf blob `[2.3, 1.7, 2.3]` on every tip and adds a root flare. Options:
+  `height`, `trunkHeight`, `crown [rx, ry, rz]`, `crownY`, `attractors`, `species` or `log/wood/leaves`,
+  `cluster`, `maxRadius`, `roots`, `seed`. Returns the tips. Most natural broadleaf crowns of any method tested.
+- `foresterTree` ports MCEdit's Forester: clusters scattered by a shape function, branch probability
+  `220·H/(ydist + dist)³`, disc-stack clusters (`[2, 3, 3, 2.5, 1.6]` round, `[3, 2.6, 2, 1]` cone) with a
+  wood heart, root buttresses. Options: `height`, `shape`, `trunkThickness`, `trunkHeight` (round:
+  0.3 = fan-shaped … 0.7), `branchDensity`, `foliageDensity`, `buttresses`, `light` (e.g. `'shroomlight'`
+  in each cluster), `species`/`log`/`wood`/`leaves`, `seed`.
 
 ---
 
@@ -508,8 +550,8 @@ else if (rd < 9) h = Math.min(h, WATER + (rd - 5) * 0.9) // banks
   gravel/sand bars on the inside.
 - Banks: sand/gravel line, then coarse dirt and paths "to look realistic", then foliage (Minecraft.net
   landscaping tutorial); reeds, ferns, willows, boulders, an exposed root on cut banks.
-- Bridges ≥ 2 blocks above the water. `b.path` paints over water (it becomes a ford) — end paths at the
-  bank or build a bridge.
+- Bridges ≥ 2 blocks above the water. `b.path` only repaints terrain blocks (grass, dirt, sand, gravel,
+  stone…), so a path stops at the water line: end it at the bank or span the river with `b.bridge(a, c, { arch, railing, lanterns })`.
 
 ### 3.4 Waterfalls
 

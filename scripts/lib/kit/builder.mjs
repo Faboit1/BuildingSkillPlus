@@ -99,6 +99,10 @@ export class Builder {
     z = toInt(z)
     if (!this.inBounds(x, y, z)) {
       this.clipped += 1
+      // remember where: the warning names the overflow range so it can be fixed quickly
+      const box = (this.clippedBox ??= { min: [x, y, z], max: [x, y, z] })
+      box.min = [Math.min(box.min[0], x), Math.min(box.min[1], y), Math.min(box.min[2], z)]
+      box.max = [Math.max(box.max[0], x), Math.max(box.max[1], y), Math.max(box.max[2], z)]
       return this
     }
     const k = this.key(x, y, z)
@@ -710,7 +714,16 @@ export class Builder {
     }
     for (const warning of this.warnings) console.warn(`builder: ${warning}`)
     report.warnings = this.warnings
-    if (this.clipped > 0) console.warn(`builder: ${this.clipped} placement(s) fell outside the ${this.size.join('x')} canvas and were skipped`)
+    if (this.clipped > 0) {
+      const { min, max } = this.clippedBox
+      const sides = []
+      for (const [i, axis] of ['x', 'y', 'z'].entries()) {
+        if (min[i] < 0) sides.push(`${axis} down to ${min[i]}`)
+        if (max[i] >= this.size[i]) sides.push(`${axis} up to ${max[i]} (size ${this.size[i]})`)
+      }
+      console.warn(`builder: ${this.clipped} placement(s) fell outside the ${this.size.join('x')} canvas and were skipped (${sides.join(', ')})`)
+      report.clippedRange = { min, max }
+    }
     return {
       structure,
       metadata: {

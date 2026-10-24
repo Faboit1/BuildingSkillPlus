@@ -4,14 +4,16 @@
 import * as blocks from './blocks.mjs'
 import { ARCH_METHODS, onionProfile } from './arch.mjs'
 import { Builder } from './builder.mjs'
+import { FOREST_METHODS } from './forest.mjs'
 import * as colors from './colors.mjs'
 import * as materials from './materials.mjs'
 import { NATURE_METHODS, TREE_SPECIES } from './nature.mjs'
 import * as noise from './noise.mjs'
 import * as paint from './paint.mjs'
+import * as plan from './plan.mjs'
 import { EROSION_PRESETS, SCULPT_METHODS, centripetalCatmullRom, sdEllipsoid, sdTaper } from './sculpt.mjs'
 
-for (const [name, fn] of Object.entries({ ...ARCH_METHODS, ...NATURE_METHODS, ...SCULPT_METHODS })) {
+for (const [name, fn] of Object.entries({ ...ARCH_METHODS, ...NATURE_METHODS, ...FOREST_METHODS, ...plan.PLAN_METHODS, ...SCULPT_METHODS })) {
   Builder.prototype[name] = function method(...args) {
     return fn(this, ...args)
   }
@@ -104,6 +106,8 @@ export function createKit() {
     noise,
     rng: noise.createRng,
     hash01: noise.hash01,
+    // settlement planning (roads, lots, curtain walls, plazas, skyline report): composition.md
+    plan,
     // shapes
     sdf,
     catmullRom: centripetalCatmullRom,

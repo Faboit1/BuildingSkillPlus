@@ -183,6 +183,9 @@ slopes meet are resolved automatically.
 | --- | --- |
 | `b.tree(base, species, opts)` | species: `oak, big_oak, birch, spruce, pine, dark_oak, cherry, willow, jungle, acacia, azalea, mangrove, dead, fantasy`. `base` = first log (ground + 1). Override `height`, `trunk`, `leaves`, `blob`, `branches`, `seed`... Leaves are persistent. |
 | `b.leafBlob(c, [rx, ry, rz], leaves, { holes, roughness })` | custom canopies, hedges |
+| `b.forest({ x0, z0, x1, z1, ground, species, density, minSpacing, clearings, avoid, seed, sizes })` | whole woodland: Poisson placement thinned by clumping noise, species clumped (`[[6, 'oak'], [3, 'birch'], [1, 'colonized_dark_oak']]`; any `b.tree` preset, `'colonized[_oak\|birch\|dark_oak]'`, `'forester_round'`, `'forester_cone'` or a function), three size classes, bush-feathered edges, clearings `[[cx, cz, r]]`, `avoid(x, z)` for paths, stumps and fallen logs, podzol under big crowns. Keeps big trees ≥ 15 blocks from the canvas edge. Returns the placed trees |
+| `b.spaceColonizationTree(base, { height, crown, species \| log, wood, leaves })` | the most natural broadleaf crowns (branches grow toward points in a crown volume; pipe-model thickness) |
+| `b.foresterTree(base, { height, shape: 'round'\|'cone' })` | MCEdit Forester port; `cone` makes the best spruces |
 | `b.bush(base, { radius, leaves, log })` | |
 | `b.boulder(c, radii, paint, { roughness, mossTop })` | noise-displaced rock |
 | `b.terrain({ x0, z0, x1, z1, base, height: (x, z) => y, layers, surface })` | returns `(x, z) => surfaceY` |
@@ -210,6 +213,23 @@ b.texture([x0, y0, z0], [x1, y1, z1],
 
 Use ramps of one texture family (bricks → bricks) for walls; mixing very different textures
 (cobble next to bricks) reads as patchwork.
+
+## Settlement planning: `kit.plan`
+
+For villages, towns and castles (`scripts/lib/kit/plan.mjs`; method and numbers in
+`references/building/composition.md`; full example `assets/examples/walled-village.mjs`).
+The functions that take the builder are also Builder methods (`b.paintRoad(path, opts)` = `kit.plan.paintRoad(b, path, opts)`).
+
+| Function | Does |
+| --- | --- |
+| `kit.plan.heightmapOf(b)` | snapshot `(x, z) → y` of the current ground (ignores trees/plants); `.isWater(x, z)`, `.size` |
+| `kit.plan.routeRoad(ground, [x, z], [x, z], { avoid, roads })` | terrain-aware A* road: smoothed, graded `[[x, y, z], ...]`; existing `roads` are cheaper so roads merge |
+| `kit.plan.paintRoad(b, path, { width, paint, edge, slabSteps, bridge })` | cut/fill the road into terrain, slabs on half steps, plank bridge over water |
+| `kit.plan.lotsAlongRoad(path, { roadWidth, heightFn, density, inside, occupied, roads, frontage, depth, setback, gap })` | lots facing the road `{ x0, z0, x1, z1, facing, door, front, y }`; stays 2 blocks inside the canvas |
+| `kit.plan.plaza(b, center, size, { feature: 'well'\|'fountain'\|'cross'\|'tree' })` | levelled irregular square with blended edges and lamps |
+| `kit.plan.curtainWall(b, polygon, { gate, towers, ... })` | ground-following wall with crenellations, walkway, arrow slits, towers and gatehouses |
+| `kit.plan.skylineReport(b)` | crown ratio, accents, height variety, flat runs, ASCII skylines (`.text`) |
+| `kit.plan.ringPolygon`, `pointInPolygon`, `chaikin`, `resamplePolyline`, `gradeProfile` | geometry helpers |
 
 ## Modules and stamping
 
