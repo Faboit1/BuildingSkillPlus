@@ -29,7 +29,8 @@ node scripts/render.mjs --nbt minecraft-builds/NAME/NAME.nbt          # → rend
 # read sheet.png, critique, edit the recipe, repeat
 ```
 
-- `--json` must report `builder.problems: []` and `builder.clipped: 0`.
+- `--json` must report `builder.problems: []`, `builder.clipped: 0` and no `builder.warnings`
+  (floating lanterns, texture leftovers...); `clippedFrom` names the recipe line that overflowed.
 - Files: one PNG per view plus `sheet.png` (only when 2+ views); with `--lighting both` the files
   get `-day`/`-night` suffixes and the sheets are `sheet-day.png` / `sheet-night.png`.
 - More views: `--views se,sw,ne,nw,south,north,east,west,top,hero,low`; close-up:
@@ -62,10 +63,18 @@ export default function build(api) {
 }
 ```
 
-The full API (shapes, roofs, windows, doors, arches, stairs, timber framing, trees, terrain,
-paths, ponds, modules with rotation, palettes, gradients, `b.texture`, noise, SDFs, materials):
-**`references/kit-api.md`**. The raw API (`api.setBlock`, `api.fill`, Lodestone classes) is in
+The full API is in **`references/kit-api.md`**: shapes, SDFs and splines; `b.roof` (pitch
+profiles, `merge` for cross gables), `b.compoundRoof` (L/T/U/courtyard plans), `b.eastRoof` and
+`b.pagoda` (East-Asian), `b.coneRoof`, `b.bellRoof`, `b.roofField` (any height function), dormers;
+windows, doors, arches, columns, stairways, bridges, timber framing; `b.texture` and `b.weather`;
+trees, `b.forest`, terrain, `b.groundY`, paths, ponds; sculpting (`b.hull`, `b.figure`,
+`b.shadeSurface`, `b.erode`, `b.rockArch`...); settlements (`kit.plan`); modules and
+`b.importStructure`. The raw API (`api.setBlock`, `api.fill`, Lodestone classes) is in
 `references/recipe-api.md` and still works.
+
+Reading budget for a first build (~1,500 lines): the handbook README (laws, workflow), the kit-api
+sections you need, your style's section in `styles.md`, and the closest example recipe. Open the
+other chapters when the build needs them.
 
 ## What to read
 
