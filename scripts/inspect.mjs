@@ -2067,7 +2067,8 @@ function computeScore(model, info, lighting, colors) {
       sideL[k] = Array.isArray(c.lab) ? c.lab[0] : hexLightness(c.side)
       topL[k] = c.top ? hexLightness(c.top) : sideL[k]
     }
-    terrain[k] = TERRAIN.has(s.short) ? 1 : 0
+    // ground and raw rock (cliffs, diorama cut faces) are terrain, not building walls
+    terrain[k] = TERRAIN.has(s.short) || NORM_TERRAIN.has(s.short) ? 1 : 0
     const glassy = NON_OPAQUE_FULL.test(s.short)
     wallish[k] = s.fullCube && !glassy && !terrain[k] && s.emit < 10 ? 1 : 0
   })

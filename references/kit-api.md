@@ -209,7 +209,7 @@ correct geometry, but it reads oddly. Set the wing back by 1–2 blocks or make 
 | `b.battlements([x0, z0], [x1, z1], y, paint, { period, height, cap })` | crenellated rectangle; for walls along any polygon (round towers, corbelled parapets, walkways, gatehouses) use `kit.plan.curtainWall` |
 | `b.spiralStairs(c, rInner, rOuter, y0, y1, material, { stepsPerTurn, core, clockwise })` | tower stairs |
 | `b.timberWall(a, c, { frame, infill, postEvery \| posts: [u...], beams, braces: true\|'all', inset: 1, facing, joints: 'beams'\|'posts' })` | posts, beams, end-bay braces on a 1-thick plane. `inset: 1` + `facing` (outward side) puts the infill one block inside so the frame stands proud (Law 6). `posts` sets explicit post positions; `joints` says whether beams or posts run through. Braces read only in panels ≥ 5 wide × 4 tall |
-| `b.stairway(from, facing, rise, material, { width, fill, base, sides, landing })` | straight flight of stairs climbing toward `facing`, filled underneath, optional side walls |
+| `b.stairway(from, facing, rise, material, { width, fill, base, sides, landing })` | straight flight of stairs climbing toward `facing`, filled underneath, optional side walls; `from` is the bottom step and `width` extends to the climber's left (`ccw(facing)`) |
 | `b.bridge(a, c, { width, deck, edge, arch, railing, posts, postEvery, lanterns, beam })` | deck between two points in any direction, sine arch of `arch` blocks, railings with posts and lanterns |
 | `b.lampPost(base, { height, post, foot, lantern, arm })` | `arm: 'east'` hangs the lantern |
 | `b.hangingLantern(anchor, length)` | chain + lantern below an anchor block |

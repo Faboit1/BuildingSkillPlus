@@ -303,13 +303,15 @@ glow lichen; arcane — crying obsidian, amethyst.
 | Glowstone / sea lantern / froglight / shroomlight under a carpet or moss carpet | yes — carpet passes light |
 | Light source inside leaves (canopies, hedges, bushes) | yes |
 | Behind glass, panes, iron bars, trapdoors | yes |
-| Under tall grass, ferns, flowers | yes |
+| Under tall grass, ferns, flowers | **no** — plants cannot stand on a light block (they pop off); put a moss carpet or carpet over the light, or hide it in a planter beside the plants |
 | `light[level=N]` blocks | yes — invisible, creative-only, ideal for generated builds |
 | Lantern in water: on the bed, or hanging under a lily pad (`lantern[hanging=true,waterlogged=true]`) | yes |
 | Under a slab or inside a stair | **no** — slabs, stairs, snow layers, dirt path and farmland block light with their shape |
 
 The preview does not propagate light (§7): a light under a carpet shows nothing in a render, a light in
-the ceiling appears to light the room even through solid blocks. Trust the rules above.
+the ceiling appears to light the room even through solid blocks. Each surface takes only its brightest
+nearby light, and a ceiling never lights itself, so for a glowing night render put *visible* sources
+(lanterns, lamps, candles) behind the glass. Trust the rules above for the game.
 
 ### 5.4 Schemes
 
