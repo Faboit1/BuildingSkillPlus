@@ -475,6 +475,7 @@ export default function build(api) {
     b.box([gx - 1, y + 5, gz + 1], [gx + 1, y + 5, gz + 1], 'spruce_stairs[facing=north]')
     b.box([gx, y + 3, gz], [gx, y + 4, gz], 'chain[axis=y]')
     b.set(gx + 2, ground(gx + 2, gz + 1) + 1, gz + 1, 'cauldron')
+    b.set(gx + 1, y + 2, gz + 1, 'lantern') // a lamp left on the rim
   }
 
   // Woodpile stacked against the chimney breast under a pent roof, log ends outward
@@ -491,6 +492,7 @@ export default function build(api) {
     for (const z of [11, 17]) for (let y = ground(5, z) + 1; y <= F + 2; y += 1) b.set(5, y, z, 'spruce_fence')
     b.set(4, ground(4, 19) + 1, 19, 'stripped_oak_log[axis=y]') // chopping block
     b.set(3, ground(3, 20) + 1, 20, 'oak_log[axis=x]')
+    b.set(5, F + 2, 14, 'lantern[hanging=true]')
   }
 
   // Raised vegetable beds (log-edged, levelled into the slope) with a scarecrow.
@@ -504,9 +506,9 @@ export default function build(api) {
       if (!edge) b.set(x, BED_Y + 1, z, z < 13 ? 'carrots[age=7]' : z < 17 ? 'wheat[age=7]' : z < 20 ? 'potatoes[age=7]' : 'beetroots[age=3]')
     }
   }
-  b.set(38, BED_Y + 1, 8, 'composter[level=6]')
-  b.set(38, BED_Y + 1, 23, 'hay_block')
-  b.set(38, BED_Y + 2, 23, 'carved_pumpkin[facing=south]')
+  b.set(38, ground(38, 8) + 1, 8, 'composter[level=6]')
+  b.set(38, ground(38, 23) + 1, 23, 'hay_block') // scarecrow
+  b.set(38, ground(38, 23) + 2, 23, 'carved_pumpkin[facing=south]')
 
   // Lamp post where the path bends; props telling the back-door story (hay, barrels, compost).
   b.lampPost([14, ground(14, 29) + 1, 29], { height: 3, foot: 'stone_brick_wall', post: 'dark_oak_fence' })
@@ -516,16 +518,19 @@ export default function build(api) {
   // ---------------------------------------------------------------- garden: planting (last)
   // Trees frame the house rather than hide it: an old oak behind the chimney and a birch
   // behind the wing give the roofline a backdrop; two blossoming fruit trees (oak with
-  // azalea leaves) bracket the front garden like a picture frame.
+  // azalea leaves) bracket the front garden like a picture frame, staggered in depth
+  // (front-left, mid-right) so neither hides the house, the well or the beds from the
+  // usual 3/4 viewpoint. Check `builder.clipped`: canopies easily spill past the canvas.
   b.tree([8, ground(8, 6) + 1, 6], 'oak', { height: 11, seed: 3, roots: 2 })
   b.tree([38, ground(38, 5) + 1, 5], 'birch', { height: 12, seed: 2 })
   const blossom = ['oak_leaves', 'flowering_azalea_leaves', 'azalea_leaves']
   b.tree([8, ground(8, 32) + 1, 32], 'oak', { height: 8, seed: 5, roots: 2, trunk: 0.8, leaves: blossom })
-  b.tree([39, ground(39, 34) + 1, 34], 'oak', { height: 6, seed: 8, roots: 1, trunk: 0.6, leaves: blossom })
+  b.tree([39, ground(39, 26) + 1, 26], 'oak', { height: 6, seed: 8, roots: 1, trunk: 0.6, leaves: blossom })
   // bench under the apple tree
   b.box([10, ground(10, 34) + 1, 34], [11, ground(10, 34) + 1, 34], 'spruce_stairs[facing=south]')
   b.set(9, ground(10, 34) + 1, 34, 'spruce_trapdoor[facing=west,open=true]')
   b.set(12, ground(10, 34) + 1, 34, 'spruce_trapdoor[facing=east,open=true]')
+  b.set(13, ground(13, 34) + 1, 34, 'lantern')
   for (const [x, z, r] of [[8, 21, 1.6], [33, 24, 1.5], [12, 39, 1.8], [26, 39, 1.6], [40, 30, 1.8], [3, 25, 1.7]]) {
     b.bush([x, ground(x, z) + 1, z], { radius: r, seed: x + z })
   }

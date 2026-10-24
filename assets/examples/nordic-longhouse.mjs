@@ -32,8 +32,11 @@ export default function build(api) {
   const GATE = { x: 82, z0: 24, z1: 26 }
 
   // ================================================================ 1 SITE
-  const shoreZ = x => 49 + 1.8 * Math.sin(x * 0.09 + 0.6) + 1.4 * n2(x, 3, 10, 5) - 2.5 * Math.exp(-(((x - 66) / 7) ** 2))
-  const cliffX = z => 12 + 2 * n2(2, z, 9, 9) + (z > 44 ? (z - 44) * 0.12 : 0)
+  // A shore terrace between a rocky headland (west) and a forested slope (north, east). The
+  // heightmap is designed first (shoreline, headland, terrace under the hall), then blurred
+  // twice so the grass does not break into 1-block contour stripes, except on the cliff.
+  const shoreZ = x => 51 + 1.8 * Math.sin(x * 0.09 + 0.6) + 1.4 * n2(x, 3, 10, 5) - 3.5 * Math.exp(-(((x - 67) / 7) ** 2))
+  const cliffX = z => 12 + 2 * n2(2, z, 9, 9) + (z > 44 ? (z - 44) * 0.14 : 0)
   const raw = (x, z) => {
     const inland = shoreZ(x) - z
     let h
@@ -45,11 +48,13 @@ export default function build(api) {
     } else {
       h = Math.max(0.5, WATER - 0.5 + inland * 0.7 + 0.6 * n2(x, z, 8, 3))
     }
+    // the headland: a fjord wall rising toward the north-west corner, ridged on top
     const cx = cliffX(z)
     if (x < cx + 3) {
-      const t = smooth(clamp((cx + 3 - x) / 4, 0, 1))
-      const top = 18 + (44 - Math.min(z, 44)) * 0.22 + (cx - x) * 0.3 + 1.6 * n2(x, z, 7, 4)
-      const tip = smooth(clamp((65 + 3 * n2(x, 0, 6, 6) - z) / 3, 0, 1))
+      const t = smooth(clamp((cx + 3 - x) / 3.5, 0, 1))
+      const crest = 3.5 * kit.noise.ridged2(x, z, { scale: 14, seed: 4 })
+      const top = Math.min(33, 19 + (46 - Math.min(z, 46)) * 0.24 + (cx - x) * 0.45 + crest + 1.2 * n2(x, z, 6, 4))
+      const tip = smooth(clamp((66 + 3 * n2(x, 0, 6, 6) - z) / 4, 0, 1))
       h += (top - h) * t * tip
     }
     const e = Math.hypot((x - CX) / (HL + 7), (z - CZ) / 13)
@@ -70,19 +75,27 @@ export default function build(api) {
   const height = (x, z) => Math.round(sm[clamp(x, 0, W - 1)][clamp(z, 0, D - 1)])
   const slope = (x, z) => Math.max(...DIR4.map(([dx, dz]) => Math.abs(height(x + dx, z + dz) - height(x, z))))
 
+  // Rock: wavy 2-block strata of one grey family, darker and wetter toward the water line.
+  const STRATA = ['stone', 'andesite', 'stone', 'tuff', 'andesite', 'cobblestone', 'stone', 'tuff']
   const strata = (x, y, z) => {
+    if (y <= WATER + 1 + Math.round(1.5 * n2(x, z, 5, 8))) return pal({ tuff: 3, cobbled_deepslate: 2, mossy_cobblestone: 2 }, 16, 2)
     const band = Math.floor((y + 2.5 * n2(x, z, 9, 7, 2)) / 2)
-    return ['stone', 'andesite', 'stone', 'tuff', 'stone', 'cobblestone', 'andesite', 'tuff'][((band % 8) + 8) % 8]
+    return STRATA[((band % 8) + 8) % 8]
   }
+  // Shore gradient (water -> land): bed of gravel/clay, wet shingle, a gravel and coarse-dirt
+  // strand, then turf. The distance to the shoreline picks the band; clumped palettes blur the seams.
   const SHINGLE = pal({ gravel: 5, andesite: 2, cobblestone: 1, stone: 1 }, 11, 2.5)
+  const STRAND = pal({ gravel: 3, coarse_dirt: 3, grass_block: 2, andesite: 1 }, 17, 2.5)
   const BED = pal({ gravel: 4, sand: 1, clay: 1, mud: 1 }, 12, 2.5)
-  const TURF = pal({ grass_block: 30, coarse_dirt: 3, podzol: 3 }, 13, 4)
+  const TURF = pal({ grass_block: 30, coarse_dirt: 2, podzol: 2 }, 13, 6)
   const FOREST_FLOOR = pal({ podzol: 6, grass_block: 4, coarse_dirt: 2, moss_block: 1 }, 14, 4)
   const surface = (x, y, z) => {
     const s = slope(x, z)
     if (s >= 3) return strata(x, y, z)
     if (y < WATER) return BED
-    if (y <= WATER + 1) return SHINGLE
+    const inland = shoreZ(x) - z + 1.2 * n2(x, z, 4, 18)
+    if (y <= WATER + 1 || inland < 2) return SHINGLE
+    if (inland < 4.5 && x > cliffX(z) + 2) return STRAND
     if (s === 2) return pal({ stone: 3, andesite: 2, coarse_dirt: 2, grass_block: 2 }, 15, 2)
     if (z < 9 || x > 81 || x < cliffX(z)) return FOREST_FLOOR
     return TURF
@@ -91,8 +104,18 @@ export default function build(api) {
     height,
     layers: [{ depth: 1, paint: surface }, { depth: 3, paint: (x, y, z) => (slope(x, z) >= 3 ? strata(x, y, z) : 'dirt') }, { paint: strata }],
   })
-  for (let x = 0; x < W; x += 1) for (let z = 0; z < D; z += 1)
-    for (let y = ground(x, z) + 1; y <= WATER; y += 1) b.set(x, y, z, 'water')
+  for (let x = 0; x < W; x += 1) for (let z = 0; z < D; z += 1) {
+    const g = ground(x, z)
+    for (let y = g + 1; y <= WATER; y += 1) b.set(x, y, z, 'water')
+    // sea floor life in clumps: seagrass in the shallows, kelp where it is deeper
+    const depth = WATER - g
+    const c = kit.noise.coherent01(x, 0, z, { scale: 5, seed: 19 })
+    if (depth >= 4 && c > 0.78) {
+      const k = 1 + Math.floor(hash(x, 0, z, 20) * (depth - 1))
+      for (let i = 1; i < k; i += 1) b.set(x, g + i, z, 'kelp_plant')
+      b.set(x, g + k, z, 'kelp[age=20]')
+    } else if (depth >= 2 && c > 0.55) b.set(x, g + 1, z, hash(x, 1, z, 21) < 0.3 && depth >= 3 ? 'tall_seagrass[half=lower]' : 'seagrass')
+  }
 
   // ================================================================ 2 LONGHOUSE
   const u = x => (x - CX) / HL
@@ -178,6 +201,42 @@ export default function build(api) {
     for (let y = F + 4; y < F + 22 && !b.has(x, y, z); y += 1) b.set(x, y, z, gableEnd ? 'stripped_spruce_log[axis=y]' : WALL)
   }
 
+  // ---- entrance porch on the south side: a small cross gable that breaks the long eave
+  const PZ0 = CZ + Wd(CX) + 1, PZ1 = PZ0 + 2
+  for (let x = CX - 3; x <= CX + 3; x += 1) for (let z = PZ0; z <= PZ1; z += 1) {
+    for (let y = Math.min(ground(x, z), F - 2) - 1; y <= F - 1; y += 1) b.set(x, y, z, FOOT)
+    const side = x === CX - 3 || x === CX + 3 || z === PZ1
+    for (let y = F; y <= F + 3; y += 1) b.set(x, y, z, side ? WALL : 'air')
+  }
+  b.clear([CX - 1, F, PZ1], [CX + 1, F + 2, PZ1]) // open front
+  for (let x = CX - 2; x <= CX + 2; x += 1) for (let z = PZ0; z < PZ1; z += 1) b.set(x, F - 1, z, 'spruce_planks')
+  {
+    const tmp = b.module(b.size)
+    tmp.roof({ x0: CX - 3, x1: CX + 3, z0: PZ0 - 3, z1: PZ1, y: F + 4, type: 'gable', axis: 'z', material: 'dark_oak', pitch: 2, overhang: 1, gableOverhang: 1, gable: 'stripped_spruce_log[axis=y]', eaveTrim: true })
+    // merge: a porch cell survives only where it sits above the main roof surface, so the
+    // cross gable runs back over the main slope until it dives under it (a clean valley)
+    for (const [x, y, z, blk] of tmp.entries()) {
+      const mainTop = topPiece.get(`${x},${z}`)
+      if (mainTop !== undefined && y <= mainTop) continue
+      if (mainTop === undefined && inFoot(x, z)) continue
+      b.set(x, y, z, blk)
+    }
+  }
+  // roof: dark oak shingles, sun-bleached spruce clumps toward the ridge, moss where it stays damp
+  b.texture([X0 - 2, EAVE - 2, CZ - 10], [X1 + 2, F + 20, CZ + 12], ['spruce', 'dark_oak', 'dark_oak'], { only: ['dark_oak_stairs', 'dark_oak_slab', 'dark_oak_planks'], mid: 0.55, base: 0.3, top: 0.35, edge: 0, drip: 0, noise: 0.3, scale: 5, seed: 5 })
+  // moss on riser planks where the roof stays damp: low rows near the eave and the sagging middle
+  for (const [key, yTop] of topPiece) {
+    const [x, z] = key.split(',').map(Number)
+    const out = Math.sign(z - CZ)
+    if (out === 0) continue
+    const r = clamp(1 - Math.abs(z - CZ) / span(x), 0, 1)
+    const wet = 0.45 * (1 - r) + 0.25 * (1 - Math.min(1, Math.abs(u(x))))
+    for (let y = yTop - 3; y < yTop; y += 1) {
+      const blk = b.get(x, y, z)
+      if (!blk || !/_planks$/.test(blk.name) || b.has(x, y, z + out)) continue
+      if (kit.noise.coherent01(x, y, z, { scale: 3.5, seed: 91 }) + wet > 1.02) b.set(x, y, z, 'moss_block')
+    }
+  }
   // ---- gable ends: barge boards along the rake and crossed horns over the apex
   const ridgeTop = x => topPiece.get(`${x},${CZ}`)
   for (const gx of [X0 - 1, X1 + 1]) {
@@ -192,6 +251,13 @@ export default function build(api) {
       b.set(gx, yR + 4, CZ + s * 3, `dark_oak_stairs[facing=${inward},half=top]`) // jaw
     }
   }
+  {
+    const pr = b.topY(CX, PZ1 + 1)
+    for (const s of [-1, 1]) {
+      b.set(CX + s, pr + 1, PZ1 + 1, 'dark_oak_planks')
+      b.set(CX + s * 2, pr + 2, PZ1 + 1, `dark_oak_stairs[facing=${s > 0 ? 'west' : 'east'},half=bottom]`)
+    }
+  }
   // smoke hole over the hearth: open the ridge and cap it with a little louvre
   const yS = ridgeTop(CX)
   for (let x = CX - 1; x <= CX + 1; x += 1) for (let y = yS - 3; y <= yS; y += 1) b.remove(x, y, CZ)
@@ -203,38 +269,12 @@ export default function build(api) {
     b.set(x, yS + 2, CZ, 'dark_oak_slab[type=bottom]')
   }
 
-  // ---- entrance porch on the south side: a small cross gable that breaks the long eave
-  const PZ0 = CZ + Wd(CX) + 1, PZ1 = PZ0 + 2
-  for (let x = CX - 2; x <= CX + 2; x += 1) for (let z = PZ0; z <= PZ1; z += 1) {
-    for (let y = Math.min(ground(x, z), F - 2) - 1; y <= F - 1; y += 1) b.set(x, y, z, FOOT)
-    const side = x === CX - 2 || x === CX + 2 || z === PZ1
-    for (let y = F; y <= F + 3; y += 1) b.set(x, y, z, side ? WALL : 'air')
-  }
-  b.clear([CX - 1, F, PZ1], [CX + 1, F + 2, PZ1]) // open front
-  for (let x = CX - 2; x <= CX + 2; x += 1) b.set(x, F - 1, PZ0 + 1, 'spruce_planks')
-  {
-    const tmp = b.module(b.size)
-    tmp.roof({ x0: CX - 2, x1: CX + 2, z0: PZ0 - 3, z1: PZ1, y: F + 4, type: 'gable', axis: 'z', material: 'dark_oak', pitch: 2, overhang: 1, gableOverhang: 1, gable: 'stripped_spruce_log[axis=y]', eaveTrim: true })
-    // merge: a porch cell survives only where it sits above the main roof surface, so the
-    // cross gable runs back over the main slope until it dives under it (a clean valley)
-    for (const [x, y, z, blk] of tmp.entries()) {
-      const mainTop = topPiece.get(`${x},${z}`)
-      if (mainTop !== undefined && y <= mainTop) continue
-      if (mainTop === undefined && inFoot(x, z)) continue
-      b.set(x, y, z, blk)
-    }
-  }
-  // the porch gable gets its own little horns
-  {
-    const pr = b.topY(CX, PZ1 + 1)
-    for (const s of [-1, 1]) b.set(CX + s, pr + 1, PZ1 + 1, 'stripped_dark_oak_log[axis=y]')
-    for (const s of [-1, 1]) b.set(CX + s, pr + 2, PZ1 + 1, `dark_oak_stairs[facing=${s > 0 ? 'west' : 'east'},half=bottom]`)
-  }
   // door into the hall (inside the porch) and a carved frame at the porch mouth
   b.remove(CX, F, PZ0 - 1)
   b.remove(CX, F + 1, PZ0 - 1)
   b.door([CX, F, PZ0 - 1], 'south', { material: 'spruce' })
   for (const s of [-1, 1]) b.box([CX + s * 2, F, PZ1], [CX + s * 2, F + 3, PZ1], 'dark_oak_log[axis=y]')
+  for (const s of [-1, 1]) b.box([CX + s * 3, F - 1, PZ1], [CX + s * 3, F + 3, PZ1], 'dark_oak_log[axis=y]')
   b.set(CX - 1, F + 2, PZ1, 'dark_oak_stairs[facing=east,half=top]')
   b.set(CX + 1, F + 2, PZ1, 'dark_oak_stairs[facing=west,half=top]')
   b.set(CX, F + 3, PZ1, 'stripped_dark_oak_log[axis=x]')
@@ -278,8 +318,6 @@ export default function build(api) {
     if (p) b.set(x, y, z, p)
   }
   b.texture([X0 - 2, F - 8, CZ - 10], [X1 + 2, F, CZ + 12], ['cobblestone', 'mossy_cobblestone', 'cobbled_deepslate'], { only: FOOT, base: 0.35, edge: 0.15, noise: 0.25, seed: 3 })
-  // roof: dark oak shingles, sun-bleached spruce clumps toward the ridge, moss where it stays damp
-  b.texture([X0 - 2, EAVE - 2, CZ - 10], [X1 + 2, F + 20, CZ + 12], ['spruce', 'dark_oak', 'dark_oak'], { only: ['dark_oak_stairs', 'dark_oak_slab', 'dark_oak_planks'], mid: 0.55, base: 0.3, top: 0.35, edge: 0, drip: 0, noise: 0.3, scale: 5, seed: 5 })
 
   // ---- interior
   for (let x = X0 + 1; x < X1; x += 1) for (let z = CZ - 8; z <= CZ + 8; z += 1) {
@@ -320,6 +358,21 @@ export default function build(api) {
     b.set(CX + s, F + 4, CZ - Wd(CX) + 1, 'dark_oak_fence')
   }
   b.set(CX, F + 1, CZ - Wd(CX) + 2, 'red_carpet')
+  // feasting tables at both ends of the hearth (top slabs) with stair benches
+  for (const s of [-1, 1]) {
+    for (let x = CX + s * 6; Math.abs(x - CX) <= 9; x += s) {
+      b.set(x, F, CZ, 'spruce_slab[type=top]')
+      b.set(x, F, CZ - 1, 'spruce_stairs[facing=north,half=bottom]')
+      b.set(x, F, CZ + 1, 'spruce_stairs[facing=south,half=bottom]')
+    }
+  }
+  // shields hung on the inner walls above the platforms, the same red and white as the ship
+  for (let x = X0 + 7; x <= X1 - 7; x += 2) for (const s of [-1, 1]) {
+    const z = CZ + s * (Wd(x) - 1)
+    if (b.has(x, F + 2, z) || hash(x, 2, z, 35) < 0.3) continue
+    b.set(x, F + 2, z, `${(x + (s > 0 ? 1 : 0)) % 4 < 2 ? 'mangrove' : 'birch'}_trapdoor[facing=${s > 0 ? 'north' : 'south'},open=true,half=top]`)
+  }
+  for (const [x, z] of [[X0 + 7, CZ - Wd(X0 + 7) + 1], [X1 - 7, CZ + Wd(X1 - 7) - 1], [CX + 5, CZ - Wd(CX + 5) + 1]]) b.set(x, F + 1, z, 'barrel[facing=up]')
   // end rooms behind plank partitions
   for (const px of [X0 + 5, X1 - 5]) {
     for (let z = CZ - 6; z <= CZ + 6; z += 1) {
@@ -408,7 +461,7 @@ export default function build(api) {
   }
   for (let x = STAB.x0 - 1; x <= STAB.x1 + 1; x += 1) for (let z = STAB.z0 - 1; z <= STAB.z1 + 1; z += 1) b.set(x, TF - 1, z, 'spruce_planks')
   for (let x = STAB.x0 - 1; x <= STAB.x1 + 1; x += 1) b.set(x, TF - 1, STAB.z1 + 1, 'spruce_slab[type=top]')
-  logBox(STAB.x0, STAB.z0, STAB.x1, STAB.z1 - 1, TF, 4, 'spruce_log')
+  logBox(STAB.x0, STAB.z0, STAB.x1, STAB.z1 - 1, TF, 4, 'stripped_spruce_log')
   for (let x = STAB.x0; x <= STAB.x1; x += 1) for (let z = STAB.z0; z <= STAB.z1 - 1; z += 1) for (let y = TF - 5; y < TF - 1; y += 1) {
     const blk = b.get(x, y, z)
     if (blk && blk.name === 'minecraft:light_gray_wool') b.remove(x, y, z)
@@ -440,7 +493,7 @@ export default function build(api) {
   for (const [x, z] of stakes.values()) {
     if (x === GATE.x && z >= GATE.z0 && z <= GATE.z1) continue
     const g = ground(x, z)
-    const top = g + 4 + (hash(x, 0, z, 51) < 0.5 ? 1 : 0)
+    const top = g + 3 + (kit.noise.coherent01(x, 0, z, { scale: 4, seed: 52 }) > 0.45 ? 1 : 0) + (hash(x, 0, z, 51) < 0.3 ? 1 : 0)
     b.box([x, g - 1, z], [x, top, z], 'spruce_log[axis=y]')
     b.set(x, top + 1, z, 'spruce_fence')
   }
@@ -536,33 +589,31 @@ export default function build(api) {
       b.set(cx, yt + 4, z0, 'dark_oak_stairs[facing=south,half=top]')
     }
     if (mast) {
+      // square sail, wider than tall (~0.45 of the hull length), red and white strakes,
+      // billowing up to 2 blocks toward the bow; gaps between bulge levels are filled so the
+      // cloth reads as one surface from every side
       const zm = Math.round(z0 + L * 0.5)
-      const mh = 13
+      const mh = 12, SW = 5, y0 = wy + 4, y1 = wy + mh - 2
       b.box([cx, wy + 1, zm], [cx, wy + mh, zm], 'spruce_log[axis=y]')
-      b.box([cx - 6, wy + mh - 1, zm], [cx + 6, wy + mh - 1, zm], 'stripped_spruce_log[axis=x]')
-      const y0 = wy + 4, y1 = wy + mh - 2
-      for (let x = cx - 6; x <= cx + 6; x += 1) for (let y = y0; y <= y1; y += 1) {
-        const sx = (x - cx) / 6.5, sy = (y - (y0 + y1) / 2) / ((y1 - y0) / 2 + 0.5)
-        const bulge = Math.round(1.7 * (1 - sx * sx) * (1 - 0.6 * sy * sy))
-        const d = Math.abs(x - cx)
-        const wool = d <= 1 || d === 4 || d === 5 ? 'red_wool' : 'white_wool'
-        for (let k = 1; k <= Math.max(1, bulge); k += 1) if (k === bulge || k === 1 && bulge <= 1) b.set(x, y, zm + k, wool)
-        for (let k = 1; k < bulge; k += 1) {
-          const nb = Math.min(...[[1, 0], [-1, 0], [0, 1], [0, -1]].map(([ax, ay]) => {
-            const nx = (x + ax - cx) / 6.5, ny = (y + ay - (y0 + y1) / 2) / ((y1 - y0) / 2 + 0.5)
-            return Math.abs(x + ax - cx) > 6 || y + ay < y0 || y + ay > y1 ? 0 : Math.round(1.7 * (1 - nx * nx) * (1 - 0.6 * ny * ny))
-          }))
-          if (k > nb) b.set(x, y, zm + k, wool)
-        }
+      b.box([cx - SW - 1, wy + mh - 1, zm], [cx + SW + 1, wy + mh - 1, zm], 'stripped_spruce_log[axis=x]')
+      const bulge = (x, y) => {
+        if (Math.abs(x - cx) > SW || y < y0 || y > y1) return null
+        const sx = (x - cx) / (SW + 0.5), sy = (y - (y0 + y1) / 2) / ((y1 - y0) / 2 + 0.5)
+        return Math.round(1.6 * (1 - sx * sx) * (1 - 0.5 * sy * sy))
       }
-      b.line([cx, wy + mh, zm], [cx, Math.round(ys(1)) + 1, z1 - 1], 'spruce_fence', { connect: 6 })
-      b.line([cx, wy + mh, zm], [cx, Math.round(ys(0)) + 1, z0 + 1], 'spruce_fence', { connect: 6 })
+      for (let x = cx - SW; x <= cx + SW; x += 1) for (let y = y0; y <= y1; y += 1) {
+        const k = bulge(x, y)
+        const kmin = Math.min(k, ...[[1, 0], [-1, 0], [0, 1], [0, -1]].map(([ax, ay]) => bulge(x + ax, y + ay) ?? k))
+        const d = Math.abs(x - cx)
+        for (let j = kmin; j <= k; j += 1) b.set(x, y, zm + 1 + j, d <= 1 || d >= 4 ? 'red_wool' : 'white_wool')
+      }
       b.set(cx, wy + mh + 1, zm, 'spruce_fence')
+      b.set(cx, wy + 1, z0 + 3, 'spruce_fence')
+      b.set(cx, wy + 2, z0 + 3, 'lantern[hanging=false]')
     }
     return { inside, ys, yk }
   }
   longship({ cx: SHIP.cx, z0: SHIP.z0, z1: SHIP.z1, wy: WATER })
-  b.hangingLantern([SHIP.cx, Math.round(WATER + 2 + 2.5) + 4, SHIP.z0 - 1], 0)
 
   // faering (small rowing boat) in the naust
   longship({ cx: NCX, z0: N.z0 + 3, z1: N.z0 + 11, wy: NF, beam: 1.6, keel: 1, free: 1, sheer: 1.2, mast: false, dragon: false })
@@ -588,7 +639,7 @@ export default function build(api) {
     [[60, 44], [66, 41], [SMOKE.x0 + 3, SMOKE.z1 + 2]],
     [[X1 + 2, CZ], [66, 22], [STAB.x0 + 2, STAB.z1 + 6]],
   ]
-  for (const [i, p] of paths.entries()) b.path(p, { width: i < 2 ? 3 : 2, paint: pal({ dirt_path: 5, coarse_dirt: 3, gravel: 2 }, 61 + i, 2), seed: i })
+  for (const [i, p] of paths.entries()) b.path(p, { width: i < 2 ? 3 : 2, paint: pal({ coarse_dirt: 6, dirt_path: 3, gravel: 2, rooted_dirt: 1 }, 61 + i, 3.5), seed: i })
 
   // rocks: boulders on the beach, skerries off the headland
   const ROCK = pal({ stone: 5, andesite: 3, cobblestone: 2, tuff: 1 }, 71, 2)
@@ -642,8 +693,39 @@ export default function build(api) {
   for (let z = CZ - 3; z <= CZ + 3; z += 1) for (let y = F; y <= F + 1 + (Math.abs(z - CZ) < 2 ? 1 : 0); y += 1) b.set(X0 - 1, y, z, 'spruce_log[axis=x]')
   for (const [x, z, blk] of [[STAB.x1 + 2, STAB.z0 + 1, 'hay_block[axis=x]'], [STAB.x1 + 2, STAB.z0 + 2, 'hay_block[axis=x]'], [STAB.x1 + 3, STAB.z0 + 1, 'hay_block[axis=z]'], [PIER.x0 + 1, PIER.z1 - 2, 'barrel[facing=up]'], [PIER.x0 + 1, PIER.z1 - 6, 'barrel[facing=up]'], [SMOKE.x0 - 1, SMOKE.z1 - 1, 'barrel[facing=up]']])
     b.set(x, (x >= PIER.x0 && x <= PIER.x1 && z > PIER.z0 + 4 ? PY : ground(x, z)) + 1, z, blk)
-  // porch lanterns, lamp posts along the paths
-  b.hangingLantern([CX, F + 3, PZ1 - 1], 0)
+  // Light plan: the hall is the brightest cluster (porch, eaves, braziers, a beach fire in front),
+  // then the pier and ship, then single lamps at every other door and along the paths.
+  const hang = (x, y, z) => { // lantern at y on a chain from whatever is above it
+    let top = y + 1
+    while (top < y + 12 && !b.has(x, top, z)) top += 1
+    if (top >= y + 12) return
+    for (let k = y + 1; k < top; k += 1) b.set(x, k, z, 'chain[axis=y]')
+    b.set(x, y, z, 'lantern[hanging=true]')
+  }
+  hang(CX, F + 2, PZ1 - 1)
+  for (const x of [CX - 7, CX + 7, 31, 55]) hang(x, F + 3, CZ + Wd(x) + 1)
+  for (const x of [35, 51]) hang(x, F + 3, CZ - Wd(x) - 1)
+  for (const s of [-1, 1]) { // braziers flanking the porch path
+    const x = CX + s * 3, z = PZ1 + 3
+    b.set(x, ground(x, z) + 1, z, 'cobblestone_wall')
+    b.set(x, ground(x, z) + 2, z, 'campfire[lit=true]')
+  }
+  // a beach fire ring with log seats between the hall and the ship
+  {
+    const fx = 52, fz = 46, g = ground(fx, fz)
+    b.set(fx, g, fz, 'cobblestone')
+    b.set(fx, g + 1, fz, 'campfire[lit=true]')
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) b.set(fx + dx, ground(fx + dx, fz + dz), fz + dz, dx && dz ? 'gravel' : 'cobblestone')
+    b.set(fx - 3, ground(fx - 3, fz) + 1, fz, 'stripped_spruce_log[axis=z]')
+    b.set(fx - 3, ground(fx - 3, fz + 1) + 1, fz + 1, 'stripped_spruce_log[axis=z]')
+    b.set(fx + 1, ground(fx + 1, fz - 3) + 1, fz - 3, 'stripped_spruce_log[axis=x]')
+    b.set(fx + 2, ground(fx + 2, fz - 3) + 1, fz - 3, 'stripped_spruce_log[axis=x]')
+  }
+  // window glow: a candle on the bench behind each window
+  for (const [x, s] of windows) b.set(x, F + 1, CZ + s * (Wd(x) - 1), 'candle[candles=3,lit=true]')
+  b.lampPost([PIER.x0, PY + 1, PIER.z0 + 12], { height: 3, post: 'spruce_fence', arm: 'west' })
+  hang(SMOKE.x0 + 4, SF + 2, SMOKE.z1 + 1)
+  hang(NCX, NF + 2, N.z1)
   b.lampPost([CX + 3, ground(CX + 3, PZ1 + 2) + 1, PZ1 + 2], { height: 3, post: 'spruce_fence', foot: 'cobblestone_wall' })
   b.lampPost([58, ground(58, 46) + 1, 46], { height: 3, post: 'spruce_fence', foot: 'cobblestone_wall' })
   b.lampPost([X1 + 3, ground(X1 + 3, CZ + 2) + 1, CZ + 2], { height: 3, post: 'spruce_fence', foot: 'cobblestone_wall' })

@@ -254,8 +254,10 @@ export default function build(api) {
     const f = out(a)
     const d = kit.DIR[f]
     for (let j = 0; j < h; j += 1) b.set(x, y + j, z, glass)
-    b.set(x + d[0], y + h, z + d[2], `${trim}[facing=${kit.opposite(f)},half=bottom]`, { keep: true })
-    b.set(x + d[0], y - 1, z + d[2], `${trim}[facing=${kit.opposite(f)},half=top]`, { keep: true })
+    if (trim) {
+      b.set(x + d[0], y + h, z + d[2], `${trim}[facing=${kit.opposite(f)},half=bottom]`, { keep: true })
+      b.set(x + d[0], y - 1, z + d[2], `${trim}[facing=${kit.opposite(f)},half=top]`, { keep: true })
+    }
     if (shutters) {
       const rgt = kit.DIR[kit.ccw(f)]
       for (let j = 0; j < h; j += 1) {
@@ -301,15 +303,18 @@ export default function build(api) {
   // --- turrets: small drums carried on corbel cones (bartizans), each with its own witch-hat
   const T1 = { cx: 22, cz: 33, y0: 31, y1: 39, r: 2.5 }
   const T2 = { cx: 36, cz: 20, y0: 50, y1: 60, r: 2.5 }
-  const turretBody = (t, wallPaint) => {
-    corbel(t, { cx: t.cx, cz: t.cz, r: 0.4 }, t.y0, 'minecraft:stone_brick_stairs', PH)
+  const turretBody = (t, wallPaint, corbelStairs = 'minecraft:stone_brick_stairs', corbelBlock = PH) => {
+    corbel(t, { cx: t.cx, cz: t.cz, r: 0.4 }, t.y0, corbelStairs, corbelBlock)
     b.cylinder([t.cx, t.y0, t.cz], t.r - 1, t.y1 - t.y0 + 1, 'air')
     b.tube([t.cx, t.y0, t.cz], t.r, t.y1 - t.y0 + 1, wallPaint)
     b.disc([t.cx, t.y0, t.cz], t.r - 0.5, 'minecraft:spruce_planks')
     b.set(t.cx, t.y0 - 1 - Math.ceil(t.r), t.cz, 'minecraft:pointed_dripstone[thickness=tip,vertical_direction=down,waterlogged=false]')
   }
   turretBody(T1, PH)
-  turretBody(T2, timberPaint(T2, 4, deg(45)))
+  // The small timber turret: no posts (a 5-wide drum is too small for them), just sill, mid
+  // and top beams banding the plaster.
+  const T2PAINT = (x, y, z) => ((y - T2.y0) % 5 === 0 || y === T2.y1 ? `minecraft:stripped_dark_oak_log[axis=${Math.abs(x - T2.cx) > Math.abs(z - T2.cz) ? 'z' : 'x'}]` : PLASTER(x, y, z))
+  turretBody(T2, T2PAINT, 'minecraft:dark_oak_stairs', 'minecraft:dark_oak_planks')
   // open the turrets into the rooms they are attached to
   for (const [t, s] of [[T1, T.hall], [T1, T.library], [T2, T.study]]) {
     for (let y = Math.max(t.y0, s.y0) + 1; y <= Math.min(t.y1, s.y1) - 1; y += 1) {
@@ -357,7 +362,7 @@ export default function build(api) {
   const hat2 = b.coneRoof([T2.cx, T2.y1 + 1, T2.cz], T2.r, { material: 'deepslate_tile', overhang: 1, pitch: [1, 1, 3, 3, 3], finial: ['minecraft:end_rod[facing=up]'] })
   // the turret pokes through the main brim: clear brim blocks inside the turret
   for (let y = ROOF_Y - 2; y <= T2.y1; y += 1) {
-    for (const [x, z] of ringCells(T2)) if (y > T2.y0) b.set(x, y, z, timberPaint(T2, 4, deg(45)))
+    for (const [x, z] of ringCells(T2)) if (y > T2.y0) b.set(x, y, z, T2PAINT)
     b.cylinder([T2.cx, y, T2.cz], T2.r - 1, 1, 'air')
   }
 
@@ -443,7 +448,6 @@ export default function build(api) {
     for (let dx = -1; dx <= 1; dx += 1) b.set(x + dx, y + 3, z + 1, 'minecraft:deepslate_tile_stairs[facing=north,half=bottom]')
     b.set(x, y + 3, z, 'minecraft:chiseled_stone_bricks')
     b.set(x, y - 1, z + 1, 'minecraft:spruce_stairs[facing=north,half=bottom]')
-    b.set(x, y - 1, z + 2, 'minecraft:spruce_stairs[facing=north,half=bottom]')
     b.lampPost([x - 2, y - 1, z + 2], { height: 2, post: 'minecraft:dark_oak_fence', lantern: 'minecraft:lantern' })
     b.lampPost([x + 2, y - 1, z + 2], { height: 2, post: 'minecraft:dark_oak_fence', lantern: 'minecraft:lantern' })
   }
@@ -476,12 +480,16 @@ export default function build(api) {
     const [x, z] = wallCell(T2, 0)
     oculus(x, T2.y0 + 4, z, 'east')
   }
-  addLancet(T2, 270, T2.y0 + 3, 2, { trim: 'minecraft:dark_oak_stairs' })
+  addLancet(T2, 270, T2.y0 + 2, 2, { trim: null, glass: 'minecraft:yellow_stained_glass_pane' })
 
   // --- interior: ceilings, spiral stair flights, furniture, lights
   // Close every room at the top: the next drum is offset, so its floor does not cover all of
   // the room below (keep: never overwrite walls or floors already there).
-  for (const s of [T.hall, T.library]) b.disc([s.cx, s.y1 + 1, s.cz], s.r - 0.5, 'minecraft:spruce_planks', { keep: true })
+  // Where the closing disc lies outside the drum above, it is roof, not floor: weather it with
+  // the same stone slabs as the ledge.
+  for (const [s, up] of [[T.hall, T.library], [T.library, T.neck]]) {
+    b.disc([s.cx, s.y1 + 1, s.cz], s.r - 0.5, (x, y, z) => (inDisk(up, x, z) ? 'minecraft:spruce_planks' : 'minecraft:stone_brick_slab[type=bottom]'), { keep: true })
+  }
   const flights = [[T.hall, T.hall.y0 + 1, T.hall.y1], [T.library, T.library.y0 + 1, T.library.y1], [T.neck, T.neck.y0 + 1, T.neck.y1]]
   for (const [s, y0, y1] of flights) {
     b.spiralStairs([s.cx, y0, s.cz], 0.6, 2.7, y0, y1, 'spruce', { stepsPerTurn: 12, core: 'minecraft:stripped_dark_oak_log[axis=y]' })
@@ -607,6 +615,18 @@ export default function build(api) {
     const d = kit.DIR[f]
     if (b.nameAt(x + d[0], w.y - 1, z + d[2])?.endsWith('_stairs')) b.set(x + d[0], w.y, z + d[2], 'minecraft:candle[candles=3,lit=true,waterlogged=false]', { keep: true })
   }
+  // warm lanterns on the stone shaft: under the library balcony rim and beside the arched windows
+  for (const [x, z] of [[25, 35], [31, 35], [28, 37]]) {
+    let y = T.library.y0
+    if (b.has(x, y, z) && !b.has(x, y - 1, z)) b.set(x, y - 1, z, 'minecraft:lantern[hanging=true]')
+    else if (b.has(x, y - 1, z) && !b.has(x, y - 2, z)) b.set(x, y - 2, z, 'minecraft:lantern[hanging=true]')
+  }
+  for (const [x, y, z, f] of [[T.library.cx + 6, T.library.y0 + 4, T.library.cz + 3, 'east'], [T.library.cx - 6, T.library.y0 + 4, T.library.cz - 3, 'west'], [T.hall.cx + 6, T.hall.y0 + 4, T.hall.cz - 2, 'east']]) {
+    const d = kit.DIR[f]
+    if (!b.has(x - d[0], y, z - d[2])) continue
+    b.set(x, y, z, `minecraft:stone_brick_wall`)
+    b.set(x, y - 1, z, 'minecraft:lantern[hanging=true]')
+  }
   // the glowing orb dangling from the curled tip on a chain
   {
     const e = curl[curl.length - 1].map(Math.round)
@@ -712,24 +732,44 @@ export default function build(api) {
     const best = new Map()
     for (const [key, c] of pathCells) {
       if (!c.outer || c.onBridge || c.t < 0.04 || c.t > 0.98) continue
-      const k = Math.round(c.t / 0.11)
-      const err = Math.abs(c.t - k * 0.11)
+      const k = Math.round(c.t / 0.085)
+      const err = Math.abs(c.t - k * 0.085)
       if (!best.has(k) || err < best.get(k).err) best.set(k, { key, c, err })
     }
     for (const { key, c } of best.values()) {
       const [x, z] = key.split(',').map(Number)
       b.lampPost([x, c.top + 1, z], { height: 2, post: 'minecraft:spruce_fence', lantern: 'minecraft:lantern' })
     }
+    // lanterns on tall posts at both ends of the bridge
+    const ends = [...pathCells].filter(([, c]) => c.outer && c.onBridge).sort((p1, p2) => p1[1].t - p2[1].t)
+    for (const [key, c] of [ends[0], ends[ends.length - 1]]) {
+      const [x, z] = key.split(',').map(Number)
+      b.lampPost([x, c.top + 1, z], { height: 3, post: 'minecraft:spruce_fence', lantern: 'minecraft:lantern' })
+    }
   }
-  // the last stretch: a trail across the plateau to the front door
-  for (const [x0, z0] of [[20, 37], [21, 37], [22, 37], [23, 36], [24, 36], [25, 36], [26, 35], [27, 35], [21, 36], [22, 36], [23, 35], [24, 35], [25, 35], [26, 36], [28, 35]]) {
-    const y = b.topY(x0, z0)
-    if (/grass_block|moss_block|dirt/.test(b.nameAt(x0, y, z0) ?? '')) b.set(x0, y, z0, trail)
+  // the last stretch: a trail across the forecourt from the top of the path to the door step
+  {
+    const pts = [[19.5, 36.5], [22, 36.4], [24.5, 35.8], [27, 35.2]]
+    for (let i = 1; i < pts.length; i += 1) {
+      for (let k = 0; k <= 12; k += 1) {
+        const px = pts[i - 1][0] + ((pts[i][0] - pts[i - 1][0]) * k) / 12
+        const pz = pts[i - 1][1] + ((pts[i][1] - pts[i - 1][1]) * k) / 12
+        for (let x = Math.floor(px - 1); x <= Math.ceil(px + 1); x += 1) {
+          for (let z = Math.floor(pz - 1); z <= Math.ceil(pz + 1); z += 1) {
+            if (Math.hypot(x - px, z - pz) > 1.05) continue
+            const y = b.topY(x, z)
+            if (/grass_block|moss_block|dirt$/.test(b.nameAt(x, y, z) ?? '')) b.set(x, y, z, trail)
+          }
+        }
+      }
+    }
   }
 
   // ------------------------------------------------------------------ rock life
   // vines from the cliff lips, glow lichen in the shade, an amethyst geode in the cliff
   b.overgrow([0, 5, 0], [55, PLATEAU, 55], { amount: 0.35, maxLength: 7, moss: false, seed: 4 })
+  // ivy creeping up the north-west side of the old stone shaft (the shady, damp side)
+  b.overgrow([14, PLATEAU + 2, 14], [28, T.library.y1, 30], { amount: 0.3, maxLength: 6, moss: false, seed: 8 })
   const STONEISH = /minecraft:(stone|andesite|tuff|deepslate|cobbled_deepslate|cobblestone)$/
   for (const [x, y, z, blk] of b.entries()) {
     if (!STONEISH.test(blk.name) || y < 4 || y > PLATEAU) continue

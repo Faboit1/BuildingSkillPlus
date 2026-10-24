@@ -25,22 +25,22 @@ const CLIFF_TOP = [[0, 45], [12, 46], [24, 47], [36, 48], [46, 51], [58, 52], [6
 const SHORE = [[0, 57], [36, 57], [40, 61], [56, 62], [62, 61], [76, 63], [90, 60], [95, 57]]
 
 const HOUSES = [
-  { id: 'a1', x0: 1, z0: 38, x1: 9, z1: 44, floors: 1, roof: 'flat', door: 3, stair: 'right', upper: { x0: 1, z0: 38, x1: 5, z1: 41 }, vine: 1 },
+  { id: 'a1', x0: 1, z0: 38, x1: 9, z1: 44, floors: 1, roof: 'flat', door: 3, stair: 'right', upper: { x0: 1, z0: 38, x1: 5, z1: 41 }, vine: 6 },
   { id: 'a2', x0: 10, z0: 39, x1: 16, z1: 44, floors: 2, roof: 'vault', vaultAxis: 'z', door: 3, balcony: true },
   { id: 'a3', x0: 20, z0: 38, x1: 26, z1: 44, floors: 1, roof: 'flat', door: 4, tone: 'cream', pergola: true, stair: 'left' },
   { id: 'a4', x0: 31, z0: 38, x1: 40, z1: 44, floors: 1, roof: 'hip', door: 4, doorWidth: 2, taverna: true },
-  { id: 'b1', x0: 0, z0: 29, x1: 7, z1: 35, floors: 2, roof: 'flat', door: 2, chimney: true, terrace: true },
+  { id: 'b1', x0: 0, z0: 29, x1: 7, z1: 35, floors: 2, roof: 'flat', door: 2, chimney: true, terrace: true, archWindow: 4 },
   { id: 'b2', x0: 8, z0: 29, x1: 15, z1: 34, floors: 1, roof: 'vault', vaultAxis: 'x', door: 5, vine: 3 },
   { id: 'b3', x0: 19, z0: 29, x1: 27, z1: 35, floors: 1, roof: 'flat', door: 4, tone: 'peach', upper: { x0: 23, z0: 29, x1: 27, z1: 32 }, stair: 'left' },
   { id: 'b4', x0: 30, z0: 30, x1: 36, z1: 35, floors: 1, roof: 'flat', front: 'east', door: 2, chimney: true, terrace: true },
   { id: 'b5', x0: 42, z0: 31, x1: 51, z1: 38, floors: 1, roof: 'flat', door: 3, pool: true, terrace: true },
-  { id: 'c1', x0: 2, z0: 19, x1: 11, z1: 26, floors: 2, roof: 'hip', door: 4 },
+  { id: 'c1', x0: 2, z0: 19, x1: 11, z1: 26, floors: 2, roof: 'hip', door: 4, archWindow: 6 },
   { id: 'c3', x0: 21, z0: 19, x1: 28, z1: 26, floors: 1, roof: 'vault', vaultAxis: 'x', door: 2, tone: 'cream', vine: 5 },
-  { id: 'c4', x0: 35, z0: 20, x1: 43, z1: 26, floors: 2, roof: 'flat', door: 2, balcony: true, chimney: true, terrace: true },
+  { id: 'c4', x0: 35, z0: 20, x1: 43, z1: 26, floors: 2, roof: 'flat', door: 2, balcony: true, chimney: true, terrace: true, archWindow: 5, vine: 7 },
   { id: 'c5', x0: 48, z0: 20, x1: 55, z1: 26, floors: 1, roof: 'flat', front: 'west', door: 3, stair: 'right', terrace: true },
   { id: 'd1', x0: 14, z0: 9, x1: 22, z1: 16, floors: 1, roof: 'flat', door: 5, pergola: true, stair: 'left' },
-  { id: 'd2', x0: 26, z0: 8, x1: 35, z1: 16, floors: 2, roof: 'flat', door: 4, chimney: true, vine: 2, terrace: true },
-  { id: 'e1', x0: 61, z0: 26, x1: 68, z1: 32, floors: 1, roof: 'vault', vaultAxis: 'z', door: 3 },
+  { id: 'd2', x0: 26, z0: 8, x1: 35, z1: 16, floors: 2, roof: 'flat', door: 4, chimney: true, vine: 2, terrace: true, archWindow: 6 },
+  { id: 'e1', x0: 61, z0: 26, x1: 68, z1: 32, floors: 1, roof: 'vault', vaultAxis: 'z', door: 3, vine: 6 },
   { id: 'e2', x0: 74, z0: 6, x1: 81, z1: 12, floors: 1, roof: 'hip', door: 3 },
 ]
 
@@ -265,7 +265,7 @@ export default function build(api) {
       }
     } else if (type === 'vault') {
       // barrel vault: steep first row, then flattening (a semicircle sampled in half-blocks)
-      b.roof({ x0, z0, x1, z1, y: roofY + 1, type: 'gable', axis: h.vaultAxis, material: 'smooth_quartz', pitch: [2, 1, 0.5, 0.5, 0.5], overhang: 0, gableOverhang: 0, gable: h.wall, thickness: 0 })
+      b.roof({ x0, z0, x1, z1, y: roofY + 1, type: 'gable', axis: h.vaultAxis, material: 'smooth_quartz', pitch: [1, 0.5, 0.5, 0.5, 0.5], overhang: 0, gableOverhang: 0, gable: h.wall, thickness: 0 })
     } else if (type === 'hip') {
       // low (1:2) terracotta hip roof; tile colours varied with a sun-faded ramp
       b.roof({ x0, z0, x1, z1, y: roofY + 1, type: 'hip', material: 'brick', pitch: 0.5, overhang: 1, eaveTrim: true, thickness: 0 })
@@ -278,7 +278,7 @@ export default function build(api) {
   // (H), so a walkway laid after the houses meets their door landings exactly. Levels are
   // interpolated per segment; a rise between two cells becomes a stair facing uphill.
   const pathCells = new Map()
-  function walkway(points, { width = 2, tread = PAVE, stairs = 'polished_andesite_stairs', clear = 4, name = '?' } = {}) {
+  function walkway(points, { width = 2, tread = PAVE, stairs = 'polished_andesite_stairs', clear = 4, name = '?', fill } = {}) {
     const cells = []
     const idx = [0]
     for (let i = 1; i < points.length; i += 1) {
@@ -314,7 +314,7 @@ export default function build(api) {
         if (protectedCols.has(key) || pathCells.has(key)) continue
         pathCells.set(key, { x, z, L: c.L })
         for (let y = c.L + 1; y <= c.L + clear; y += 1) if (isTerrain(b.get(x, y, z))) b.remove(x, y, z)
-        for (let y = hAt(x, z) + 1; y < c.L; y += 1) b.set(x, y, z, y >= c.L - 1 ? WHITE : RETAIN)
+        for (let y = hAt(x, z) + 1; y < c.L; y += 1) b.set(x, y, z, fill ?? (y >= c.L - 1 ? WHITE : RETAIN))
         b.set(x, c.L, z, facing ? `${stairs}[facing=${facing},half=bottom]` : tread)
         setH(x, z, c.L)
       }
@@ -332,6 +332,7 @@ export default function build(api) {
         if (g <= L - 2) {
           for (let y = g + 1; y <= L + 1; y += 1) b.set(nx, y, nz, y >= L ? WHITE : RETAIN)
           b.set(nx, L + 2, nz, 'smooth_quartz_slab[type=bottom]')
+          if ((nx * 7 + nz * 13) % 11 === 0) b.set(nx, L + 3, nz, 'lantern[hanging=false]')
           setH(nx, nz, L + 1)
           protectedCols.add(key)
         } else if (g >= L + 2) {
@@ -444,11 +445,13 @@ export default function build(api) {
   }
   // Olive: short, leaning, grey-barked (acacia log), sparse silvery-green crown.
   function olive(x, z, seed) {
+    if (pathCells.has(colKey(x, z))) return
     const y = hAt(x, z) + 1
     b.tree([x, y, z], 'acacia', { log: 'acacia_wood', wood: 'acacia_wood', leaves: ['azalea_leaves', 'birch_leaves', 'azalea_leaves'], height: 4 + (seed % 2), trunk: 0.6, blob: [1.2, 1.7], branches: [2, 3], spread: 0.6, rise: 0.4, roots: 0, lean: 0.25, squash: 0.6, seed })
   }
   // Cypress: a dark, narrow flame. Lathe of spruce leaves, widest at a third of its height.
   function cypress(x, z, h = 9) {
+    if (pathCells.has(colKey(x, z))) return
     const y = hAt(x, z) + 1
     b.set(x, y, z, 'spruce_log[axis=y]')
     b.lathe([x, y + 1, z], h, (dy, t) => 0.55 + 1.05 * Math.sin(Math.min(1, t * 2.4 + 0.25) * Math.PI / 2) * (1 - t) ** 0.8, leaf('spruce_leaves'), { keep: true })
@@ -476,7 +479,14 @@ export default function build(api) {
   walkway([[37, 51, SEA + 1], [25, 51, 15], [25, 47]], { name: 'harbor' })
   walkway([[44, 45], [56, 45, CY]], { name: 'chapel' })
   walkwayEdges()
-  for (const h of HOUSES) { placeDoor(h); placeWindows(h) }
+  // A wide arched window on the upper floor of some tall houses: 2 x 3 opening, quartz stairs
+  // round the head, shutters either side. Placed before the regular windows, which skip it.
+  function archWindow(h) {
+    if (h.archWindow === undefined || h.floors < 2) return
+    const [x, z] = SIDE[h.front].at(h, h.archWindow)
+    b.window([x, h.fy + 5, z], h.front, { width: 2, height: 3, glass: 'glass_pane', arch: true, material: 'smooth_quartz', recess: 1, shutters: h.shutter, sill: 'smooth_quartz_slab[type=top]' })
+  }
+  for (const h of HOUSES) { placeDoor(h); archWindow(h); placeWindows(h) }
 
   // ------------------------------------------------------------------ flagstones
   // Irregular flagstones with whitewashed joints (Cycladic courtyards): a jittered-grid Voronoi;
@@ -535,7 +545,7 @@ export default function build(api) {
     b.set(x, CY + 6, NV.z0 - 1, 'smooth_quartz_stairs[facing=south,half=top]')
     b.set(x, CY + 6, NV.z1 + 1, 'smooth_quartz_stairs[facing=north,half=top]')
   }
-  b.roof({ ...NV, y: CY + 7, type: 'gable', axis: 'x', material: 'smooth_quartz', pitch: [1, 1, 0.5, 0.5, 0.5], overhang: 0, gableOverhang: 0, gable: CW, thickness: 1 })
+  b.roof({ ...NV, y: CY + 7, type: 'gable', axis: 'x', material: 'smooth_quartz', pitch: [1, 0.5, 0.5, 0.5, 0.5], overhang: 0, gableOverhang: 0, gable: CW, thickness: 1 })
   // drum (7 across) with four arched lights, a slab cornice, then the blue dome and its cross
   const DC = [71, 46]
   b.tube([DC[0], CY + 7, DC[1]], 3.5, 8, CW)
@@ -653,7 +663,7 @@ export default function build(api) {
   for (let i = 0; i < 14; i += 1) {
     const t = R()
     const onX = R() < 0.55
-    const x = onX ? Math.round(2 + t * 13) : 2 + (R() < 0.5 ? -3 : 3)
+    const x = onX ? Math.round(2 + t * 13) : 5
     const z = onX ? 70 + (R() < 0.5 ? -3 : 3) : Math.round(58 + t * 12)
     b.boulder([x, SEA - 0.5, z], [1.6, 1.2, 1.6], DRYSTONE, { seed: i })
   }
@@ -702,6 +712,12 @@ export default function build(api) {
   boat(19, 61, 7, 'south', 'red_terracotta')
   boat(7, 63, 7, 'east', 'cyan_terracotta')
   boat(31, 66, 6, 'east', 'lapis_block')
+  // a sailing boat at anchor gives the empty foreground water a subject
+  boat(60, 70, 10, 'east', 'blue_terracotta', { half: 1 })
+  for (let y = SEA + 1; y <= SEA + 9; y += 1) b.set(64, y, 70, 'spruce_fence')
+  for (let k = 1; k <= 7; k += 1) for (let u = 1; u <= Math.round((8 - k) * 0.55); u += 1) b.set(64 - u, SEA + 1 + k, 70, 'white_wool')
+  for (let k = 1; k <= 6; k += 1) for (let u = 1; u <= Math.round((7 - k) * 0.45); u += 1) b.set(64 + u, SEA + 1 + k, 70, 'white_wool')
+  for (const [x, z] of [[46, 72], [20, 74], [72, 66]]) { b.set(x, SEA, z, 'red_concrete'); b.set(x, SEA + 1, z, 'white_concrete') }
   // boathouses carved into the cliff foot, framed by whitewashed arches
   for (const bx of [4, 11]) {
     let zf = 52
@@ -765,6 +781,25 @@ export default function build(api) {
     for (let t = 1; t <= 6; t += 1) {
       b.set(hub[0] + dx * t, hub[1] + dy * t, hub[2], 'spruce_fence')
       for (let k = 1; k <= Math.round((t - 1) * 0.55); k += 1) b.set(hub[0] + dx * t + px * k, hub[1] + dy * t + py * k, hub[2], 'white_wool')
+    }
+  }
+
+  // ------------------------------------------------------------------ farm paths
+  // Beyond the village the paths turn rural: beaten earth treads, cobble steps, dry-stone fill.
+  const FARM = { width: 2, tread: pal({ dirt_path: 3, coarse_dirt: 1, gravel: 1 }, 95, 2), stairs: 'cobblestone_stairs', fill: DRYSTONE }
+  walkway([[64, 38, CY], [64, 34]], { ...FARM, name: 'farm1' })
+  walkway([[70, 34], [82, 34], [82, 29, my]], { ...FARM, name: 'farm2' })
+  walkway([[49, 17], [60, 17], [60, 15], [76, 15]], { ...FARM, name: 'farm3' })
+  // alley lamps: a quartz corbel with a hanging lantern on house walls beside the walkways
+  for (const { x, z, L } of pathCells.values()) {
+    if ((x * 7 + z * 5) % 10 !== 0) continue
+    for (const f of HZ) {
+      const wx = x + DIR[f][0]
+      const wz = z + DIR[f][2]
+      if (!protectedCols.has(colKey(wx, wz)) || !b.has(wx, L + 4, wz) || !free(x, L + 4, z) || !free(x, L + 3, z)) continue
+      b.set(x, L + 4, z, `smooth_quartz_stairs[facing=${f},half=top]`)
+      b.set(x, L + 3, z, 'lantern[hanging=true]')
+      break
     }
   }
 
@@ -940,7 +975,7 @@ export default function build(api) {
       b.set(x, g, z, 'grass_block')
       if (free(x, g + 1, z)) {
         const r = kit.hash01(x, g, z, 77)
-        if (r < 0.06) b.leafBlob([x, g + 1, z], [1, 0.8, 1], ['azalea_leaves', 'flowering_azalea_leaves'], { seed: x * 31 + z })
+        if (r < 0.06 && x > 1) b.leafBlob([x, g + 1, z], [1, 0.8, 1], ['azalea_leaves', 'flowering_azalea_leaves'], { seed: x * 31 + z })
         else if (r < 0.55) {
           let t = kit.hash01(x, g, z, 78) * 13
           for (const [w, id] of GARDEN) { if (t < w) { b.set(x, g + 1, z, id); break } t -= w }
@@ -959,6 +994,9 @@ export default function build(api) {
     const [x, z] = local(h, h.vine, -1)
     bougainvillea(x, h.fy + 1, z, 3, strHash(h.id))
   }
+  bougainvillea(57, CY + 1, 40, 4, 41)
+  // dry ground cover on the farm terraces and plateau: tufts, dead bushes, poppies
+  b.scatter({ x0: 0, z0: 0, x1: 95, z1: 45, on: ['coarse_dirt', 'rooted_dirt', 'packed_mud'], density: 0.22, clump: 5, seed: 7, paints: [[6, 'short_grass'], [2, 'dead_bush'], [1, 'poppy'], [1, 'fern'], [1, 'oxeye_daisy']] })
   for (const [x, z, s] of [[60, 16, 1], [72, 20, 2], [76, 26, 3], [80, 12, 4], [70, 13, 5], [79, 33, 6], [64, 36, 7], [91, 34, 8], [62, 4, 9], [74, 4, 10], [66, 21, 11], [86, 6, 12], [87, 13, 13], [58, 26, 14]]) olive(x, z, s)
   for (const [x, z, h] of [[59, 35, 10], [84, 41, 9], [57, 12, 11], [51, 14, 9], [3, 8, 10], [9, 4, 8], [38, 6, 9], [73, 30, 8]]) cypress(x, z, h)
 

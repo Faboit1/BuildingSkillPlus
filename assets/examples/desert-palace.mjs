@@ -187,6 +187,15 @@ export default function build(api) {
   b.box([PX0, 2, PZ0], [PX1, FLOOR, PZ1], PLINTH)
   b.box([CX - 7, 2, PZ1 + 1], [CX + 7, FLOOR, PZ1 + 2], PLINTH) // landing before the stair
   for (const [mx, mz] of MINARETS) b.box([mx - 3, 2, mz - 3], [mx + 3, F + 1, mz + 3], PLINTH)
+  // Pavement: light sandstone flags with cut-sandstone joints on the 4-block column grid
+  // (floors are painted before texturing so the podium ramp only touches the podium sides).
+  const PAVE = (x, y, z) => {
+    const gx = (x - COURT_W) % 4 === 0
+    const gz = (z - COURT_N) % 4 === 0
+    return gx && gz ? 'minecraft:chiseled_sandstone' : gx || gz ? 'minecraft:cut_sandstone' : 'minecraft:smooth_sandstone'
+  }
+  b.box([PX0 + 1, FLOOR, PZ0 + 1], [PX1 - 1, FLOOR, PZ1 - 1], PAVE)
+  b.box([CX - 6, FLOOR, PZ1], [CX + 6, FLOOR, PZ1 + 1], PAVE)
 
   if (!at('structure')) {
     b.box([HX0, F, Z0], [HX1, HALL_TOP, HZ1], WALL)
@@ -267,7 +276,8 @@ export default function build(api) {
   crenel([X0, HZ1 + 1], [X0, Z1], ARC_TOP + 1)
   crenel([X1, HZ1 + 1], [X1, Z1], ARC_TOP + 1)
   crenel([X0, Z1], [X1, Z1], ARC_TOP + 1)
-  crenelRect(COURT_W, COURT_N, COURT_E, COURT_S, ARC_TOP + 1)
+  for (const [a, c] of [[[COURT_W, COURT_N], [COURT_E, COURT_N]], [[COURT_W, COURT_S], [COURT_E, COURT_S]], [[COURT_W, COURT_N], [COURT_W, COURT_S]], [[COURT_E, COURT_N], [COURT_E, COURT_S]]])
+    crenel(a, c, ARC_TOP + 1, { merlons: false }) // calm parapet on the court side: merlons face outward only
 
   // A small dome over every gallery bay (the riwaq roofs of caravanserais and mosques).
   const miniDome = (x, y, z) => {
@@ -294,14 +304,18 @@ export default function build(api) {
   const PZF = COURT_N + 1 // pishtaq front face z
   const PW = 9 // pishtaq half width
   b.box([CX - PW, F, HZ1 + 1], [CX + PW, PISH_TOP, PZF], WALL)
-  for (let x = CX - PW + 2; x <= CX + PW - 2; x += 1) for (let y = F; y <= PISH_TOP - 2; y += 1) b.remove(x, y, PZF)
+  for (let x = CX - PW + 3; x <= CX + PW - 3; x += 1) for (let y = F; y <= PISH_TOP - 3; y += 1) b.remove(x, y, PZF)
   cutArch([CX - 5, F, PZF - 1], 'south', { w: 11, spring: 10, depth: 4, k: 0.68, mat: TRIM, ring: 1, ringPaint: 'cut_sandstone' })
-  // muqarnas hood: staggered corbels of upside-down stairs and top slabs at the back of the vault
+  // muqarnas hood: tiers of corbels stepping toward the viewer with height; inside a tier,
+  // corbels (upside-down stairs) alternate with recessed cells, the honeycomb of a muqarnas.
   for (let y = F + 10; y <= PISH_TOP - 4; y += 1) {
+    const tier = Math.min(3, Math.floor((y - F - 10) / 2))
     for (let x = CX - 5; x <= CX + 5; x += 1) {
-      for (const [z, yMin] of [[HZ1 + 1, F + 10], [HZ1 + 2, F + 12], [HZ1 + 3, F + 14]]) {
-        if (y < yMin || b.has(x, y, z)) continue
-        b.set(x, y, z, (x + y + z) % 2 === 0 ? st(TRIM, 'north', 'top') : sl(TRIM, 'top'))
+      for (let k = 0; k <= tier; k += 1) {
+        const z = HZ1 + 1 + k
+        if (b.has(x, y, z)) continue
+        const corbel = (x + y + k) % 2 === 0 || k < tier
+        if (corbel) b.set(x, y, z, k < tier ? sl(TRIM, 'top') : st(TRIM, 'north', 'top'))
       }
     }
   }
@@ -396,32 +410,34 @@ export default function build(api) {
   // Persian/Moorish walls are never flat: shallow pointed niches (blind arcades) in bays
   // separated by piers, with the real window set one block deeper inside the niche.
   // nicheAt: c = niche centre along the wall, face = outer wall coordinate.
-  const nicheAt = (facing, face, c, y, { w = 3, spring = 3, window = null, winY = [], k = 1 } = {}) => {
+  const nicheAt = (facing, face, c, y, { w = 3, spring = 3, window = null, winY = [], k = 1, mat = TRIM } = {}) => {
     const off = (w - 1) / 2
     const alongX = facing === 'north' || facing === 'south'
     const sign = facing === 'south' || facing === 'west' ? -1 : 1 // left jamb is at c - off for S/W faces
     const left = c + sign * off
     const o = alongX ? [left, y, face] : [face, y, left]
-    cutArch(o, facing, { w, spring, depth: 1, k, mat: TRIM })
+    cutArch(o, facing, { w, spring, depth: 1, k, mat })
     if (window) {
       const n = DIR[facing]
       for (const wy of winY) {
         const p = alongX ? [c, wy, face - n[2]] : [face - n[0], wy, c]
-        b.set(...p, window)
+        b.set(...p, typeof window === 'function' ? window(facing) : window)
       }
     }
   }
-  const GRILLE = 'minecraft:iron_bars'
+  // wooden mashrabiya screens: an open trapdoor on the outer side of the window cell
+  const GRILLE = facing => kit.trapdoor('jungle', opposite(facing), { open: true })
+  const LATTICE = 'minecraft:waxed_oxidized_copper_grate' // teal lattice for the hero hall
   // great hall: two tiers of five niches on the north face, clerestory windows above the wings
   for (const c of [CX - 10, CX - 5, CX, CX + 5, CX + 10]) {
-    nicheAt('north', Z0, c, F + 1, { spring: 4, window: GRILLE, winY: [F + 2, F + 3] })
-    nicheAt('north', Z0, c, F + 8, { spring: 1, window: GRILLE, winY: [F + 9, F + 10] })
+    nicheAt('north', Z0, c, F + 1, { spring: 4, window: LATTICE, winY: [F + 2, F + 3] })
+    nicheAt('north', Z0, c, F + 8, { spring: 1, window: LATTICE, winY: [F + 9, F + 10] })
   }
   for (const c of [HCZ - 8, HCZ - 4, HCZ, HCZ + 4, HCZ + 8]) {
-    nicheAt('west', HX0, c, WING_TOP + 1, { w: 1, spring: 2, k: 1, window: GRILLE, winY: [WING_TOP + 1, WING_TOP + 2] })
-    nicheAt('east', HX1, c, WING_TOP + 1, { w: 1, spring: 2, k: 1, window: GRILLE, winY: [WING_TOP + 1, WING_TOP + 2] })
+    nicheAt('west', HX0, c, WING_TOP + 1, { w: 1, spring: 2, k: 1, window: LATTICE, winY: [WING_TOP + 1, WING_TOP + 2] })
+    nicheAt('east', HX1, c, WING_TOP + 1, { w: 1, spring: 2, k: 1, window: LATTICE, winY: [WING_TOP + 1, WING_TOP + 2] })
   }
-  for (const c of [CX - 11, CX + 11]) nicheAt('south', HZ1, c, F + 8, { spring: 1, window: GRILLE, winY: [F + 9, F + 10] })
+  for (const c of [CX - 11, CX + 11]) nicheAt('south', HZ1, c, F + 8, { spring: 1, window: LATTICE, winY: [F + 9, F + 10] })
   // wings: one tall niche per bay spanning both storeys, a window on each floor inside it
   for (const c of [HCZ - 10, HCZ - 5, HCZ, HCZ + 5, HCZ + 10]) {
     nicheAt('west', X0, c, F + 1, { spring: 5, window: GRILLE, winY: [F + 1, F + 2, F + 5, F + 6] })
@@ -437,12 +453,12 @@ export default function build(api) {
 
   // podium: blind arcade of low niches between the bastions, cornice of upside-down stairs
   for (let x = CX - 15; x <= CX + 15; x += 5) {
-    nicheAt('north', PZ0, x, G + 1, { spring: 0 })
-    if (Math.abs(x - CX) > 8) nicheAt('south', PZ1, x, G + 1, { spring: 0 })
+    nicheAt('north', PZ0, x, G + 1, { spring: 0, mat: 'granite' })
+    if (Math.abs(x - CX) > 8) nicheAt('south', PZ1, x, G + 1, { spring: 0, mat: 'granite' })
   }
   for (let z = HCZ - 5; z <= Z1 - 7; z += 5) {
-    nicheAt('west', PX0, z, G + 1, { spring: 0 })
-    nicheAt('east', PX1, z, G + 1, { spring: 0 })
+    nicheAt('west', PX0, z, G + 1, { spring: 0, mat: 'granite' })
+    nicheAt('east', PX1, z, G + 1, { spring: 0, mat: 'granite' })
   }
   for (let x = PX0 - 1; x <= PX1 + 1; x += 1) {
     if (x >= CX - 7 && x <= CX + 7) continue
@@ -508,5 +524,347 @@ export default function build(api) {
   b.texture([PX0 - 1, 0, PZ0 - 1], [PX1 + 1, F + 2, PZ1 + 3], ['polished_granite', 'granite', 'terracotta'], { only: PLINTH, base: 0.35, edge: 0.2, noise: 0.3, scale: 4, seed: 9 })
   // Domes: glazed turquoise, lighter (sun-bleached) at the crown, darker at the neck.
   b.texture([X0 - 4, WING_TOP, Z0 - 4], [X1 + 4, H - 1, Z1 + 4], ['prismarine_bricks', 'oxidized_cut_copper', 'dark_prismarine'], { only: DOME, base: 0.25, top: 0.25, edge: 0.05, noise: 0.15, scale: 3, drip: 0, seed: 10 })
+
+  // Smooth the voxel steps of every dome into stairs of the same material (after texturing,
+  // because the wool placeholder has no stairs): bottom stairs on the upper slopes, upside-down
+  // stairs under the bulb's overhang. The tall side always faces the dome's axis.
+  const smoothDome = (cx, cz, y0, y1, r) => {
+    const cells = []
+    for (let y = y0; y <= y1; y += 1)
+      for (let x = Math.floor(cx - r); x <= Math.ceil(cx + r); x += 1)
+        for (let z = Math.floor(cz - r); z <= Math.ceil(cz + r); z += 1) {
+          const blk = b.get(x, y, z)
+          if (!blk || !/(prismarine|copper)/.test(blk.name) || /_(stairs|slab)$/.test(blk.name)) continue
+          const dx = x - cx
+          const dz = z - cz
+          if (dx === 0 && dz === 0) continue
+          const out = DIR[kit.facingFrom(dx, dz)]
+          if (b.has(x + out[0], y, z + out[2])) continue
+          const up = b.has(x, y + 1, z)
+          const down = b.has(x, y - 1, z)
+          const inward = kit.facingFrom(-dx, -dz)
+          const stairs = kit.material(blk.name.replace('minecraft:', '')).stairs
+          if (!up && down) cells.push([x, y, z, `${stairs}[facing=${inward},half=bottom]`])
+          else if (up && !down) cells.push([x, y, z, `${stairs}[facing=${inward},half=top]`])
+        }
+    for (const [x, y, z, blk] of cells) b.set(x, y, z, blk)
+  }
+  smoothDome(CX, HCZ, DOME_Y, DOME_TOP, 10.5)
+  for (const cx of [CX - 18, CX + 18]) smoothDome(cx, HCZ, WING_TOP + 3, WING_TOP + 12, 4.5)
+  for (const [mx, mz] of MINARETS) smoothDome(mx, mz, F + 36, F + 41, 3)
+
+  if (!at('detail')) return b.finish({ name: 'desert-palace' })
+
+  // ------------------------------------------------------------------ 12 tilework (one teal hue)
+  // Glazed terracotta rotated per cell makes the zellige motif; used only on the hero elements
+  // (pishtaq frame, drum, hall frieze, minaret rings), never on the plain fabric.
+  const TILE = (x, y, z) => `minecraft:cyan_glazed_terracotta[facing=${['north', 'east', 'south', 'west'][((x + z) & 1) * 2 + (y & 1)]}]`
+  // alfiz: the tile band framing the iwan
+  for (let y = F + 1; y <= PISH_TOP - 2; y += 1) {
+    b.set(CX - PW + 2, y, PZF, TILE)
+    b.set(CX + PW - 2, y, PZF, TILE)
+  }
+  for (let x = CX - PW + 2; x <= CX + PW - 2; x += 1) b.set(x, PISH_TOP - 2, PZF, TILE)
+  // spandrels: carved stucco (chiseled sandstone) with a tile rosette in each
+  for (let x = CX - PW + 3; x <= CX + PW - 3; x += 1)
+    for (let y = F + 10; y <= PISH_TOP - 3; y += 1) {
+      const blk = b.get(x, y, PZF - 1)
+      if (blk && /sandstone$/.test(blk.name) && blk.name !== 'minecraft:cut_sandstone') b.set(x, y, PZF - 1, 'chiseled_sandstone')
+    }
+  for (const x of [CX - 5, CX + 5]) b.set(x, PISH_TOP - 4, PZF - 1, TILE)
+  // zellige dado inside the iwan and the gate passage
+  for (let y = F; y <= F + 1; y += 1) {
+    for (let z = HZ1 + 1; z <= PZF - 1; z += 1) {
+      b.set(CX - 6, y, z, TILE)
+      b.set(CX + 6, y, z, TILE)
+    }
+    for (let x = CX - 5; x <= CX + 5; x += 1) if (b.has(x, y, HZ1)) b.set(x, y, HZ1, TILE)
+  }
+  // mashrabiya over the hall door, lit from inside at night
+  b.box([CX - 2, F + 6, HZ1 - 1], [CX + 2, F + 8, HZ1], LATTICE)
+  // hall frieze under the parapet, gate band, drum band, minaret rings
+  for (let x = HX0; x <= HX1; x += 1) b.set(x, HALL_TOP, Z0, TILE)
+  for (let z = Z0; z <= HZ1; z += 1) {
+    b.set(HX0, HALL_TOP, z, TILE)
+    b.set(HX1, HALL_TOP, z, TILE)
+  }
+  for (const x of [HX0, HX0 + 1, HX0 + 2, HX0 + 3, HX1, HX1 - 1, HX1 - 2, HX1 - 3]) b.set(x, HALL_TOP, HZ1, TILE)
+  for (let x = GX0 + 2; x <= GX1 - 2; x += 1) b.set(x, GATE_TOP - 1, GZF, TILE)
+  ringOf(CX, HCZ, DRUM_Y + 6, 6.5, 7.5, () => TILE)
+  for (let k = 0; k < 12; k += 1) {
+    const a = (k / 12) * TAU
+    const x = Math.round(CX + 6.6 * Math.cos(a))
+    const z = Math.round(HCZ + 6.6 * Math.sin(a))
+    for (let y = DRUM_Y + 2; y <= DRUM_Y + 4; y += 1) if (!b.has(x, y, z)) b.set(x, y, z, LATTICE)
+  }
+  for (const [mx, mz] of MINARETS) {
+    for (const y of [F + 9, F + 15, F + 28]) ringOf(mx, mz, y, y > F + 20 ? 1.2 : 1.6, y > F + 20 ? 2.0 : 2.5, () => TILE)
+  }
+
+  // ------------------------------------------------------------------ 13 interiors
+  // Great hall: a fountain under the dome (as in the Alhambra's Hall of the Abencerrajes),
+  // a runner from the iwan door to a throne dais, a lantern chandelier hanging from the dome.
+  const HFLOOR = (x, y, z) => {
+    const d = Math.hypot(x - CX, z - HCZ)
+    if (d > 5.5 && d <= 6.5) return TILE(x, y, z)
+    return (x + z) % 2 === 0 ? 'minecraft:smooth_sandstone' : 'minecraft:cut_sandstone'
+  }
+  b.box([HX0 + 2, FLOOR, Z0 + 2], [HX1 - 2, FLOOR, HZ1 - 2], HFLOOR)
+  b.disc([CX, F, HCZ], 2.6, 'smooth_sandstone')
+  b.disc([CX, F, HCZ], 1.6, 'water')
+  b.set(CX, F, HCZ, 'chiseled_sandstone')
+  b.set(CX, F + 1, HCZ, 'water')
+  for (let z = HCZ + 3; z <= HZ1 - 2; z += 1) b.set(CX, F, z, 'cyan_carpet')
+  for (let z = Z0 + 6; z <= HCZ - 3; z += 1) b.set(CX, F, z, 'cyan_carpet')
+  b.box([CX - 4, F, Z0 + 2], [CX + 4, F, Z0 + 4], 'smooth_sandstone') // dais
+  for (let x = CX - 4; x <= CX + 4; x += 1) b.set(x, F, Z0 + 5, st(TRIM, 'north'))
+  b.box([CX - 3, F + 1, Z0 + 2], [CX + 3, F + 1, Z0 + 4], 'white_carpet')
+  b.set(CX, F + 1, Z0 + 2, st('dark_oak', 'south'))
+  b.set(CX - 1, F + 1, Z0 + 2, kit.trapdoor('dark_oak', 'west', { open: true }))
+  b.set(CX + 1, F + 1, Z0 + 2, kit.trapdoor('dark_oak', 'east', { open: true }))
+  b.set(CX, F + 2, Z0 + 2, 'dark_oak_trapdoor[facing=south,half=top,open=true]')
+  for (const x of [CX - 3, CX + 3]) {
+    b.set(x, F + 1, Z0 + 2, 'dark_oak_fence')
+    b.set(x, F + 2, Z0 + 2, 'lantern')
+  }
+  // low divans along the side walls: stairs as benches facing the fountain
+  for (let z = Z0 + 6; z <= HZ1 - 4; z += 1) {
+    if (Math.abs(z - HCZ) <= 1) continue
+    b.set(HX0 + 2, F, z, st('dark_oak', 'west'))
+    b.set(HX1 - 2, F, z, st('dark_oak', 'east'))
+  }
+  // doors between the hall and the wings
+  cutArch([HX0, F, HCZ + 1], 'west', { w: 3, spring: 3, depth: 2, k: 1, mat: TRIM })
+  cutArch([HX1, F, HCZ - 1], 'east', { w: 3, spring: 3, depth: 2, k: 1, mat: TRIM })
+  // wings: ground floors open to the north gallery; library (W) and stores (E); bedrooms above
+  for (const [cx, dir] of [[CX - 18, 1], [CX + 18, -1]]) {
+    cutArch([cx - 1, F, HZ1], 'south', { w: 3, spring: 2, depth: 2, k: 1, mat: TRIM })
+    b.box([cx - 3, FLOOR, Z0 + 2], [cx + 3, FLOOR, HZ1 - 2], 'smooth_sandstone')
+    b.stairway([cx - 3 * dir, F, Z0 + 6], 'north', 4, 'spruce', { fill: false }) // to the upper floor
+    for (let i = 0; i < 4; i += 1) b.remove(cx - 3 * dir, F + 4, Z0 + 5 - i + 0)
+  }
+  // library
+  for (let z = Z0 + 8; z <= HZ1 - 3; z += 1) if (Math.abs(z - HCZ) > 1 && (z - HCZ) % 5 !== 0) b.set(X0 + 2, F + 1, z, 'bookshelf')
+  b.set(X0 + 4, F, HCZ - 4, 'lectern[facing=west]')
+  b.set(X0 + 4, F, HCZ + 4, 'lectern[facing=west]')
+  b.box([X0 + 4, F, HCZ - 1], [X0 + 4, F, HCZ + 1], st('spruce', 'west', 'top'))
+  // stores
+  for (let z = Z0 + 8; z <= HZ1 - 3; z += 2) b.set(X1 - 2, F, z, 'barrel[facing=up]')
+  b.set(X1 - 2, F, HZ1 - 2, 'smoker[facing=west,lit=false]')
+  b.set(X1 - 4, F, HZ1 - 2, 'cauldron')
+  b.set(X1 - 2, F + 1, Z0 + 9, 'decorated_pot')
+  // bedrooms
+  for (const [x, wall, inward] of [[X0 + 3, 'west', 1], [X1 - 3, 'east', -1]]) {
+    for (const z of [HCZ - 6, HCZ + 6]) b.set(x, F + 5, z, `cyan_bed[facing=${wall},part=foot]`) // finish() adds the head
+    for (let z = HCZ - 4; z <= HCZ + 4; z += 1) b.set(x + inward, F + 5, z, 'white_carpet')
+  }
+
+  if (!at('final')) return b.finish({ name: 'desert-palace' })
+
+  // ------------------------------------------------------------------ 14 landscape
+  // Palm: the trunk curves away from upright (offset = bend * t^2) in bark-on-all-sides wood,
+  // diagonal steps bridged so it reads solid. Fronds are long and one leaf wide: they rise from
+  // the crown and droop (+1, +1, 0, 0, -1, -1, -2), with a single side leaf mid-frond; a broad
+  // leafy fan reads as an oak from any distance. Cocoa pods hang under the crown as dates.
+  const palm = (x, y, z, { height = 9, bend = 3, az, fronds = 7, seed = 0, fruit = true } = {}) => {
+    const rng = kit.rng(seed * 31 + x * 7 + z * 13)
+    const a = az ?? rng() * TAU
+    const BARK = 'jungle_wood[axis=y]'
+    let prev = [x, y, z]
+    b.set(x, y, z, BARK)
+    for (let i = 1; i < height; i += 1) {
+      const t = i / (height - 1)
+      const off = bend * t * t
+      const p = [x + Math.round(off * Math.cos(a)), y + i, z + Math.round(off * Math.sin(a))]
+      if (p[0] !== prev[0]) b.set(p[0], p[1] - 1, prev[2], BARK)
+      if (p[2] !== prev[2]) b.set(p[0], p[1] - 1, p[2], BARK)
+      b.set(...p, BARK)
+      prev = p
+    }
+    const [tx, ty, tz] = prev
+    const LEAF = 'jungle_leaves'
+    b.set(tx, ty + 1, tz, LEAF)
+    if (height > 4) b.set(tx, ty + 2, tz, LEAF) // the young spear leaf
+    const drop = [1, 1, 0, 0, -1, -1, -2, -3]
+    const a0 = rng() * TAU
+    for (let f = 0; f < fronds; f += 1) {
+      const af = a0 + (f / fronds) * TAU + rng.range(-0.2, 0.2)
+      const L = rng.int(4, 7)
+      let last = [tx, ty + 1, tz]
+      for (let k = 1; k <= L; k += 1) {
+        const fx = tx + Math.round(k * Math.cos(af))
+        const fz = tz + Math.round(k * Math.sin(af))
+        const fy = ty + drop[k - 1]
+        if (fx !== last[0] && fz !== last[2]) b.set(fx, last[1], last[2], LEAF, { keep: true }) // keep the frond face-connected
+        if (fy < last[1]) b.set(fx, last[1], fz, LEAF, { keep: true })
+        b.set(fx, fy, fz, LEAF, { keep: true })
+        if (k === 3 || (k === 4 && L >= 6)) {
+          const side = rng.chance(0.5) ? 1 : -1
+          b.set(fx + side * Math.round(-Math.sin(af)), fy, fz + side * Math.round(Math.cos(af)), LEAF, { keep: true })
+        }
+        last = [fx, fy, fz]
+      }
+    }
+    if (fruit) for (const [dx, dz, facing] of [[1, 0, 'west'], [-1, 0, 'east'], [0, 1, 'north'], [0, -1, 'south']])
+      if (rng.chance(0.6) && !b.has(tx + dx, ty - 1, tz + dz)) b.set(tx + dx, ty - 1, tz + dz, `cocoa[age=2,facing=${facing}]`)
+  }
+  const surface = (x, z) => b.topY(x, z, blk => !/(leaves|log|wood|cocoa|grass$|fern|bush|cane|lily)/.test(blk.name))
+
+  // The oasis: a spring-fed pool in a dip east of the palace, rimmed by a green ring that fades
+  // through coarse dirt back into sand (lush centre -> barren edge).
+  const oasisD = (x, z) => Math.hypot(x - OASIS.x, (z - OASIS.z) * 0.85) / (OASIS.r * (1 + 0.2 * kit.noise.fbm2(x, z, { scale: 7, seed: 21 })))
+  const SHORE = kit.gradient(['grass_block', 'grass_block', 'coarse_dirt', 'sand'], { t: (x, y, z) => (oasisD(x, z) - 1.1) / 1.0, dither: 0.8, scale: 2 })
+  for (let x = OASIS.x - 18; x <= OASIS.x + 18; x += 1)
+    for (let z = OASIS.z - 20; z <= OASIS.z + 20; z += 1) {
+      if (x >= W || z >= D || x < 0 || z < 0) continue
+      const d = oasisD(x, z)
+      if (d > 2.2) continue
+      const top = b.topY(x, z)
+      if (d < 1) {
+        const bottom = G - 1 - Math.max(1, Math.round(3 * (1 - d * d)))
+        for (let y = bottom + 1; y <= top; y += 1) b.remove(x, y, z)
+        b.set(x, bottom, z, d > 0.7 ? 'sand' : 'clay')
+        for (let y = bottom + 1; y <= G - 1; y += 1) b.set(x, y, z, 'water')
+      } else if (d < 1.1) {
+        for (let y = G; y <= top; y += 1) b.remove(x, y, z)
+        b.set(x, G - 1, z, 'mud')
+      } else {
+        const p = SHORE(x, top, z)
+        if (p !== 'sand') b.set(x, top, z, p)
+      }
+    }
+
+  // Market street: paved flags with granite curbs (the podium stone) from the stair to the edge.
+  const ST0 = PZ1 + 7
+  for (let z = ST0; z < D; z += 1)
+    for (let x = CX - 3; x <= CX + 3; x += 1) {
+      const y = surface(x, z)
+      b.set(x, y, z, Math.abs(x - CX) === 3 ? 'polished_granite' : kit.palette({ smooth_sandstone: 5, cut_sandstone: 2, sandstone: 2 }, { scale: 2, seed: 5 }))
+    }
+  // trodden tracks: from the street to the oasis, and round the west side of the podium
+  b.path([[CX + 4, ST0 + 4], [CX + 14, ST0 + 2], [64, 72], [72, 62], [76, 55]], { width: 2, paint: kit.palette({ packed_mud: 3, sand: 3, coarse_dirt: 1 }, { scale: 2 }), seed: 3 })
+  b.path([[CX - 4, ST0 + 6], [CX - 16, ST0 + 4], [14, 68], [12, 50]], { width: 2, paint: kit.palette({ packed_mud: 2, sand: 4, coarse_dirt: 1 }, { scale: 2 }), seed: 4 })
+
+  // Palms: a grove round the pool, an avenue along the street, four in the court beds, a few
+  // strays on the dunes. Three sizes; trunks lean in different directions.
+  const PALMS = [
+    // x, z, height, bend, seed
+    [70, 37, 11, 4, 1], [74, 54, 9, 3, 2], [86, 36, 10, 4, 3], [89, 50, 8, 3, 4], [80, 57, 12, 4, 5], [84, 31, 7, 2, 6], [72, 46, 6, 2, 7],
+    [CX - 7, ST0 + 3, 10, 2, 8], [CX + 7, ST0 + 11, 9, 2, 9], [CX - 7, ST0 + 18, 8, 2, 10],
+    [11, 58, 9, 3, 11], [8, 24, 7, 3, 12], [60, 84, 8, 3, 13], [26, 86, 9, 3, 14],
+  ]
+  for (const [x, z, h, bend, seed] of PALMS) palm(x, surface(x, z) + 1, z, { height: h, bend, seed })
+  for (const bed of BEDS) palm(Math.round((bed.x0 + bed.x1) / 2), FLOOR + 1, Math.round((bed.z0 + bed.z1) / 2), { height: 7, bend: 1, seed: bed.x0 + bed.z0, fruit: false })
+  // date and olive bushes: low clumps round the oasis and by the stalls
+  for (const [x, z, kind] of [[76, 40, 0], [83, 54, 1], [68, 52, 1], [88, 43, 0], [78, 34, 1], [CX + 7, ST0 + 4, 1], [CX - 7, ST0 + 11, 0], [64, 30, 1], [24, 75, 0]]) {
+    const y = surface(x, z) + 1
+    if (kind === 0) palm(x, y, z, { height: 2, bend: 0, fronds: 6, seed: x + z, fruit: false })
+    else b.bush([x, y, z], { radius: 1.5, leaves: ['azalea_leaves', 'oak_leaves', 'birch_leaves'], log: 'oak_log', seed: x * z })
+  }
+  // reeds and lilies at the water
+  for (let x = OASIS.x - 12; x <= OASIS.x + 12; x += 1)
+    for (let z = OASIS.z - 12; z <= OASIS.z + 12; z += 1) {
+      const d = oasisD(x, z)
+      const top = b.get(x, G - 1, z)
+      if (d >= 1 && d < 1.1 && kit.hash01(x, 0, z, 5) < 0.35) for (let y = G; y < G + 1 + Math.floor(kit.hash01(x, 1, z, 6) * 3); y += 1) b.set(x, y, z, 'sugar_cane')
+      if (top && top.name === 'minecraft:water' && d < 0.8 && kit.hash01(x, 2, z, 7) < 0.06) b.set(x, G, z, 'lily_pad')
+    }
+
+  // terrace balustrade on the podium edge, open at the stair landing
+  const onEdge = (x, z) => {
+    for (const [mx, mz] of MINARETS) if (Math.abs(x - mx) <= 3 && Math.abs(z - mz) <= 3) return false
+    return true
+  }
+  for (let x = PX0; x <= PX1; x += 1) {
+    if (onEdge(x, PZ0)) b.set(x, F, PZ0, 'sandstone_wall')
+    if (onEdge(x, PZ1) && Math.abs(x - CX) > 6) b.set(x, F, PZ1, 'sandstone_wall')
+  }
+  for (let z = PZ0; z <= PZ1; z += 1) {
+    if (onEdge(PX0, z)) b.set(PX0, F, z, 'sandstone_wall')
+    if (onEdge(PX1, z)) b.set(PX1, F, z, 'sandstone_wall')
+  }
+  for (const x of [CX - 7, CX + 7]) for (let z = PZ1 + 1; z <= PZ1 + 2; z += 1) b.set(x, F, z, 'sandstone_wall')
+
+  // Market stalls: four posts, a striped wool awning stepping down toward the street (fabric
+  // reads as fabric when it sags), a counter of barrels with goods, a rug for the seller.
+  const stall = (fx, z0, facing, [ca, cb], goods) => {
+    const o = facing === 'east' ? 1 : -1 // toward the street
+    const y = G + 1
+    const xi = i => fx + o * (1 - i) // i = 0 overhang, 1 front, 4 back
+    for (const z of [z0, z0 + 4]) {
+      for (let k = 0; k < 3; k += 1) b.set(xi(1), y + k, z, 'jungle_fence')
+      for (let k = 0; k < 4; k += 1) b.set(xi(4), y + k, z, 'jungle_fence')
+    }
+    for (let z = z0; z <= z0 + 4; z += 1) {
+      const c = (z - z0) % 2 === 0 ? ca : cb
+      b.set(xi(0), y + 2, z, `${c}_wool`)
+      for (const i of [1, 2]) b.set(xi(i), y + 3, z, `${c}_wool`)
+      for (const i of [3, 4]) b.set(xi(i), y + 4, z, `${c}_wool`)
+    }
+    for (let z = z0 + 1; z <= z0 + 3; z += 1) {
+      b.set(xi(1), y, z, 'barrel[facing=up]')
+      b.set(xi(2), y, z, `${goods.rug}_carpet`)
+      b.set(xi(3), y, z, `${goods.rug}_carpet`)
+    }
+    goods.items.forEach((item, k) => item && b.set(xi(1), y + 1, z0 + 1 + k, item))
+    if (goods.back) goods.back.forEach((item, k) => item && b.set(xi(4), y, z0 + 1 + k, item))
+  }
+  const ST_Z = [PZ1 + 9, PZ1 + 17]
+  stall(CX - 5, ST_Z[0], 'east', ['cyan', 'white'], { rug: 'red', items: ['cyan_carpet', 'white_carpet', 'orange_carpet'], back: ['cyan_wool', 'white_wool', 'orange_wool'] })
+  stall(CX - 5, ST_Z[1], 'east', ['orange', 'white'], { rug: 'cyan', items: ['orange_concrete_powder', 'yellow_concrete_powder', 'red_concrete_powder'], back: ['barrel[facing=up]', 'chest[facing=east]', 'barrel[facing=up]'] })
+  stall(CX + 5, ST_Z[0], 'west', ['white', 'orange'], { rug: 'white', items: ['decorated_pot', 'potted_cactus', 'decorated_pot'], back: ['decorated_pot', 'flower_pot', 'decorated_pot'] })
+  stall(CX + 5, ST_Z[1], 'west', ['white', 'cyan'], { rug: 'orange', items: ['lantern', 'hay_block', 'melon'], back: ['hay_block', 'composter', 'hay_block'] })
+
+  // ground cover: dead bush and the odd cactus on the dunes, grass and ferns in the oasis ring,
+  // roses and lilies in the court beds (after paths and trees, before props and lights)
+  b.scatter({ on: ['minecraft:sand'], density: 0.025, clump: 9, seed: 41, paints: [[6, 'dead_bush'], [1, 'cactus']] })
+  b.scatter({ x0: OASIS.x - 16, x1: W - 1, z0: OASIS.z - 18, z1: OASIS.z + 18, on: ['minecraft:grass_block'], density: 0.4, seed: 42, paints: [[8, 'short_grass'], [3, 'fern'], [1, 'tall_grass']] })
+  b.scatter({ x0: COURT_W, x1: COURT_E, z0: COURT_N, z1: COURT_S, on: ['minecraft:grass_block'], density: 0.45, seed: 43, paints: [[6, 'short_grass'], [2, 'rose_bush'], [2, 'lily_of_the_valley'], [1, 'red_tulip']] })
+
+  // ------------------------------------------------------------------ 15 lights (last: paths and scatter repaint the top block)
+  // Hero brightest: a chandelier under the dome, a lantern in the iwan, rings of lanterns on
+  // the minaret balconies; then a lantern in every gallery bay, braziers at the stair, lamps
+  // along the street and under the awnings, a campfire at the oasis.
+  const firstSolidAbove = (x, y, z) => {
+    for (let yy = y; yy < H; yy += 1) if (b.has(x, yy, z)) return yy
+    return null
+  }
+  const domeTop = firstSolidAbove(CX, HALL_TOP + 1, HCZ)
+  if (domeTop) b.hangingLantern([CX, domeTop, HCZ], domeTop - (F + 8))
+  for (const [dx, dz] of [[-7, -7], [7, -7], [-7, 7], [7, 7]]) b.hangingLantern([CX + dx, HALL_TOP, HCZ + dz], 3)
+  const iwanTop = firstSolidAbove(CX, F + 10, PZF - 2)
+  if (iwanTop) b.hangingLantern([CX, iwanTop, PZF - 2], iwanTop - (F + 7))
+  const gateTop = firstSolidAbove(CX, F + 5, Z1)
+  if (gateTop) b.hangingLantern([CX, gateTop, Z1], 1)
+  for (const [mx, mz] of MINARETS) {
+    for (const [dx, dz] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) b.set(mx + dx, F + 22, mz + dz, 'lantern')
+    b.hangingLantern([mx, F + 35, mz], 0)
+  }
+  for (let z = COURT_N + 2; z < COURT_S; z += 4) {
+    b.hangingLantern([galW, ARC_TOP, z], 0)
+    b.hangingLantern([galE, ARC_TOP, z], 0)
+  }
+  for (const x of SOUTH_BAYS) b.hangingLantern([x + 1, ARC_TOP, galS], 0)
+  for (const x of [COURT_W + 2, COURT_W + 6, COURT_E - 6, COURT_E - 2]) b.hangingLantern([x, ARC_TOP, galN], 0)
+  for (const [x, z] of [[POOL.x0 - 1, POOL.z0 - 1], [POOL.x1 + 1, POOL.z0 - 1], [POOL.x0 - 1, POOL.z1 + 1], [POOL.x1 + 1, POOL.z1 + 1]]) {
+    b.set(x, F, z, 'sandstone_wall')
+    b.set(x, F + 1, z, 'lantern')
+  }
+  for (const x of [CX - 7, CX + 7]) {
+    b.set(x, G + 1, PZ1 + 7, 'chiseled_sandstone')
+    b.set(x, G + 2, PZ1 + 7, 'campfire[lit=true]')
+  }
+  for (const x of [CX - 7, CX + 7]) b.set(x, F + 1, PZ1 + 2, 'lantern')
+  for (const [x, z] of [[PX0, PZ0 + 14], [PX0, PZ0 + 26], [PX0, PZ0 + 38], [PX0, PZ0 + 50], [PX1, PZ0 + 14], [PX1, PZ0 + 26], [PX1, PZ0 + 38], [PX1, PZ0 + 50], [CX - 12, PZ1], [CX + 12, PZ1], [CX - 12, PZ0], [CX + 12, PZ0]]) {
+    b.set(x, F, z, 'chiseled_sandstone')
+    b.set(x, F + 1, z, 'lantern')
+  }
+  for (const z of [PZ1 + 13, PZ1 + 21]) for (const x of [CX - 4, CX + 4]) b.lampPost([x, G + 1, z], { height: 3, post: 'jungle_fence', foot: 'sandstone_wall' })
+  for (const z of ST_Z) {
+    b.hangingLantern([CX - 6, G + 4, z + 2], 0)
+    b.hangingLantern([CX + 6, G + 4, z + 2], 0)
+  }
+  b.set(OASIS.x - 9, surface(OASIS.x - 9, OASIS.z + 8) + 1, OASIS.z + 8, 'campfire[lit=true]')
+  b.lampPost([OASIS.x - 9, surface(OASIS.x - 9, OASIS.z - 6) + 1, OASIS.z - 6], { height: 3, post: 'jungle_fence', foot: 'sandstone_wall' })
   return b.finish({ name: 'desert-palace' })
 }

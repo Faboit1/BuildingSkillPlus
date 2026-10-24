@@ -4,6 +4,7 @@ const SIZE = [72, 54, 72]
 const G = 4 // ground surface level (grass top); things stand at G + 1
 
 const TILE = { stairs: 'minecraft:deepslate_tile_stairs', slab: 'minecraft:deepslate_tile_slab', block: 'minecraft:deepslate_tiles' }
+const TILE_RIB = { stairs: 'minecraft:deepslate_brick_stairs', slab: 'minecraft:deepslate_brick_slab', block: 'minecraft:deepslate_bricks' }
 const RIDGE = { stairs: 'minecraft:polished_blackstone_stairs', slab: 'minecraft:polished_blackstone_slab', block: 'minecraft:polished_blackstone' }
 const RAFTER = { stairs: 'minecraft:spruce_stairs', slab: 'minecraft:spruce_slab', block: 'minecraft:spruce_planks' }
 const SPRUCE = RAFTER
@@ -51,10 +52,12 @@ function roofField({ x0, z0, x1, z1, pitch, stopRing = Infinity, gable = null, l
       let t = L[ring]
       // hip line: a 4-connected staircase along the diagonal so it reads as one ridge
       const hip = sec === 'hip' && ring >= 1 && (ex === ez || ex === ez + 1) && Math.min(ex, ez) >= 1
-      if (sec === 'hip' && lift > 0) t += Math.max(0, Math.round((lift - liftStep * (ex + ez)) * 2) / 2)
+      if (lift > 0) t += Math.max(0, Math.round((lift - liftStep * (ex + ez)) * 2) / 2)
       if (hip && hipBead) t += 0.5
       maxRing = Math.max(maxRing, ring)
-      field.set(`${x},${z}`, { x, z, t, ring, sec, hip, ex, ez })
+      // `along` runs parallel to the eave: alternating it gives the tile courses (ribs)
+      const along = sec === 'gable' ? (gable.axis === 'x' ? x : z) : ez <= ex ? x : z
+      field.set(`${x},${z}`, { x, z, t, ring, sec, hip, ex, ez, along })
     }
   }
   for (const c of field.values()) c.ridge = c.sec === 'gable' && c.ring === maxRing
@@ -62,7 +65,7 @@ function roofField({ x0, z0, x1, z1, pitch, stopRing = Infinity, gable = null, l
   return field
 }
 
-function rasterRoof(b, field, { y, mat = TILE, under = RAFTER, ridge = RIDGE, thickness = 1.5, rim = null, only = null }) {
+function rasterRoof(b, field, { y, mat = TILE, ribs = TILE_RIB, under = RAFTER, ridge = RIDGE, thickness = 1.5, rim = null, only = null }) {
   for (const c of field.values()) {
     if (only && !only(c)) continue
     let minN = Infinity
@@ -82,7 +85,8 @@ function rasterRoof(b, field, { y, mat = TILE, under = RAFTER, ridge = RIDGE, th
       const hi = Math.min(top, yy + 1)
       if (hi - lo < 0.5) continue
       const isTop = hi === top
-      const m = isTop ? (c.hip || c.ridge ? ridge : mat) : (hi > y + minN ? mat : under)
+      const face = ribs && c.along % 2 === 0 ? ribs : mat
+      const m = isTop ? (c.hip || c.ridge ? ridge : face) : (hi > y + minN ? face : under)
       let block
       if (hi - lo === 1) {
         block = m.block
@@ -114,7 +118,7 @@ export default function build(api) {
 
   // ================================================================ GROUND
   // tsukiyama: a few low artificial hills in the garden; paths, courtyard and buildings stay at G
-  const MOUNDS = [[9, 61, 7, 2], [68, 57, 5, 3], [64, 6, 7, 2], [5, 40, 5, 1]]
+  const MOUNDS = [[9, 61, 7, 2], [67, 59, 5, 2], [61, 45, 4, 3], [64, 6, 7, 2], [5, 40, 5, 1]]
   const mound = (x, z) => {
     let h = 0
     for (const [mx, mz, r, mh] of MOUNDS) {
@@ -146,9 +150,14 @@ export default function build(api) {
   b.box([PX - 9, G, PZ - 9], [PX + 9, G, PZ + 9], GRAVEL_X)
   b.box([PX - 7, G + 1, PZ - 7], [PX + 7, G + 1, PZ + 7], STONE)
   b.box([PX - 7, G + 2, PZ - 7], [PX + 7, G + 2, PZ + 7], 'polished_andesite')
-  for (let x = PX - 2; x <= PX + 2; x += 1) {
-    b.set(x, G + 1, PZ + 8, 'stone_brick_stairs[facing=north]')
-    b.set(x, G + 2, PZ + 7, 'stone_brick_stairs[facing=north]')
+  // a flight of steps in the middle of each side (pagodas are walked around, not entered from one face)
+  for (const [f, nx, nz] of FACES) {
+    for (let u = -1; u <= 1; u += 1) {
+      const sx = nx ? 0 : u
+      const sz = nz ? 0 : u
+      b.set(PX + sx + nx * 8, G + 1, PZ + sz + nz * 8, `stone_brick_stairs[facing=${OPP[f]}]`)
+      b.set(PX + sx + nx * 7, G + 2, PZ + sz + nz * 7, `stone_brick_stairs[facing=${OPP[f]}]`)
+    }
   }
   const pFloor = G + 3
   tiers.forEach((t, i) => {
@@ -268,7 +277,7 @@ export default function build(api) {
         const rc = gabF.get(`${gx},${z}`)
         if (rc && rc.t > L[INSET]) {
           const ry = Math.ceil(hy + rc.t) - 1
-          b.set(gx - inward, ry, z, `minecraft:dark_oak_trapdoor[facing=${out},open=true,half=bottom]`, { keep: true })
+          b.set(gx - inward, ry, z, `minecraft:spruce_trapdoor[facing=${out},open=true,half=bottom]`, { keep: true })
         }
       }
     }
@@ -340,6 +349,53 @@ export default function build(api) {
   for (let z = hz0 - 2; z <= hz1 + 2; z += 1) {
     b.set(hx0 - 2, hFloor + 1, z, 'dark_oak_fence')
     b.set(hx1 + 2, hFloor + 1, z, 'dark_oak_fence')
+  }
+  // masugumi: a bracket under the eave at every perimeter post, stepping out twice
+  for (const x of HX) for (const z of HZ) {
+    if (x !== hx0 && x !== hx1 && z !== hz0 && z !== hz1) continue
+    for (const [f, nx, nz] of FACES) {
+      if ((nx === 1 && x !== hx1) || (nx === -1 && x !== hx0) || (nz === 1 && z !== hz1) || (nz === -1 && z !== hz0)) continue
+      for (const k of [1, 2]) {
+        const bx = x + nx * k
+        const bz = z + nz * k
+        const rb = roofBottom(b, bx, bz, hTop - 1, hTop + 4)
+        if (rb !== null && !b.has(bx, rb - 1, bz)) b.set(bx, rb - 1, bz, `${RAFTER.stairs}[facing=${OPP[f]},half=top]`)
+      }
+    }
+  }
+
+  // kohai: a projecting gabled canopy over the front steps. It is a second heightfield; we only
+  // rasterize the cells that rise above the main roof, so the union of both surfaces forms the
+  // valley where they meet.
+  {
+    const kx0 = hcx - 5, kx1 = hcx + 5, kz0 = hz1 - 3, kz1 = hz1 + 6
+    const ky = hTop - 1
+    for (const x of [kx0 + 1, kx1 - 1]) {
+      b.box([x, G + 1, kz1 - 1], [x, ky - 1, kz1 - 1], POST)
+      b.set(x, G + 1, kz1 - 1, 'polished_andesite')
+      b.box([x, ky - 1, hz1 + 1], [x, ky - 1, kz1 - 1], BEAM('z'))
+    }
+    b.box([kx0 + 1, ky - 1, kz1 - 1], [kx1 - 1, ky - 1, kz1 - 1], BEAM('x'))
+    const kF = roofField({ x0: kx0, z0: kz0, x1: kx1, z1: kz1, pitch: [0.5, 0.5, 1, 1, 1, 1], gable: { axis: 'z', inset: 0 }, lift: 1 })
+    const mainTop = (x, z) => {
+      const g = gabF.get(`${x},${z}`)
+      const h = hipF.get(`${x},${z}`)
+      return Math.max(g && g.sec === 'gable' ? hy + g.t : -Infinity, h ? hy + h.t : -Infinity)
+    }
+    rasterRoof(b, kF, { y: ky, thickness: 1, only: c => ky + c.t > mainTop(c.x, c.z) })
+    // front gable: recessed plaster triangle with a king post, over the tie beam
+    for (let x = kx0 + 1; x <= kx1 - 1; x += 1) {
+      const c = kF.get(`${x},${kz1 - 1}`)
+      const topPiece = Math.ceil(ky + c.t) - 1
+      for (let y = ky; y < topPiece; y += 1) b.set(x, y, kz1 - 1, x === hcx ? POST : PLASTER)
+    }
+    const kc = kF.get(`${hcx},${kz1}`)
+    b.set(hcx, Math.ceil(ky + kc.t), kz1, `${RIDGE.stairs}[facing=north,half=bottom]`)
+    for (let z = kz0; z <= kz1; z += 1) {
+      const c = kF.get(`${hcx},${z}`)
+      if (ky + c.t > mainTop(hcx, z)) b.set(hcx, Math.ceil(ky + c.t), z, `${RIDGE.slab}[type=bottom]`, { keep: true })
+    }
+    b.hangingLantern([hcx, ky - 1, kz1 - 1], 0)
   }
   // suzu bell and offering box at the open centre bay
   b.set(hcx, hFloor + 3, hz1 + 1, 'minecraft:chain')
@@ -419,6 +475,11 @@ export default function build(api) {
   torii(hcx, 49, 5, 7)
   torii(hcx, 43, 5, 7)
 
+  // shamei-hyo: the tall stone pillar bearing the shrine's name, beside the entrance
+  b.box([20, G + 1, 66], [21, G + 1, 67], 'stone_bricks')
+  b.box([20, G + 2, 66], [20, G + 5, 66], 'polished_andesite')
+  b.set(20, G + 6, 66, 'andesite_slab[type=bottom]')
+
   // ================================================================ TORO
   const smallToro = (x, z) => {
     b.set(x, G + 1, z, 'polished_andesite')
@@ -493,19 +554,24 @@ export default function build(api) {
     }
     b.set(ix, ty + 3, iz, 'stone_button[face=floor]')
   }
-  // cascade (taki): a rock headwall on the east hill with water stepping down into the pond
+  // cascade (taki): a rock headwall on the north hill, water stepping down into the pond.
+  // It faces south so the main viewpoints see it.
   {
     const ROCK = kit.palette({ tuff: 3, andesite: 3, stone: 2, mossy_cobblestone: 2 }, { scale: 2, seed: 17 })
-    b.boulder([69, G + 2, 52.5], [2.2, 2.6, 2.0], ROCK, { seed: 3, mossTop: 'moss_block' })
-    b.boulder([69, G + 2, 58.5], [2.0, 2.4, 2.2], ROCK, { seed: 4, mossTop: 'moss_block' })
-    b.boulder([69.8, G + 3, 55.5], [1.6, 3.2, 2.4], ROCK, { seed: 5, mossTop: 'moss_block' })
-    const steps = [[70, G + 4], [69, G + 3], [68, G + 2], [67, G + 1], [66, G]]
-    for (const [x, y] of steps) {
-      for (const z of [55, 56]) {
-        b.clear([x, y, z], [x, y + 4, z])
+    const cx = [60, 61]
+    let zEdge = 99
+    for (const x of cx) for (let z = 40; z < 66; z += 1) if (pond.has(`${x},${z}`)) { zEdge = Math.min(zEdge, z); break }
+    b.boulder([58.6, G + 2, zEdge - 4], [1.8, 2.6, 2.4], ROCK, { seed: 3, mossTop: 'moss_block' })
+    b.boulder([62.6, G + 2, zEdge - 3.5], [1.8, 2.2, 2.4], ROCK, { seed: 4, mossTop: 'moss_block' })
+    b.boulder([60.5, G + 3, zEdge - 6.5], [2.4, 2.8, 1.6], ROCK, { seed: 5, mossTop: 'moss_block' })
+    for (let k = 0; k <= 4; k += 1) {
+      const z = zEdge - 5 + k
+      const y = G + 3 - k
+      for (const x of cx) {
+        b.clear([x, y, z], [x, y + 5, z])
         b.set(x, y, z, 'water')
         b.set(x, y - 1, z, ROCK)
-        for (const side of [54, 57]) if (!b.has(x, y, side)) b.set(x, y, side, ROCK)
+        for (const side of [cx[0] - 1, cx[1] + 1]) if (!b.has(side, y, z)) b.set(side, y, z, ROCK)
       }
     }
   }
@@ -517,7 +583,7 @@ export default function build(api) {
       const t = d < 2 ? 3 : d < 3 ? 2.5 : d < 4 ? 2 : d < 5 ? 1.5 : d < 6 ? 1 : 0.5
       for (let x = 52; x <= 54; x += 1) deck.set(`${x},${z}`, { x, z, t, sec: 'deck', ring: 0 })
     }
-    rasterRoof(b, deck, { y: G, mat: SPRUCE, under: SPRUCE, ridge: SPRUCE, thickness: 1 })
+    rasterRoof(b, deck, { y: G, mat: SPRUCE, ribs: null, under: SPRUCE, ridge: SPRUCE, thickness: 1 })
     for (let z = 46; z <= 59; z += 1) {
       const t = deck.get(`52,${z}`).t
       const ry = Math.ceil(G + t)
@@ -606,12 +672,11 @@ export default function build(api) {
   }
   const cherry = (x, z, seed, opts = {}) => b.tree([x, gy(x, z) + 1, z], 'cherry', { seed, log: 'cherry_wood', height: 8, blob: [2.3, 3.0], branches: [3, 4], ...opts })
   cherry(10, 59, 1)
-  cherry(41, 63, 3)
   cherry(42, 9, 6, { height: 9 })
   cherry(62, 33, 5, { height: 7 })
   // weeping cherry by the pond: hang strands of cherry leaves under the crown
   {
-    const wx = 64, wz = 45
+    const wx = 40, wz = 58
     cherry(wx, wz, 9, { height: 8, spread: 0.5 })
     for (let x = wx - 6; x <= wx + 6; x += 1) for (let z = wz - 6; z <= wz + 6; z += 1) {
       const top = b.topY(x, z, '*_leaves')
@@ -633,6 +698,14 @@ export default function build(api) {
     b.line([46, G + 4, 45], [43.5, G + 5, 44.5], 'spruce_wood')
     for (const [x, y, z, r] of [[49, G + 7, 47.5, 2.4], [46.8, G + 6.2, 45.6, 1.7], [43.4, G + 5.6, 44.4, 1.5], [45.6, G + 8, 45, 1.3]]) {
       b.leafBlob([x, y, z], [r, 0.7, r], ['spruce_leaves'], { seed: x * 3 + y, holes: 0.06, roughness: 0.15 })
+    }
+  }
+  // a second, smaller pine on the east hill above the cascade
+  {
+    const bx = 66, bz = 58, by = gy(66, 58) + 1
+    b.curve([[bx, by, bz], [bx - 0.5, by + 2, bz - 0.4], [bx - 1.6, by + 3.5, bz - 1]], 'spruce_wood', { radius: 0.3 })
+    for (const [x, y, z, r] of [[bx - 2, by + 4, bz - 1.2, 1.9], [bx + 0.5, by + 3, bz + 0.5, 1.4], [bx - 0.8, by + 5.2, bz - 0.6, 1.1]]) {
+      b.leafBlob([x, y, z], [r, 0.6, r], ['spruce_leaves'], { seed: x * 5 + z, holes: 0.06, roughness: 0.15 })
     }
   }
   // azalea mounds (o-karikomi)

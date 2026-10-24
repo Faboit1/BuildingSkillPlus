@@ -1,9 +1,52 @@
-// GOTHIC CATHEDRAL (work in progress v3)
+// GOTHIC CATHEDRAL
+// ============================================================================
+// A High-Gothic cathedral in the French manner (Reims / Amiens / Cologne read through
+// Minecraft blocks): Latin-cross plan with a five-bay nave and side aisles, a projecting
+// transept, a two-bay choir ending in a semicircular apse wrapped by an ambulatory (the
+// "chevet"), twin west towers with octagonal crocketed spires, a copper fleche over the
+// crossing, flying buttresses with pinnacles and gargoyles on every bay, a rose window over
+// a triple portal with stepped archivolts, and a ribbed, vaulted interior with pews, choir
+// stalls and an altar. It stands in a cathedral close: a paved forecourt with a labyrinth
+// inlay, lawns and gardens, and a walled graveyard with a crypt.
+//
+// CANVAS 75 x 92 x 128 (x = across, y = up, z = along the nave). The liturgical "west"
+// front faces +z (world south) so the default `south` render is the facade elevation.
+//
+// PROPORTIONS (the things that make it read as Gothic, not as a big church)
+//   nave       11 wide inside, walls 26 tall -> vault crown ~28 (height ~2.5 x width)
+//   aisles     6 wide, half the nave height (walls 10) under low lean-to roofs
+//   bays       8 blocks: 3-wide pier + 5-wide opening; every element repeats on this rhythm
+//              (pier, flyer, pinnacle, aisle window, clerestory window, arcade arch, vault bay)
+//   roofs      pitch 2 (63 deg) on all high roofs, so nave, transept and apse ridges meet
+//   towers     13 x 13, 50 tall (~2x the nave wall), spires 28 more -> total ~80 above grade
+//   openings   pointed everywhere: lancets 3 x 7..12, clerestory 5 x 9 with a mullion,
+//              portal 5 wide with 3 archivolts, rose window 11 across
+//
+// PALETTE (roles, light -> dark)
+//   wall field   b.texture ramp polished_andesite > andesite > stone_bricks > tuff_bricks >
+//                deepslate_bricks: darker and greener (tuff) low down, pale near the spire tips
+//   plinth       deepslate_bricks / cobbled_deepslate / polished_deepslate, 3 courses + a
+//                sloped deepslate_brick_stairs water table
+//   trim         polished_andesite (+ stairs): archivolts, hood moulds, sills, pinnacle caps
+//   tracery      calcite (rose ring, vault ribs, altar), diorite_wall (mullions, shafts)
+//   roof         deepslate_tile: the darkest large mass, ~25 L* below the walls
+//   accents      oxidized copper fleche (the only strong hue outside the glass), blue-led
+//                stained glass with red and a little yellow/purple, red carpet, gold cross
+//   light        lanterns on chains, candles on the altar, soul lanterns in the graveyard
+//
+// METHOD (read in this order; each section says why)
+//   1 massing as solid placeholder volumes (mud_bricks), 2 carve interiors and vaults with
+//   signed "is this void?" predicates, 3 roofs, 4 openings and buttress MODULES stamped with
+//   rotation (and resampled radially round the apse), 5 towers, spires, facade, 6 b.texture
+//   turns the placeholder into a graded stone ramp, 7 interior, 8 landscape and light.
+// ============================================================================
 export default function build(api) {
   const { kit } = api
   const { cw, ccw, opposite, DIR } = kit
 
   // ------------------------------------------------------------------ grid
+  // All dimensions are named so the plan can be re-proportioned in one place. Odd widths
+  // everywhere (11, 13, 5, 3) give every opening and ridge a true centre cell.
   const W = 75
   const H = 92
   const L = 128
@@ -28,6 +71,9 @@ export default function build(api) {
   const BAYS = [...NAVE_PIERS.slice(0, 5).map(p => p + 3), 30, 38] // first z of each 5-wide bay
 
   // ------------------------------------------------------------------ materials
+  // Masonry is laid in a PLACEHOLDER family (mud brick has block/stairs/slab, all of which
+  // b.texture can map), so shape and texture are decided separately: build the geometry,
+  // then grade the whole cathedral with one ramp at the end.
   const WALL = 'minecraft:mud_bricks' // placeholder, textured at the end
   const WST = 'minecraft:mud_brick_stairs'
   const TRIM = 'minecraft:polished_andesite'
@@ -82,6 +128,8 @@ export default function build(api) {
   b.terrain({ x0: 0, z0: 0, x1: W - 1, z1: L - 1, base: 0, height: () => F - 1 })
 
   // ------------------------------------------------------------------ massing
+  // Solid volumes first, interiors carved later. Thinking in solids keeps walls, piers and
+  // vault shells automatically consistent: whatever is not carved is masonry.
   b.box([CX - 7, F - 1, ZA], [CX + 7, NAVE_TOP, ZF], WALL) // nave + choir + tower bay
   for (const x0 of [CX - 15, CX + 8]) b.box([x0, F - 1, ZA], [x0 + 7, AISLE_TOP, TZ0 - 1], WALL) // aisles
   b.box([CX - 26, F - 1, ZN], [CX + 26, NAVE_TOP, ZS], WALL) // transept
@@ -94,6 +142,10 @@ export default function build(api) {
   for (const tx of TOWERS) b.box([tx, F - 1, TZ0], [tx + 12, TOWER_TOP, ZF], WALL)
 
   // ------------------------------------------------------------------ interiors + vaults
+  // Vaults as predicates. Each vessel is the union of pointed barrels: a longitudinal one
+  // across the nave plus a transverse one per bay. Their union is a quadripartite (groin)
+  // vault, which leaves room under each bay's lunette for a tall clerestory window, and the
+  // crossing falls out for free as nave-barrel OR transept-barrel.
   const NX0 = CX - 5
   const NX1 = CX + 5
   const naveBays = [[28.5, 36.5], [36.5, 44.5], [58.5, 66.5], [66.5, 74.5], [74.5, 82.5], [82.5, 90.5], [90.5, 98.5], [98.5, 108]]
@@ -133,6 +185,9 @@ export default function build(api) {
   for (const tx of TOWERS) b.clear([tx + 2, F + 1, TZ0 + 2], [tx + 10, TOWER_TOP - 1, ZF - 2])
 
   // ------------------------------------------------------------------ high roofs
+  // Same width (15) and pitch (2) on nave and transept so the ridges meet at one height; the
+  // apse gets a half cone with flare off whose rings line up with the gable's rows. coneRoof
+  // has no mask, so it is drawn into a scratch module and copied back through a test.
   b.roof({ x0: CX - 7, x1: CX + 7, z0: ZA, z1: ZF, y: NAVE_TOP + 1, axis: 'z', material: ROOF, pitch: 2, overhang: 1, gableOverhang: 0, eaveTrim: true, gable: WALL })
   b.roof({ x0: CX - 26, x1: CX + 26, z0: ZN, z1: ZS, y: NAVE_TOP + 1, axis: 'x', material: ROOF, pitch: 2, overhang: 1, gableOverhang: 0, eaveTrim: true, gable: WALL })
   {
@@ -150,7 +205,7 @@ export default function build(api) {
   }
   b.fillWhere([CX - 24, NAVE_TOP + 1, ZA - 6], [CX + 24, NAVE_TOP + 8, ZF - 2], highVoid, 'air')
   // stone coping on the gables: a parapet one block proud of the roof slope
-  const coping = (cells, fixed, axis) => {
+  const coping = (fixed, axis) => {
     for (let i = -9; i <= 9; i += 1) {
       const [x, z] = axis === 'x' ? [CX + i, fixed] : [fixed, ZT + i]
       const top = b.topY(x, z)
@@ -159,11 +214,10 @@ export default function build(api) {
       const toward = axis === 'x' ? (i < 0 ? 'east' : 'west') : (i < 0 ? 'south' : 'north')
       b.set(x, top + 1, z, i === 0 ? WALL : st(WST, toward))
     }
-    void cells
   }
-  coping(null, ZF, 'x')
-  coping(null, CX - 26, 'z')
-  coping(null, CX + 26, 'z')
+  coping(ZF, 'x')
+  coping(CX - 26, 'z')
+  coping(CX + 26, 'z')
   const cross = (x, y, z, alongX) => {
     for (let k = 0; k < 4; k += 1) b.set(x, y + k, z, 'minecraft:andesite_wall')
     for (const s of [-1, 1]) b.set(alongX ? x + s : x, y + 2, alongX ? z : z + s, 'minecraft:andesite_wall')
@@ -206,6 +260,9 @@ export default function build(api) {
   for (const x of [CX - 20, CX - 13, CX + 13, CX + 20]) truss(true, x)
 
   // ------------------------------------------------------------------ lancet windows
+  // One lancet generator for every pointed opening: a 2-deep reveal, glass on the inner
+  // plane, upside-down stairs shaping the head (from 4x4 supersampled coverage), a hood
+  // mould one block proud of the wall and a sloped sill. Depth comes from the reveal.
   const glassFor = (u, v, w, h) => {
     if (v >= h) return u === Math.floor(w / 2) ? 'minecraft:red_stained_glass_pane' : 'minecraft:purple_stained_glass_pane'
     if (v % 5 === 2) return u === Math.floor(w / 2) && w % 2 === 1 ? 'minecraft:yellow_stained_glass_pane' : 'minecraft:red_stained_glass_pane'
@@ -276,6 +333,9 @@ export default function build(api) {
   }
 
   // ------------------------------------------------------------------ buttress modules
+  // A flying buttress is pier + set-offs + pinnacle + gargoyle + flyer. The flyer lands on
+  // the clerestory well above the aisle roof (a quarter-circle soffit under a straight,
+  // rising coping) so the sky shows through: that gap is what makes it read as 'flying'.
   // Authored once for the WEST side (outward = -x), then stamped with rotation (and
   // resampled at arbitrary angles around the apse). Local x: 1..5 pier, 6 = aisle wall face,
   // 14 = clerestory wall face. Local y 0 = grade.
@@ -360,6 +420,8 @@ export default function build(api) {
   for (const deg of [36, 72, 108, 144]) stampPolar(flyMod, (deg * Math.PI) / 180)
 
   // ------------------------------------------------------------------ low roofs (after the buttresses)
+  // Lean-to aisle roofs at pitch 0.5 with overwrite:false, so piers, flyers and walls that
+  // already exist are kept. Split around the transept or the roof would run through it.
   for (const [x0, rises] of [[CX - 15, 'east'], [CX + 8, 'west']]) {
     for (const [z0, z1] of [[ZA, ZN - 1], [ZS + 1, TZ0 - 1]]) {
       b.roof({ x0, x1: x0 + 7, z0, z1, y: AISLE_TOP + 1, axis: 'z', type: 'shed', rises, material: ROOF, pitch: 0.5, overhang: 1, gableOverhang: 0, eaveTrim: true, overwrite: false })
@@ -424,6 +486,9 @@ export default function build(api) {
   }
 
   // ------------------------------------------------------------------ towers
+  // Three stages divided by projecting string courses (portal / window / belfry), angle
+  // buttresses that step back at each stage, louvred belfry lancets, then a parapet with
+  // corner pinnacles that masks the spire's base.
   for (const tx of TOWERS) {
     const outer = tx < CX ? 'west' : 'east'
     const cx = tx + 6
@@ -498,6 +563,8 @@ export default function build(api) {
   }
 
   // ------------------------------------------------------------------ spires
+  // Octagonal hollow spires; every exposed step becomes a stair so the taper reads as a
+  // slope, crockets every 3 rows on the eight arrises, lucarnes (gabled dormers) at the foot.
   const spire = (cx, y0, cz, r0, h, paint, stairs, { crockets = 0, lucarnes = false } = {}) => {
     const rAt = y => r0 * (1 - (y - y0) / h) + 0.35
     const inside = (x, y, z) => y >= y0 && y < y0 + h && octIn(x - cx, z - cz, rAt(y))
@@ -739,6 +806,8 @@ export default function build(api) {
   }
 
   // ------------------------------------------------------------------ texture
+  // One graded ramp over the whole build: base/edge/drip darkening and coherent clumps come
+  // from b.texture; focus lightens the stone round the main portal (the hero area).
   b.texture([0, F - 1, 0], [W - 1, H - 1, L - 1], ['polished_andesite', 'andesite', 'stone_bricks', 'tuff_bricks', 'deepslate_bricks'], {
     only: 'mud_brick*', mid: 0.42, base: 0.28, top: 0.3, edge: 0.08, drip: 0.12, focus: [[CX, F + 12, ZF + 2]], focusRadius: 14, focusAmount: 0.15,
   })
@@ -760,6 +829,8 @@ export default function build(api) {
 
 
   // ------------------------------------------------------------------ interior
+  // Furnished for the cutaway: checker floor in the main vessel, pews facing the altar, a
+  // single red runner, choir stalls, a raised sanctuary, and light on every bay.
   const vessel = (x, z) => inNave(x, z) || inTrans(x, z) || inApse(x, z)
   for (let x = CX - 25; x <= CX + 25; x += 1) for (let z = ZA - 15; z <= ZF - 1; z += 1) {
     if (b.get(x, F + 1, z) || !b.get(x, F, z) || b.topY(x, z) < F + 8) continue
@@ -804,21 +875,32 @@ export default function build(api) {
     for (let k = lanternY + 1; k < y; k += 1) b.set(x, k, z, 'minecraft:chain[axis=y]')
     b.set(x, lanternY, z, 'minecraft:lantern[hanging=true]')
   }
+  // Lanterns hung right behind the glass (aisle and clerestory) light the interior AND make
+  // the stained glass glow from outside at night; light never 'leaks' out unexplained.
   for (const z of [32, 40, 62, 70, 78, 86, 94]) {
     hang(CX, z, F + 13)
-    hang(CX - 10, z, F + 6)
-    hang(CX + 10, z, F + 6)
+    for (const x of [CX - 13, CX + 13]) hang(x, z, F + 6)
+    for (const x of [NX0, NX1]) hang(x, z, F + 19)
   }
-  hang(CX, ZT, F + 15)
+  hang(CX, ZT, F + 11)
+  // candle stands at the four crossing piers and in the transept arms
+  for (const [x, z] of [[NX0, ZN + 2], [NX1, ZN + 2], [NX0, ZS - 2], [NX1, ZS - 2], [CX - 19, ZT - 3], [CX - 19, ZT + 3], [CX + 19, ZT - 3], [CX + 19, ZT + 3]]) {
+    b.set(x, F + 1, z, TRWALL)
+    b.set(x, F + 2, z, TRWALL)
+    b.set(x, F + 3, z, 'minecraft:lantern[hanging=false]')
+  }
   hang(CX - 13, ZT, F + 12)
   hang(CX + 13, ZT, F + 12)
   hang(CX, ZF - 3, F + 18) // lights the rose from inside
   for (const deg of [18, 54, 90, 126, 162]) {
     const th = (deg * Math.PI) / 180
-    hang(Math.round(CX + Math.cos(th) * 10.5), Math.round(ZA - Math.sin(th) * 10.5), F + 6)
+    hang(Math.round(CX + Math.cos(th) * 12.6), Math.round(ZA - Math.sin(th) * 12.6), F + 6)
+    hang(Math.round(CX + Math.cos(th) * 4.6), Math.round(ZA - Math.sin(th) * 4.6), F + 19)
   }
 
   // ------------------------------------------------------------------ landscape
+  // The close: a forecourt that gives the facade breathing room, paths that connect every
+  // door, a graveyard that tells the building's age, trees in three sizes at the corners.
   const G = F - 1 // grade
   const free = (x, z) => !b.get(x, G + 1, z)
   // forecourt: paved plaza with a labyrinth inlay echoing the rose window
@@ -840,8 +922,8 @@ export default function build(api) {
   b.set(CX, G, LZ, 'minecraft:chiseled_stone_bricks')
   // flanking paths to the transept doors and round the east end
   const pathPaint = kit.palette({ gravel: 3, coarse_dirt: 2, dirt_path: 2, andesite: 1 }, { scale: 2, seed: 9 })
-  b.path([[8, PZ0], [7, 95], [8, 70], [8, ZT], [7, 30], [10, 8], [CX, 3], [W - 11, 8], [W - 8, 30], [W - 8, ZT]], { width: 3, paint: pathPaint, seed: 3 })
-  b.path([[W - 9, PZ0], [W - 8, 104], [W - 8, 70], [W - 8, ZT]], { width: 3, paint: pathPaint, seed: 4 })
+  b.path([[8, PZ0], [7, 95], [8, 70], [8, ZT], [7, 30], [10, 8], [CX, 3], [W - 11, 8], [W - 8, 30], [W - 8, ZT], [W - 7, 63]], { width: 3, paint: pathPaint, seed: 3 })
+  b.path([[W - 9, PZ0], [W - 9, 104], [W - 9, 74]], { width: 3, paint: pathPaint, seed: 4, jitter: 0.2 })
   // graveyard on the sunny south-east lawn, inside a low mossy wall
   const GX0 = W - 15
   const GX1 = W - 3
@@ -851,10 +933,10 @@ export default function build(api) {
   for (let x = GX0; x <= GX1; x += 1) for (let z = GZ0; z <= GZ1; z += 1) {
     const edge = x === GX0 || x === GX1 || z === GZ0 || z === GZ1
     if (b.nameAt(x, G, z) === 'minecraft:grass_block') b.set(x, G, z, yard)
-    if (edge && !(z === GZ1 && Math.abs(x - (GX0 + 5)) <= 0)) b.set(x, G + 1, z, kit.palette({ mossy_cobblestone_wall: 2, cobblestone_wall: 1 }, { scale: 2, seed: 2 }))
+    if (edge && !(z === GZ1 && x === GX0 + 6)) b.set(x, G + 1, z, kit.palette({ mossy_cobblestone_wall: 2, cobblestone_wall: 1 }, { scale: 2, seed: 2 }))
   }
-  b.set(GX0 + 5, G + 1, GZ1, 'minecraft:spruce_fence_gate[facing=south]')
-  for (const x of [GX0 + 4, GX0 + 6]) {
+  b.set(GX0 + 6, G + 1, GZ1, 'minecraft:spruce_fence_gate[facing=south]')
+  for (const x of [GX0 + 5, GX0 + 7]) {
     b.set(x, G + 1, GZ1, 'minecraft:mossy_cobblestone')
     b.set(x, G + 2, GZ1, 'minecraft:soul_lantern[hanging=false]')
   }
@@ -864,9 +946,9 @@ export default function build(api) {
   }
   const rng = kit.rng(31)
   for (let z = GZ0 + 9; z <= GZ1 - 4; z += 4) {
-    for (let x = GX0 + 2; x <= GX1 - 2; x += 3) {
+    for (const x of [GX0 + 2, GX0 + 4, GX0 + 9, GX0 + 11]) { // two rows either side of the path
       if (rng.chance(0.18)) continue
-      const kind = rng.weighted([[4, 'slab'], [2, 'cross'], [2, 'tomb'], [1, 'obelisk']])
+      const kind = rng.weighted([[4, 'slab'], [2, x === GX0 + 4 || x === GX0 + 9 ? 'cross' : 'slab'], [2, 'tomb'], [1, 'obelisk']])
       const hz = z + rng.int(0, 1)
       if (kind === 'slab') {
         // headstone: a stair seen edge-on reads as a stone with a rounded shoulder
@@ -915,7 +997,7 @@ export default function build(api) {
   }
   b.scatter({ x0: 0, z0: 0, x1: W - 1, z1: L - 1, density: 0.22, paints: [[10, 'minecraft:short_grass'], [3, 'minecraft:tall_grass'], [1, 'minecraft:poppy'], [1, 'minecraft:oxeye_daisy'], [1, 'minecraft:cornflower'], [1, 'minecraft:fern']], seed: 21 })
   // benches and lamp posts on the forecourt
-  for (const [x, z] of [[CX - 14, PZ0 + 2], [CX + 14, PZ0 + 2], [CX - 14, L - 6], [CX + 14, L - 6], [8, 90], [8, 62], [W - 9, 62]]) {
+  for (const [x, z] of [[CX - 14, PZ0 + 2], [CX + 14, PZ0 + 2], [CX - 14, L - 6], [CX + 14, L - 6], [4, 90], [4, 62], [4, 30], [W - 4, 62], [W - 4, 30], [CX, 1]]) {
     b.lampPost([x, G + 1, z], { height: 4, post: 'minecraft:dark_oak_fence', foot: 'minecraft:stone_brick_wall' })
   }
   for (const s of [-1, 1]) for (let k = 0; k < 3; k += 1) {
