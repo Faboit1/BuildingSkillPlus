@@ -849,7 +849,7 @@ export default function build(api) {
   b.door([MW[0], my + 1, MW[1] + 3], 'south', { material: 'spruce' })
   b.set(MW[0] + 3, my + 5, MW[1], 'glass_pane')
   b.set(MW[0] - 3, my + 3, MW[1], 'glass_pane')
-  b.hangingLantern([MW[0], my + 4, MW[1]], 0) // the miller works by lamplight
+  b.hangingLantern([MW[0], my + 11, MW[1]], 6) // the miller works by lamplight: chain from the cone down the hollow tower
   b.lampPost([MW[0] + 2, my + 1, MW[1] + 4], { height: 2, post: 'dark_oak_fence', foot: 'stone_brick_wall' })
   // Spars axis-aligned so fences connect into clean lines (diagonal fence lines are dotted).
   // Each sail widens toward the tip: a stepped wool triangle beside its spar.
@@ -1049,17 +1049,17 @@ export default function build(api) {
   }
 
   // ================================================================== string lights
-  // Festoons: a chain line with a lantern on every other link, along the caldera promenade and
-  // the quay — the two places people gather in the evening.
+  // Festoons: a thin iron-bar wire with a lantern on every other cell, along the caldera
+  // promenade and the quay — the two places people gather in the evening. (Iron bars, not a
+  // horizontal chain: a hanging lantern needs a solid centre above it, which a sideways chain lacks.)
   function stringLights(a, c, y) {
     const dir = kit.facingFrom(c[0] - a[0], c[1] - a[1])
     const n = Math.abs(c[0] - a[0]) + Math.abs(c[1] - a[1])
-    const axis = dir === 'east' || dir === 'west' ? 'x' : 'z'
     for (let k = 0; k <= n; k += 1) {
       const x = a[0] + DIR[dir][0] * k
       const z = a[1] + DIR[dir][2] * k
       if (!free(x, y, z)) continue
-      b.set(x, y, z, `chain[axis=${axis}]`)
+      b.set(x, y, z, 'iron_bars')
       if (k % 2 === 1 && free(x, y - 1, z)) b.set(x, y - 1, z, 'lantern[hanging=true]')
     }
   }

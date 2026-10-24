@@ -168,8 +168,14 @@ async function main() {
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     url.searchParams.set('capture', '1')
-    if (options.clipY !== undefined) url.searchParams.set('clipY', String(options.clipY))
-    if (options.clip) url.searchParams.set('clip', options.clip.join(','))
+    if (options.clip) {
+      // --clip-y together with --clip lowers the box top
+      const box = [...options.clip]
+      if (options.clipY !== undefined) box[4] = Math.min(box[4], Number(options.clipY))
+      url.searchParams.set('clip', box.join(','))
+    } else if (options.clipY !== undefined) {
+      url.searchParams.set('clipY', String(options.clipY))
+    }
     await page.goto(url.toString(), { waitUntil: 'load' })
     await page.waitForFunction(
       () => Boolean(window.__mcbViewer || window.__mcbViewerError),

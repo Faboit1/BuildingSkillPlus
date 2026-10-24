@@ -7,7 +7,7 @@
 //   return b.finish({ name: 'my-build' })
 
 import { Structure } from '@mattzh72/lodestone'
-import { isAir, mirrorBlock, parseBlock, rotateBlock, stateString, validateBlock, withDefaults, withProps } from './blocks.mjs'
+import { isAir, mirrorBlock, parseBlock, rotateBlock, stateString, validateBlock, vanillaStates, withDefaults, withProps } from './blocks.mjs'
 import { persistLeaves, updateConnections } from './connect.mjs'
 import { completeBlocks } from './fixups.mjs'
 import { coherent01, createRng, hash01 } from './noise.mjs'
@@ -668,20 +668,29 @@ export class Builder {
         for (const j of d === 0 ? [i] : [i - d, i + d]) {
           if (j < 0 || j >= n) continue
           const t = steps[j][kind] ?? (kind === 'block' ? steps[j].block : null)
-          if (t) return t
+          if (t) return parseBlock(t).name
         }
       }
       return steps[i].substitutes?.[kind]?.[0] ?? null
     }
+    // keep only the properties the new block has (a log's axis must not land on planks)
+    const fitProps = (name, props) => {
+      const v = vanillaStates()?.blocks[parseBlock(name).name]?.v
+      if (!v || !props) return props ?? {}
+      return Object.fromEntries(Object.entries(props).filter(([k]) => k in v))
+    }
     let kept = 0
     for (const [x, y, z, block] of cells) {
-      const kind = /_stairs$/.test(block.name) ? 'stairs' : /_slab$/.test(block.name) ? 'slab' : /_wall$/.test(block.name) ? 'wall' : 'block'
+      const kind = /_stairs$/.test(block.name) ? 'stairs' : /_slab$/.test(block.name) ? 'slab' : /_wall$/.test(block.name) ? 'wall'
+        : /_(log|wood|stem|hyphae)$/.test(block.name) ? 'log' : 'block'
+      // logs stay logs: a ramp step without one borrows the nearest step's log, else the block is kept
       const target = shapeAt(index.get(this.key(x, y, z)), kind)
       if (!target) {
         kept += 1
         continue
       }
-      this.put(x, y, z, block.nbt ? { name: target, props: block.props, nbt: block.nbt } : { name: target, props: block.props })
+      const props = fitProps(target, block.props)
+      this.put(x, y, z, block.nbt ? { name: target, props, nbt: block.nbt } : { name: target, props })
     }
     if (kept > 0) this.warnings.push(`texture: ${kept} block(s) kept their original material (no ramp step has that shape)`)
     return this
@@ -750,6 +759,22 @@ export class Builder {
       if (strict) throw new Error(message)
       console.warn(message)
     }
+    // hanging lanterns must hang from something: walk up the chain to its anchor
+    let floating = 0
+    let firstFloating
+    for (const [x, y, z, blk] of this.entries()) {
+      if (!/lantern$/.test(blk.name) || blk.props?.hanging !== 'true') continue
+      // vertical chains carry it up to the anchor; a horizontal chain has no bottom face to hang from
+      let yy = y + 1
+      while (this.get(x, yy, z)?.name === 'minecraft:chain' && (this.get(x, yy, z).props?.axis ?? 'y') === 'y') yy += 1
+      const above = this.get(x, yy, z)
+      const horizontalChain = above?.name === 'minecraft:chain' && above.props?.axis !== 'y'
+      if (yy < this.size[1] && (!above || horizontalChain)) {
+        floating += 1
+        firstFloating ??= [x, y, z]
+      }
+    }
+    if (floating > 0) this.warnings.push(`${floating} hanging lantern(s) hang from air, e.g. at ${firstFloating.join(',')} (the chain needs a block above it)`)
     for (const warning of this.warnings) console.warn(`builder: ${warning}`)
     report.warnings = this.warnings
     if (this.clipped > 0) {

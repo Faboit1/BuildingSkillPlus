@@ -14,7 +14,10 @@ export function completeBlocks(store) {
   const inBounds = store.inBounds ? (x, y, z) => store.inBounds(x, y, z) : () => true
   let changed = 0
   const place = (x, y, z, block) => {
-    if (!inBounds(x, y, z) || store.get(x, y, z)) return
+    if (!inBounds(x, y, z)) return
+    const here = store.get(x, y, z)
+    // the upper half of tall seagrass replaces the water it grows into
+    if (here && !(block.name === 'minecraft:tall_seagrass' && here.name === 'minecraft:water')) return
     store.put(x, y, z, block)
     changed += 1
   }

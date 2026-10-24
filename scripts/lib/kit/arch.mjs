@@ -615,8 +615,18 @@ export function lampPost(b, base, { height = 3, post = 'minecraft:spruce_fence',
 }
 
 // Hanging lantern below an anchor: `length` chain blocks then the lantern.
+// `anchor` is the block the chain hangs from (a beam, ceiling or bracket); finish() warns when a
+// hanging lantern's chain ends in air.
 export function hangingLantern(b, anchor, length = 1, { lantern = 'minecraft:lantern', chain = 'minecraft:chain[axis=y]' } = {}) {
   const [x, y, z] = anchor
+  const name = parseBlock(lantern).name
+  if (!/lantern$/.test(name)) throw new Error(`hangingLantern: "${lantern}" is not a lantern (use b.set for a bare chain)`)
+  // an empty anchor: run the chain up to the nearest block above (ceiling, beam) within 6
+  if (!b.get(x, y, z)) {
+    let top = y + 1
+    while (top <= y + 6 && top < b.size[1] && !b.get(x, top, z)) top += 1
+    if (top <= y + 6 && b.get(x, top, z)) for (let yy = y; yy < top; yy += 1) b.set(x, yy, z, chain)
+  }
   for (let j = 1; j <= length; j += 1) b.set(x, y - j, z, chain)
   b.set(x, y - length - 1, z, `${parseBlock(lantern).name}[hanging=true]`)
   return b

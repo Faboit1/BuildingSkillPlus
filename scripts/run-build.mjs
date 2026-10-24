@@ -393,7 +393,15 @@ async function main() {
     throw new Error('Recipe must export a default function or named build function')
   }
 
-  const result = await buildFn(createApi())
+  // With --json, stdout must stay pure JSON: send the recipe's console.log output to stderr.
+  const log = console.log
+  if (options.json) console.log = (...args) => console.error(...args)
+  let result
+  try {
+    result = await buildFn(createApi())
+  } finally {
+    console.log = log
+  }
   const structure = result instanceof Structure ? result : result?.structure
   if (!(structure instanceof Structure)) {
     throw new Error('Recipe must return a Lodestone Structure or { structure, metadata }')
