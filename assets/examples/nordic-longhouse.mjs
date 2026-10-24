@@ -332,6 +332,14 @@ export default function build(api) {
     }
   }
 
+  // a dark ridge beam (bark-on log along the ridge) draws the hogback curve as one clean line
+  // against the bleached upper slopes; half-step ridge cells stay dark oak slabs
+  for (let x = X0 - 1; x <= X1 + 1; x += 1) {
+    const y = topPiece.get(`${x},${CZ}`)
+    const blk = b.get(x, y, CZ)
+    b.set(x, y, CZ, blk && /_slab$/.test(blk.name) ? 'dark_oak_slab[type=bottom]' : 'dark_oak_log[axis=x]')
+  }
+
   // --- 2e roofline: crossed gable horns, porch horns, smoke louvre (placed after texturing so
   // they keep their dark oak: they read as dark silhouettes against the sky)
   const ridgeTop = x => topPiece.get(`${x},${CZ}`)
