@@ -1,6 +1,11 @@
 // East-Asian roofs: swept eaves, upturned corners (sori), hip-and-gable (irimoya), pagoda skirts,
-// and roofs that join other roofs in valleys. Builder-first functions, also installed as Builder
-// methods (b.eastRoof(...), b.pagoda(...), b.rasterRoof(...)).
+// and roofs that join other roofs in valleys; plus the general heightfield roof they are built on.
+// Builder-first functions, also installed as Builder methods (EASTROOF_METHODS):
+//   b.eastRoof(opts)              swept hip / gable / irimoya / pyramid over wall lines (below)
+//   b.pagoda(opts)                stacked storeys under eastRoof skirts, pyramid top, sorin finial
+//   b.roofField(opts)             any roof surface from height(x, z): hogback ridges, bowed walls, bells
+//   b.rasterRoof(field, opts)     low level: rasterise a heightfield Map (format at rasterRoof)
+// eastField(opts) and rowLevels(pitch, rows) are exported pure helpers (not Builder methods).
 //
 //   const hall = b.eastRoof({
 //     x0, z0, x1, z1,            // outer wall lines (inclusive), same as b.roof
@@ -175,7 +180,8 @@ export function eastField({ x0, z0, x1, z1, pitch = [0.5, 0.5, 1, 1, 1], type = 
 // the ridge material; `along` (an integer) alternates `ribs`. Optional field.outside(x, z) says
 // which missing neighbours are eave edges (default: all of them). eastField() and roofField() build
 // such fields; a hand-made Map works too (e.g. an arched bridge deck).
-//   material / ribs / ridge / rafter as in eastRoof; thickness; only(cell);
+//   material / ribs / ridge / rafter as in eastRoof (here ridge and rafter default to material);
+//   thickness: 1; only(cell);
 //   rim { test(x, z), level }: matching columns reach down to `level` (closes onto a wall top);
 //   keepBelow { test(x, z), level }: pieces below `level` in matching columns only fill empty space;
 //   overwrite: false → every piece only fills empty space.
@@ -189,6 +195,7 @@ export function rasterRoof(b, field, opts = {}) {
   // missing neighbours on the eave edge (field.outside, default: any missing neighbour)
   const outsideOutline = field.outside ?? (() => true)
   for (const c of field.values()) {
+    c.t = Math.round(c.t * 2) / 2 // half-block surfaces only
     c.top = base + c.t
     c.y = base + topBlock(c.t)
   }
@@ -253,7 +260,7 @@ export function rasterRoof(b, field, opts = {}) {
       const keep = !overwrite || (keepBelow && yy < keepBelow.level && keepBelow.test(c.x, c.z))
       if (keep && b.has(c.x, yy, c.z)) continue
       const role = isTop ? 'top' : m === under ? 'under' : 'riser'
-      let cover = hi - lo === 1 ? 'full' : lo === yy ? 'bottom' : 'top'
+      const cover = hi - lo === 1 ? 'full' : lo === yy ? 'bottom' : 'top'
       const pk = `${c.x},${yy},${c.z}`
       const prior = placed?.get(pk)
       if (prior && cover !== 'full' && prior.cover !== cover) {

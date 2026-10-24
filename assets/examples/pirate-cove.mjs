@@ -184,7 +184,9 @@ export default function build(api) {
   }
   ca(3, 4) // smooth
   ca(6, 6) // float-clean: lone blocks and single-cell holes
-  const ROCK = 'white_wool'
+  // rock placeholder: white_concrete, not white_wool — the sails are wool and shading runs after the ship
+  const ROCK = 'white_concrete'
+  const ROCK_ID = 'minecraft:white_concrete'
   for (let y = 0; y < H; y += 1)
     for (let z = 0; z < D; z += 1)
       for (let x = 0; x < W; x += 1) {
@@ -217,7 +219,7 @@ export default function build(api) {
     for (let z = 0; z < D; z += 1) {
       const i = idx(x, z)
       const y = topRock[i]
-      if (y < 0 || b.nameAt(x, y, z) !== 'minecraft:white_wool' || b.nameAt(x, y + 1, z) === 'minecraft:water') continue
+      if (y < 0 || b.nameAt(x, y, z) !== ROCK_ID || b.nameAt(x, y + 1, z) === 'minecraft:water') continue
       const sl = slopeAt(x, z)
       if (BM[i] > 0.05 && y <= SEA + 5 && sl <= 2) {
         b.set(x, y, z, 'sand')
@@ -225,7 +227,7 @@ export default function build(api) {
         b.set(x, y - 2, z, 'sandstone')
       } else if (y >= PL[i] - 2.5 && sl <= 2) {
         b.set(x, y, z, grass)
-        for (let k = 1; k <= 2; k += 1) if (b.nameAt(x, y - k, z) === 'minecraft:white_wool') b.set(x, y - k, z, k === 1 ? 'dirt' : 'coarse_dirt')
+        for (let k = 1; k <= 2; k += 1) if (b.nameAt(x, y - k, z) === ROCK_ID) b.set(x, y - k, z, k === 1 ? 'dirt' : 'coarse_dirt')
       }
     }
   // sea bed: colour by depth (light sand in the shallows → clay and gravel → dark mud in the channel)
@@ -240,16 +242,26 @@ export default function build(api) {
   for (let x = 0; x < W; x += 1)
     for (let z = 0; z < D; z += 1) {
       const y = topRock[idx(x, z)]
-      if (y >= 0 && y < SEA && b.nameAt(x, y + 1, z) === 'minecraft:water' && b.nameAt(x, y, z) === 'minecraft:white_wool') b.set(x, y, z, bedOf(x, y, z))
+      if (y >= 0 && y < SEA && b.nameAt(x, y + 1, z) === 'minecraft:water' && b.nameAt(x, y, z) === ROCK_ID) b.set(x, y, z, bedOf(x, y, z))
     }
 
-  // ------------------------------------------------------------------ 4. shade the cliffs
-  // b.shadeSurface, not b.texture: rock is a sculpted form, so value follows the surface normal ·
+  // vines curtain the cliff faces below the lip. b.overgrow grows on ANY full block (it has no
+  // `only`), so it runs now, before the wool sails and the plank shacks exist.
+  if (at('detail')) b.overgrow([1, SEA + 3, 1], [W - 2, H - 1, D - 2], { amount: 0.3, maxLength: 6, moss: false, seed: 5 })
+
+  // ------------------------------------------------------------------ 5. the galleon (the hero)
+  // bow at x 79 pointing east, centreline z 60: 6+ blocks of water around the stern gallery and the
+  // jib-boom, mid-cove so the sails stand against the cliff's mid-grey (value contrast).
+  const ship = galleon(b, kit, { bow: [79, 3, 60], L: 44 })
+  // ------------------------------------------------------------------ 4. cliff shading (defined here, run after the buildings)
+  // Shading runs after every building has dug into the rock, so freshly exposed faces are shaded
+  // too (earlier, digging exposed the hidden 'darkest' interior as flat deepslate walls) and the
+  // shacks occlude the rock behind them. b.shadeSurface, not b.texture: rock is a sculpted form, so value follows the surface normal ·
   // light plus occlusion (overhang undersides, gullies and the wave notch come out darkest), rank-
   // normalized so all 4 steps are used; `bands` adds horizontal strata, `base` darkens toward the
   // water. Hidden cells become the darkest step. diorite as a 5th, light step made the cliffs
   // snowy and competed with the sails — so the ramp stops at andesite.
-  if (at('texture')) {
+  const shadeRock = () => {
     b.shadeSurface([0, 0, 0], [W - 1, H - 1, D - 1], ROCK_RAMP, {
       only: ROCK, light: [0.3, 0.85, 0.45], bands: { height: 3, amount: 0.16, warp: 2 }, base: 0.18, noise: 0.1, scale: 7, interior: 'darkest', seed: 3,
     })
@@ -269,20 +281,16 @@ export default function build(api) {
         }
   }
 
-  // vines curtain the cliff faces below the lip. b.overgrow grows on ANY full block (it has no
-  // `only`), so it runs now, before the wool sails and the plank shacks exist.
-  if (at('detail')) b.overgrow([1, SEA + 3, 1], [W - 2, H - 1, D - 2], { amount: 0.3, maxLength: 6, moss: false, seed: 5 })
 
-  // ------------------------------------------------------------------ 5. the galleon (the hero)
-  // bow at x 79 pointing east, centreline z 60: 6+ blocks of water around the stern gallery and the
-  // jib-boom, mid-cove so the sails stand against the cliff's mid-grey (value contrast).
-  const ship = galleon(b, kit, { bow: [79, 3, 60], L: 44 })
-  if (!at('detail')) return b.finish({ name: 'pirate-cove' })
+  if (!at('detail')) {
+    if (at('texture')) shadeRock()
+    return b.finish({ name: 'pirate-cove' })
+  }
 
   // ------------------------------------------------------------------ 6. buildings — helpers
   // Buildings are placed against the real rock: faceWest() reads the voxel grid, structures clear
   // (dig out) any rock inside their volume, and posts run down until they hit something solid.
-  const TERR = new Set(['white_wool', 'deepslate', 'tuff', 'stone', 'andesite', 'calcite', 'sand', 'sandstone', 'dirt', 'coarse_dirt', 'grass_block', 'rooted_dirt', 'moss_block', 'mossy_cobblestone', 'gravel', 'clay', 'mud'].map(n => `minecraft:${n}`))
+  const TERR = new Set(['white_concrete', 'deepslate', 'tuff', 'stone', 'andesite', 'calcite', 'sand', 'sandstone', 'dirt', 'coarse_dirt', 'grass_block', 'rooted_dirt', 'moss_block', 'mossy_cobblestone', 'gravel', 'clay', 'mud'].map(n => `minecraft:${n}`))
   const isTerr = (x, y, z) => TERR.has(b.nameAt(x, y, z))
   const ground = (x, z) => b.topY(x, z, blk => TERR.has(blk.name))
   // first rock cell of the west cliff seen from the cove at (z, y)
@@ -494,7 +502,7 @@ export default function build(api) {
     b.window([x0 + Math.floor(depth / 2), F + 2, z1], 'south', { width: 1, height: 1, sill: false })
     if (type === 'shed') b.roof({ x0, z0, x1, z1, y: F + wallH + 1, type: 'shed', rises: 'west', material: roof, pitch: 0.5, overhang: 1, gableOverhang: 1, gable: P })
     else b.roof({ x0, z0, x1, z1, y: F + wallH + 1, axis: 'x', material: roof, pitch: 1, overhang: 1, gableOverhang: 1, gable: P, eaveTrim: true })
-    b.hangingLantern([x1 + 1, F + wallH, dz + 1], 0)
+    b.hangingLantern([x1 + 1, F + wallH + 1, dz + 1], 0) // from the eave (chain grows up to the roof)
     lantern(x0 + 1, F + 1, z1 - 1)
     lantern(x1 - 1, F + 1, z0 + 2)
     b.set(x0 + 1, F + 1, z0 + 1, 'barrel[facing=up]')
@@ -555,6 +563,7 @@ export default function build(api) {
     b.set(tx, top + 1, tz + 1, 'campfire[lit=true]')
     b.set(tx + 2, top + 1, tz + 2, 'bell[attachment=floor,facing=south]')
     lantern(tx - 2, top + 1, tz + 2)
+    lantern(tx + 1, g + 1, tz + 1) // inside the frame, at the foot of the ladder
   }
 
   // ------------------------------------------------------------------ 6e. the treasure cave
@@ -605,6 +614,9 @@ export default function build(api) {
         }
   }
 
+  // ------------------------------------------------------------------ 6f. shade the cliffs, now that all digging is done
+  shadeRock()
+
   // ------------------------------------------------------------------ 7. vegetation (after the buildings,
   // so nothing grows inside a shack; scatter after trees and bushes so no grass is cut in half)
   // palms: a grove on the beach (leaning out over the sand) and a few on the cliff tops
@@ -633,6 +645,12 @@ export default function build(api) {
       const c = kit.noise.coherent01(x, 0, z, { scale: 5, seed: 12 })
       if (c < 0.3 && kit.noise.hash01(x, y, z, 13) < 0.5) b.set(x, y + 1, z, 'seagrass')
     }
+  // vines whose rock was dug away by a building no longer touch anything: remove them
+  for (const [x, y, z, blk] of b.entries().filter(e => e[3].name === 'minecraft:vine').sort((p, q) => q[1] - p[1])) {
+    const held = [['north', 0, -1], ['south', 0, 1], ['east', 1, 0], ['west', -1, 0]].some(([f, dx, dz]) => blk.props?.[f] === 'true' && b.has(x + dx, y, z + dz) && b.nameAt(x + dx, y, z + dz) !== 'minecraft:vine')
+    if (!held && b.nameAt(x, y + 1, z) !== 'minecraft:vine') b.remove(x, y, z)
+  }
+
   // ------------------------------------------------------------------ 8. props and lights last
   // a bonfire on the beach between the palms: campfire ringed by log seats
   {
@@ -901,7 +919,7 @@ function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 
     setSail(m.u, yg, hg - 1, yt + 1, ht - 1, 1) // topgallant
     // top: a slab platform just above the lower yard
     for (let du = -1; du <= 1; du += 1) for (let w = -2; w <= 2; w += 1) if (du || w) put(m.u + du, w, yc + 2, 'spruce_slab[type=bottom]', { keep: true })
-    put(m.u + 1, 0, yc, 'lantern[hanging=true]', { keep: true })
+    put(m.u + 1, 0, yc + 1, 'lantern[hanging=true]', { keep: true }) // hangs from the top's slab
   }
   mastLine(uZ, 35, 31)
   // crow's nest on the main topmast: a ring of open trapdoors around a slab floor
@@ -998,7 +1016,7 @@ function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 
     }
   put(1, 0, FC + 2, 'spruce_fence')
   put(1, 0, FC + 3, 'lantern')
-  for (const u of [8, 16, 30]) {
+  for (const u of [8, 16, 30, L - 4]) {
     put(u, 2, 7, 'lantern')
     let y = 1
     while (y < 6 && solidAt(u, -2, y)) y += 1

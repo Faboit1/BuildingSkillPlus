@@ -911,7 +911,7 @@ export default function build(api) {
     fallenLog(14, 60, 'x', 6, 'spruce_log')
     fallenLog(58, 46, 'z', 5, 'oak_log')
     fallenLog(20, 8, 'x', 4, 'birch_log')
-    b.hugeMushroom([12, ground(12, 40) + 1, 40], { type: 'brown', height: 5, seed: 6 })
+    b.hugeMushroom([12, ground(12, 40) + 1, 40], { type: 'brown', height: 5, seed: 6, glow: true }) // shroomlight gills: a lamp for the west floor
 
     // Ground plants by zone: shade-loving ferns, moss and mushrooms under the giant; grass and
     // flower drifts (one or two species per drift) in the open; petals under the cherry; reeds
@@ -1116,12 +1116,30 @@ export default function build(api) {
         const x = Math.round(foot[0]) + dx
         const z = Math.round(foot[2]) + dz + 1
         const y = ground(x, z)
-        if (!isStair(x, y + 1, z) && /grass|podzol|moss|dirt/.test(b.nameAt(x, y, z) ?? '')) b.set(x, y, z, kit.hash01(x, y, z, 91) < 0.5 ? 'minecraft:calcite' : 'minecraft:polished_diorite')
+        if (y === footY - 1 && !isStair(x, y + 1, z) && /grass|podzol|moss|dirt/.test(b.nameAt(x, y, z) ?? '')) b.set(x, y, z, kit.hash01(x, y, z, 91) < 0.5 ? 'minecraft:calcite' : 'minecraft:polished_diorite')
       }
     const lamp = (x, z) => {
       const y = ground(x, z)
       if (b.get(x, y + 1, z) && !/grass|fern|flower|petals|orchid|tulip|daisy|allium|bluet|cornflower|lily/.test(b.nameAt(x, y + 1, z))) return
       b.lampPost([x, y + 1, z], { height: 3, post: 'minecraft:birch_fence', foot: 'minecraft:diorite_wall', lantern: 'minecraft:lantern' })
+    }
+    // Underslung lanterns: chains from the deck undersides light the floor below each platform
+    for (const [p, Y, n] of [[p1, Y1, 5], [pC, YC, 2], [p2, Y2, 2]]) {
+      const cells = [...p.cells].filter(([x, z]) => !b.get(x, Y - 1, z) && !b.get(x, Y - 2, z) && !b.get(x, Y - 3, z) && !b.get(x, Y - 4, z))
+        .sort((a, c) => kit.hash01(a[0], 1, a[1], 93) - kit.hash01(c[0], 1, c[1], 93))
+      cells.slice(0, n).forEach(([x, z], i) => {
+        const len = 1 + (i % 3)
+        for (let k = 1; k <= len; k += 1) b.set(x, Y - k, z, 'minecraft:chain[axis=y]')
+        b.set(x, Y - len - 1, z, i % 2 ? 'minecraft:soul_lantern[hanging=true]' : 'minecraft:lantern[hanging=true]')
+      })
+    }
+    // Waystones on the west floor: a mossy calcite pillar crowned with a soul lantern
+    for (const [x, z] of [[20, 47], [15, 33], [24, 62]]) {
+      const y = ground(x, z)
+      if (b.get(x, y + 1, z) && !/grass|fern|flower|petals|lily|mushroom|carpet/.test(b.nameAt(x, y + 1, z))) continue
+      b.set(x, y + 1, z, 'minecraft:mossy_stone_brick_wall')
+      b.set(x, y + 2, z, 'minecraft:calcite')
+      b.set(x, y + 3, z, 'minecraft:soul_lantern[hanging=false]')
     }
     lamp(Math.round(foot[0]) + 3, Math.round(foot[2]) + 3)
     lamp(Math.round(foot[0]) - 3, Math.round(foot[2]) + 4)
