@@ -106,7 +106,7 @@ These hold for almost every build. Break one only on purpose.
 5 Detail     sills, shutters, trims, brackets, props, interiors → close-ups, --clip-y cutaway
 6 Landscape  paths, transition ring, trees, flowers, water      → render se, hero
 7 Light      lanterns, windows, path lamps  → render --lighting night
-8 Review     rubric in quality-and-critique.md; fix the worst issue; repeat 3–8
+8 Review     rubric in quality-and-critique.md + inspect --score; fix the worst issue; repeat 3–8
 ```
 
 Commands (run from the skill root):
@@ -120,6 +120,7 @@ node scripts/render.mjs --nbt FILE --clip-y 9                                  #
 node scripts/render.mjs --nbt FILE --lighting night
 node scripts/inspect.mjs FILE --checks                                          # text lint: flat walls, floating blocks...
 node scripts/inspect.mjs FILE --slice y=5                                       # ASCII plan of one layer
+node scripts/inspect.mjs FILE --score --style medieval                          # scorecard vs 1,212 human builds (benchmarks.md)
 ```
 
 Look at every render you make. Write down what is wrong *before* changing code, then fix the
@@ -194,6 +195,7 @@ b.chimney([cx, y, cz], 12, { paint: kit.palette({ bricks: 3, stone_bricks: 1 }) 
 b.tree([tx, ground(tx, tz) + 1, tz], 'oak', { seed: 3 })
 b.path([[x0, z1 + 6], [dx, z1 + 2]], { width: 2, paint: kit.palette({ dirt_path: 5, coarse_dirt: 2, gravel: 1 }) })
 b.scatter({ density: 0.25, paints: [[8, 'short_grass'], [2, 'tall_grass'], [1, 'poppy'], [1, 'cornflower']] })
+b.forest({ x0: 0, z0: 0, x1: W - 1, z1: D - 1, ground, species: [[6, 'oak'], [3, 'birch'], [1, 'colonized_dark_oak']], avoid: (x, z) => nearHouse(x, z) })
 b.lampPost([lx, ground(lx, lz) + 1, lz], { post: 'spruce_fence', foot: 'stone_brick_wall' })
 return b.finish({ name: 'my-build' })
 ```
