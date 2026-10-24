@@ -50,6 +50,9 @@ function rowLevels(pitch, rows) {
   let t = rises[0] <= 0.5 ? 0.5 : 1
   levels.push(t)
   for (let i = 1; i < rows; i += 1) {
+    // a full step after a half level snaps up to the whole block: otherwise every later row
+    // stays on a half level and the whole roof turns into slabs (flared cones, [0.5, 1, 2])
+    if (rises[i] >= 1 && t % 1 !== 0) t = Math.ceil(t)
     t += rises[i]
     levels.push(t)
   }
@@ -275,7 +278,7 @@ export function coneRoof(b, center, radius, { material: mat = 'spruce', pitch = 
   const rows = Math.ceil(outer + 1)
   const pitchList = Array.isArray(pitch) || typeof pitch === 'function' ? pitch : (flare ? [0.5, 1, ...Array(rows).fill(pitch)] : pitch)
   const levels = rowLevels(pitchList, rows + 2)
-  const base = y - (levels[Math.min(overhang, levels.length - 1)] ?? 1) + 1
+  const base = y - Math.ceil(levels[Math.min(overhang, levels.length - 1)] ?? 1) + 1
   let topY = y
   const ringOf = (x, z) => {
     const d = Math.hypot(x - cx, z - cz)
@@ -621,7 +624,11 @@ export function chimney(b, base, height, { paint = 'minecraft:bricks', cap = 'mi
 
 // Timber-framed wall panel on a plane (one of the box dimensions must be 1 thick).
 //   b.timberWall([x0, y0, z], [x1, y1, z], { frame: 'stripped_spruce_log', infill: 'white_terracotta', postEvery: 4, beams: [y0 + 4], braces: true })
-export function timberWall(b, a, c, { frame = 'minecraft:stripped_spruce_log', infill = 'minecraft:white_terracotta', postEvery = 4, beams = [], braces = false, brace } = {}) {
+// posts: explicit post positions along the wall (x or z values) instead of postEvery.
+// inset: 1 + facing (outward side) puts the infill one block inside the frame plane, so the
+// frame stands proud of the plaster (Law 6); the frame plane then holds only timbers.
+// joints: 'beams' (default, horizontals run through posts) | 'posts' (posts run through).
+export function timberWall(b, a, c, { frame = 'minecraft:stripped_spruce_log', infill = 'minecraft:white_terracotta', postEvery = 4, posts: postList, beams = [], braces = false, brace, inset = 0, facing, joints = 'beams' } = {}) {
   const min = [Math.min(a[0], c[0]), Math.min(a[1], c[1]), Math.min(a[2], c[2])]
   const max = [Math.max(a[0], c[0]), Math.max(a[1], c[1]), Math.max(a[2], c[2])]
   const alongX = max[0] - min[0] >= max[2] - min[2]
@@ -629,15 +636,24 @@ export function timberWall(b, a, c, { frame = 'minecraft:stripped_spruce_log', i
   const isLogLike = /_(log|wood|stem|hyphae)$|_pillar$|basalt$/.test(frameName)
   const vertical = isLogLike ? `${frameName}[axis=y]` : frame
   const horizontal = isLogLike ? `${frameName}[axis=${alongX ? 'x' : 'z'}]` : frame
-  b.box(min, max, infill)
+  if (inset > 0) {
+    if (!facing) throw new Error('timberWall inset needs facing (the outward side of the wall)')
+    const d = DIR[opposite(facing)]
+    b.box(add(min, d, inset), add(max, d, inset), infill)
+  } else {
+    b.box(min, max, infill)
+  }
   const u0 = alongX ? min[0] : min[2]
   const u1 = alongX ? max[0] : max[2]
-  const posts = []
-  for (let u = u0; u <= u1; u += postEvery) posts.push(u)
-  if (posts[posts.length - 1] !== u1) posts.push(u1)
+  const posts = postList ? [...postList].sort((p, q) => p - q) : []
+  if (!postList) {
+    for (let u = u0; u <= u1; u += postEvery) posts.push(u)
+    if (posts[posts.length - 1] !== u1) posts.push(u1)
+  }
   const at = (u, y) => (alongX ? [u, y, min[2]] : [min[0], y, u])
-  for (const u of posts) for (let y = min[1]; y <= max[1]; y += 1) b.set(...at(u, y), vertical)
-  for (const by of [min[1], max[1], ...beams]) for (let u = u0; u <= u1; u += 1) b.set(...at(u, by), horizontal)
+  const drawPosts = () => { for (const u of posts) for (let y = min[1]; y <= max[1]; y += 1) b.set(...at(u, y), vertical) }
+  const drawBeams = () => { for (const by of [min[1], max[1], ...beams]) for (let u = u0; u <= u1; u += 1) b.set(...at(u, by), horizontal) }
+  if (joints === 'posts') { drawBeams(); drawPosts() } else { drawPosts(); drawBeams() }
   if (braces) {
     // Diagonal braces as a stepped (4-connected) line of the frame block, so they read as
     // one continuous timber instead of disconnected posts.

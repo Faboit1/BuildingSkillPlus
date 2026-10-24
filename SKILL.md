@@ -30,6 +30,8 @@ node scripts/render.mjs --nbt minecraft-builds/NAME/NAME.nbt          # → rend
 ```
 
 - `--json` must report `builder.problems: []` and `builder.clipped: 0`.
+- Files: one PNG per view plus `sheet.png` (only when 2+ views); with `--lighting both` the files
+  get `-day`/`-night` suffixes and the sheets are `sheet-day.png` / `sheet-night.png`.
 - More views: `--views se,sw,ne,nw,south,north,east,west,top,hero,low`; close-up:
   `--yaw 30 --pitch 20 --target X,Y,Z --distance 14 --fov 40 --view-name door`; interiors: `--clip-y Y`;
   `--lighting night` (or `both`).
@@ -126,5 +128,5 @@ node scripts/convert.mjs minecraft-builds/NAME/NAME.nbt --out NAME.litematic   #
 node scripts/convert.mjs some-download.litematic --out study.nbt               # import to study/render/remix
 ```
 
-Imported builds can be stamped into a recipe: read them with `scripts/lib/formats.mjs`
-(`readAnyStructure`) and copy blocks into the builder.
+Stamp an existing schematic into a recipe (study, remix or reuse it), rotated or mirrored:
+`b.importStructure('path/to/build.schem', [x, y, z], { rotate: 1 })` (any of the formats above).

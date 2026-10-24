@@ -464,6 +464,7 @@ export class Builder {
     const samples = Math.max(2, Math.ceil(length * samplesPerBlock))
     const centers = []
     for (let i = 0; i <= samples; i += 1) centers.push(catmullRom(points, i / samples))
+    if (paint === null) return centers // sample only
     const radiusAt = typeof radius === 'function' ? radius : () => radius
     const setOpts = Object.keys(opts).length > 0 ? opts : undefined
     if (typeof radius !== 'function' && radius < 0.6) {
@@ -660,13 +661,29 @@ export class Builder {
         if (Math.abs(i - avg) > maxStep) index.set(k, Math.round(avg + Math.sign(i - avg) * maxStep))
       }
     }
+    // A ramp step without the needed shape (polished_andesite has no wall) uses the nearest step
+    // that has it, then the step's listed substitute; only if nothing fits is the block kept.
+    const shapeAt = (i, kind) => {
+      for (let d = 0; d < n; d += 1) {
+        for (const j of d === 0 ? [i] : [i - d, i + d]) {
+          if (j < 0 || j >= n) continue
+          const t = steps[j][kind] ?? (kind === 'block' ? steps[j].block : null)
+          if (t) return t
+        }
+      }
+      return steps[i].substitutes?.[kind]?.[0] ?? null
+    }
+    let kept = 0
     for (const [x, y, z, block] of cells) {
-      const step = steps[index.get(this.key(x, y, z))]
       const kind = /_stairs$/.test(block.name) ? 'stairs' : /_slab$/.test(block.name) ? 'slab' : /_wall$/.test(block.name) ? 'wall' : 'block'
-      const target = step[kind] ?? (kind === 'block' ? step.block : null)
-      if (!target) continue
+      const target = shapeAt(index.get(this.key(x, y, z)), kind)
+      if (!target) {
+        kept += 1
+        continue
+      }
       this.put(x, y, z, block.nbt ? { name: target, props: block.props, nbt: block.nbt } : { name: target, props: block.props })
     }
+    if (kept > 0) this.warnings.push(`texture: ${kept} block(s) kept their original material (no ramp step has that shape)`)
     return this
   }
 
@@ -745,6 +762,7 @@ export class Builder {
       const from = this.clippedFrom ? `; first from ${this.clippedFrom}` : ''
       console.warn(`builder: ${this.clipped} placement(s) fell outside the ${this.size.join('x')} canvas and were skipped (${sides.join(', ')}${from})`)
       report.clippedRange = { min, max }
+      if (this.clippedFrom) report.clippedFrom = this.clippedFrom
     }
     return {
       structure,

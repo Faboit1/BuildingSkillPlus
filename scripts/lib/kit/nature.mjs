@@ -40,6 +40,7 @@ const SPECIES = {
 }
 
 const ns = id => (id.includes(':') ? id : `minecraft:${id}`)
+const SOIL = ['minecraft:grass_block', 'minecraft:dirt', 'minecraft:coarse_dirt', 'minecraft:podzol', 'minecraft:rooted_dirt', 'minecraft:moss_block', 'minecraft:mud', 'minecraft:mycelium', 'minecraft:farmland']
 
 function woodPaint(spec, dir) {
   const d = norm(dir)
@@ -47,7 +48,8 @@ function woodPaint(spec, dir) {
   const ay = Math.abs(d[1])
   const az = Math.abs(d[2])
   const m = Math.max(ax, ay, az)
-  if (m < 0.82 && spec.wood) return ns(spec.wood)
+  // logs only on near-vertical runs; branches use bark-all-round wood (no end-grain faces)
+  if (ay < 0.82 && spec.wood) return ns(spec.wood)
   const axis = m === ay ? 'y' : m === ax ? 'x' : 'z'
   return `${ns(spec.log)}[axis=${axis}]`
 }
@@ -240,7 +242,10 @@ export function tree(b, base, species = 'oak', opts = {}) {
       const d = rng.range(1.5, height * 0.6)
       const x = Math.round(bx + Math.cos(a) * d)
       const z = Math.round(bz + Math.sin(a) * d)
-      if (!b.get(x, by, z) && b.get(x, by - 1, z)) b.set(x, by, z, preset.ground)
+      // ground cover (petals) only on soil it can stand on, at the local surface
+      const gy = b.topY(x, z)
+      if (gy < 0 || b.get(x, gy + 1, z) || !b.matches(b.get(x, gy, z), SOIL)) continue
+      b.set(x, gy + 1, z, preset.ground)
     }
   }
   return { top, tips }
@@ -260,20 +265,23 @@ export function boulder(b, c, radii, paint = 'minecraft:stone', { seed = 0, roug
   const mossTop = mossOpt === true ? 'minecraft:moss_block' : mossOpt
   const r = Array.isArray(radii) ? radii : [radii, radii * 0.75, radii]
   const R = Math.ceil(Math.max(...r) * (1 + roughness)) + 1
+  const tops = new Map()
   for (let x = Math.floor(c[0] - R); x <= Math.ceil(c[0] + R); x += 1)
     for (let y = Math.floor(c[1] - R); y <= Math.ceil(c[1] + R); y += 1)
       for (let z = Math.floor(c[2] - R); z <= Math.ceil(c[2] + R); z += 1) {
         const d = Math.sqrt(((x - c[0]) / r[0]) ** 2 + ((y - c[1]) / r[1]) ** 2 + ((z - c[2]) / r[2]) ** 2)
         if (d > 1 + roughness * fbm3(x, y, z, { scale: 4, octaves: 3, seed: seed + 41 })) continue
         b.set(x, y, z, paint)
+        const col = `${x},${z}`
+        if (!(tops.get(col) >= y)) tops.set(col, y)
       }
   if (mossTop) {
-    for (let x = Math.floor(c[0] - R); x <= Math.ceil(c[0] + R); x += 1)
-      for (let z = Math.floor(c[2] - R); z <= Math.ceil(c[2] + R); z += 1) {
-        const y = b.topY(x, z)
-        if (y < 0 || y < c[1]) continue
-        if (coherent01(x, y, z, { scale: 3, seed: seed + 5 }) < 0.55) b.set(x, y, z, mossTop)
-      }
+    // moss only the boulder's own upper surface, even under an overhang or tree canopy
+    for (const [col, y] of tops) {
+      const [x, z] = col.split(',').map(Number)
+      if (y < c[1] || b.get(x, y + 1, z)) continue
+      if (coherent01(x, y, z, { scale: 3, seed: seed + 5 }) < 0.55) b.set(x, y, z, mossTop)
+    }
   }
   return b
 }
@@ -324,10 +332,9 @@ export function scatter(b, { x0 = 0, z0 = 0, x1, z1, on = ['minecraft:grass_bloc
   const total = paints.reduce((s, [w]) => s + w, 0)
   for (let x = x0; x <= x1; x += 1) {
     for (let z = z0; z <= z1; z += 1) {
-      const y = b.topY(x, z)
-      if (y < 0 || y + 1 >= b.size[1]) continue
-      const ground = b.get(x, y, z)
-      if (!b.matches(ground, on)) continue
+      // the walking surface, also under overhangs and canopies
+      const y = groundY(b, x, z, on)
+      if (y < 0 || y + 1 >= b.size[1] || b.get(x, y + 1, z)) continue
       const local = density * (0.4 + 1.2 * coherent01(x, 0, z, { scale: clump, seed: seed + 91 }))
       if (hash01(x, y, z, seed + 92) > local) continue
       let n = hash01(x, y, z, seed + 93) * total
@@ -356,6 +363,20 @@ export function scatter(b, { x0 = 0, z0 = 0, x1, z1, on = ['minecraft:grass_bloc
 const PLANTISH = /(short_grass|tall_grass|fern|_flower|dandelion|poppy|orchid|allium|bluet|tulip|daisy|cornflower|lily_of_the_valley|rose_bush|lilac|peony|sunflower|_sapling|moss_carpet|_carpet|snow|dead_bush|sweet_berry_bush|pink_petals|vine|lichen|mushroom)$/
 const TERRAIN = ['minecraft:grass_block', 'minecraft:dirt', 'minecraft:coarse_dirt', 'minecraft:podzol', 'minecraft:rooted_dirt', 'minecraft:mud', 'minecraft:moss_block', 'minecraft:dirt_path', 'minecraft:gravel', 'minecraft:sand', 'minecraft:red_sand', 'minecraft:snow_block', 'minecraft:stone', 'minecraft:andesite', 'minecraft:mycelium', 'minecraft:packed_mud', 'minecraft:clay']
 
+// Walking surface of a column: the highest block matching `on` with only air or plants above it
+// (finds the ground under jetties, canopies, tree crowns and hat brims). -1 if none.
+//   const y = b.groundY(x, z)            // terrain
+//   const y = b.groundY(x, z, 'grass_block')
+export function groundY(b, x, z, on = TERRAIN) {
+  for (let y = b.topY(x, z); y >= 0; y -= 1) {
+    const here = b.get(x, y, z)
+    if (!here || !b.matches(here, on)) continue
+    const above = b.get(x, y + 1, z)
+    if (!above || PLANTISH.test(above.name)) return y
+  }
+  return -1
+}
+
 export function path(b, points, { width = 3, paint = 'minecraft:dirt_path', jitter = 0.6, seed = 0, on = TERRAIN } = {}) {
   const pts = points.map(p => [p[0], 0, p[1]])
   let length = 0
@@ -371,11 +392,11 @@ export function path(b, points, { width = 3, paint = 'minecraft:dirt_path', jitt
         const key = `${x},${z}`
         if (done.has(key)) continue
         done.add(key)
-        // walk down through plants/carpets to the ground; only paint terrain blocks so
-        // paths never overwrite lanterns, fences or building parts
-        let y = b.topY(x, z)
-        while (y > 0 && b.get(x, y, z) && PLANTISH.test(b.get(x, y, z).name)) y -= 1
-        if (y < 0 || !b.matches(b.get(x, y, z), on)) continue
+        // Find the walking surface: the highest terrain block with only air or plants above it
+        // (so paths continue under jetties, canopies and bridges, never repaint lanterns,
+        // fences or building parts, and never reach the ground under a floor).
+        const y = groundY(b, x, z, on)
+        if (y < 0) continue
         for (let k = y + 1; k <= y + 2; k += 1) if (b.get(x, k, z) && PLANTISH.test(b.get(x, k, z).name)) b.remove(x, k, z)
         b.set(x, y, z, paint)
       }
@@ -451,5 +472,5 @@ export function island(b, center, radius, { depth, top = 'minecraft:grass_block'
   return b
 }
 
-export const NATURE_METHODS = { tree, bush, leafBlob, boulder, terrain, scatter, path, pond, overgrow, island }
+export const NATURE_METHODS = { tree, bush, leafBlob, boulder, terrain, scatter, path, pond, overgrow, island, groundY }
 export const TREE_SPECIES = Object.keys(SPECIES)

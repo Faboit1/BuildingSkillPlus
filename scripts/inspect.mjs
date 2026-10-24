@@ -5,6 +5,7 @@
 // common build mistakes (stair shapes, flat walls, floating blocks, missing supports, dark spots).
 
 import fs from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import zlib from 'node:zlib'
 import { fileURLToPath } from 'node:url'
@@ -303,6 +304,27 @@ const FURNITURE = new Set([
 const TORCHES = new Set(['torch', 'wall_torch', 'soul_torch', 'soul_wall_torch', 'redstone_torch', 'redstone_wall_torch', 'copper_torch', 'copper_wall_torch'])
 const CHAINS = new Set(['chain', 'iron_chain', 'copper_chain', 'exposed_copper_chain', 'weathered_copper_chain', 'oxidized_copper_chain'])
 const GRAVITY = new Set(['sand', 'red_sand', 'gravel', 'suspicious_sand', 'suspicious_gravel', 'anvil', 'chipped_anvil', 'damaged_anvil', 'dragon_egg'])
+// Official 1.21.1 data shipped with the skill: property values per block (block-states.json) and
+// which blocks are full cubes (block-colors.json, measured from the models).
+function readData(name) {
+  try {
+    return JSON.parse(readFileSync(fileURLToPath(new URL(`./lib/data/${name}`, import.meta.url)), 'utf8'))
+  } catch {
+    return null
+  }
+}
+const OFFICIAL_STATES = readData('block-states.json')?.blocks ?? null
+const FULL_CUBES = (() => {
+  const data = readData('block-colors.json')
+  const entries = data?.blocks ?? data
+  if (!entries) return null
+  return new Set(Object.entries(entries).filter(([, v]) => v && v.full).map(([k]) => k.replace(/^minecraft:/, '')))
+})()
+const officialValues = short => {
+  const entry = OFFICIAL_STATES?.[`minecraft:${short}`]
+  return entry ? new Map(Object.entries(entry.v ?? {}).map(([k, list]) => [k, new Set(list)])) : null
+}
+
 const CONNECTION_EXCEPTIONS = new Set(['barrier', 'carved_pumpkin', 'jack_o_lantern', 'melon', 'pumpkin'])
 const NON_OPAQUE_FULL = /(^|_)glass$|^ice$|^frosted_ice$|^packed_ice$|^blue_ice$|^slime_block$|^honey_block$|^barrier$|^spawner$|^trial_spawner$|^vault$|^beacon$|^tinted_glass$|_leaves$|^mangrove_roots$/
 const STONEISH = /(stone|cobble|brick|deepslate|andesite|diorite|granite|tuff|basalt|prismarine|quartz|purpur|calcite|obsidian|netherrack|tiles|bedrock)/
@@ -507,8 +529,9 @@ function packInfo(pack, short) {
     }
     info.full = allFull
   } else if (bs?.multipart) {
-    // multipart models are partial, except mushroom blocks: one face model per side of a full cube
-    info.full = /^(mushroom_stem|brown_mushroom_block|red_mushroom_block)$/.test(short)
+    // multipart models (mushroom blocks, chiseled bookshelves, fences...) are full cubes only when
+    // the measured block data says so
+    info.full = FULL_CUBES ? FULL_CUBES.has(short) : /^(mushroom_stem|brown_mushroom_block|red_mushroom_block)$/.test(short)
     const visit = when => {
       if (!when) return
       if (Array.isArray(when.OR) || Array.isArray(when.AND)) {
@@ -1597,8 +1620,9 @@ function runChecks(model, info, counts, summary, lighting, options) {
     info.forEach((s, index) => {
       if (!counts[index]) return
       if (s.known === false) unknown.push({ id: s.name, count: counts[index] })
+      const official = s.name.startsWith('minecraft:') ? officialValues(s.short) : null
       for (const [k, v] of Object.entries(s.props)) {
-        const allowed = s.packValues.get(k)
+        const allowed = official ? official.get(k) : s.packValues.get(k)
         if (allowed && !allowed.has(v)) badProps.push({ state: s.key, prop: `${k}=${v}`, allowed: [...allowed].join('|'), count: counts[index] })
       }
     })

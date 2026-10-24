@@ -45,8 +45,17 @@ function sturdyFace(block, towardDir) {
     const half = props?.half ?? 'bottom'
     if (towardDir === 'up') return half === 'top'
     if (towardDir === 'down') return half === 'bottom'
-    return props?.facing === towardDir && (props?.shape ?? 'straight') === 'straight'
+    // straight and inner stairs have a full back; inner shapes also a full side
+    const facing = props?.facing ?? 'north'
+    const shape = props?.shape ?? 'straight'
+    if (shape.startsWith('outer')) return false
+    if (towardDir === facing) return true
+    if (shape === 'inner_left') return towardDir === ccw(facing)
+    if (shape === 'inner_right') return towardDir === cw(facing)
+    return false
   }
+  // an open trapdoor facing F is a panel against the side opposite F: that face is full
+  if (/_trapdoor$/.test(name) && String(props?.open) === 'true') return towardDir === opposite(props?.facing ?? 'north')
   return false
 }
 

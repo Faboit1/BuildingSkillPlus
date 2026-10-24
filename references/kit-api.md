@@ -92,7 +92,7 @@ All accept `opts.hollow` (watertight shell) and `opts.thickness` where it makes 
 | `b.cone(base, r, h, paint)` | |
 | `b.prism([[x, z], ...], y0, y1, paint)` | extruded polygon footprint |
 | `b.line(a, c, paint, { radius, connect })` | radius 0 = one-block line (`connect: 6` for a face-connected walk that reads solid; default 26 is fine for chains/fences); radius > 0 = capsule (≥ 0.87 stays watertight) |
-| `b.curve(points, paint, { radius })` | Catmull-Rom through points; `radius` may be `t => r` for tapering limbs, cables, arches, rivers. Tube radii are clamped to ≥ 0.87; radius < 0.6 draws a face-connected thin line |
+| `b.curve(points, paint, { radius })` | Catmull-Rom through points; `radius` may be `t => r` for tapering limbs, cables, arches, rivers. Tube radii are clamped to ≥ 0.87; radius < 0.6 draws a face-connected thin line. `paint: null` places nothing and just returns the sampled centre line |
 | `b.sdf(min, max, fn, paint)` | fill where `fn(x,y,z) <= 0`; combine `kit.sdf.*` |
 | `b.lathe(base, height, (dy, t) => r, paint)` | solid of revolution: domes, onion domes, vases, fountains |
 | `b.fillWhere(min, max, inside, paint)` | generic predicate rasterizer |
@@ -151,8 +151,22 @@ b.roof({
   rises: 'north',       // shed only: direction the roof climbs toward
   overwrite: true,      // false = only fill empty cells: lean-tos against a wall, roofs meeting existing walls
 })
-// → { topY, base, axis, cells }
+// → { topY, base, axis, cells }   cells: Map "x,z" → { tb, kind }; the roof block of a column
+//    sits at base + tb, kind is 'stairs' | 'slab' | 'block'. Use it to put things on the roof
+//    (snow, moss, chimneys) or to trim another structure to the roof surface.
 ```
+
+A list's last value repeats up to the ridge, so on wide roofs a trailing `2` keeps climbing. The
+ridge sits about Σ(rises) above `y` over the half-span inside the walls (`(depth - 1) / 2` rows):
+
+| Half-span inside walls | pitch 1 | `[1, 1, 2]` | pitch 2 |
+| --- | --- | --- | --- |
+| 3 (7 deep) | +3 | +4 | +6 |
+| 4 (9 deep) | +4 | +6 | +8 |
+| 5 (11 deep) | +5 | +8 | +10 |
+| 6 (13 deep) | +6 | +10 | +12 |
+
+Keep the roof ½–⅔ of the facade height: for 11–13 deep houses use `[1, 1, 1, 1, 2]` or pitch 1.
 
 The pitch profile is the key to roof character: `1` classic, `0.5` low Mediterranean,
 `2` steep Nordic/Gothic, `[0.5, 0.5, 1, 1, 2, 2]` East-Asian curve, `[2, 2, 3, 0.5]` mansard.
@@ -186,7 +200,7 @@ correct geometry, but it reads oddly. Set the wing back by 1–2 blocks or make 
 
 | Method | Notes |
 | --- | --- |
-| `b.dormer([cx, y0, cz], facing, { width: 3, height: 3, depth?, material, wall, window: { width, height } })` | gable dormer on a sloped roof (build after the main roof); front wall bottom-centre on the slope 0–2 rows in from the wall line, `y0` = roof level there; depth auto-extends until the main roof covers its ridge; warns if it is too tall |
+| `b.dormer([cx, y0, cz], facing, { width: 3, height: 3, depth?, material, wall, window: { width, height } })` | gable dormer on a sloped roof (build after the main roof); front wall bottom-centre on the slope, `y0` = roof level there; depth auto-extends until the main roof covers its ridge; warns if it is too tall. Cottages: put the front **on the wall line** with width 5 (a 3-wide dormer set back reads as a hole). `wall` may be a paint function (timbered gable). For a full-height wall dormer / cross-gable use `b.compoundRoof` with a second rect |
 | `b.coneRoof([cx, y, cz], radius, { material, pitch = 2, overhang = 1, flare = true, finial })` | round tower roofs; `flare` starts with shallow rows for a bell-shaped eave |
 | `b.window(pos, facing, { width, height, glass, frame, sill, lintel, shutters, flowerBox, recess, arch, mullion, material })` | `pos` = bottom-left opening cell seen from outside; `shutters: true` uses the material's trapdoor; `arch: true` gives 2-wide windows a pointed head |
 | `b.door(pos, facing, { material, width: 1\|2, hinge, frame, awning, steps })` | places both halves (and both doors) |
@@ -194,7 +208,7 @@ correct geometry, but it reads oddly. Set the wing back by 1–2 blocks or make 
 | `b.column(base, height, { shaft, plinth, capital, flare })` | `flare: 'quartz'` adds stair base/capital |
 | `b.battlements([x0, z0], [x1, z1], y, paint, { period, height, cap })` | crenellated rectangle; for walls along any polygon (round towers, corbelled parapets, walkways, gatehouses) use `kit.plan.curtainWall` |
 | `b.spiralStairs(c, rInner, rOuter, y0, y1, material, { stepsPerTurn, core, clockwise })` | tower stairs |
-| `b.timberWall(a, c, { frame, infill, postEvery, beams, braces: true\|'all' })` | posts, beams, end-bay braces on a 1-thick plane |
+| `b.timberWall(a, c, { frame, infill, postEvery \| posts: [u...], beams, braces: true\|'all', inset: 1, facing, joints: 'beams'\|'posts' })` | posts, beams, end-bay braces on a 1-thick plane. `inset: 1` + `facing` (outward side) puts the infill one block inside so the frame stands proud (Law 6). `posts` sets explicit post positions; `joints` says whether beams or posts run through. Braces read only in panels ≥ 5 wide × 4 tall |
 | `b.stairway(from, facing, rise, material, { width, fill, base, sides, landing })` | straight flight of stairs climbing toward `facing`, filled underneath, optional side walls |
 | `b.bridge(a, c, { width, deck, edge, arch, railing, posts, postEvery, lanterns, beam })` | deck between two points in any direction, sine arch of `arch` blocks, railings with posts and lanterns |
 | `b.lampPost(base, { height, post, foot, lantern, arm })` | `arm: 'east'` hangs the lantern |
@@ -205,7 +219,7 @@ correct geometry, but it reads oddly. Set the wing back by 1–2 blocks or make 
 
 | Method | Notes |
 | --- | --- |
-| `b.tree(base, species, opts)` | species: `oak, big_oak, birch, spruce, pine, dark_oak, cherry, willow, jungle, acacia, azalea, mangrove, dead, fantasy`. `base` = first log (ground + 1). Override `height`, `trunk`, `leaves`, `blob`, `branches`, `seed`... Leaves are persistent. |
+| `b.tree(base, species, opts)` | species: `oak, big_oak, birch, spruce, pine, dark_oak, cherry, willow, jungle, acacia, azalea, mangrove, dead, fantasy`. `base` = first log (ground + 1). Leaves are persistent; branches use bark-all-round wood. Knobs (preset defaults in `scripts/lib/kit/nature.mjs`): `height` ([min, max] or n), `trunk` (base radius), `lean` (fraction of height), `crown` (where branches start, 0–1), `branches` ([min, max]), `spread`, `rise`, `blob` (leaf blob radius [min, max]), `squash` (blob height ratio: < 0.7 flattens canopies into plates), `roots` (number of root flares; use 0–2 on trees under 9 tall), `leaves` (list, mixed), `log`, `wood`, `droop`, `vines`, `ground` (cover under the crown, only on soil), `seed`. Changing any knob reshuffles the random stream, so tune one at a time |
 | `b.leafBlob(c, [rx, ry, rz], leaves, { holes, roughness })` | custom canopies, hedges |
 | `b.forest({ x0, z0, x1, z1, ground, species, density, minSpacing, clearings, avoid, seed, sizes })` | whole woodland: Poisson placement thinned by clumping noise, species clumped (`[[6, 'oak'], [3, 'birch'], [1, 'colonized_dark_oak']]`; any `b.tree` preset, `'colonized[_oak\|birch\|dark_oak]'`, `'forester_round'`, `'forester_cone'` or a function), three size classes, bush-feathered edges, clearings `[[cx, cz, r]]`, `avoid(x, z)` for paths, stumps and fallen logs, podzol under big crowns. Keeps big trees ≥ 15 blocks from the canvas edge. Returns the placed trees |
 | `b.spaceColonizationTree(base, { height, crown, species \| log, wood, leaves })` | the most natural broadleaf crowns (branches grow toward points in a crown volume; pipe-model thickness) |
@@ -213,8 +227,9 @@ correct geometry, but it reads oddly. Set the wing back by 1–2 blocks or make 
 | `b.bush(base, { radius, leaves, log })` | |
 | `b.boulder(c, radii, paint, { roughness, mossTop })` | noise-displaced rock |
 | `b.terrain({ x0, z0, x1, z1, base, height: (x, z) => y, layers, surface })` | returns `(x, z) => surfaceY` |
-| `b.scatter({ x0, z0, x1, z1, on, density, paints, clump })` | grass/flowers; tall plants get both halves |
-| `b.path(points2d, { width, paint, jitter })` | winding path on the surface (`paint` may be a palette) |
+| `b.scatter({ x0, z0, x1, z1, on, density, paints, clump })` | grass/flowers on the walking surface (also under overhangs and canopies); tall plants get both halves |
+| `b.groundY(x, z, on?)` | walking surface of a column: highest terrain (or `on`) block with only air/plants above; -1 if none. Use it instead of `b.topY` to place props under canopies, brims and jetties |
+| `b.path(points2d, { width, paint, jitter, on })` | winding path on the walking surface: the highest terrain block with only air/plants above (continues under jetties and canopies, never repaints props or floors). `dirt_path` is 1/16 lower than full blocks: use it alone (lanes, ruts) or mix only full blocks (`coarse_dirt`, `gravel`, `packed_mud`, `rooted_dirt`), otherwise close-ups show a maze of tiny steps |
 | `b.pond([cx, level, cz], r, { depth, rim, bed })` | |
 | `b.overgrow(a, c, { amount, maxLength, moss })` | vines on exposed walls + moss carpet |
 | `b.island([cx, topY, cz], r, { depth, top, soil, rock })` | floating island |
@@ -235,8 +250,22 @@ b.texture([x0, y0, z0], [x1, y1, z1],
   { only: 'white_wool', base: 0.3, edge: 0.18, drip: 0.09, focus: [[doorX, doorY, doorZ]], focusRadius: 6, scale: 6, noise: 0.22, seed: 1 })
 ```
 
+All options (defaults): `only`, `mid` (0.4, where the ramp centres), `base` (0.3, darkening toward
+the bottom), `top` (0; negative darkens toward the top, e.g. soot on a chimney), `edge` (0.18,
+exposed corners/jambs), `drip` (0.09) and `dripLength` (4) under overhangs, `focus` (points that
+get brighter), `focusRadius` (6), `focusAmount` (0.25), `scale` (6, clump size), `noise` (0.22),
+`jitter` (0.06), `maxStep` (2, max ramp steps between neighbours), `seed`. A ramp step without the
+needed shape (no wall/stair/slab) borrows the nearest step's, so placeholders never survive.
+
 Use ramps of one texture family (bricks → bricks) for walls; mixing very different textures
 (cobble next to bricks) reads as patchwork.
+
+### Importing schematics
+
+`b.importStructure(fileOrBytes, at, { rotate, mirror, keep, only, keepAir, region, paletteIndex })`
+stamps a `.nbt`, `.schem`, `.litematic` or legacy `.schematic` into the build (block entities keep
+their NBT) and returns `{ size, format, blocks }`. Use it to study a downloaded build in the
+renderer, to remix one, or to reuse a module exported from another recipe.
 
 ## Settlement planning: `kit.plan`
 
