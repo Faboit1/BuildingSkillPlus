@@ -653,7 +653,10 @@ export function timberWall(b, a, c, { frame = 'minecraft:stripped_spruce_log', i
   if (inset > 0) {
     if (!facing) throw new Error('timberWall inset needs facing (the outward side of the wall)')
     const d = DIR[opposite(facing)]
-    b.box(add(min, d, inset), add(max, d, inset), infill)
+    // shorten the inner infill by `inset` at both ends so four inset walls meet at the inner
+    // corner instead of spilling into the neighbouring walls' frame planes
+    const e = alongX ? [inset, 0, 0] : [0, 0, inset]
+    b.box(add(add(min, d, inset), e, 1), add(add(max, d, inset), e, -1), infill)
   } else {
     b.box(min, max, infill)
   }
