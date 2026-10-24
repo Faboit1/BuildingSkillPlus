@@ -36,8 +36,8 @@
 //   1 arch (built while the builder is empty — b.erode inside it scans every block)
 //   2 terrain decided in a typed-array voxel grid (signed shore distance + 3D noise), smoothed
 //     there, written once in a placeholder → 3 surface dressing (sand, grass, sea bed)
-//   4 b.shadeSurface on the placeholder (+ geology accents) → vines (b.overgrow)
-//   5 galleon → 6 buildings dug into the rock (tavern, boardwalk + pier, shacks, tower, cave)
+//   4 vines (b.overgrow, before anything wooden exists) → 5 galleon → 6 buildings dug into the
+//     rock (tavern, boardwalk + pier, shacks, tower, cave) → 6f b.shadeSurface + geology accents
 //   7 vegetation (palms, bushes, scatter, seagrass) → 8 props and lights last
 //   STAGE=massing|structure|texture|detail|final renders each stage (default final).
 //
@@ -125,7 +125,7 @@ export default function build(api) {
   // b.rockArch erodes and shades itself; b.erode scans every block in the builder, so building the
   // arch while the canvas is still empty keeps it fast. The terrain below is written with keep: true.
   const ROCK_RAMP = ['deepslate', 'tuff', 'stone', 'andesite']
-  const AR = { a: [85, 1, 98], c: [101, 2, 93], height: 22, lintel: 4 }
+  const AR = { a: [85, 2, 98], c: [101, 2, 93], height: 22, lintel: 4 }
   b.rockArch(AR.a, AR.c, { height: AR.height, thickness: 5, lintel: AR.lintel, ramp: ROCK_RAMP, bands: { height: 3, amount: 0.16 }, seed: 5, roughness: 1.2 })
   // the arch's opening as an elliptic tunnel (same Hu/Hv as rockArch): the terrain grid must not
   // refill it where the arch's foot stands on the headland
@@ -259,6 +259,7 @@ export default function build(api) {
       if (y >= 0 && y < SEA && b.nameAt(x, y + 1, z) === 'minecraft:water' && b.nameAt(x, y, z) === ROCK_ID) b.set(x, y, z, bedOf(x, y, z))
     }
 
+  // ------------------------------------------------------------------ 4. vines
   // vines curtain the cliff faces below the lip. b.overgrow grows on ANY full block (it has no
   // `only`), so it runs now, before the wool sails and the plank shacks exist.
   if (at('detail')) b.overgrow([1, SEA + 3, 1], [W - 2, H - 1, D - 2], { amount: 0.3, maxLength: 6, moss: false, seed: 5 })
@@ -266,15 +267,17 @@ export default function build(api) {
   // ------------------------------------------------------------------ 5. the galleon (the hero)
   // bow at x 79 pointing east, centreline z 60: 6+ blocks of water around the stern gallery and the
   // jib-boom, mid-cove so the sails stand against the cliff's mid-grey (value contrast).
-  const ship = galleon(b, kit, { bow: [79, 3, 60], L: 44 })
-  // ------------------------------------------------------------------ 4. cliff shading (defined here, run after the buildings)
-  // Shading runs after every building has dug into the rock, so freshly exposed faces are shaded
-  // too (earlier, digging exposed the hidden 'darkest' interior as flat deepslate walls) and the
-  // shacks occlude the rock behind them. b.shadeSurface, not b.texture: rock is a sculpted form, so value follows the surface normal ·
-  // light plus occlusion (overhang undersides, gullies and the wave notch come out darkest), rank-
+  galleon(b, kit, { bow: [79, 3, 60], L: 44 })
+
+  // ------------------------------------------------------------------ cliff shading (defined here,
+  // run in 6f after the buildings have dug into the rock: freshly exposed faces get shaded too — run
+  // earlier, digging uncovered the hidden 'darkest' interior as flat deepslate walls — and the
+  // shacks act as occluders for the rock behind them).
+  // b.shadeSurface, not b.texture: rock is a sculpted form, so value follows surface normal · light
+  // plus occlusion (overhang undersides, gullies and the wave notch come out darkest), rank-
   // normalized so all 4 steps are used; `bands` adds horizontal strata, `base` darkens toward the
-  // water. Hidden cells become the darkest step. diorite as a 5th, light step made the cliffs
-  // snowy and competed with the sails — so the ramp stops at andesite.
+  // water, hidden cells take the darkest step. A 5th light step (diorite) made the cliffs snowy
+  // and competed with the sails, so the ramp stops at andesite.
   const shadeRock = () => {
     b.shadeSurface([0, 0, 0], [W - 1, H - 1, D - 1], ROCK_RAMP, {
       only: ROCK, light: [0.3, 0.85, 0.45], bands: { height: 3, amount: 0.16, warp: 2 }, base: 0.18, noise: 0.1, scale: 7, interior: 'darkest', seed: 3,
@@ -294,7 +297,6 @@ export default function build(api) {
           else if (y > SEA + 3 && !b.has(x, y + 1, z) && kit.noise.coherent01(x, y, z, { scale: 4, seed: 52 }) < 0.4) b.set(x, y, z, 'moss_block')
         }
   }
-
 
   if (!at('detail')) {
     if (at('texture')) shadeRock()
@@ -419,10 +421,8 @@ export default function build(api) {
   // A boardwalk hugs the foot of the west cliff from the beach southward, 3 wide, on log piles
   // driven into the sea bed every 3 blocks; the pier leaves it at a right angle toward the ship.
   // "Rickety" = mismatched planks, a few slab dips and missing boards, railing only in places.
-  const boardwalk = []
   for (let z = TV.z1 + 4; z <= 70; z += 1) {
     const xf = Math.max(faceWest(z, DECK), faceWest(z, DECK + 1), faceWest(z, DECK + 2)) + 1
-    boardwalk.push([xf, z])
     for (let x = xf; x <= xf + 2; x += 1) {
       for (let y = DECK + 1; y <= DECK + 4; y += 1) if (isTerr(x, y, z)) b.set(x, y, z, 'air')
       const h = kit.noise.hash01(x, 0, z, 71)
@@ -488,7 +488,6 @@ export default function build(api) {
   // log stilts that run down to the boardwalk or the sea bed, plank walls of mismatched wood with log
   // corner posts, a shed roof rising toward the cliff (water runs off to the cove), a railed porch.
   const ROOFS = ['dark_oak', 'spruce', 'mangrove', 'dark_oak', 'jungle']
-  const shacks = []
   const shack = ({ z0, z1, F, depth = 5, wallH = 4, wood = 'spruce', roof = 'dark_oak', door, seed = 1, porch = 2, type = 'shed' }) => {
     let xb = 0
     for (let z = z0; z <= z1; z += 1) for (let y = F; y <= F + wallH; y += 1) xb = Math.max(xb, faceWest(z, y))
@@ -520,9 +519,7 @@ export default function build(api) {
     lantern(x0 + 1, F + 1, z1 - 1)
     lantern(x1 - 1, F + 1, z0 + 2)
     b.set(x0 + 1, F + 1, z0 + 1, 'barrel[facing=up]')
-    const s = { x0, x1, xp, z0, z1, F }
-    shacks.push(s)
-    return s
+    return { x0, x1, xp, z0, z1, F }
   }
   // straight wooden stair along the cliff (north or south), open underneath with a post every 2 steps
   const stair = ([x, y, z], facing, rise, width = 2) => {
@@ -677,7 +674,6 @@ export default function build(api) {
       b.set(fx + 2, ground(fx + 2, fz + 2) + 1, fz + 2, 'barrel[facing=up]')
     }
   }
-  void ship
   return b.finish({ name: 'pirate-cove' })
 }
 
@@ -696,7 +692,7 @@ export default function build(api) {
 //   rig:    masts at 0.2 / 0.47 / 0.76 L, 3 square sails each on fore and main (course, topsail,
 //           topgallant; wider at the foot), lateen mizzen, bowsprit with a furled spritsail,
 //           shrouds fanned to channels, stays along the centreline, tops and a crow's nest
-function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 30 }) {
+function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, brace = 30 }) {
   const ship = b.hull({
     bow, heading: 'east', length: L, beam, depth,
     maxBeamAt: 0.42, bowExp: 0.55, runExp: 2.0, transom: 0.74, section: 2.6, tumble: 0.16, waterline: 0.45,
