@@ -125,8 +125,8 @@ export default function build(api) {
   // b.rockArch erodes and shades itself; b.erode scans every block in the builder, so building the
   // arch while the canvas is still empty keeps it fast. The terrain below is written with keep: true.
   const ROCK_RAMP = ['deepslate', 'tuff', 'stone', 'andesite']
-  const AR = { a: [93, 1, 101], c: [106, 2, 90], height: 24, lintel: 5 }
-  b.rockArch(AR.a, AR.c, { height: AR.height, thickness: 6, lintel: AR.lintel, ramp: ROCK_RAMP, bands: { height: 3, amount: 0.16 }, seed: 5, roughness: 1.2 })
+  const AR = { a: [85, 1, 98], c: [101, 2, 93], height: 22, lintel: 4 }
+  b.rockArch(AR.a, AR.c, { height: AR.height, thickness: 5, lintel: AR.lintel, ramp: ROCK_RAMP, bands: { height: 3, amount: 0.16 }, seed: 5, roughness: 1.2 })
   // the arch's opening as an elliptic tunnel (same Hu/Hv as rockArch): the terrain grid must not
   // refill it where the arch's foot stands on the headland
   const arSpan = Math.hypot(AR.c[0] - AR.a[0], AR.c[2] - AR.a[2])
