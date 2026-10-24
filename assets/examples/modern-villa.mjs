@@ -430,11 +430,12 @@ export default function build(api) {
     for (let x = 31; x <= 35; x++) set(x, F2, 31, 'smooth_quartz_stairs[facing=north]')   // outdoor sofa facing the sea
     for (let x = 32; x <= 34; x++) set(x, F2, 33, 'dark_oak_slab[type=top]')
     set(30, F2, 33, 'smooth_quartz_stairs[facing=west]'); set(36, F2, 33, 'smooth_quartz_stairs[facing=east]')
-    const planter = (x0, z) => {                    // hedge planter: rooted dirt, clipped azalea, trapdoor box
+    const planter = (x0, z) => {                    // timber planter box: plank curb, rooted dirt, clipped azalea
+      for (let x = x0 - 1; x <= x0 + 3; x++) for (let dz = -1; dz <= 1; dz++) set(x, F2, z + dz, 'spruce_planks')
       for (let x = x0; x < x0 + 3; x++) { set(x, F2, z, 'rooted_dirt'); set(x, F2 + 1, z, `${x % 2 ? 'flowering_azalea_leaves' : 'azalea_leaves'}[persistent=true]`) }
-      for (let x = x0; x < x0 + 3; x++) { set(x, F2, z - 1, 'spruce_trapdoor[facing=north,open=true,half=bottom]'); set(x, F2, z + 1, 'spruce_trapdoor[facing=south,open=true,half=bottom]') }
-      set(x0 - 1, F2, z, 'spruce_trapdoor[facing=west,open=true,half=bottom]'); set(x0 + 3, F2, z, 'spruce_trapdoor[facing=east,open=true,half=bottom]')
     }
+    // (an open-trapdoor rim was tried first: a trapdoor fills 3 px of its cell, so the white slab
+    // under the removed deck board showed through as white squares)
     planter(40, 33); planter(46, 33); planter(23, 33)
     for (let x = 13; x <= 28; x++) for (let z = 5; z <= 14; z++) set(x, Y3 + 1, z, 'moss_carpet')   // carport green roof
     // L2 roof: hot tub under the top canopy
