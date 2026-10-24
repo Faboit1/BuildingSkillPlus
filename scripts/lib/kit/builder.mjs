@@ -100,6 +100,11 @@ export class Builder {
     if (!this.inBounds(x, y, z)) {
       this.clipped += 1
       // remember where: the warning names the overflow range so it can be fixed quickly
+      if (!this.clippedBox) {
+        // first overflow: remember the recipe line that caused it (first frame outside the kit)
+        const frame = new Error().stack.split('\n').slice(2).find(l => !/scripts[\\/]lib[\\/]kit[\\/]/.test(l) && /\.m?js/.test(l))
+        this.clippedFrom = frame?.trim().replace(/^at\s+/, '').replace(/^file:\/\//, '').replace(/\?v=\d+/, '')
+      }
       const box = (this.clippedBox ??= { min: [x, y, z], max: [x, y, z] })
       box.min = [Math.min(box.min[0], x), Math.min(box.min[1], y), Math.min(box.min[2], z)]
       box.max = [Math.max(box.max[0], x), Math.max(box.max[1], y), Math.max(box.max[2], z)]
@@ -721,7 +726,8 @@ export class Builder {
         if (min[i] < 0) sides.push(`${axis} down to ${min[i]}`)
         if (max[i] >= this.size[i]) sides.push(`${axis} up to ${max[i]} (size ${this.size[i]})`)
       }
-      console.warn(`builder: ${this.clipped} placement(s) fell outside the ${this.size.join('x')} canvas and were skipped (${sides.join(', ')})`)
+      const from = this.clippedFrom ? `; first from ${this.clippedFrom}` : ''
+      console.warn(`builder: ${this.clipped} placement(s) fell outside the ${this.size.join('x')} canvas and were skipped (${sides.join(', ')}${from})`)
       report.clippedRange = { min, max }
     }
     return {

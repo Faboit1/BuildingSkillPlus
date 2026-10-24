@@ -62,7 +62,7 @@ function rowLevels(pitch, rows) {
 // slab, which would leave a see-through half-block gap under it). `soffit` (overhang cells that
 // are not the outermost eave row) adds only the down-slope upside-down stair under a 1:1 stair,
 // the way vanilla finishes rakes. Returns { tb, kind } (top block level, element kind).
-function roofCell(b, x, z, base, top, prevTop, facing, mat, { thickness = 0, ridge = false, overwrite = true, underside = 'stairs', soffit = false } = {}) {
+function roofCell(b, x, z, base, top, prevTop, facing, mat, { thickness = 0, ridge = false, overwrite = true, underside = 'stairs', soffit = false, floor } = {}) {
   const opts = overwrite ? undefined : { keep: true }
   const half = top % 1 !== 0
   const rise = prevTop === null ? null : top - prevTop
@@ -87,7 +87,9 @@ function roofCell(b, x, z, base, top, prevTop, facing, mat, { thickness = 0, rid
   }
   let fillFrom = tb
   if (prevTop !== null) fillFrom = rise >= 2 ? Math.ceil(prevTop) - 1 : Math.floor(prevTop)
-  for (let y = tb - 1; y >= fillFrom; y -= 1) b.set(x, base + y, z, mat.block, opts)
+  // Inside the walls, fill below the wall-top level only where it is empty: steep rows over the
+  // wall line must not eat the top plate, but open structures (pavilions on posts) stay closed.
+  for (let y = tb - 1; y >= fillFrom; y -= 1) b.set(x, base + y, z, mat.block, floor !== undefined && y < floor ? { keep: true } : opts)
   if (soffit && kind === 'stairs' && fillFrom === tb) {
     b.set(x, base + tb - 1, z, `${mat.stairs}[facing=${opposite(facing)},half=top]`, { keep: true })
   }
@@ -115,16 +117,20 @@ function eaveTrimCell(b, x, z, base, cell, facing, mat) {
 function fillUnderRoof(b, cells, base, y, footprint, paint, mat) {
   const { minX, maxX, minZ, maxZ } = footprint
   const stairs = parseBlock(mat.stairs).name
+  const roofIds = new Set([stairs, parseBlock(mat.slab).name, parseBlock(mat.block).name])
   for (let x = minX; x <= maxX; x += 1) {
     for (let z = minZ; z <= maxZ; z += 1) {
       if (x !== minX && x !== maxX && z !== minZ && z !== maxZ) continue
       const cell = cells.get(`${x},${z}`)
       if (!cell) continue
       for (let yy = y; yy < base + cell.tb; yy += 1) {
-        // the roof's upside-down underside stair would leave a notch in the gable wall
+        // In the gable plane keep only the roof's top block and the riser under it: an
+        // upside-down underside stair would leave a notch, and steep-row fill / thickness
+        // would show as a thick band eating the gable triangle.
         const here = b.get(x, yy, z)
         const notch = here && here.name === stairs && here.props.half === 'top'
-        b.set(x, yy, z, paint, notch ? undefined : { keep: true })
+        const band = here && roofIds.has(here.name) && yy < base + cell.tb - 1
+        b.set(x, yy, z, paint, notch || band ? undefined : { keep: true })
       }
     }
   }
@@ -169,7 +175,7 @@ export function roof(b, opts) {
   const place = (x, z, top, prevTop, facing, extra = {}) => {
     const inside = inFootprint(x, z)
     const soffit = !inside && prevTop !== null && thickness > 0
-    const cell = roofCell(b, x, z, base, top, prevTop, facing, mat, { thickness: inside ? thickness : 0, overwrite, underside, soffit, ...extra })
+    const cell = roofCell(b, x, z, base, top, prevTop, facing, mat, { thickness: inside ? thickness : 0, overwrite, underside, soffit, floor: inside ? y - base : undefined, ...extra })
     cells.set(`${x},${z}`, cell)
     topY = Math.max(topY, base + cell.tb)
     if (extra.ridge && ridgeCap) b.set(x, base + cell.tb + 1, z, ridgeCap)
@@ -183,7 +189,7 @@ export function roof(b, opts) {
     const az1 = maxZ + overhang
     const rings = Math.ceil(Math.min(ax1 - ax0 + 1, az1 - az0 + 1) / 2)
     const levels = rowLevels(type === 'mansard' && opts.pitch === undefined ? [2, 2, 3, 0.5] : pitch, rings + 1)
-    base = y - (levels[Math.min(overhang, levels.length - 1)]) + 1
+    base = y - Math.ceil(levels[Math.min(overhang, levels.length - 1)]) + 1
     for (let k = 0; k < rings; k += 1) {
       const rx0 = ax0 + k
       const rx1 = ax1 - k
@@ -223,7 +229,7 @@ export function roof(b, opts) {
     const risesToward = opts.rises ?? highSide
     const forward = risesToward === highSide
     const levels = rowLevels(pitch, width)
-    base = y - levels[Math.min(overhang, width - 1)] + 1
+    base = y - Math.ceil(levels[Math.min(overhang, width - 1)]) + 1
     for (let i = 0; i < width; i += 1) {
       const v = forward ? across[0] + i : across[1] - i
       for (let u = along[0]; u <= along[1]; u += 1) {
@@ -238,7 +244,7 @@ export function roof(b, opts) {
 
   const rows = Math.ceil(width / 2)
   const levels = rowLevels(pitch, rows)
-  base = y - levels[Math.min(overhang, rows - 1)] + 1
+  base = y - Math.ceil(levels[Math.min(overhang, rows - 1)]) + 1
   const facingLow = axis === 'x' ? 'south' : 'east'
   const facingHigh = axis === 'x' ? 'north' : 'west'
   void lowSide

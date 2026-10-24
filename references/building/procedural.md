@@ -20,9 +20,9 @@ Conventions follow `references/kit-api.md`: `+x` east, `+z` south, `y` up; `b` i
 | Rocks, cliffs, organic forms | signed distance fields | `b.sdf`, `kit.sdf` | 8 |
 | Beams, chains, rivers, limbs | line connectivity, splines | `b.line`, `b.curve` | 9 |
 | Trees, props, lamps | Poisson-disc scatter | `poissonDisk` (below) | 10 |
-| Natural tree crowns | space colonization | `forest.mjs` → nature.md §1.10 | 11 |
+| Natural tree crowns | space colonization | `b.spaceColonizationTree`, `b.forest` → nature.md §1.10 | 11 |
 | Rooms, doors, furniture | constrained growth | `growRooms` (below) | 12 |
-| Districts, sites, roads | BFS Voronoi, scoring, A* | `plan.*` → composition.md | 13 |
+| Districts, sites, roads | BFS Voronoi, scoring, A* | `kit.plan.*` → composition.md | 13 |
 | Modular tiling | wave function collapse | — | 14 |
 | Catching artifacts | lint + progressive checks | `inspect.mjs --checks` | 15 |
 
@@ -630,8 +630,8 @@ Vary density with the `accept` mask (forest edge, clearings), not by changing `r
 
 ## 11. Trees: space colonization
 
-Use `spaceColonizationTree` and `forest` from `scripts/lib/kit/forest.mjs`, documented in
-nature.md §1.10. This guide does not duplicate them. The algorithm (Runions, Lane & Prusinkiewicz
+Use `b.spaceColonizationTree(base, opts)` and `b.forest(opts)` (`scripts/lib/kit/forest.mjs`),
+documented in nature.md §1.10. This guide does not duplicate them. The algorithm (Runions, Lane & Prusinkiewicz
 2007) works like this:
 
 - Attraction points fill the crown envelope.
@@ -834,13 +834,14 @@ if (lot) placed.push(lot)                                                    // 
 
 ### 13.3 Roads
 
-Use `plan.routeRoad` and `plan.paintRoad` (settlement helpers in `scripts/lib/kit/plan.mjs`;
-see composition.md):
+Use `kit.plan.routeRoad` and `b.paintRoad` (settlement helpers in `scripts/lib/kit/plan.mjs`;
+see kit-api.md and composition.md):
 
 ```js
-const hm = plan.heightmapOf(b)
-const road = plan.routeRoad(hm, [20, 30], [70, 60], { size: [96, 96] })
-plan.paintRoad(b, road, { width: 3, paint: kit.palette({ dirt_path: 6, coarse_dirt: 2, gravel: 1 }, { scale: 2 }) })
+const { plan } = kit
+const hm = plan.heightmapOf(b)                                      // (x, z) → ground y, ignores trees
+const road = plan.routeRoad(hm, [20, 30], [70, 60])                  // graded polyline
+b.paintRoad(road, { width: 3, paint: kit.palette({ dirt_path: 6, coarse_dirt: 2, gravel: 1 }, { scale: 2 }) })
 ```
 
 | Cost term | Effect |

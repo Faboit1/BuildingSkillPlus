@@ -507,7 +507,8 @@ function packInfo(pack, short) {
     }
     info.full = allFull
   } else if (bs?.multipart) {
-    info.full = false
+    // multipart models are partial, except mushroom blocks: one face model per side of a full cube
+    info.full = /^(mushroom_stem|brown_mushroom_block|red_mushroom_block)$/.test(short)
     const visit = when => {
       if (!when) return
       if (Array.isArray(when.OR) || Array.isArray(when.AND)) {
@@ -1924,7 +1925,8 @@ function runChecks(model, info, counts, summary, lighting, options) {
     const ids = summary.blockIds
     const topRow = summary.palette[0]
     if (total > 500 && ids < 4) checks.push({ id: 'palette-size', level: 'warn', message: `monotone palette: only ${ids} block id(s) for ${total} blocks`, hint: 'use 4-10 related blocks: a main material, a trim, an accent, a roof, plus partial-block variants' })
-    else if (ids > 40) checks.push({ id: 'palette-size', level: 'warn', message: `noisy palette: ${ids} distinct block ids`, hint: 'consolidate into a few material families; random variety reads as noise' })
+    // Human showcase builds use 45-106 ids (benchmarks.md); only far beyond that is noise likely.
+    else if (ids > 130) checks.push({ id: 'palette-size', level: 'warn', message: `very broad palette: ${ids} distinct block ids`, hint: 'check the ids group into a few material families with clear roles; random variety reads as noise (see --score for the style band)' })
     else checks.push({ id: 'palette-size', level: 'ok', message: `${ids} distinct block ids` })
     if (topRow && total > 100 && topRow.count / total > 0.7) {
       checks.push({ id: 'dominant-block', level: 'warn', message: `${topRow.id} is ${topRow.percent}% of all blocks`, hint: 'break it up with a secondary texture (cracked/mossy variants, a trim course, a different floor)' })

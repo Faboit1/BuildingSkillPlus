@@ -154,9 +154,30 @@ b.roof({
 The pitch profile is the key to roof character: `1` classic, `0.5` low Mediterranean,
 `2` steep Nordic/Gothic, `[0.5, 0.5, 1, 1, 2, 2]` East-Asian curve, `[2, 2, 3, 0.5]` mansard.
 Half-steps on whole levels are full blocks (never top slabs), so slab-pitch eaves have no
-see-through gaps; a `gable` fill replaces the soffit stairs on the gable wall line so the
-triangle is solid. For L/T/cross plans build the larger roof first, then the wing roofs; stair corners where the
-slopes meet are resolved automatically.
+see-through gaps. Inside the walls the roof only fills empty space below the wall-top level, so
+steep rows never eat the top plate. A `gable` fill replaces the soffit stairs and the steep-row
+band on the gable wall line, so the triangle is solid with a clean rake.
+
+### `b.compoundRoof(opts)` — L, T, U, H, cross and courtyard plans
+
+One roof over any rectilinear footprint, with correct hips, valleys, ridges and cross-gables
+(no overlapping roofs or attic clutter). Same pitch profiles and finishing as `b.roof`.
+
+```js
+b.compoundRoof({
+  rects: [[x0, z0, x1, z1], [wx0, wz0, wx1, wz1]],  // wall-line rectangles; list the main wing first
+  // or cells: [[x, z], ...] for irregular footprints (holes = courtyards)
+  y,                          // level of the roof row above the wall line (wall top + 1)
+  type: 'gable',              // 'hip' | 'gable' | 'mixed' (rects with a gableAxes entry are gables)
+  gableAxes: ['x', 'z'],      // ridge direction per rect (default: the rect's longer side)
+  material: 'dark_oak', pitch: 1, overhang: 1, gable: 'spruce_planks', eaveTrim: true,
+})
+// → { topY, base, heights: Map "x,z" → y of the top roof block, cells }
+```
+
+For a gable plan, outer corners where two wings are flush get a valley running to the wall:
+correct geometry, but it reads oddly. Set the wing back by 1–2 blocks or make the main block a hip
+(`type: 'mixed'`). `references/building/procedural.md` covers the algorithm.
 
 ### Other components
 

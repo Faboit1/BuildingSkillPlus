@@ -14,7 +14,7 @@
 //     gable: paint,                     // fills wall-line cells up to the roof surface (gable triangles)
 //     eaveTrim: true, underside: 'stairs' | 'block', ridgeCap: paint, thickness: 1,
 //   })  // → { topY, base, heights: Map "x,z" → y of the top roof block,
-//          cells: Map "x,z" → { y, top (surface height, may be x.5), ring, kind: stairs|slab|topslab|block|ridge, facing } }
+//          cells: Map "x,z" → { y, top (surface height, may be x.5), ring, kind: stairs|slab|block|ridge, facing } }
 //
 // How it works. Every roof cell gets a ring number (1 = outermost eave ring):
 //   hip   — Chebyshev distance to the outside of the overhang-dilated footprint. For rectilinear
@@ -27,7 +27,7 @@
 // base is chosen so the ring above the wall line sits at `y`. Each cell then becomes: a bottom slab
 // on half levels; a stair facing uphill where the surface drops by >= 1 (4-neighbour gradient, or
 // the diagonal gradient where a valley meets the ridge); a full block on ridges and where it drops
-// by 0.5 inside the walls (top slab on the overhang). Columns are closed down to the lowest
+// by 0.5. Columns are closed down to the lowest
 // face-neighbour (rise >= 2 extends to the previous row's level) so no surface touches only along
 // an edge. Stair shapes (hip/valley corners) are left to finish().
 
@@ -38,8 +38,11 @@ function roofMaterial(spec) {
   if (!spec) spec = 'spruce'
   if (typeof spec === 'string') {
     const m = material(spec)
-    if (!m.stairs || !m.slab) throw new Error(`Roof material "${spec}" needs stairs and slab variants (got ${JSON.stringify(m)})`)
-    return { stairs: m.stairs, slab: m.slab, block: m.block ?? m.planks }
+    // materials without their own stairs/slabs (copper_block, calcite...) use the closest family's
+    const stairs = m.stairs ?? m.substitutes?.stairs?.[0]
+    const slab = m.slab ?? m.substitutes?.slab?.[0]
+    if (!stairs || !slab) throw new Error(`Roof material "${spec}" needs stairs and slab variants (got ${JSON.stringify(m)})`)
+    return { stairs, slab, block: m.block ?? m.planks }
   }
   if (!spec.stairs || !spec.slab || !spec.block) throw new Error('roof material object needs { stairs, slab, block }')
   return spec
@@ -48,7 +51,7 @@ function roofMaterial(spec) {
 // Same pitch semantics as arch.mjs roof(): rises per row of 0.5, 1, 2 or 3; the eave row's top is
 // 0.5 for a slab start and 1 otherwise.
 function riseList(pitch, rows) {
-  const named = { shallow: 0.5, low: 0.5, normal: 1, medium: 1, steep: 2, 'very-steep': 3 }
+  const named = { flat: 0, shallow: 0.5, low: 0.5, normal: 1, medium: 1, steep: 2, 'very-steep': 3 }
   const at = i => {
     let r
     if (typeof pitch === 'function') r = pitch(i, rows)
@@ -56,7 +59,7 @@ function riseList(pitch, rows) {
     else if (typeof pitch === 'string') r = named[pitch]
     else r = pitch
     if (r === undefined || !Number.isFinite(r)) r = 1
-    return Math.max(0.5, Math.round(r * 2) / 2)
+    return Math.max(i === 0 ? 0.5 : 0, Math.round(r * 2) / 2)
   }
   return Array.from({ length: rows }, (_, i) => at(i))
 }
@@ -298,8 +301,9 @@ export function compoundRoof(b, opts = {}) {
       kind = 'ridge'
       state = mat.block
     } else if (drop8 > 0) {
-      kind = inside ? 'block' : 'topslab'
-      state = inside ? mat.block : `${mat.slab}[type=top]`
+      // a half-step on a whole level: full block, never a top slab (no see-through eave gap)
+      kind = 'block'
+      state = mat.block
     } else {
       kind = 'block'
       state = mat.block

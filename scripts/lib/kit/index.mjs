@@ -11,9 +11,10 @@ import { NATURE_METHODS, TREE_SPECIES } from './nature.mjs'
 import * as noise from './noise.mjs'
 import * as paint from './paint.mjs'
 import * as plan from './plan.mjs'
+import { ROOFPLAN_METHODS } from './roofplan.mjs'
 import { EROSION_PRESETS, SCULPT_METHODS, centripetalCatmullRom, sdEllipsoid, sdTaper } from './sculpt.mjs'
 
-for (const [name, fn] of Object.entries({ ...ARCH_METHODS, ...NATURE_METHODS, ...FOREST_METHODS, ...plan.PLAN_METHODS, ...SCULPT_METHODS })) {
+for (const [name, fn] of Object.entries({ ...ARCH_METHODS, ...ROOFPLAN_METHODS, ...NATURE_METHODS, ...FOREST_METHODS, ...plan.PLAN_METHODS, ...SCULPT_METHODS })) {
   Builder.prototype[name] = function method(...args) {
     return fn(this, ...args)
   }
