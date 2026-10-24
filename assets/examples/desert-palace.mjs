@@ -1,4 +1,35 @@
-// DESERT PALACE (work in progress)
+// DESERT PALACE - a Moorish / Persian palace at a desert spring
+//
+// Brief: a royal palace beside an oasis. An audience hall under a great dome, two residential
+// wings, an arcaded garden court (chahar bagh) with an axial reflecting pool and fountain, all
+// on a darker podium; a market street runs from the palace stair into the dunes, and a caravan
+// has just pitched its tent by the spring (story: traders arriving for the bazaar).
+// Hero (one signature element): the turquoise onion dome, announced on the court axis by the
+// iwan - a tall pointed vault set in a tiled rectangular frame (pishtaq).
+// References: Isfahan's Shah Mosque (pishtaq, iwan, muqarnas hood, turquoise dome on a drum),
+// the Taj Mahal (four minarets, a light building on a darker podium, axial water), the
+// Alhambra (arcaded court, pool, central fountain, zellige dados, a fountain under the dome).
+//
+// Scale: monumental (~2x). Arcade openings 3 x 5.5, hall 12 clear, iwan 11 wide x 18 tall in a
+// 19 x 24 frame, dome 19 wide x 22 tall on an 8-tall drum, minarets 5 wide x 46 tall (9:1).
+// Skyline tiers: dome 55 > minarets 51 > pishtaq 33 > hall 24 > gate 21 > wings 18 > arcades 16
+// > stalls 9, so the eye climbs from the market to the dome.
+//
+// Palette, by role (L* from scripts/lib/data/block-colors.json):
+//   walls   smooth_sandstone 85.5 / cut_sandstone 82.8 / sandstone 81.8 via b.texture: a calm
+//           plaster field; value contrast comes from shadowed niches, not from the wall blocks
+//   trim    smooth_sandstone stairs and slabs (arch heads, cornices, merlons), chiseled_sandstone
+//           (carved stucco spandrels, capitals), cut_sandstone archivolts
+//   podium  granite 48 / terracotta 46: the darkest, heaviest role, ~35 L* under the walls
+//   accent  ONE hue, teal: dome tiles (oxidized_cut_copper 58 field, prismarine_bricks 65 ribs,
+//           dark_prismarine 36 neck), cyan_glazed_terracotta 46 bands, oxidized copper grates
+//   gold    finials only; wood: jungle (palms, stall posts, lattice screens), dark oak divans
+//   ground  sand with sandstone hardpan in the dune troughs; terracotta strata in the cut faces;
+//           green only at the spring and in the court beds (lush centre, barren edge)
+//
+// Workflow: STAGE=massing|structure|texture|detail|final selects how far the recipe runs, so
+// each stage can be rendered on its own (see references/building/quality-and-critique.md).
+//   STAGE=massing node scripts/run-build.mjs assets/examples/desert-palace.mjs --out-dir out/m
 export default function build(api) {
   const { kit } = api
   const { DIR, cw, ccw, opposite } = kit
@@ -58,8 +89,11 @@ export default function build(api) {
   // Arch head classification with 2x2 supersampling per cell. Returns cells relative to the
   // springing (j = 0 is the first row of the head) for an opening w wide.
   //   pointed: two-centred, R = k * w (k 1 = equilateral gothic, 0.6-0.8 = squat Persian)
-  //   horseshoe: the same arcs with centres raised by `lift`, so the opening bulges 0.5 past
+  //   horseshoe: the same arcs with their centres raised by e, so the opening bulges 0.5 past
   //   the jambs just above the springing (Moorish).
+  // Each cell is sampled at 4 points: 3-4 open -> air, the bottom pair -> top slab, the inner
+  // bottom quarter -> upside-down stair facing away from the centre, the inner top quarter ->
+  // a bottom stair. That turns a stepped voxel arch into a smooth one at half-block resolution.
   const archHead = (w, { k = 0.75, horseshoe = false, ring = 0 } = {}) => {
     const a = w / 2
     const ap = horseshoe ? a + 0.5 : a
@@ -179,6 +213,10 @@ export default function build(api) {
     },
   })
 
+  // Dune surface: b.texture over the sand above the level ground. Troughs (low in the box) turn
+  // to wind-scoured sandstone, crests stay loose sand, clustered so it reads as hardpan patches.
+  b.texture([0, G + 1, 0], [W - 1, H - 1, D - 1], ['sand', 'sand', 'sandstone', 'smooth_sandstone'], { only: 'minecraft:sand', base: 0.55, top: 0.2, edge: 0, drip: 0, noise: 0.35, scale: 9, jitter: 0.02, seed: 12 })
+
   // ------------------------------------------------------------------ 2 platform (podium)
   // Mughal and Moorish palaces stand on a podium of darker stone: it lifts the building off
   // the sand, gives the "heavy base" of the tripartite facade and is the darkest role.
@@ -211,6 +249,10 @@ export default function build(api) {
   }
 
   // ------------------------------------------------------------------ 3 masses and interiors
+  // Solid volumes first, then carve rooms out of them: walls come out 2 thick everywhere
+  // (monumental tier), which is what lets every window and niche below sit in a real reveal.
+  // Plan: hall (27 x 27) flanked by two wings across the north; arcaded galleries (riwaq) on
+  // all four sides of the court, broken by the pishtaq on the north and the gate on the south.
   b.box([X0, F, Z0], [CX - 14, WING_TOP, HZ1], WALL) // wings: two storeys
   b.box([CX + 14, F, Z0], [X1, WING_TOP, HZ1], WALL)
   b.box([HX0, F, Z0], [HX1, HALL_TOP, HZ1], WALL) // great hall: one domed room
@@ -230,7 +272,9 @@ export default function build(api) {
     b.box([x0, F + 4, Z0 + 2], [x1, F + 4, HZ1 - 2], 'spruce_planks') // upper floor of the wing
   }
 
-  // Court arcades: pointed arches 3 wide on 1-wide columns, a 4-block bay rhythm.
+  // Court arcades: pointed arches 3 wide on 1-wide columns, a 4-block bay rhythm. Columns sit
+  // on the same grid as the paving joints and the roof domes, so the whole court reads as one
+  // system. Springing at 3 rows + a 2.5-row head = slender 3 x 5.5 openings (Moorish proportion).
   const arcadeBays = []
   for (let z = COURT_N; z < COURT_S; z += 4) {
     arcadeBays.push([[COURT_W, F, z + 3], 'east'])
@@ -541,12 +585,12 @@ export default function build(api) {
   stucco([CX - 10, F, HZ1 + 1], [CX + 10, PISH_TOP + 4, PZF + 1], { focus: [[CX, F + 2, PZF]], seed: 3 })
   stucco([CX - 6, F, COURT_S], [CX + 6, GATE_TOP + 3, GZF + 1], { focus: [[CX, F + 2, GZF]], seed: 4 })
   stucco([CX - 9, DRUM_Y, HCZ - 9], [CX + 9, DRUM_Y + 8, HCZ + 9], { seed: 5 })
-  stucco([HX0, F, Z0], [HX1, HALL_TOP + 3, HZ1], { seed: 6 })
+  stucco([HX0, F, Z0], [HX1, PISH_TOP + 4, HZ1], { seed: 6 }) // hall, its roof kiosks and the pilasters behind the pishtaq
   stucco([X0, F, Z0], [X1, WING_TOP + 6, HZ1], { seed: 7 })
   stucco([X0, F, HZ1 + 1], [X1, ARC_TOP + 3, Z1], { seed: 8 })
   // Podium: Mughal palaces sit on red sandstone; here granite and terracotta (L* 48-46) give
   // the darkest, heaviest role a 35-point value gap below the walls.
-  b.texture([PX0 - 1, 0, PZ0 - 1], [PX1 + 1, F + 2, PZ1 + 3], ['granite', 'terracotta', 'terracotta'], { only: PLINTH, base: 0.35, edge: 0.2, noise: 0.3, scale: 4, seed: 9 })
+  b.texture([PX0 - 1, 0, PZ0 - 1], [PX1 + 1, F + 2, PZ1 + 8], ['granite', 'terracotta', 'terracotta'], { only: PLINTH, base: 0.35, edge: 0.2, noise: 0.3, scale: 4, seed: 9 })
   // Domes: glazed turquoise, lighter (sun-bleached) at the crown, darker at the neck.
   b.texture([X0 - 4, WING_TOP, Z0 - 4], [X1 + 4, H - 1, Z1 + 4], ['prismarine_bricks', 'oxidized_cut_copper', 'dark_prismarine'], { only: DOME, base: 0.25, top: 0.25, edge: 0.05, noise: 0.15, scale: 3, drip: 0, seed: 10 })
 
@@ -638,6 +682,12 @@ export default function build(api) {
   }
   for (const x of [HX0, HX0 + 1, HX0 + 2, HX0 + 3, HX1, HX1 - 1, HX1 - 2, HX1 - 3]) b.set(x, HALL_TOP, HZ1, TILE)
   for (let x = GX0 + 2; x <= GX1 - 2; x += 1) b.set(x, GATE_TOP - 1, GZF, TILE)
+  for (let x = GX0 + 2; x <= GX1 - 2; x += 1)
+    for (let y = F + 5; y <= GATE_TOP - 2; y += 1) {
+      const blk = b.get(x, y, GZF - 1)
+      if (blk && /sandstone$/.test(blk.name) && blk.name !== 'minecraft:cut_sandstone') b.set(x, y, GZF - 1, 'chiseled_sandstone')
+    }
+  for (let x = CX - 1; x <= CX + 1; x += 1) b.set(x, GATE_TOP - 2, GZF - 1, LATTICE)
   ringOf(CX, HCZ, DRUM_Y + 6, 6.5, 7.5, () => TILE)
   for (let k = 0; k < 12; k += 1) {
     const a = (k / 12) * TAU
@@ -662,8 +712,16 @@ export default function build(api) {
   disc(CX, F, HCZ, 1.6, 'water')
   b.set(CX, F, HCZ, 'chiseled_sandstone')
   b.set(CX, F + 1, HCZ, 'sandstone_wall') // spout (open water here would spill over the low rim)
-  for (let z = HCZ + 3; z <= HZ1 - 2; z += 1) b.set(CX, F, z, 'cyan_carpet')
-  for (let z = Z0 + 6; z <= HCZ - 3; z += 1) b.set(CX, F, z, 'cyan_carpet')
+  // a round carpet about the fountain: red field, cyan spokes (a Persian medallion in 1-block pixels)
+  for (let x = CX - 5; x <= CX + 5; x += 1)
+    for (let z = HCZ - 5; z <= HCZ + 5; z += 1) {
+      const d = Math.hypot(x - CX, z - HCZ)
+      if (d < 3 || d > 5.2) continue
+      const spoke = Math.abs(x - CX) === Math.abs(z - HCZ) || x === CX || z === HCZ
+      b.set(x, F, z, d > 4.6 ? 'cyan_carpet' : spoke ? 'white_carpet' : 'red_carpet')
+    }
+  for (let z = HCZ + 6; z <= HZ1 - 2; z += 1) b.set(CX, F, z, 'cyan_carpet')
+  for (let z = Z0 + 6; z <= HCZ - 6; z += 1) b.set(CX, F, z, 'cyan_carpet')
   b.box([CX - 4, F, Z0 + 2], [CX + 4, F, Z0 + 4], 'smooth_sandstone') // dais
   for (let x = CX - 4; x <= CX + 4; x += 1) b.set(x, F, Z0 + 5, st(TRIM, 'north'))
   b.box([CX - 3, F + 1, Z0 + 2], [CX + 3, F + 1, Z0 + 4], 'white_carpet')
@@ -705,26 +763,44 @@ export default function build(api) {
   innerArcade('x', HZ1 - 2, HX0 + 2, HX1 - 2, 'south', u => Math.abs(u - CX) <= 3)
   innerArcade('z', HX0 + 2, Z0 + 2, HZ1 - 2, 'west', u => Math.abs(u - HCZ) <= 1)
   innerArcade('z', HX1 - 2, Z0 + 2, HZ1 - 2, 'east', u => Math.abs(u - HCZ) <= 1)
+  // behind the throne: an applied pointed arch framing a field of tiles (the hall's focal wall)
+  for (let x = CX - 2; x <= CX + 2; x += 1)
+    for (let y = F + 2; y <= F + 7; y += 1) if (b.nameAt(x, y, Z0 + 1) !== LATTICE) b.set(x, y, Z0 + 1, TILE)
+  for (const x of [CX - 3, CX + 3]) {
+    for (let y = F + 1; y <= F + 6; y += 1) b.set(x, y, Z0 + 2, y === F + 6 ? 'chiseled_sandstone' : 'sandstone_wall')
+  }
+  b.set(CX - 2, F + 7, Z0 + 2, st(TRIM, 'west', 'top'))
+  b.set(CX + 2, F + 7, Z0 + 2, st(TRIM, 'east', 'top'))
+  for (let x = CX - 1; x <= CX + 1; x += 1) b.set(x, F + 8, Z0 + 2, x === CX ? 'smooth_sandstone' : st(TRIM, x < CX ? 'west' : 'east', 'top'))
+
   // doors between the hall and the wings
   cutArch([HX0, F, HCZ + 1], 'west', { w: 3, spring: 3, depth: 2, k: 1, mat: TRIM })
   cutArch([HX1, F, HCZ - 1], 'east', { w: 3, spring: 3, depth: 2, k: 1, mat: TRIM })
   // wings: ground floors open to the north gallery; library (W) and stores (E); bedrooms above
-  for (const [cx, dir] of [[CX - 18, 1], [CX + 18, -1]]) {
+  for (const [cx, sx] of [[CX - 18, X0 + 2], [CX + 18, X1 - 2]]) {
     cutArch([cx - 1, F, HZ1], 'south', { w: 3, spring: 2, depth: 2, k: 1, mat: TRIM })
-    b.box([cx - 3, FLOOR, Z0 + 2], [cx + 3, FLOOR, HZ1 - 2], 'smooth_sandstone')
-    b.stairway([cx - 3 * dir, F, Z0 + 6], 'north', 4, 'spruce', { fill: false }) // to the upper floor
-    for (let i = 0; i < 4; i += 1) b.remove(cx - 3 * dir, F + 4, Z0 + 5 - i + 0)
+    b.box([cx - 3, FLOOR, Z0 + 2], [cx + 4, FLOOR, HZ1 - 2], 'smooth_sandstone')
+    b.stairway([sx, F, Z0 + 6], 'north', 4, 'spruce', { fill: false }) // up to the bedrooms
+    for (let z = Z0 + 3; z <= Z0 + 6; z += 1) b.remove(sx, F + 4, z) // stairwell
   }
-  // library
-  for (let z = Z0 + 8; z <= HZ1 - 3; z += 1) if (Math.abs(z - HCZ) > 1 && (z - HCZ) % 5 !== 0) b.set(X0 + 2, F + 1, z, 'bookshelf')
-  b.set(X0 + 4, F, HCZ - 4, 'lectern[facing=west]')
-  b.set(X0 + 4, F, HCZ + 4, 'lectern[facing=west]')
-  b.box([X0 + 4, F, HCZ - 1], [X0 + 4, F, HCZ + 1], st('spruce', 'west', 'top'))
-  // stores
-  for (let z = Z0 + 8; z <= HZ1 - 3; z += 2) b.set(X1 - 2, F, z, 'barrel[facing=up]')
+  // library: shelves between the windows, two reading lecterns, a low table on a rug
+  for (let z = Z0 + 8; z <= HZ1 - 3; z += 1) {
+    if (Math.abs((z - HCZ) % 5) <= 1) continue // keep the window bays clear
+    b.set(X0 + 2, F, z, 'bookshelf')
+    b.set(X0 + 2, F + 1, z, 'bookshelf')
+  }
+  for (let x = X0 + 4; x <= X0 + 6; x += 1) for (let z = HCZ - 2; z <= HCZ + 2; z += 1) b.set(x, F, z, (x + z) % 2 ? 'red_carpet' : 'cyan_carpet')
+  b.set(X0 + 5, F, HCZ, st('spruce', 'west', 'top'))
+  b.set(X0 + 5, F + 1, HCZ, 'candle[candles=3,lit=true]')
+  b.set(X0 + 4, F, HCZ - 5, 'lectern[facing=east]')
+  b.set(X0 + 4, F, HCZ + 5, 'lectern[facing=east]')
+  // stores: barrels and jars along the wall, the kitchen corner by the gallery door
+  for (let z = Z0 + 8; z <= HZ1 - 5; z += 2) b.set(X1 - 2, F, z, 'barrel[facing=up]')
+  b.set(X1 - 2, F + 1, Z0 + 8, 'decorated_pot')
   b.set(X1 - 2, F, HZ1 - 2, 'smoker[facing=west,lit=false]')
-  b.set(X1 - 4, F, HZ1 - 2, 'cauldron')
-  b.set(X1 - 2, F + 1, Z0 + 9, 'decorated_pot')
+  b.set(X1 - 3, F, HZ1 - 2, 'cauldron')
+  b.set(X1 - 4, F, HZ1 - 2, 'crafting_table')
+  b.box([X1 - 5, F, Z0 + 10], [X1 - 5, F, Z0 + 12], 'hay_block')
   // bedrooms
   for (const [x, wall, inward] of [[X0 + 3, 'west', 1], [X1 - 3, 'east', -1]]) {
     for (const z of [HCZ - 6, HCZ + 6]) b.set(x, F + 5, z, `cyan_bed[facing=${wall},part=foot]`) // finish() adds the head
@@ -767,6 +843,7 @@ export default function build(api) {
         const fx = tx + Math.round(k * Math.cos(af))
         const fz = tz + Math.round(k * Math.sin(af))
         const fy = ty + drop[k - 1]
+        if (!b.inBounds(fx + 1, fy, fz + 1) || !b.inBounds(fx - 1, fy, fz - 1)) break // stay inside the canvas
         if (fx !== last[0] && fz !== last[2]) b.set(fx, last[1], last[2], LEAF, { keep: true }) // keep the frond face-connected
         if (fy < last[1]) b.set(fx, last[1], fz, LEAF, { keep: true })
         b.set(fx, fy, fz, LEAF, { keep: true })
@@ -821,8 +898,8 @@ export default function build(api) {
   // strays on the dunes. Three sizes; trunks lean in different directions.
   const PALMS = [
     // x, z, height, bend, seed
-    [70, 37, 11, 4, 1], [74, 54, 9, 3, 2], [86, 36, 10, 4, 3], [89, 50, 8, 3, 4], [84, 59, 12, 4, 5], [84, 31, 7, 2, 6], [72, 46, 6, 2, 7],
-    [CX - 14, ST0 + 2, 10, 3, 8], [CX + 14, ST0 + 10, 9, 3, 9], [CX - 13, ST0 + 15, 8, 2, 10], [CX + 13, ST0 + 1, 7, 2, 15],
+    [70, 37, 11, 4, 1], [74, 54, 9, 3, 2], [86, 36, 10, 4, 3], [86, 51, 8, 3, 4], [84, 59, 12, 4, 5], [84, 31, 7, 2, 6], [72, 46, 6, 2, 7],
+    [CX - 14, ST0 + 2, 10, 3, 8], [CX + 18, ST0 + 12, 9, 3, 9], [CX - 13, ST0 + 15, 8, 2, 10], [CX + 15, ST0 + 1, 7, 2, 15],
     [11, 58, 9, 3, 11], [8, 24, 7, 3, 12], [60, 84, 8, 3, 13], [26, 86, 9, 3, 14],
   ]
   for (const [x, z, h, bend, seed] of PALMS) palm(x, surface(x, z) + 1, z, { height: h, bend, seed })
@@ -886,6 +963,22 @@ export default function build(api) {
   stall(CX - 5, ST_Z[1], 'east', ['orange', 'white'], { rug: 'cyan', items: ['orange_concrete_powder', 'yellow_concrete_powder', 'red_concrete_powder'], back: ['barrel[facing=up]', 'chest[facing=east]', 'barrel[facing=up]'] })
   stall(CX + 5, ST_Z[0], 'west', ['white', 'orange'], { rug: 'white', items: ['decorated_pot', 'potted_cactus', 'decorated_pot'], back: ['decorated_pot', 'flower_pot', 'decorated_pot'] })
   stall(CX + 5, ST_Z[1], 'west', ['white', 'cyan'], { rug: 'orange', items: ['lantern', 'hay_block', 'melon'], back: ['hay_block', 'composter', 'hay_block'] })
+
+  // Soften the 1-block terraces of the dunes: a slab on every cell that sits one below a
+  // neighbour turns the contour steps into half steps (after trees, before ground cover).
+  const steps = []
+  for (let x = 1; x < W - 1; x += 1)
+    for (let z = 1; z < D - 1; z += 1) {
+      const y = b.topY(x, z)
+      const top = b.nameAt(x, y, z)
+      if (y <= G || !/^minecraft:(sand|sandstone|smooth_sandstone)$/.test(top) || b.has(x, y + 1, z)) continue
+      const higher = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => {
+        const n = b.topY(x + dx, z + dz)
+        return n === y + 1 && /^minecraft:(sand|sandstone|smooth_sandstone)$/.test(b.nameAt(x + dx, n, z + dz))
+      })
+      if (higher) steps.push([x, y + 1, z])
+    }
+  for (const [x, y, z] of steps) b.set(x, y, z, 'sandstone_slab[type=bottom]')
 
   // A caravan has come in to trade: a low striped goat-hair tent by the track to the oasis,
   // rugs and a chest inside, fodder and water jars outside, a fire at the door.
@@ -951,6 +1044,10 @@ export default function build(api) {
     b.hangingLantern([mx, F + 35, mz], 0)
   }
   for (const [cx, cz] of CHHATRIS) b.hangingLantern([cx, HALL_TOP + 4, cz], 0)
+  for (const x of [X0 + 4, X1 - 4]) for (const z of [HCZ - 7, HCZ, HCZ + 7]) {
+    b.hangingLantern([x, F + 4, z], 0) // wing ground floors, hung from the upper floor
+    b.hangingLantern([x, WING_TOP, z], 0) // bedrooms
+  }
   for (const bed of BEDS) {
     const x = bed.x0 < CX ? bed.x1 + 1 : bed.x0 - 1
     const z = bed.z0 < CROSS_Z ? bed.z1 + 1 : bed.z0 - 1

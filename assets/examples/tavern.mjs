@@ -29,13 +29,16 @@ export default function build(api) {
   const CHIM = 'gray_wool'
   const ROOF = 'deepslate_tile'
   const FRAME = 'dark_oak_log'
-  const beam = ax => `${FRAME}[axis=${ax}]`
-  const POST = beam('y')
+  const POST = `${FRAME}[axis=y]`
+  // horizontal members (rails, plates, girders) in stripped dark oak: a shade lighter than the
+  // bark-dark posts, so the grid reads as carpentry rather than a printed pattern
+  const beam = ax => (ax === 'y' ? POST : `stripped_dark_oak_log[axis=${ax}]`)
 
   // ------------------------------------------------------------------ 1. site
   const ground = b.terrain({
     height: (x, z) => 5.4 + 1.1 * ((22 - z) / 22) + 0.4 * ((26 - x) / 26) + 0.6 * kit.noise.fbm2(x, z, { scale: 22, seed: 4 }),
     layers: [{ depth: 1, paint: 'grass_block' }, { depth: 3, paint: 'dirt' }, { paint: 'stone' }],
+    base: 2,
   })
 
   // ------------------------------------------------------------------ 2. foundations
@@ -45,7 +48,11 @@ export default function build(api) {
   for (let x = 0; x < 52; x += 1) for (let z = 0; z < 46; z += 1) {
     const g = ground(x, z)
     if (onPad(x, z)) {
-      for (let y = Math.min(g, FL0) - 2; y <= FL0; y += 1) b.set(x, y, z, PLINTH)
+      // only the perimeter is masonry; under the floors the pad is packed earth (terrain, not
+      // build material: a solid stone plug would be thousands of hidden blocks)
+      const rim = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => !onPad(x + dx, z + dz))
+      if (!rim) for (let y = g; y < FL0; y += 1) b.set(x, y, z, 'dirt')
+      for (let y = rim ? Math.min(g, FL0) - 2 : FL0; y <= FL0; y += 1) b.set(x, y, z, PLINTH)
     } else if (nearPad(x, z) && !inR(STABLE, x, z)) {
       // the water table: foundation one block wider, topped with a sloped stair course
       for (let y = Math.min(g, FL0 - 1) - 1; y <= FL0 - 1; y += 1) b.set(x, y, z, PLINTH)
@@ -68,12 +75,15 @@ export default function build(api) {
   // floors
   b.box([MAIN.x0 + 2, FL0, MAIN.z0 + 1], [MAIN.x1 - 1, FL0, MAIN.z1 - 2], 'spruce_planks')
   b.box([WING.x0 + 1, FL0, WING.z0 + 1], [WING.x1 - 1, FL0, WING.z1 - 1], 'spruce_planks')
-  b.box([UP.x0, FL1, UP.z0], [UP.x1, FL1, UP.z1], 'spruce_planks')
-  b.box([BAY.x0, FL1, BAY.z0], [BAY.x1, FL1, BAY.z1], 'spruce_planks')
-  b.box([WING.x0, FL1, WING.z0], [WING.x1, FL1, WING.z1], 'spruce_planks')
-  b.box([UP.x0, FL2, UP.z0], [UP.x1, FL2, UP.z1], 'spruce_planks')
-  b.box([BAY.x0, FL2, BAY.z0], [BAY.x1, FL2, BAY.z1], 'spruce_planks')
-  b.box([WING.x0, FL2, WING.z0], [WING.x1, FL2, WING.z1], 'spruce_planks')
+  // upper decks are top slabs: the same walking surface, and seen from below the ceiling sits
+  // half a block up between the beams (a coffered look) instead of a flat plank lid
+  const DECK = 'spruce_slab[type=top]'
+  b.box([UP.x0, FL1, UP.z0], [UP.x1, FL1, UP.z1], DECK)
+  b.box([BAY.x0, FL1, BAY.z0], [BAY.x1, FL1, BAY.z1], DECK)
+  b.box([WING.x0, FL1, WING.z0], [WING.x1, FL1, WING.z1], DECK)
+  b.box([UP.x0, FL2, UP.z0], [UP.x1, FL2, UP.z1], DECK)
+  b.box([BAY.x0, FL2, BAY.z0], [BAY.x1, FL2, BAY.z1], DECK)
+  b.box([WING.x0, FL2, WING.z0], [WING.x1, FL2, WING.z1], DECK)
 
   // ------------------------------------------------------------------ 4. jetty + timber upper floor
   // Timber elevation painter: posts (vertical logs), rails (horizontal logs), plaster infill.
@@ -146,20 +156,39 @@ export default function build(api) {
     }
     return r
   }
+  // pitch profiles: a slab kick at the eave (bell-cast), 45 degrees, then steep toward the ridge
+  const MAIN_PITCH = [0.5, 0.5, 1, 1, 1, 1, 2]
+  const BAY_PITCH = [0.5, 0.5, 2]          // steeper than the main roof: the street gable stands tall
   const studGable = (u, every) => (u % every === 0 ? POST : DAUB)
-  const mainRoof = b.roof({ x0: UP.x0, z0: UP.z0, x1: UP.x1, z1: UP.z1, y: ROOF_Y, axis: 'x', material: ROOF, pitch: [1, 1, 1, 1, 2],
-    eaveTrim: true, gable: (x, y, z) => (y === 21 || y === 24 ? beam('z') : (z - 1) % 4 === 0 ? POST : DAUB) })
+  const mainRoof = b.roof({ x0: UP.x0, z0: UP.z0, x1: UP.x1, z1: UP.z1, y: ROOF_Y, axis: 'x', material: ROOF, pitch: MAIN_PITCH,
+    eaveTrim: true, ridgeCap: 'deepslate_tile_wall', gable: (x, y, z) => (y === 21 || y === 24 ? beam('z') : (z - 1) % 4 === 0 ? POST : DAUB) })
   // the bay's eave rows would land inside the bay walls: clear them first
   b.clear([BAY.x0 - 1, FL2 - 1, UP.z1 + 1], [BAY.x1 + 1, ROOF_Y, UP.z1 + 1])
-  mergeRoof({ x0: BAY.x0, z0: 25, x1: BAY.x1, z1: BAY.z1, y: ROOF_Y, axis: 'z', material: ROOF, pitch: [1, 1, 2], eaveTrim: true,
-    gable: (x, y, z) => (z !== BAY.z1 ? null : y === 22 ? beam('x') : studGable(x - 1, 2)) }, { floorY: FL2 + 1 })
-  mergeRoof({ x0: WING.x0, z0: WING.z0, x1: WING.x1, z1: 22, y: ROOF_Y, axis: 'z', material: ROOF, pitch: [1, 1, 1, 1, 2], eaveTrim: true,
+  // The bay's street gable is jettied once more: its triangle stands one block forward of the
+  // wall below on a sill beam and corbels, so it casts its own shadow line and leads the roof.
+  const GZ = BAY.z1 + 1
+  mergeRoof({ x0: BAY.x0, z0: 25, x1: BAY.x1, z1: GZ, y: ROOF_Y, axis: 'z', material: ROOF, pitch: BAY_PITCH, eaveTrim: true,
+    gable: (x, y, z) => (z !== GZ ? null : y === ROOF_Y || y === 22 ? beam('x') : (y < 22 ? studGable(x - 1, 2) : x === 21 ? POST : DAUB)) }, { floorY: FL2 + 1 })
+  for (let x = BAY.x0; x <= BAY.x1; x += 2) b.set(x, PLATE, GZ, 'dark_oak_stairs[facing=north,half=top]')
+  mergeRoof({ x0: WING.x0, z0: WING.z0, x1: WING.x1, z1: 22, y: ROOF_Y, axis: 'z', material: ROOF, pitch: MAIN_PITCH, eaveTrim: true,
     gable: (x, y, z) => (z !== WING.z0 ? null : y === 21 ? beam('x') : studGable(x, 4)) })
   // stable lean-to: a shed roof climbing toward the main gable wall
   mergeRoof({ x0: STABLE.x0, z0: STABLE.z0, x1: STABLE.x1, z1: STABLE.z1, y: 10, type: 'shed', rises: 'west', material: 'spruce', pitch: 0.5, eaveTrim: true },
     { floorY: 9, keepCell: x => x > UP.x1 })
   // dormers either side of the bay, lighting the attic
-  for (const cx of [14, 28]) b.dormer([cx, ROOF_Y, UP.z1], 'south', { width: 3, height: 3, material: ROOF, wall: DAUB, window: { width: 1, height: 2 } })
+  // the dormer fronts are framed like the wall below: corner posts, plaster between
+  // Set one row up the slope, so the eave runs unbroken beneath them.
+  for (const [cx, cz, facing] of [[14, UP.z1 - 1, 'south'], [28, UP.z1 - 1, 'south'], [16, UP.z0 + 1, 'north']]) {
+    const wall = (x, y, z) => (z === cz && Math.abs(x - cx) === 1 ? POST : DAUB)
+    b.dormer([cx, ROOF_Y + 2, cz], facing, { width: 3, height: 3, material: ROOF, wall, window: { width: 1, height: 2 } })
+  }
+  // bargeboards: the soffit under every rake becomes warm spruce, outlining each gable
+  for (const [x, y, z, block] of [...b.entries()]) {
+    if (y < ROOF_Y - 1 || block.name !== 'minecraft:deepslate_tile_stairs' || block.props?.half !== 'top') continue
+    const rake = ((x === UP.x0 - 1 || x === UP.x1 + 1) && z >= UP.z0 - 1 && z <= UP.z1 + 1) ||
+      (z === BAY.z1 + 2 && x >= BAY.x0 - 1 && x <= BAY.x1 + 1) || (z === WING.z0 - 1 && x >= WING.x0 - 1 && x <= WING.x1 + 1)
+    if (rake) b.set(x, y, z, { name: 'minecraft:spruce_stairs', props: block.props })
+  }
 
   // ------------------------------------------------------------------ 7. chimneys
   // West stack: a broad breast that steps in twice (sloped stair weatherings on each setback)
@@ -182,6 +211,10 @@ export default function build(api) {
     b.set(CH.x0 + 1, 30, z, 'campfire[lit=true,signal_fire=false,facing=north]')
     b.set(CH.x0 + 1, 31, z, 'brick_wall')
   }
+  // the stack is hollow (a flue), which also keeps hidden full blocks out of the block count
+  b.clear([CH.x0 + 1, ground(9, 24), CH.z0 + 1], [CH.x1 - 1, 12, CH.z1 - 1])
+  b.clear([CH.x0 + 1, 13, CH.z0 + 2], [CH.x1 - 1, 16, CH.z1 - 2])
+  b.clear([CH.x0 + 1, 17, 24], [CH.x0 + 1, 29, 24])
   // kitchen stack on the wing's north gable (cooking range behind it)
   for (let x = 27; x <= 29; x += 1) for (let z = 8; z <= 9; z += 1) b.box([x, ground(x, z) - 2, z], [x, 11, z], CHIM)
   for (const x of [27, 29]) b.set(x, 12, 8, `stone_brick_stairs[facing=south,half=bottom]`)
@@ -205,30 +238,36 @@ export default function build(api) {
   for (const x of [14, 28, 32]) b.window([x, FL0 + 2, MAIN.z1], 'south', { width: 2, height: 2, recess: 1, sill: SILL_STONE, shutters: true, material: 'spruce' })
   for (const x of [18, 23]) b.window([x, FL0 + 2, MAIN.z1], 'south', { width: 2, height: 2, recess: 1, sill: SILL_STONE, material: 'spruce' })
   // north side (1 thick)
-  for (const x of [14, 18]) b.window([x, FL0 + 2, MAIN.z0], 'north', { width: 2, height: 2, sill: 'stone_brick_stairs[facing=south,half=top]', shutters: true })
-  b.window([WING.x0, FL0 + 2, 12], 'west', { width: 2, height: 2, sill: 'stone_brick_stairs[facing=east,half=top]', shutters: true })
-  b.window([WING.x1, FL0 + 2, 17], 'east', { width: 2, height: 2, sill: 'stone_brick_stairs[facing=west,half=top]', shutters: true })
+  for (const x of [14, 18]) b.window([x, FL0 + 2, MAIN.z0], 'north', { width: 2, height: 2, sill: 'stone_brick_stairs[facing=south,half=top]', shutters: true, lintel: 'stone_brick_slab[type=bottom]' })
+  b.window([WING.x0, FL0 + 2, 12], 'west', { width: 2, height: 2, sill: 'stone_brick_stairs[facing=east,half=top]', shutters: true, lintel: 'stone_brick_slab[type=bottom]' })
+  b.window([WING.x1, FL0 + 2, 17], 'east', { width: 2, height: 2, sill: 'stone_brick_stairs[facing=west,half=top]', shutters: true, lintel: 'stone_brick_slab[type=bottom]' })
   b.door([WING.x0, FL0 + 1, 16], 'west', { material: 'spruce', frame: 'stripped_spruce_log' })
   b.door([WING.x1, FL0 + 1, 13], 'east', { material: 'spruce', frame: 'stripped_spruce_log' })
   // upper floor: leaded lancets between the close studs, no sills (the jetty beam is the line)
   for (const x of [13, 15, 27, 29, 31, 33]) b.window([x, FL1 + 2, UP.z1], 'south', { width: 1, height: 2, sill: false })
   for (const x of [20, 22]) b.window([x, FL1 + 2, BAY.z1], 'south', { width: 1, height: 2, sill: false })
+  // one sill board under each group of lancets (a thin top slab: a shadow line, not a ledge)
+  for (const [x0, x1] of [[13, 15], [27, 29], [31, 33]]) b.box([x0, FL1 + 1, UP.z1 + 1], [x1, FL1 + 1, UP.z1 + 1], 'spruce_slab[type=top]')
+  for (const x of [14, 18, 22]) b.set(x, FL1 + 1, UP.z0 - 1, 'spruce_slab[type=top]')
+  for (const z of [20, 29]) b.set(UP.x0 - 1, FL1 + 1, z, 'spruce_slab[type=top]')
+  for (const z of [16, 17]) { b.set(WING.x0 - 1, FL1 + 1, z, 'spruce_slab[type=top]'); b.set(WING.x1 + 1, FL1 + 1, z, 'spruce_slab[type=top]') }
   // one long flower box under the bay's two lights (soil boxed in by open trapdoors)
   for (let x = 19; x <= 23; x += 1) {
     b.set(x, FL1 + 1, BAY.z1 + 1, 'rooted_dirt')
     b.set(x, FL1 + 1, BAY.z1 + 2, 'spruce_trapdoor[facing=south,open=true,half=bottom]')
-    b.set(x, FL1 + 2, BAY.z1 + 1, ['poppy', 'cornflower', 'oxeye_daisy', 'allium', 'azure_bluet'][x - 19])
+    b.set(x, FL1 + 2, BAY.z1 + 1, ['poppy', 'cornflower', 'oxeye_daisy', 'cornflower', 'poppy'][x - 19])
   }
   b.set(18, FL1 + 1, BAY.z1 + 1, 'spruce_trapdoor[facing=west,open=true,half=bottom]')
   b.set(24, FL1 + 1, BAY.z1 + 1, 'spruce_trapdoor[facing=east,open=true,half=bottom]')
   b.set(19, FL1, BAY.z1 + 1, 'dark_oak_stairs[facing=north,half=top]')
   b.set(23, FL1, BAY.z1 + 1, 'dark_oak_stairs[facing=north,half=top]')
-  for (const x of [20, 22]) b.window([x, 19, BAY.z1], 'south', { width: 1, height: 2, sill: false })
+  for (const x of [20, 22]) b.window([x, 19, BAY.z1 + 1], 'south', { width: 1, height: 2, sill: false })
   for (const x of [14, 18, 22]) b.window([x, FL1 + 2, UP.z0], 'north', { width: 1, height: 2, sill: false })
-  for (const z of [20, 29]) b.window([UP.x0, FL1 + 2, z], 'west', { width: 1, height: 2, sill: false })
-  b.window([UP.x1, FL1 + 2, 25], 'east', { width: 1, height: 2, sill: false })
+  for (const z of [20, 29]) b.window([UP.x0, FL1 + 2, z], 'west', { width: 1, height: 2, sill: false, shutters: true })
+  b.window([UP.x1, FL1 + 2, 25], 'east', { width: 1, height: 2, sill: false, shutters: true })
   b.window([UP.x1, 19, 24], 'east', { width: 3, height: 2, sill: false, mullion: POST })
   for (const z of [16, 17]) for (const x of [WING.x0, WING.x1]) b.window([x, FL1 + 2, z], x === WING.x0 ? 'west' : 'east', { width: 1, height: 2, sill: false })
+  for (const x of [WING.x0, WING.x1]) for (const z of [15, 18]) for (const y of [FL1 + 2, FL1 + 3]) b.set(x + (x === WING.x0 ? -1 : 1), y, z, `spruce_trapdoor[facing=${x === WING.x0 ? 'west' : 'east'},open=true,half=${y === FL1 + 3 ? 'top' : 'bottom'}]`)
 
   // ------------------------------------------------------------------ 9. porch and stable carpentry
   b.box([PORCH.x0, FL0, PORCH.z0], [PORCH.x1, FL0, PORCH.z1], PLINTH)
@@ -260,13 +299,13 @@ export default function build(api) {
 
   // ------------------------------------------------------------------ 10. texture (one call per surface role)
   if (at('texture')) {
-    const stoneRamp = ['andesite', 'cobblestone', 'stone_bricks', 'tuff', 'tuff_bricks']
-    b.texture([MAIN.x0, FL0, WING.z0], [MAIN.x1, FL1 - 1, MAIN.z1], stoneRamp, { only: STONE, focus: [[DOOR_X, FL0 + 2, MAIN.z1]], seed: 3 })
-    b.texture([0, 0, 0], [51, FL0, 45], ['tuff_bricks', 'cobbled_deepslate', 'deepslate_bricks', 'deepslate_tiles'], { only: PLINTH, base: 0.35, seed: 5 })
-    b.texture([0, FL1, 0], [51, 30, 45], ['calcite', 'smooth_sandstone', 'sandstone'], { only: DAUB, base: 0.2, drip: 0.15, noise: 0.18, seed: 7 })
+    const stoneRamp = ['andesite', 'cobblestone', 'stone_bricks', 'tuff_bricks']
+    b.texture([MAIN.x0, FL0, WING.z0], [MAIN.x1, FL1 - 1, MAIN.z1], stoneRamp, { only: STONE, focus: [[DOOR_X, FL0 + 2, MAIN.z1]], maxStep: 1, seed: 3 })
+    b.texture([0, 0, 0], [51, FL0, 45], ['tuff_bricks', 'cobbled_deepslate', 'deepslate_bricks'], { only: PLINTH, base: 0.35, seed: 5 })
+    b.texture([0, FL1, 0], [51, 30, 45], ['calcite', 'smooth_sandstone'], { only: DAUB, mid: 0.55, base: 0.2, drip: 0.15, noise: 0.18, maxStep: 1, seed: 7 })
     b.texture([0, 0, 0], [51, 31, 45], ['cobblestone', 'stone_bricks', 'tuff', 'tuff_bricks', 'cobbled_deepslate'], { only: CHIM, base: 0.25, top: -0.35, seed: 9 })
-    b.texture([0, FL2 - 1, 0], [51, 30, 45], ['cobbled_deepslate', 'polished_deepslate', 'deepslate_bricks', 'deepslate_tiles'],
-      { only: n => /deepslate/.test(n.name), base: 0.45, top: 0.2, edge: 0.1, noise: 0.16, seed: 11 })
+    b.texture([0, FL2 - 1, 0], [51, 30, 45], ['cobbled_deepslate', 'deepslate_bricks', 'deepslate_tiles'],
+      { only: n => /deepslate/.test(n.name), mid: 0.75, base: 0.3, top: 0.35, edge: 0.1, noise: 0.2, maxStep: 1, seed: 11 })
     // age: moss and cracks low on the walls and on the shaded north side only
     b.weather([0, 0, 0], [51, FL0 + 1, 45], { share: 0.2, mossBias: 0.7, seed: 2 })
     b.weather([0, FL0, 0], [51, FL1, MAIN.z0], { share: 0.12, mossBias: 0.8, seed: 3 })
@@ -337,7 +376,7 @@ export default function build(api) {
     // herb and berry bed, beehives, compost, water butt, a bench under the apple tree
     for (let x = 17; x <= 20; x += 1) for (let z = 10; z <= 12; z += 1) {
       b.set(x, top(x, z), z, 'rooted_dirt')
-      b.set(x, top(x, z) + 1, z, ['sweet_berry_bush[age=3]', 'allium', 'fern', 'oxeye_daisy', 'cornflower'][(x * 3 + z) % 5])
+      b.set(x, top(x, z) + 1, z, ['sweet_berry_bush[age=3]', 'poppy', 'fern', 'oxeye_daisy', 'cornflower'][(x * 3 + z) % 5])
     }
     for (const x of [7, 8]) { b.set(x, top(x, 15) + 1, 15, 'spruce_slab[type=top]'); b.set(x, top(x, 15) + 2, 15, 'beehive[facing=east,honey_level=3]') }
     b.set(21, top(21, 3) + 1, 3, 'composter[level=6]')
@@ -347,11 +386,10 @@ export default function build(api) {
     for (let z = 22; z <= 26; z += 1) for (let y = top(7, z) + 1; y <= top(7, z) + (z === 22 || z === 26 ? 1 : 2); y += 1) b.set(7, y, z, (y + z) % 3 ? 'oak_log[axis=x]' : 'spruce_log[axis=x]')
 
     // trees in three sizes, kept off the street front so the inn stays the focus
-    b.tree([44, top(44, 6) + 1, 6], 'oak', { seed: 3, height: 11, roots: 2 })
-    b.tree([3, top(3, 4) + 1, 4], 'birch', { seed: 2, height: 8 })
-    for (const [x, z, r] of [[35, 8, 1.7], [6, 19, 1.4], [36, 33, 1.2], [50, 34, 1.6], [50, 15, 1.6], [33, 4, 1.5]]) b.bush([x, top(x, z) + 1, z], { radius: r, seed: x * 3 + z })
+    b.tree([45, top(45, 8) + 1, 8], 'oak', { seed: 3, height: 7, roots: 2 })
+    for (const [x, z, r] of [[36, 8, 1.2], [6, 19, 1.1], [36, 33, 1.0], [50, 34, 1.2]]) b.bush([x, top(x, z) + 1, z], { radius: r, seed: x * 3 + z })
     // grass and flowers last among the landscape: clumped, thin near paths
-    b.scatter({ density: 0.28, seed: 4, paints: [[12, 'short_grass'], [4, 'tall_grass'], [2, 'fern'], [1, 'dandelion'], [1, 'poppy'], [1, 'oxeye_daisy'], [1, 'cornflower']] })
+    b.scatter({ density: 0.28, seed: 4, paints: [[12, 'short_grass'], [4, 'tall_grass'], [2, 'fern'], [1, 'poppy'], [1, 'oxeye_daisy'], [1, 'cornflower']] })
   }
 
   // ------------------------------------------------------------------ 13. props and lights (last)
@@ -402,7 +440,7 @@ export default function build(api) {
     b.set(STABLE.x0 + 3, 7, 29, 'hay_block[axis=z]')
     b.set(STABLE.x0 + 2, 8, 29, 'hay_block[axis=x]')
     b.set(STABLE.x1, 8, 24, 'lantern[hanging=true]')
-    b.set(37, 12, 24, 'lantern[hanging=true]')
+    b.set(37, 11, 24, 'lantern[hanging=true]')
     // stable yard: well, cart, trough and hitching rail, hay and casks
     const well = b.module([5, 6, 5])
     for (let x = 1; x <= 3; x += 1) for (let z = 1; z <= 3; z += 1) {
@@ -451,6 +489,14 @@ export default function build(api) {
     b.set(WING.x0 - 1, FL1 - 1, 15, 'spruce_fence')
     for (const x of [13, 33]) b.set(x, FL1 - 1, UP.z1 + 1, 'lantern[hanging=true]')
     for (const x of [13, 33]) b.set(x, FL1, UP.z1 + 1, 'dark_oak_fence')
+    // lanterns hung straight from the jetty beam between the corbels light the street front
+    for (const x of [15, 27, 31]) b.set(x, FL1 - 1, UP.z1, 'lantern[hanging=true]')
+    // lit dormers and a lit gable window make the roof read at night
+    for (const [x, z] of [[14, UP.z1 - 2], [28, UP.z1 - 2], [16, UP.z0 + 2]]) {
+      for (let y = 25; y > 21; y -= 1) if (b.has(x, y, z)) { b.set(x, y - 1, z, 'lantern[hanging=true]'); break }
+    }
+    b.set(20, ROOF_Y, BAY.z1, 'barrel[facing=up]')
+    b.set(20, ROOF_Y + 1, BAY.z1, 'lantern[hanging=false]')
   }
   function interior() {
     const G = FL0 + 1   // first air row of the ground floor
@@ -509,11 +555,11 @@ export default function build(api) {
     // ---- ground floor: the taproom ------------------------------------------------------
     // floor: dark border ring around a spruce field, stone hearth, flags behind the bar
     b.box([14, FL0, 20], [33, FL0, 28], (x, y, z) => {
-      if (x === 15 && z >= 21 && z <= 27) return 'smooth_stone'
+      if (x === 15 && z >= 21 && z <= 27) return 'stone_bricks'
       if (x >= 16 && x <= 17 && z >= 21 && z <= 27) return z === 21 || z === 27 ? 'brown_wool' : 'red_wool'   // fireside rug
       if (x >= 25 && z <= 22) return kit.palette({ polished_andesite: 3, stone_bricks: 2 }, { scale: 2, seed: 5 })
       if (x === 14 || x === 33 || z === 20 || z === 28) return 'dark_oak_planks'
-      return 'spruce_planks'
+      return 'spruce_slab[type=top]'
     })
     // the great fireplace: stone breast projecting from the thick west wall, timber bressummer,
     // a deep firebox cut into the wall with the cooking pot hanging on a chain over the fire
@@ -521,12 +567,12 @@ export default function build(api) {
     b.box([14, G, 21], [14, FL1 - 1, 27], hearthStone)
     b.clear([12, G, 23], [14, G + 1, 25])
     b.box([12, G + 2, 23], [13, G + 2, 25], 'air')
-    b.box([11, G, 23], [11, G + 3, 25], 'polished_blackstone_bricks')     // soot-black fireback
+    b.box([11, G, 23], [11, G + 3, 25], 'cobbled_deepslate')     // soot-black fireback
     b.box([12, FL0, 23], [14, FL0, 25], 'bricks')
     b.set(13, G, 24, 'campfire[lit=true,signal_fire=false,facing=east]')
     b.set(13, G + 1, 24, 'water_cauldron[level=3]')
     b.set(13, G + 2, 24, 'chain[axis=y]')
-    for (const z of [23, 25]) b.set(12, G, z, 'stripped_oak_log[axis=x]')
+    for (const z of [23, 25]) b.set(12, G, z, 'oak_log[axis=x]')
     b.box([14, G + 2, 22], [14, G + 2, 26], beam('z'))
     b.box([15, G + 2, 21], [15, G + 2, 27], 'spruce_slab[type=top]')           // mantel shelf
     b.set(15, G + 3, 22, 'candle[candles=3,lit=true]')
@@ -575,7 +621,7 @@ export default function build(api) {
     b.stamp(M.dining, [23, G, 26], { rotate: 1 })
     b.stamp(M.dining, [27, G, 26], { rotate: 1 })
     b.set(20, G + 1, 21, 'candle[candles=3,lit=true]')
-    b.set(20, G + 1, 22, 'potted_blue_orchid')
+    b.set(20, G + 1, 22, 'potted_red_tulip')
     b.set(24, G + 1, 27, 'candle[candles=2,lit=true]')
     b.set(25, G + 1, 26, 'cake')
     b.set(29, G + 1, 27, 'candle[candles=3,lit=true]')
@@ -589,6 +635,10 @@ export default function build(api) {
     b.set(16, G, 27, 'dark_oak_stairs[facing=west,half=top]')
     b.set(17, G, 27, 'dark_oak_stairs[facing=east,half=top]')
     b.set(16, G + 1, 27, 'candle[candles=2,lit=true]')
+    // wainscot: open trapdoors along the lower course of the walls wherever nothing stands
+    for (let x = 14; x <= 23; x += 1) b.set(x, G, 20, 'spruce_trapdoor[facing=south,half=bottom,open=true]', { keep: true })
+    for (let x = 19; x <= 30; x += 1) if (x !== DOOR_X) b.set(x, G, 28, 'spruce_trapdoor[facing=north,half=bottom,open=true]', { keep: true })
+    b.set(14, G, 28, 'spruce_trapdoor[facing=east,half=bottom,open=true]', { keep: true })
     // staircase up the east wall, open stringers underneath, casks stored below
     b.stairway([33, G, 27], 'north', 4, 'spruce', { width: 2, fill: false })
     for (let i = 1; i < 4; i += 1) for (const x of [32, 33]) b.set(x, G + i - 1, 27 - i, 'spruce_stairs[facing=south,half=top]')
@@ -616,7 +666,7 @@ export default function build(api) {
     b.set(25, G, 12, 'water_cauldron[level=3]')
     b.set(25, G, 13, 'spruce_planks')
     b.set(26, G, 13, 'spruce_trapdoor[facing=east,half=bottom,open=true]')
-    b.set(25, G + 1, 13, 'stone_pressure_plate')
+    b.set(25, G + 1, 13, 'dark_oak_pressure_plate')
     b.set(25, G, 14, 'barrel[facing=up]')
     b.set(25, G + 1, 14, 'potted_fern')
     // work table in the middle
@@ -638,8 +688,8 @@ export default function build(api) {
     b.set(31, G + 3, 12, 'decorated_pot[facing=west]')
     b.set(28, FL1 - 1, 13, 'lantern[hanging=true]')
     // cellar under the wing, reached by a stair in the south-east corner
-    b.box([24, 1, 10], [32, FL0 - 1, 19], kit.palette({ cobblestone: 3, stone_bricks: 2, mossy_cobblestone: 1 }, { scale: 2, seed: 12 }))
-    b.box([25, 2, 11], [31, 2, 18], 'gravel')
+    b.box([24, 2, 10], [32, FL0 - 1, 19], kit.palette({ cobblestone: 3, stone_bricks: 2, mossy_cobblestone: 1 }, { scale: 2, seed: 12 }))
+    b.box([25, 2, 11], [31, 2, 18], kit.palette({ stone: 3, cobblestone: 2, andesite: 1 }, { scale: 2, seed: 13 }))
     b.clear([25, 3, 11], [31, FL0 - 1, 18])
     b.stairway([30, FL0 - 1, 15], 'south', 4, 'stone_brick', { width: 2, fill: true, base: 3 })
     for (let k = 0; k < 4; k += 1) for (const x of [30, 31]) b.set(x, FL0 - 1 - k, 15 + k, 'stone_brick_stairs[facing=north,half=bottom]')
@@ -671,14 +721,14 @@ export default function build(api) {
     for (const x of [15, 21, 28]) b.door([x, U, 22], 'north', { material: 'spruce' })
     b.door([27, U, UP.z0], 'north', { material: 'spruce' })
     // ceiling joists in the attic floor (visible from both sides)
-    for (const x of [15, 19, 23, 27, 31]) b.box([x, FL2, 20], [x, FL2, 30], beam('z'))
+    for (const x of [15, 19, 23, 27, 31]) b.box([x, FL2, 20], [x, FL2, 30], 'dark_oak_planks')
     // corridor: red runner, lanterns, a bench under the window
     for (let x = 13; x <= 30; x += 1) b.set(x, U, 21, 'red_carpet')
     b.set(16, FL2 - 1, 20, 'lantern[hanging=true]')
     b.set(24, FL2 - 1, 20, 'lantern[hanging=true]')
     b.set(32, FL2 - 1, 28, 'lantern[hanging=true]')
     b.set(13, U, 20, 'barrel[facing=up]')
-    b.set(13, U + 1, 20, 'potted_azure_bluet')
+    b.set(13, U + 1, 20, 'potted_fern')
     // landing: railing round the stairwell, ladder to the attic, linen chest
     for (const z of [24, 25, 26]) b.set(31, U, z, 'spruce_fence')
     for (const x of [32, 33]) b.set(x, U, 27, 'spruce_fence')
@@ -698,11 +748,11 @@ export default function build(api) {
     b.stamp(M.bed('blue'), [18, U, 26], { rotate: 3 })
     for (const [x, z] of [[18, 24], [18, 27], [20, 24], [20, 27]]) b.box([x, U, z], [x, U + 1, z], 'dark_oak_fence')
     b.box([18, U + 2, 24], [20, U + 2, 27], 'dark_oak_slab[type=bottom]')
-    b.box([18, U + 2, 25], [19, U + 2, 26], 'blue_carpet')
+    b.box([18, U + 2, 25], [19, U + 2, 26], 'blue_wool')                        // fabric tester
     b.stamp(M.nightstand, [18, U, 23])
     b.stamp(M.nightstand, [18, U, 28])
     b.set(21, U, 25, 'chest[facing=east]')
-    b.box([21, FL1, 27], [23, FL1, 30], (x, y, z) => (x === 21 || x === 23 || z === 27 || z === 30 ? 'blue_terracotta' : 'cyan_terracotta'))
+    b.box([21, FL1, 27], [23, FL1, 30], (x, y, z) => (x === 21 || x === 23 || z === 27 || z === 30 ? 'blue_wool' : 'brown_wool'))
     b.stamp(M.wardrobe, [24, U, 23], { rotate: 1 })
     for (let x = 19; x <= 23; x += 1) b.set(x, U, 33, 'spruce_stairs[facing=south,half=bottom]')
     b.set(21, U, 32, 'dark_oak_fence')
@@ -713,16 +763,15 @@ export default function build(api) {
     b.set(24, U + 1, 29, 'candle[candles=3,lit=true]')
     b.set(21, FL2 - 1, 29, 'lantern[hanging=true]')
     // S3 (east): twin beds with a shared nightstand, desk, wardrobe
-    b.stamp(M.bed('green'), [28, U, 24], { rotate: 1 })
-    b.stamp(M.bed('green'), [28, U, 27], { rotate: 1 })
+    b.stamp(M.bed('red'), [28, U, 24], { rotate: 1 })
+    b.stamp(M.bed('red'), [28, U, 27], { rotate: 1 })
     b.stamp(M.nightstand, [29, U, 25])
     b.set(29, U, 26, 'chest[facing=west]')
     b.stamp(M.desk, [26, U, 29], { rotate: 2 })
     b.stamp(M.wardrobe, [26, U, 23], { rotate: 3 })
-    b.box([27, FL1, 25], [27, FL1, 28], 'green_terracotta')
+    b.box([27, FL1, 25], [27, FL1, 28], 'red_wool')
 
     // ---- innkeeper's room over the kitchen ------------------------------------------------
-    b.box([25, FL1, 11], [31, FL1, 18], 'spruce_planks')
     b.stamp(M.bed('red'), [29, U, 11])
     b.stamp(M.bed('red'), [30, U, 11])
     b.stamp(M.nightstand, [31, U, 11])
@@ -742,13 +791,13 @@ export default function build(api) {
     // ---- attic: storage under the rafters, a stable-boy's cot by the west dormer ------------
     for (const [x, z, id] of [[16, 24, 'barrel[facing=up]'], [16, 25, 'barrel[facing=up]'], [17, 24, 'barrel[facing=north]'], [16, 24, 'barrel[facing=up]'],
       [23, 23, 'chest[facing=south]'], [27, 23, 'hay_block[axis=x]'], [28, 23, 'hay_block[axis=x]'], [27, 27, 'barrel[facing=up]'],
-      [30, 27, 'white_wool'], [31, 27, 'light_gray_wool'], [29, 23, 'composter[level=0]'], [32, 26, 'chest[facing=west]']]) b.set(x, A, z, id)
+      [30, 27, 'brown_wool'], [31, 27, 'red_wool'], [29, 23, 'composter[level=0]'], [32, 26, 'chest[facing=west]'], [31, 24, 'barrel[facing=up]']]) b.set(x, A, z, id)
     b.set(16, A + 1, 24, 'barrel[facing=up]')
     b.set(28, A + 1, 23, 'hay_block[axis=x]')
     b.stamp(M.bed('brown'), [14, A, 26])
     b.set(13, A, 26, 'hay_block[axis=y]')
     b.set(14, A, 28, 'candle[candles=1,lit=true]')
-    b.set(23, A + 3, 25, 'cobweb')
+    b.set(13, A, 22, 'cobweb')
     b.set(31, A + 1, 24, 'cobweb')
     b.set(24, A + 5, 25, 'chain[axis=y]')
     b.set(24, A + 4, 25, 'lantern[hanging=true]')

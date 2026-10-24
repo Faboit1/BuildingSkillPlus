@@ -6,7 +6,7 @@ Component recipes (roofs, windows, towers...) are in [components.md](components.
 workflow and review rubric are in [quality-and-critique.md](quality-and-critique.md); colour tools
 and curated palettes are in [palettes.md](palettes.md).
 
-Snippets are recipe fragments: they assume `const { kit } = api`, `const b = api.builder([64, 48, 64])`
+Snippets are recipe fragments: they assume `const { kit } = api`, `const b = api.builder([80, 48, 80])`
 and, where used, a house record `const H = { x0: 10, z0: 10, x1: 22, z1: 18, F: 1 }` (outer wall
 lines, inclusive, and the finished floor level). Every snippet was built with `problems: []` and
 rendered. States written in snippets (`facing`, `half`, `axis`) are there **for orientation**;
@@ -26,7 +26,7 @@ roof, openings) → depth → material → detail → landscape → light → re
 
 Why the order matters:
 
-- **Massing decides 70% of the result.** A gradient cannot rescue a bad shape (consensus:
+- **Massing decides most of the result.** A gradient cannot rescue a bad shape (consensus:
   ArdaCraft, WesterosCraft, Grian's mega-build process). Settle proportions in placeholder wool,
   render `se,nw,south,top`, and only then add material.
 - **Start from the outline, not the centrepiece.** Building the hero element first produces "a
@@ -42,7 +42,7 @@ also a complete massing study: main block, lower wing, taller tower.
 
 ```js
 const WALL = 'white_wool', BASE = 'gray_wool', TOWER = 'light_gray_wool'
-// main 15x11, two 4-block storeys; wing 9x7 one storey, 3 back from the front; tower 5x5 at a corner
+// main 15x11, two 4-block storeys; wing 9x7, one storey, set back from both long faces; tower 5x5 at a corner
 b.box([8, 0, 10], [22, 0, 20], BASE)
 b.walls([8, 1, 10], [22, 8, 20], WALL)
 b.box([22, 0, 13], [30, 0, 19], BASE); b.walls([22, 1, 13], [30, 4, 19], WALL)
@@ -84,7 +84,7 @@ Before finishing, `node scripts/inspect.mjs FILE --find wool` must return 0 matc
 
 Common plans (top view, `#` = wall line):
 
-```
+```text
 L (house + wing)        T (hall + cross wing)     offset pair             hall + corner tower
 #########               ###############           #########               ###
 #       #               #             #           #       #####           # #########
@@ -212,7 +212,7 @@ Rules (convention unless marked):
   (entrance) bay wider by 1–2.
 - **Tripartite façade** (consensus):
 
-```
+```text
   TOP     eaves, cornice, dormers, brackets   bold, chunky, few     reads from far away
   MIDDLE  wall field + windows                calmest surface       one element per bay
   BASE    plinth + ground floor + entrance    darkest, heaviest     most depth and detail at eye level
@@ -223,9 +223,10 @@ Rules (convention unless marked):
 - **Gable fronts** are compositions of their own: door and windows centred under the ridge (odd
   width), one small window or vent in the triangle, the top plate across the eave line.
 
-Elevation of a 13-wide, 2-storey front (posts every 4, upper floor jettied, door in the centre bay):
+Elevation of a 13-wide, 2-storey front (posts every 4, door in the centre bay; the jetty, brackets and
+knee braces are built in [components.md §2.1](components.md#21-timber-framing)):
 
-```
+```text
 y10  X  X  X  X  X  X  X  X  X  X  X  X  X     top plate (log, axis along the wall) under the eave
 y9   |  q  #  p  |  q  #  p  |  q  #  p  |     knee braces (upside-down stairs, leg against the post)
 y8   |  #  G  #  |  #  G  #  |  #  G  #  |     | posts, # infill set back 1, G 1x2 pane windows
@@ -249,7 +250,7 @@ It is the single most cited difference between amateur and skilled builds (conse
 
 **Layer model** (plan through a wall, `+` = outward; 0 = the structural plane):
 
-```
+```text
 +2  buttress, bay window, porch, balcony, jettied upper floor (+1 per floor)
 +1  plinth / water table, pilaster, post pushed out, cornice, sill, eave overhang
  0  structural frame: corner posts, posts every 3-5, floor beams, quoins
@@ -259,7 +260,7 @@ It is the single most cited difference between amateur and skilled builds (conse
 
 Plan of a timber wall, outside up (two equivalent ways to get the offset):
 
-```
+```text
 infill set back                      posts pushed out
  . . . . . . . . . . . . .            X . . . X . . . X      <- +1 posts
  X . . . X . . . X . . . X  <- 0      # # # # # # G # #      <-  0 infill + window
@@ -334,7 +335,8 @@ b.box([H.x0, H.F - 1, H.z0], [H.x1, H.F - 1, H.z1], 'cobbled_deepslate')
 
 **Mix blocks of similar value with different textures** (consensus): stone + stone bricks +
 andesite + cobble for grey; calcite + white terracotta + mushroom stem for plaster; two woods
-≥ 15 L\* apart in different roles. Never mix values of the same texture as a "texture".
+≥ 15 L\* apart in different roles. A value change inside one texture family (`stone_bricks` →
+`deepslate_bricks`) is a gradient step or a separate role, not a texture mix.
 
 How many blocks (convention):
 
@@ -407,28 +409,28 @@ A 12-tall wall carries 4–6 steps. `b.texture` does this; `kit.gradient` needs 
 
 **Measured L\*** (CIE lightness of the side texture, 0 black–100 white, from the vanilla 1.21.1
 atlas; the same data as [block-colors.md](block-colors.md) and `kit.colorOf(id).L`). Adjacent
-steps 3–8 apart give a smooth ramp; frame vs infill wants ≥ 30.
+steps 3–8 apart give a smooth ramp; frame vs infill wants ≥ 30. Each line runs dark → light.
 
-```
-GREY STONE   cobbled_deepslate 33 > tuff 46 > mossy_cobblestone 49 > cracked_stone_bricks 50 = mossy_stone_bricks 50
-             > stone_bricks 51 > stone 53 = cobblestone 53 (busy) > polished_andesite 56 > andesite 57 > smooth_stone 65
-DARK STONE   blackstone 15 > polished_blackstone_bricks 18 > polished_blackstone 21 > deepslate_tiles 23
-             > deepslate_bricks 30 > polished_deepslate 31 > cobbled_deepslate 33 > deepslate 34
-TUFF         chiseled_tuff 39 > tuff_bricks 43 = polished_tuff 43 > tuff 46          (greenish, quiet)
-WARM / BRICK mud 25 ... terracotta 46 > bricks 47 = mud_bricks 47 > packed_mud 48 = granite 48 = dripstone_block 48
-             > polished_granite 50                                                    (one value: mix by texture)
-SAND         red_sandstone 51 > cut_red_sandstone 52 ... sandstone 82 > cut_sandstone 83 = sand 83
-             > smooth_sandstone 86 > end_stone_bricks 87
-WHITE        white_terracotta 75 > mushroom_stem 80 > white_concrete 85 (flat) > calcite 89 > bone_block 90
-             > quartz_bricks 91 > quartz_block 92 = smooth_quartz 92 > white_wool 93 > snow_block 99
-PLANKS       dark_oak 20 > crimson 28 > mangrove 31 > spruce 38 > warped 40 > acacia 47 > jungle 52 > oak 57
-             > bamboo 71 > birch 72 > cherry 77
-STRIPPED LOG dark_oak 25 > mangrove 32 > spruce 40 > acacia 49 > jungle 58 > oak 62 > cherry 67 > birch 72
+```text
+GREY STONE   cobbled_deepslate 33 → tuff 46 → mossy_cobblestone 49 → cracked_stone_bricks 50 = mossy_stone_bricks 50
+             → stone_bricks 51 → stone 53 = cobblestone 53 (busy) → polished_andesite 56 → andesite 57 → smooth_stone 65
+DARK STONE   blackstone 15 → polished_blackstone_bricks 18 → polished_blackstone 21 → deepslate_tiles 23
+             → deepslate_bricks 30 → polished_deepslate 31 → cobbled_deepslate 33 → deepslate 34
+TUFF         chiseled_tuff 39 → tuff_bricks 43 = polished_tuff 43 → tuff 46          (greenish, quiet)
+WARM / BRICK mud 25 ... terracotta 46 → bricks 47 = mud_bricks 47 → packed_mud 48 = granite 48 = dripstone_block 48
+             → polished_granite 50                                                    (one value: mix by texture)
+SAND         red_sandstone 51 → cut_red_sandstone 52 ... sandstone 82 → cut_sandstone 83 = sand 83
+             → smooth_sandstone 86 → end_stone_bricks 87
+WHITE        white_terracotta 75 → mushroom_stem 80 → white_concrete 85 (flat) → calcite 89 → bone_block 90
+             → quartz_bricks 91 → quartz_block 92 = smooth_quartz 92 → white_wool 93 → snow_block 99
+PLANKS       dark_oak 20 → crimson 28 → mangrove 31 → spruce 38 → warped 40 → acacia 47 → jungle 52 → oak 57
+             → bamboo 71 → birch 72 → cherry 77
+STRIPPED LOG dark_oak 25 → mangrove 32 → spruce 40 → acacia 49 → jungle 58 → oak 62 → cherry 67 → birch 72
 LOG (BARK)   cherry 16, spruce 17, dark_oak 20, mangrove 29, jungle 30, oak 38, acacia 41, birch 86 (very busy)
-EARTH        coarse_dirt 39 > podzol 40 > grass_block side 43 = moss_block 43 > dirt 44 > dirt_path 46
-             > rooted_dirt 47 > gravel 54
+EARTH        coarse_dirt 39 → podzol 40 → grass_block side 43 = moss_block 43 → dirt 44 → dirt_path 46
+             → rooted_dirt 47 → gravel 54
 ROOFS        nether_bricks 11, dark_oak 20, deepslate_tiles 23, polished_deepslate 31, cobbled_deepslate 33,
-             dark_prismarine 36, spruce 38, bricks 47, cut_copper 54 > oxidized_cut_copper 58, hay_block 58
+             dark_prismarine 36, spruce 38, bricks 47, cut_copper 54 → oxidized_cut_copper 58, hay_block 58
 ```
 
 Notes: copper is a hue ladder at nearly constant value (54 → 58); red sandstones and bricks are

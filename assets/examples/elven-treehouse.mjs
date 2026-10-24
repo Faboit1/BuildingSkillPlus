@@ -88,9 +88,23 @@ export default function build(api) {
   })
   for (let x = 0; x < W; x += 1)
     for (let z = 0; z < D; z += 1) {
-      if (!inIsland(x, z)) continue
+      if (!inIsland(x, z) || streamD(x, z) > 4) continue
       for (let y = ground(x, z) + 1; y <= WATER; y += 1) b.set(x, y, z, 'minecraft:water')
     }
+  // A placed structure does not flow, but in game any water touching air at its side or below
+  // would spill: drop such cells until the stream is fully contained.
+  for (let changed = true; changed;) {
+    changed = false
+    for (let x = 0; x < W; x += 1)
+      for (let z = 0; z < D; z += 1)
+        for (let y = 1; y <= WATER; y += 1) {
+          if (b.nameAt(x, y, z) !== 'minecraft:water') continue
+          if ([[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, -1, 0]].some(([dx, dy, dz]) => !b.get(x + dx, y + dy, z + dz))) {
+            b.remove(x, y, z)
+            changed = true
+          }
+        }
+  }
   const g0 = ground(T[0], T[1])
 
   // ------------------------------------------------------------------ great trunk (analytic)
@@ -177,15 +191,15 @@ export default function build(api) {
   for (const s of stairCells.values()) for (let k = 0; k <= 3; k += 1) reserve(s.x, s.y + k, s.z)
 
   // Platforms
-  const HALL = [30, 54] // hall pavilion centre on the south lobe of the lower platform
-  const HALL_R = 5
+  const HALL = [30, 55] // hall pavilion centre on the south lobe of the lower platform
+  const HALL_R = 6
   const MUSIC = [18.7, 40.4] // music pavilion on the west limb
-  const MUSIC_R = 3.5
+  const MUSIC_R = 4
   const deck1 = (x, z) => {
     const c = centerAt(Y1)
     const th = Math.atan2(z - c[2], x - c[0])
     const ring = Math.hypot(x - c[0], z - c[2]) <= trunkR(Y1, th) + 5.2 + 0.8 * noise.fbm2(x, z, { scale: 5, seed: 8 })
-    const lobe = Math.hypot(x - HALL[0], z - HALL[1]) <= 8 + 0.5 * noise.fbm2(x, z, { scale: 4, seed: 9 })
+    const lobe = Math.hypot(x - HALL[0], z - HALL[1]) <= 9.5 + 0.5 * noise.fbm2(x, z, { scale: 4, seed: 9 })
     return ring || lobe
   }
   const deck2 = (x, z) => Math.hypot(x - MUSIC[0], z - MUSIC[1]) <= 6 + 0.5 * noise.fbm2(x, z, { scale: 4, seed: 10 })
@@ -194,15 +208,22 @@ export default function build(api) {
       if (deck1(x, z)) for (let y = Y1; y <= Y1 + 3; y += 1) reserve(x, y, z)
       if (deck2(x, z)) for (let y = Y2; y <= Y2 + 3; y += 1) reserve(x, y, z)
     }
-  reserveCyl(HALL[0], HALL[1], HALL_R + 3.5, Y1, Y1 + 20)
+  reserveCyl(HALL[0], HALL[1], HALL_R + 3.5, Y1, Y1 + 22)
   reserveCyl(MUSIC[0], MUSIC[1], MUSIC_R + 3.5, Y2, Y2 + 14)
   const gC = ground(C[0], C[1])
   const YC = 26 // companion platform deck
   reserveCyl(C[0], C[1], 8, YC, YC + 15)
 
-  // Bridge: P1 east rim -> companion platform west rim, sagging, curved in plan.
-  const BR = [[42.5, Y1, 36], [51, Y1 - 1.2, 31], [59.5, YC, 27.5]]
-  const bridgeS = kit.catmullRom(BR, { samplesPerBlock: 3 })
+  // Bridge: P1 east rim -> companion platform west rim. Plan: a gentle S (Catmull-Rom through
+  // three points). Elevation: a catenary hung between the two deck surfaces, sagging 3 blocks.
+  const BR_PLAN = [[42.5, 36], [51, 30.5], [59.5, 27.5]]
+  const BR_Y = [Y1 + 1, YC + 1] // walking surfaces at the ends
+  const SAG = 3
+  const cat = t => { const a = 1.6; return (Math.cosh(a * (2 * t - 1)) - 1) / (Math.cosh(a) - 1) } // 1 at ends, 0 mid
+  const bridgeS = kit.catmullRom(BR_PLAN.map(([x, z]) => [x, 0, z]), { samplesPerBlock: 4 }).map((p, i, arr) => {
+    const t = i / (arr.length - 1)
+    return [p[0], lerp(BR_Y[0], BR_Y[1], t) - SAG * (1 - cat(t)) - 1, p[2]]
+  })
   for (const p of bridgeS)
     for (let dx = -3; dx <= 3; dx += 1)
       for (let dz = -3; dz <= 3; dz += 1)
@@ -271,19 +292,18 @@ export default function build(api) {
     tube(pts, 2.4, 0.9, { k: 2.6, ys: bo ? 0.85 : 0.6 })
   })
 
-  // Limbs. Fork limbs FA-FD split from the crotch at y ~40; lateral limbs L1-L5 carry the
+  // Limbs. Fork limbs FA-FD split from the crotch at y ~40; lateral limbs L1-L4 carry the
   // platforms and the lower crown. L1 runs under the hall and drops to the ground beyond it as
   // a banyan prop root, so the cantilevered lobe has a visible support.
   const LIMBS = {
     FA: tube([[31, 36, 36.5], [27, 47, 32.5], [22, 57, 28], [17, 64, 24], [14, 68, 22]], 3.3, 1.4, { k: 2.6 }),
     FB: tube([[32, 36, 36.5], [38, 46, 34.5], [45, 54, 32], [51, 60, 30], [54, 64, 29]], 3.1, 1.3, { k: 2.6 }),
-    FC: tube([[31.5, 36, 37], [32, 49, 40.5], [31, 61, 43], [30, 72, 43], [30.5, 79, 42]], 3.3, 1.3, { k: 2.6 }),
+    FC: tube([[31.5, 36, 37], [32, 49, 40.5], [31, 60, 43], [30, 69, 43], [30.5, 75, 42]], 3.3, 1.3, { k: 2.6 }),
     FD: tube([[31, 36, 37.5], [27, 46, 42], [22, 54, 47], [17, 60, 51], [14, 63, 53]], 2.8, 1.2, { k: 2.4 }),
     L1: tube([[31.4, 12, 40], [31, 16, 45], [30.5, 19, 51], [30.2, 20.2, 56], [30.6, 21.4, 61], [31.2, 19, 65.5], [31.8, 13, 68], [32, ground(32, 69) - 2, 69]], 2.8, 1.2, { k: 2.2, rf: s => (s < 0.75 ? lerp(2.8, 1.35, s / 0.75) : lerp(1.35, 1.7, (s - 0.75) / 0.25)) }),
-    L2: tube([[30, 27, 37.5], [25, 31.5, 38.6], [20, 34.6, 39.8], [15, 35.6, 40.8], [11, 38, 41.5], [8, 42, 42], [6.5, 47, 42]], 2.5, 1.0, { k: 2.2 }),
+    L2: tube([[30, 27, 37.5], [25, 31.5, 38.6], [20, 34.6, 39.8], [15, 35.6, 40.8], [11, 38.5, 41.5], [8.5, 43, 43], [8, 50, 46], [9.5, 56, 49]], 2.5, 1.0, { k: 2.2 }),
     L3: tube([[31, 17, 34], [30, 21, 28], [28.5, 25, 22], [27, 30, 17], [26, 35, 13]], 2.3, 1.0, { k: 2.2 }),
     L4: tube([[33, 30, 37.5], [39, 34, 39.5], [45, 38, 41.5], [50, 43, 43], [53, 48, 44]], 2.0, 0.9, { k: 2.0 }),
-    L5: tube([[30, 19, 40], [25, 23, 45], [20, 27, 50], [16, 31, 54], [13, 35, 57]], 2.0, 0.9, { k: 2.0 }),
   }
 
   const BARK = 'minecraft:brown_wool' // placeholder: shaded into a mixed bark ramp later
@@ -301,31 +321,46 @@ export default function build(api) {
   for (const bo of BOULDERS) b.boulder(bo.c, bo.r, 'minecraft:light_gray_wool', { seed: 3 })
 
   // ------------------------------------------------------------------ crown
-  // Secondary branches sprout from the outer part of every limb (alternating sides, rising
-  // 20-50 degrees); each tip carries a flat-bottomed leaf cluster. Clusters overlap into
-  // lumpy tiers but leave gaps where the limbs show through.
+  // The crown is a few big, flattened (about 2.5:1), overlapping leaf masses sitting on the limb
+  // ends, NOT one ball per branch tip (the "broccoli" look). The masses are planned first; then
+  // secondary branches sprout from the outer half of every limb and are steered so their tips
+  // end inside a mass (no bare twig ends, no satellite puffs). Gaps between and inside the
+  // masses let the limbs show through.
+  const MASSES = [
+    { c: [30, 72, 40], r: [14, 6, 13], seed: 101 }, // crown top, on the leader FC
+    { c: [18, 66, 26], r: [13, 5.5, 11], seed: 102 }, // north-west, on FA
+    { c: [47, 64, 33], r: [12, 5.5, 11], seed: 103 }, // east, on FB
+    { c: [17, 62, 50], r: [12, 5, 10.5], seed: 104 }, // south-west, on FD and L2
+    { c: [38, 65, 52], r: [10, 4.8, 9], seed: 105 }, // south, a roof of leaves over the hall
+    { c: [26, 39, 15], r: [9, 3.6, 8], seed: 106 }, // lower shelf (north), on L3
+    { c: [51, 50, 44], r: [8.5, 3.6, 7.5], seed: 107 }, // lower shelf (east), on L4
+  ]
+  const massD = ([x, y, z], { c, r }) => Math.sqrt(((x - c[0]) / r[0]) ** 2 + ((y - c[1]) / r[1]) ** 2 + ((z - c[2]) / r[2]) ** 2)
+  const inMass = (p, k = 0.8) => MASSES.some(m => massD(p, m) <= k)
+  const nearestMass = p => MASSES.reduce((best, m) => (massD(p, m) < massD(p, best) ? m : best), MASSES[0])
+
   const LEAF = 'minecraft:oak_leaves'
-  const crown = []
   const rng = kit.rng(77)
   // One branch: a bowed tapered tube (or a 1-wide connected line when thin); recurses into
-  // 2 children that fan out around the vertical. Leaves go on the last generation's tips.
-  const branch = (p, head, el, len, r, depth, blobR) => {
-    const e = [p[0] + Math.cos(head) * Math.cos(el) * len, p[1] + Math.sin(el) * len, p[2] + Math.sin(head) * Math.cos(el) * len]
-    if (!inB(Math.round(e[0]), Math.round(e[1]), Math.round(e[2])) || e[0] < 3 || e[0] > W - 4 || e[2] < 3 || e[2] > D - 4) return
+  // 2 children that fan out round the vertical. Final tips are pulled into the nearest mass.
+  const branch = (p, head, el, len, r, depth) => {
+    let e = [p[0] + Math.cos(head) * Math.cos(el) * len, p[1] + Math.sin(el) * len, p[2] + Math.sin(head) * Math.cos(el) * len]
+    if (depth === 0 && !inMass(e)) {
+      const m = nearestMass(e)
+      for (let k = 0; k < 10 && !inMass(e); k += 1) e = e.map((v, i) => lerp(v, m.c[i], 0.15))
+    }
+    if (e[0] < 3 || e[0] > W - 4 || e[2] < 3 || e[2] > D - 4 || e[1] > H - 4) return
     const m = [(p[0] + e[0]) / 2, (p[1] + e[1]) / 2 + len * 0.08, (p[2] + e[2]) / 2]
     if (r >= 0.8) b.tubeAlong([p, m, e], q => r * (1 - 0.35 * q), BARK, { mask: free })
     else b.curve([p, m, e], BARK, { radius: 0, mask: free })
-    if (depth === 0) {
-      crown.push([e, blobR * rng.range(0.85, 1.1)])
-      return
-    }
+    if (depth === 0) return
     for (const side of [-1, 1]) {
       const h2 = head + side * rng.range(0.45, 0.85)
       const el2 = clamp(el + rng.range(-0.25, 0.3), 0.15, 1.0)
-      branch(e, h2, el2, len * rng.range(0.55, 0.7), r * 0.62, depth - 1, blobR)
+      branch(e, h2, el2, len * rng.range(0.55, 0.7), r * 0.62, depth - 1)
     }
   }
-  const sprout = (t, { count, from = 0.45, len = [7, 10], up = [0.3, 0.7], r0 = 1.4, blob = 4.6, tipBlob = 6, depth = 1 }) => {
+  const sprout = (t, { count, from = 0.45, len = [7, 10], up = [0.3, 0.7], r0 = 1.4, depth = 1 }) => {
     const S = t.samples
     for (let i = 0; i < count; i += 1) {
       const s = from + ((1 - from) * (i + 0.5)) / count
@@ -333,47 +368,60 @@ export default function build(api) {
       const p = S[idx]
       const dir = norm3([S[idx + 1][0] - S[idx - 1][0], S[idx + 1][1] - S[idx - 1][1], S[idx + 1][2] - S[idx - 1][2]])
       const head = Math.atan2(dir[2], dir[0]) + (i % 2 ? 1 : -1) * rng.range(0.7, 1.3)
-      branch(p, head, rng.range(up[0], up[1]), rng.range(len[0], len[1]), Math.min(r0, t.radius(s) * 0.75), depth, blob)
+      branch(p, head, rng.range(up[0], up[1]), rng.range(len[0], len[1]), Math.min(r0, t.radius(s) * 0.75), depth)
     }
-    // the limb's own tip forks once more into a crown lobe
-    const tip = S.at(-1)
-    const d = norm3([tip[0] - S.at(-3)[0], tip[1] - S.at(-3)[1], tip[2] - S.at(-3)[2]])
-    const head = Math.atan2(d[2], d[0])
-    for (const side of [-1, 1]) branch(tip, head + side * 0.6, 0.5, 6, 1.0, 0, tipBlob)
-    crown.push([tip, tipBlob])
   }
-  sprout(LIMBS.FA, { count: 4, blob: 4.8, tipBlob: 6 })
-  sprout(LIMBS.FB, { count: 4, blob: 4.8, tipBlob: 6 })
-  sprout(LIMBS.FC, { count: 4, blob: 5, tipBlob: 6.5, up: [0.4, 0.9] })
-  sprout(LIMBS.FD, { count: 3, blob: 4.6, tipBlob: 5.5 })
-  sprout(LIMBS.L2, { count: 2, from: 0.7, blob: 4.2, tipBlob: 5, depth: 0 })
-  sprout(LIMBS.L3, { count: 3, from: 0.4, blob: 4.4, tipBlob: 5.5 })
-  sprout(LIMBS.L4, { count: 3, from: 0.4, blob: 4.4, tipBlob: 5.5 })
-  sprout(LIMBS.L5, { count: 3, from: 0.4, blob: 4.2, tipBlob: 5 })
+  sprout(LIMBS.FA, { count: 4 })
+  sprout(LIMBS.FB, { count: 4 })
+  sprout(LIMBS.FC, { count: 5, up: [0.3, 0.8] })
+  sprout(LIMBS.FD, { count: 3 })
+  sprout(LIMBS.L2, { count: 2, from: 0.75, depth: 0 })
+  sprout(LIMBS.L3, { count: 3, from: 0.5, len: [5, 7] })
+  sprout(LIMBS.L4, { count: 3, from: 0.5, len: [5, 7] })
 
-  const cluster = ([cx, cy, cz], r, seed, leaf = LEAF) => {
-    const ryUp = r * 0.6
-    const ryDown = r * 0.32
-    const R = Math.ceil(r * 1.35) + 1
-    for (let x = Math.floor(cx - R); x <= Math.ceil(cx + R); x += 1)
-      for (let y = Math.floor(cy - R); y <= Math.ceil(cy + R); y += 1)
-        for (let z = Math.floor(cz - R); z <= Math.ceil(cz + R); z += 1) {
+  // Leaves are shaded by height inside each mass: shadowed underside in spruce leaves (dark
+  // blue-green), body in oak / dark oak (same green, different texture), sunlit top in azalea
+  // with flowering clumps. Coherent noise keeps every accent in clumps.
+  const leafShade = (x, y, z, v) => {
+    const n = noise.coherent01(x, y, z, { scale: 3, grain: 0.1, seed: 41 })
+    const t = v + 0.18 * (noise.coherent01(x, y, z, { scale: 4, seed: 42 }) - 0.5)
+    if (t < 0.3) return n < 0.65 ? 'minecraft:spruce_leaves' : 'minecraft:dark_oak_leaves'
+    if (t < 0.68) return n < 0.55 ? 'minecraft:oak_leaves' : 'minecraft:dark_oak_leaves'
+    return n < 0.45 ? 'minecraft:azalea_leaves' : n < 0.58 ? 'minecraft:flowering_azalea_leaves' : 'minecraft:oak_leaves'
+  }
+  // A mass: a main ellipsoid plus three offset sub-lobes (a lumpy, cloud-like outline instead of
+  // a smooth lens), a ragged underside (2D noise lets lobes hang down) and see-through gaps.
+  const crownMass = ([cx, cy, cz], [rx, ry, rz], seed, paint = leafShade) => {
+    const down = ry * 0.6
+    const lr = kit.rng(seed)
+    const lobes = [{ c: [cx, cy, cz], r: [rx, ry, rz] }]
+    for (let i = 0; i < 3; i += 1) {
+      const a = lr() * TAU
+      lobes.push({ c: [cx + Math.cos(a) * rx * 0.55, cy + ry * lr.range(0.1, 0.45), cz + Math.sin(a) * rz * 0.55], r: [rx * 0.55, ry * 0.75, rz * 0.55] })
+    }
+    const bottom = cy - down
+    const top = cy + ry * 1.3
+    for (let x = Math.floor(cx - rx * 1.4); x <= Math.ceil(cx + rx * 1.4); x += 1)
+      for (let z = Math.floor(cz - rz * 1.4); z <= Math.ceil(cz + rz * 1.4); z += 1) {
+        const hang = 0.6 * noise.fbm2(x, z, { scale: 3, seed: seed + 5 }) + 0.35 * noise.fbm2(x, z, { scale: 7, seed: seed + 6 })
+        for (let y = Math.floor(cy - down * 2.4); y <= Math.ceil(top + 2); y += 1) {
           if (!inB(x, y, z) || isRes(x, y, z)) continue
-          const ry = y >= cy ? ryUp : ryDown
-          const d = Math.sqrt(((x - cx) / r) ** 2 + ((y - cy) / ry) ** 2 + ((z - cz) / r) ** 2)
-          const wob = 1 + 0.3 * noise.fbm3(x, y, z, { scale: 3.2, octaves: 2, seed: seed + 3 })
+          let d = Infinity
+          for (const L of lobes) {
+            const dy = y - L.c[1]
+            const ryy = dy >= 0 ? L.r[1] : L.r[1] * 0.6 * (1 + Math.max(0, hang) * 1.8)
+            d = Math.min(d, Math.sqrt(((x - L.c[0]) / L.r[0]) ** 2 + (dy / ryy) ** 2 + ((z - L.c[2]) / L.r[2]) ** 2))
+          }
+          const wob = 1 + 0.26 * noise.fbm3(x, y, z, { scale: 6, octaves: 2, seed: seed + 3 }) + 0.12 * noise.fbm3(x, y, z, { scale: 2.4, octaves: 1, seed: seed + 4 })
           if (d > wob) continue
-          if (d > wob - 0.35 && kit.hash01(x, y, z, seed + 17) < 0.14) continue
+          if (d > 0.45 && noise.coherent01(x, y * 1.6, z, { scale: 5, grain: 0, seed: seed + 8 }) < 0.12) continue // gaps
           if (b.get(x, y, z)) continue
-          b.set(x, y, z, leaf)
+          b.set(x, y, z, paint(x, y, z, clamp((y - bottom) / (top - bottom), 0, 1)))
         }
+      }
   }
-  crown.forEach(([c, r], i) => {
-    cluster([c[0], c[1] + 1, c[2]], r, i * 13 + 5)
-    const off = [rng.range(-1.5, 1.5), r * 0.45, rng.range(-1.5, 1.5)]
-    cluster([c[0] + off[0], c[1] + 1 + off[1], c[2] + off[2]], r * 0.6, i * 13 + 9)
-  })
-
+  for (const m of MASSES) crownMass(m.c, m.r, m.seed)
+  const cluster = ([cx, cy, cz], r, seed, paint = leafShade) => crownMass([cx, cy, cz], [r, r * 0.45, r], seed, paint)
   // ------------------------------------------------------------------ companion tree
   // A younger tree across the stream: leaning trunk with a small root flare, four limbs and
   // cherry-blossom plates (the scene's one warm accent hue).
@@ -400,8 +448,16 @@ export default function build(api) {
     }
     cCrown.push(e)
   })
-  cCrown.push([cTop[0], cTop[1] + 2, cTop[2]])
-  cCrown.forEach((c, i) => cluster([c[0], c[1] + 0.5, c[2]], 4.2 + (i % 3) * 0.5, 500 + i * 7, CHERRY))
+  // cherry crown: one wide plate over the top and two lower side lobes, plus small clusters on
+  // twig ends that stick out
+  const cherry = () => CHERRY
+  const cherryMasses = [
+    { c: [cTop[0], cTop[1] + 4, cTop[2]], r: [9, 3.4, 8.5] },
+    { c: [cTop[0] + 6, cTop[1] + 1.5, cTop[2] + 3], r: [5.5, 2.6, 5] },
+    { c: [cTop[0] - 5, cTop[1] + 2, cTop[2] - 4], r: [5, 2.5, 5] },
+  ]
+  cherryMasses.forEach((m, i) => crownMass(m.c, m.r, 501 + i, cherry))
+  cCrown.forEach((c, i) => { if (!cherryMasses.some(m => massD(c, m) <= 1.1)) cluster([c[0], c[1] + 0.5, c[2]], 3, 500 + i * 7, cherry) })
 
   // ------------------------------------------------------------------ structure
   const lantern = 'minecraft:lantern[hanging=false]'
@@ -413,7 +469,7 @@ export default function build(api) {
 
   // Platform decks: birch planks, a stripped-birch rim beam (log axis along the edge), an
   // upside-down stair corbel under the rim, a birch fence railing with lantern posts.
-  const platform = (inside, Y, { center, postEvery = 7, open = () => false, light = lantern }) => {
+  const platform = (inside, Y, { center, postEvery = 5, open = () => false, light = lantern }) => {
     const cells = []
     for (let x = 0; x < W; x += 1)
       for (let z = 0; z < D; z += 1) {
@@ -460,8 +516,9 @@ export default function build(api) {
   // underside follows a concave curve (deep at the trunk, thin at the rim) and every step of it
   // gets an upside-down stair, so the fin reads as a smooth bracket-fungus curve, not a stair.
   const STRUT = 'minecraft:stripped_birch_wood'
-  const rib = (cx, cz, th, Y, rFrom, rTo, depth) => {
+  const rib = (cx, cz, th, Y, rFrom, rTo, depth, light = false) => {
     const seen = new Set()
+    let last = null
     const inward = kit.facingFrom(-Math.cos(th), -Math.sin(th))
     for (let r = rFrom; r <= rTo; r += 0.3) {
       const x = Math.round(cx + Math.cos(th) * r)
@@ -473,7 +530,10 @@ export default function build(api) {
       const yb = Math.round(bot)
       for (let y = yb; y <= Y - 1; y += 1) if (!b.get(x, y, z) && !isStair(x, y, z) && !isHead(x, y, z)) b.set(x, y, z, STRUT)
       if (!b.get(x, yb - 1, z) && !isHead(x, yb - 1, z)) b.set(x, yb - 1, z, `minecraft:birch_stairs[facing=${inward},half=top]`)
+      last = [x, yb, z]
     }
+    // a shroomlight cupped in the bracket tip: the deck rim glows from below at night
+    if (light && last) b.set(last[0], last[1], last[2], 'minecraft:shroomlight')
   }
 
   const BRIDGE_A = [42, 36]
@@ -487,11 +547,11 @@ export default function build(api) {
   for (let a = -180; a < 180; a += 30) {
     const th = deg(a)
     const c = centerAt(Y1)
-    rib(c[0], c[2], th, Y1, trunkR(Y1 - 3, th) - 0.5, trunkR(Y1, th) + 4.6, 5)
+    rib(c[0], c[2], th, Y1, trunkR(Y1 - 3, th) - 0.5, trunkR(Y1, th) + 4.6, 5, a % 60 === 0)
   }
-  for (let a = 0; a < 360; a += 45) rib(HALL[0], HALL[1], deg(a + 22.5), Y1, 1.5, 7.5, 2.5)
-  for (let a = 0; a < 360; a += 60) rib(MUSIC[0], MUSIC[1], deg(a + 30), Y2, 1, 5.6, 2.5)
-  for (let a = 0; a < 360; a += 60) rib(C[0], C[1], deg(a + 15), YC, 1.5, 6.3, 3)
+  for (let a = 0; a < 360; a += 45) rib(HALL[0], HALL[1], deg(a + 22.5), Y1, 1.5, 8.6, 2.5, true)
+  for (let a = 0; a < 360; a += 60) rib(MUSIC[0], MUSIC[1], deg(a + 30), Y2, 1, 5.6, 2.5, true)
+  for (let a = 0; a < 360; a += 60) rib(C[0], C[1], deg(a + 15), YC, 1.5, 6.3, 3, true)
 
   // ------------------------------------------------------------------ pavilions
   // Round plans: a calcite wall ring, stripped-birch columns standing one block proud of it
@@ -588,6 +648,7 @@ export default function build(api) {
       const inward = kit.facingFrom(cx - x, cz - z)
       b.set(x, F - 1, z, 'minecraft:stripped_birch_wood')
       for (let y = F; y < F + wallH; y += 1) b.set(x, y, z, 'minecraft:stripped_birch_log[axis=y]')
+      b.set(x, F + wallH - 1, z, 'minecraft:pearlescent_froglight[axis=y]') // glowing capital
       b.set(x, F, z, `minecraft:smooth_quartz_stairs[facing=${inward},half=bottom]`)
       b.set(x, F + wallH, z, `minecraft:birch_stairs[facing=${inward},half=top]`)
     }
@@ -609,7 +670,7 @@ export default function build(api) {
     const isPost = Math.abs(angDiff(a, post)) * CR < 0.6
     for (let y = YC + 1; y <= YC + 4; y += 1) {
       if (y === YC + 4) b.set(x, y, z, 'minecraft:stripped_birch_wood')
-      else if (isPost) b.set(x, y, z, 'minecraft:stripped_birch_log[axis=y]')
+      else if (isPost) b.set(x, y, z, y === YC + 3 ? 'minecraft:pearlescent_froglight[axis=y]' : 'minecraft:stripped_birch_log[axis=y]')
     }
   }
   bellRoof([C[0], YC + 4, C[1]], CR + 2.6, 8, { p: 2.1, wallR: CR })
@@ -671,7 +732,7 @@ export default function build(api) {
     b.set(c.x, y, c.z, whole ? 'minecraft:birch_slab[type=top]' : 'minecraft:birch_slab[type=bottom]')
     if (c.edge) {
       b.set(c.x, y + 1, c.z, 'minecraft:birch_fence')
-      if (Math.abs(c.t - 0.33) < 0.02 || Math.abs(c.t - 0.66) < 0.02) b.set(c.x, y + 2, c.z, lantern)
+      if ([0.17, 0.33, 0.5, 0.66, 0.83].some(f => Math.abs(c.t - f) < 0.015)) b.set(c.x, y + 2, c.z, lantern)
     }
   }
 
@@ -682,8 +743,8 @@ export default function build(api) {
   const RIVER = (x, z) => streamD(x, z)
   const surfaceMix = {
     bank: kit.palette({ gravel: 4, mud: 2, clay: 1, coarse_dirt: 2 }, { scale: 2.5, seed: 31 }),
-    roots: kit.palette({ moss_block: 5, rooted_dirt: 3, podzol: 3, coarse_dirt: 2 }, { scale: 3, seed: 32 }),
-    floor: kit.palette({ grass_block: 9, podzol: 4, moss_block: 3, coarse_dirt: 2 }, { scale: 4, seed: 33 }),
+    roots: kit.palette({ podzol: 6, moss_block: 4, grass_block: 3, coarse_dirt: 1 }, { scale: 5, seed: 32 }),
+    floor: kit.palette({ grass_block: 12, podzol: 4, moss_block: 2, coarse_dirt: 1 }, { scale: 6, seed: 33 }),
     meadow: kit.palette({ grass_block: 20, coarse_dirt: 1, podzol: 1 }, { scale: 5, seed: 34 }),
   }
   for (let x = 0; x < W; x += 1)
@@ -728,7 +789,7 @@ export default function build(api) {
     kit.sdf.ellipsoid([49.5, gS + 1, 2.5], [4, 4, 3.5]),
     kit.sdf.ellipsoid([60, gS, 6], [3.5, 3.5, 3.5])), 0.8, 4, 71)
   const ROCK = 'minecraft:light_gray_wool'
-  b.sdf([42, gS - 3, 0], [66, gS + 10, 12], rockSdf, ROCK, { mask: (x, y, z) => inIsland(x, z) && y > ground(x, z) - 3 })
+  b.sdf([42, Math.max(0, gS - 3), 0], [66, gS + 10, 12], rockSdf, ROCK, { mask: (x, y, z) => inIsland(x, z) && y > ground(x, z) - 3 })
   {
     let top = gS + 1
     for (let y = gS + 10; y > gS; y -= 1) if (b.get(53, y, 5)) { top = y; break }
@@ -762,20 +823,291 @@ export default function build(api) {
         if (low && m < 0.22 && free(x, y + 1, z)) b.set(x, y + 1, z, 'minecraft:moss_carpet')
       }
     }
+  }
 
-    // Leaves: underside in shadow (spruce leaves, dark blue-green), sunlit top in azalea
-    // (yellow-green) with a few flowering clumps, body oak / dark oak (same green, different
-    // texture). Coherent noise keeps every accent in clumps.
-    const LEAVES = 'minecraft:oak_leaves'
-    for (const [x, y, z, blk] of b.entries()) {
-      if (blk.name !== LEAVES) continue
-      const n = noise.coherent01(x, y, z, { scale: 3, grain: 0.1, seed: 41 })
-      const up = b.get(x, y + 1, z)
-      const down = b.get(x, y - 1, z)
-      let id = n < 0.55 ? 'oak_leaves' : 'dark_oak_leaves'
-      if (!down || !/_leaves$/.test(down.name)) id = n < 0.62 ? 'spruce_leaves' : 'dark_oak_leaves'
-      else if (!up) id = n < 0.38 ? 'azalea_leaves' : n < 0.47 ? 'flowering_azalea_leaves' : n < 0.8 ? 'oak_leaves' : 'dark_oak_leaves'
-      if (id !== 'oak_leaves') b.set(x, y, z, `minecraft:${id}`)
+  // ------------------------------------------------------------------ detail: forest floor
+  if (at('detail')) {
+    const SOIL = /^minecraft:(grass_block|podzol|moss_block|coarse_dirt|rooted_dirt)$/
+    const canPlant = (x, z, h = 1) => {
+      if (!inIsland(x, z) || onPath.has(x * 1000 + z)) return null
+      const y = ground(x, z)
+      if (!SOIL.test(b.nameAt(x, y, z) ?? '')) return null
+      for (let k = 1; k <= h; k += 1) if (b.get(x, y + k, z) || isRes(x, y + k, z)) return null
+      return y
+    }
+    const plant = (x, z, id) => {
+      const tall = /(tall_grass|large_fern|lilac|peony|rose_bush)$/.test(id)
+      const y = canPlant(x, z, tall ? 2 : 1)
+      if (y === null) return false
+      if (tall) {
+        b.set(x, y + 1, z, `${id}[half=lower]`)
+        b.set(x, y + 2, z, `${id}[half=upper]`)
+      } else b.set(x, y + 1, z, id)
+      return true
+    }
+
+    // Rim trees in three sizes and two species groups (birch on the north-west rim, spruce and
+    // azalea south-west, oak and birch east), so the giant has a forest to stand in.
+    const RIM_TREES = [
+      [9, 22, 'birch', 12], [13, 15, 'birch', 10], [6, 30, 'birch', 9],
+      [12, 71, 'spruce', 13], [19, 75, 'azalea', 6], [8, 63, 'spruce', 10],
+      [72, 47, 'birch', 11], [67, 60, 'oak', 9], [74, 38, 'azalea', 6], [62, 7, 'birch', 11],
+    ]
+    RIM_TREES.forEach(([x, z, sp, h], i) => {
+      const y = canPlant(x, z, 2)
+      if (y !== null) b.tree([x, y + 1, z], sp, { seed: 30 + i, height: h })
+    })
+    for (const [x, z, r] of [[24, 70, 1.6], [37, 72, 1.3], [57, 52, 1.5], [21, 30, 1.4], [44, 22, 1.5], [10, 52, 1.6], [60, 70, 1.4]]) {
+      const y = canPlant(x, z, 1)
+      if (y !== null) b.bush([x, y + 1, z], { radius: r, leaves: ['azalea_leaves', 'flowering_azalea_leaves', 'oak_leaves'], seed: x * 3 + z })
+    }
+
+    // Mossy boulders along the stream, fallen logs with moss and mushrooms, one huge red
+    // toadstool by the pool.
+    const stone = kit.palette({ stone: 4, andesite: 3, tuff: 2, mossy_cobblestone: 2 }, { scale: 2, seed: 61 })
+    for (const [x, z, r] of [[55, 40, 1.6], [42, 58, 1.3], [57, 18, 1.8], [50, 72, 1.4], [38, 12, 1.5]]) {
+      if (!inIsland(x, z)) continue
+      b.boulder([x, ground(x, z) + 0.4, z], [r * 1.3, r * 0.8, r], stone, { seed: x + z, mossTop: 'minecraft:moss_block' })
+    }
+    const fallenLog = (x0, z0, along, len, log) => {
+      const y = Math.max(...Array.from({ length: len }, (_, k) => ground(x0 + (along === 'x' ? k : 0), z0 + (along === 'z' ? k : 0))))
+      for (let k = 0; k < len; k += 1) {
+        const x = x0 + (along === 'x' ? k : 0)
+        const z = z0 + (along === 'z' ? k : 0)
+        for (let yy = ground(x, z) + 1; yy <= y; yy += 1) b.set(x, yy, z, 'minecraft:coarse_dirt')
+        b.set(x, y + 1, z, `minecraft:${log}[axis=${along}]`)
+        const u = kit.hash01(x, y, z, 62)
+        if (u < 0.45) b.set(x, y + 2, z, 'minecraft:moss_carpet')
+        else if (u < 0.6) b.set(x, y + 2, z, u < 0.52 ? 'minecraft:brown_mushroom' : 'minecraft:red_mushroom')
+      }
+    }
+    fallenLog(14, 60, 'x', 6, 'spruce_log')
+    fallenLog(58, 46, 'z', 5, 'oak_log')
+    fallenLog(20, 8, 'x', 4, 'birch_log')
+    b.hugeMushroom([12, ground(12, 40) + 1, 40], { type: 'brown', height: 5, seed: 6 })
+
+    // Ground plants by zone: shade-loving ferns, moss and mushrooms under the giant; grass and
+    // flower drifts (one or two species per drift) in the open; petals under the cherry; reeds
+    // and orchids at the water.
+    for (let x = 0; x < W; x += 1)
+      for (let z = 0; z < D; z += 1) {
+        if (canPlant(x, z) === null) continue
+        const y = ground(x, z)
+        const dT = Math.hypot(x - T[0], z - T[1])
+        const dC = Math.hypot(x - C[0], z - C[1])
+        const u = kit.hash01(x, y, z, 71)
+        const zone = noise.coherent01(x, 0, z, { scale: 7, grain: 0, seed: 72 })
+        const wet = RIVER(x, z) < 5.5
+        if (wet && u < 0.25) plant(x, z, zone < 0.5 ? 'minecraft:blue_orchid' : 'minecraft:fern')
+        else if (dC < 9 && u < 0.45) b.set(x, y + 1, z, `minecraft:pink_petals[facing=${['north', 'east', 'south', 'west'][Math.floor(u * 40) % 4]},flower_amount=${1 + (Math.floor(u * 97) % 4)}]`)
+        else if (dT < 24) {
+          if (u < 0.16) plant(x, z, 'minecraft:fern')
+          else if (u < 0.21) plant(x, z, 'minecraft:large_fern')
+          else if (u < 0.3 && b.nameAt(x, y, z) === 'minecraft:moss_block') plant(x, z, 'minecraft:moss_carpet')
+          else if (u < 0.32) plant(x, z, zone < 0.5 ? 'minecraft:brown_mushroom' : 'minecraft:red_mushroom')
+          else if (u < 0.37 && zone > 0.6) plant(x, z, 'minecraft:lily_of_the_valley')
+          else if (u < 0.45) plant(x, z, 'minecraft:short_grass')
+        } else {
+          if (u < 0.24) plant(x, z, 'minecraft:short_grass')
+          else if (u < 0.28) plant(x, z, 'minecraft:tall_grass')
+          else if (u < 0.36 && zone < 0.22) plant(x, z, u < 0.32 ? 'minecraft:allium' : 'minecraft:azure_bluet')
+          else if (u < 0.36 && zone > 0.8) plant(x, z, u < 0.32 ? 'minecraft:oxeye_daisy' : 'minecraft:cornflower')
+          else if (u < 0.38) plant(x, z, 'minecraft:fern')
+        }
+      }
+    // reeds on bank cells that touch water
+    for (let x = 1; x < W - 1; x += 1)
+      for (let z = 1; z < D - 1; z += 1) {
+        const y = ground(x, z)
+        if (y !== WATER || b.get(x, y + 1, z) || !/grass_block|podzol|coarse_dirt|mud|gravel/.test(b.nameAt(x, y, z) ?? '')) continue
+        const wetSide = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => /water/.test(b.nameAt(x + dx, y, z + dz) ?? ''))
+        if (!wetSide || kit.hash01(x, y, z, 73) > 0.35) continue
+        if (/gravel|mud/.test(b.nameAt(x, y, z))) b.set(x, y, z, 'minecraft:dirt')
+        const n = 1 + Math.floor(kit.hash01(x, 0, z, 74) * 3)
+        for (let k = 1; k <= n; k += 1) b.set(x, y + k, z, 'minecraft:sugar_cane')
+      }
+    // water: lily pads on calm water, seagrass on deeper beds, sea pickles glowing in the pool
+    for (let x = 0; x < W; x += 1)
+      for (let z = 0; z < D; z += 1) {
+        if (b.nameAt(x, WATER, z) !== 'minecraft:water' || b.get(x, WATER + 1, z)) continue
+        const u = kit.hash01(x, 0, z, 75)
+        const depth = WATER - ground(x, z)
+        if (u < 0.09 && RIVER(x, z) > 1.2) b.set(x, WATER + 1, z, 'minecraft:lily_pad')
+        if (depth >= 2 && u > 0.7) b.set(x, ground(x, z) + 1, z, 'minecraft:seagrass')
+        if (depth >= 2 && u > 0.55 && u < 0.6 && Math.hypot(x - POOL[0], z - POOL[1]) < POOL[2]) b.set(x, ground(x, z) + 1, z, 'minecraft:sea_pickle[pickles=3,waterlogged=true]')
+      }
+  }
+
+  // ------------------------------------------------------------------ detail: the living tree
+  if (at('detail')) {
+    const isBark = n => /^minecraft:(spruce|dark_oak|mangrove|oak|cherry)_wood$/.test(n ?? '')
+    const air = (x, y, z) => inB(x, y, z) && !b.get(x, y, z) && free(x, y, z)
+    // glow berries: a strand of cave vines (berries on most segments) under a leaf or bark block
+    const glowBerries = (x, y, z, len) => {
+      let n = 0
+      while (n < len && air(x, y - n - 1, z) && y - n - 1 > ground(x, z) + 2) n += 1
+      for (let k = 1; k <= n; k += 1) {
+        const berries = kit.hash01(x, y - k, z, 83) < 0.6
+        b.set(x, y - k, z, k === n ? `minecraft:cave_vines[age=25,berries=${berries}]` : `minecraft:cave_vines_plant[berries=${berries}]`)
+      }
+    }
+    const entries = b.entries()
+    for (const [x, y, z, blk] of entries) {
+      const leaf = /_leaves$/.test(blk.name)
+      const bark = isBark(blk.name)
+      if (!leaf && !bark) continue
+      if (y <= ground(x, z) + 1) continue
+      const u = kit.hash01(x, y, z, 84)
+      const clump = noise.coherent01(x, y, z, { scale: 4, grain: 0, seed: 85 })
+      // underside: glow berries in clumps, shroomlight hearts showing through the leaves
+      if (air(x, y - 1, z)) {
+        if (clump < 0.3 && u < (leaf ? 0.09 : 0.05)) glowBerries(x, y, z, 2 + Math.floor(kit.hash01(x, 0, z, 86) * 5))
+        else if (leaf && blk.name !== 'minecraft:cherry_leaves' && u > 0.984) b.set(x, y, z, 'minecraft:shroomlight')
+      }
+      if (!bark) continue
+      // glow lichen on shaded (north-facing) bark, in patches
+      if (air(x, y, z - 1) && noise.coherent01(x, y, z, { scale: 3, grain: 0, seed: 81 }) < 0.1) b.set(x, y, z - 1, 'minecraft:glow_lichen[south=true]')
+      // vine curtains on the west and north faces, longest where the bark is mossy
+      for (const [dx, dz, face] of [[-1, 0, 'east'], [0, -1, 'south']]) {
+        if (!air(x + dx, y, z + dz) || clump > 0.22 || u > 0.4) continue
+        const len = 2 + Math.floor(kit.hash01(x, y, z, 87) * 5)
+        for (let k = 0; k < len && air(x + dx, y - k, z + dz) && b.get(x, y - k, z) && y - k > ground(x + dx, z + dz) + 1; k += 1) b.set(x + dx, y - k, z + dz, `minecraft:vine[${face}=true]`)
+      }
+    }
+
+    // spore blossoms under the decks, lanterns hung on chains from the limbs above them
+    for (const p of [p1, p2, pC]) {
+      for (const [x, z] of p.cells) {
+        const Y = p === p1 ? Y1 : p === p2 ? Y2 : YC
+        if (kit.hash01(x, Y, z, 88) < 0.035 && !b.get(x, Y - 1, z)) b.set(x, Y - 1, z, 'minecraft:spore_blossom')
+      }
+    }
+    const hangFromAbove = (x, Y, z, light) => {
+      if (b.get(x, Y + 1, z) || b.get(x, Y + 2, z) || b.get(x, Y + 3, z)) return false
+      let yA = -1
+      for (let y = Y + 4; y <= Y + 18; y += 1) if (b.get(x, y, z)) { yA = y; break }
+      if (yA < 0 || !/_wood$|_leaves$|moss_block/.test(b.nameAt(x, yA, z))) return false
+      for (let y = Y + 4; y < yA; y += 1) b.set(x, y, z, 'minecraft:chain[axis=y]')
+      b.set(x, Y + 3, z, `${light.split('[')[0]}[hanging=true]`)
+      return true
+    }
+    let hung = 0
+    for (const [p, Y, n] of [[p1, Y1, 9], [p2, Y2, 4], [pC, YC, 3]]) {
+      const cells = [...p.cells].sort((a, c) => kit.hash01(a[0], 0, a[1], 89) - kit.hash01(c[0], 0, c[1], 89))
+      let k = 0
+      for (const [x, z] of cells) {
+        if (k >= n) break
+        if (hangFromAbove(x, Y, z, k % 2 ? soulLantern : lantern)) { k += 1; hung += 1 }
+      }
+    }
+
+    // ------------------------------------------------------------------ detail: interiors
+    // Hall: round table with candles and chairs, shelves in the solid bays, plants by the windows,
+    // a long-chain chandelier from the roof spire.
+    {
+      const [hx, hz] = HALL
+      const F = Y1 + 1
+      b.disc([hx, F, hz], 2.6, 'minecraft:light_blue_carpet')
+      for (const [dx, dz] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) b.set(hx + dx, F, hz + dz, 'minecraft:birch_slab[type=top]')
+      b.set(hx + 1, F + 1, hz, 'minecraft:white_candle[candles=3,lit=true]')
+      b.set(hx - 1, F + 1, hz, 'minecraft:white_candle[candles=2,lit=true]')
+      b.set(hx, F, hz, 'minecraft:pearlescent_froglight[axis=y]') // the table's glowing heart
+      b.set(hx, F + 1, hz, 'minecraft:potted_flowering_azalea_bush')
+      for (const [dx, dz, f] of [[2, 0, 'east'], [-2, 0, 'west'], [0, 2, 'south'], [0, -2, 'north']]) b.set(hx + dx, F, hz + dz, `minecraft:birch_stairs[facing=${f},half=bottom]`)
+      const step = TAU / 8
+      for (const k of [1, 7]) {
+        const a = hallDoor + k * step
+        for (const off of [-0.18, 0, 0.18]) {
+          const x = Math.round(hx + Math.cos(a + off) * (HALL_R - 1))
+          const z = Math.round(hz + Math.sin(a + off) * (HALL_R - 1))
+          const f = kit.facingFrom(hx - x, hz - z)
+          b.set(x, F, z, `minecraft:chiseled_bookshelf[facing=${f},slot_0_occupied=true,slot_1_occupied=true,slot_3_occupied=true,slot_5_occupied=true]`)
+          b.set(x, F + 1, z, 'minecraft:bookshelf')
+        }
+      }
+      for (const k of [3, 5]) {
+        const a = hallDoor + k * step
+        const x = Math.round(hx + Math.cos(a) * (HALL_R - 1))
+        const z = Math.round(hz + Math.sin(a) * (HALL_R - 1))
+        b.set(x, F, z, 'minecraft:potted_azalea_bush')
+      }
+      {
+        const a = hallDoor + 2.5 * step
+        const x = Math.round(hx + Math.cos(a) * (HALL_R - 2))
+        const z = Math.round(hz + Math.sin(a) * (HALL_R - 2))
+        b.set(x, F, z, `minecraft:lectern[facing=${kit.facingFrom(hx - x, hz - z)},has_book=true]`)
+      }
+      let yR = F + 6
+      while (yR < F + 22 && !b.get(hx, yR, hz)) yR += 1
+      for (let y = F + 5; y < yR; y += 1) b.set(hx, y, hz, 'minecraft:chain[axis=y]')
+      b.set(hx, F + 4, hz, 'minecraft:lantern[hanging=true]')
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) b.set(hx + dx, F + 5, hz + dz, 'minecraft:end_rod[facing=down]')
+    }
+    // Music pavilion: a jukebox and note blocks, benches facing the middle, a soul-lantern chandelier.
+    {
+      const [mx, mz] = [Math.round(MUSIC[0]), Math.round(MUSIC[1])]
+      const F = Y2 + 1
+      b.set(mx, F, mz, 'minecraft:jukebox[has_record=true]')
+      b.set(mx + 1, F, mz + 1, 'minecraft:note_block[instrument=bell,note=12]')
+      b.set(mx - 1, F, mz - 1, 'minecraft:note_block[instrument=flute,note=7]')
+      for (const [dx, dz, f] of [[0, 2, 'south'], [0, -2, 'north'], [-2, 0, 'west']]) b.set(mx + dx, F, mz + dz, `minecraft:birch_stairs[facing=${f},half=bottom]`)
+      let yR = F + 4
+      while (yR < F + 18 && !b.get(mx, yR, mz)) yR += 1
+      for (let y = F + 3; y < yR; y += 1) b.set(mx, y, mz, 'minecraft:chain[axis=y]')
+      b.set(mx, F + 2, mz, 'minecraft:soul_lantern[hanging=true]')
+    }
+    // Companion tea ring: benches against the trunk, a brewing stand on a barrel, pots, lanterns
+    // hung from the ring beam.
+    {
+      const F = YC + 1
+      for (let k = 0; k < 8; k += 1) {
+        const a = (k * TAU) / 8 + 0.2
+        const x = Math.round(C[0] + Math.cos(a) * 3.2)
+        const z = Math.round(C[1] + Math.sin(a) * 3.2)
+        if (b.get(x, F, z)) continue
+        if (k === 2) { b.set(x, F, z, 'minecraft:barrel[facing=up]'); b.set(x, F + 1, z, 'minecraft:brewing_stand[has_bottle_0=true,has_bottle_2=true]') }
+        else if (k === 5) b.set(x, F, z, 'minecraft:decorated_pot')
+        else if (k % 2) b.set(x, F, z, `minecraft:birch_stairs[facing=${kit.facingFrom(x - C[0], z - C[1])},half=bottom]`)
+        else b.set(x, F, z, 'minecraft:potted_flowering_azalea_bush')
+      }
+      for (let k = 0; k < 4; k += 1) {
+        const a = (k * TAU) / 4 + TAU / 16
+        const x = Math.round(C[0] + Math.cos(a) * (CR - 0.2))
+        const z = Math.round(C[1] + Math.sin(a) * (CR - 0.2))
+        if (b.get(x, YC + 4, z) && !b.get(x, YC + 3, z)) b.set(x, YC + 3, z, 'minecraft:lantern[hanging=true]')
+      }
+    }
+
+    // ------------------------------------------------------------------ detail: approaches
+    // Stair foot: a pale stone landing, two lamp posts. Path: lamp posts every ~11 blocks,
+    // alternating sides. Bridge: a soul lantern hung under mid-span.
+    for (let dx = -1; dx <= 1; dx += 1)
+      for (let dz = -1; dz <= 1; dz += 1) {
+        const x = Math.round(foot[0]) + dx
+        const z = Math.round(foot[2]) + dz + 1
+        const y = ground(x, z)
+        if (!isStair(x, y + 1, z) && /grass|podzol|moss|dirt/.test(b.nameAt(x, y, z) ?? '')) b.set(x, y, z, kit.hash01(x, y, z, 91) < 0.5 ? 'minecraft:calcite' : 'minecraft:polished_diorite')
+      }
+    const lamp = (x, z) => {
+      const y = ground(x, z)
+      if (b.get(x, y + 1, z) && !/grass|fern|flower|petals|orchid|tulip|daisy|allium|bluet|cornflower|lily/.test(b.nameAt(x, y + 1, z))) return
+      b.lampPost([x, y + 1, z], { height: 3, post: 'minecraft:birch_fence', foot: 'minecraft:diorite_wall', lantern: 'minecraft:lantern' })
+    }
+    lamp(Math.round(foot[0]) + 3, Math.round(foot[2]) + 3)
+    lamp(Math.round(foot[0]) - 3, Math.round(foot[2]) + 4)
+    pathS.forEach((p, i) => {
+      if (i % 34 !== 17) return
+      const side = (i / 34) % 2 < 1 ? 2.6 : -2.6
+      lamp(Math.round(p[0] + side), Math.round(p[2]))
+    })
+    {
+      const mid = bridgeS[Math.floor(bridgeS.length / 2)]
+      const y = Math.round(mid[1])
+      const x = Math.round(mid[0])
+      const z = Math.round(mid[2])
+      let yd = y + 1
+      while (yd > y - 3 && !b.get(x, yd, z)) yd -= 1
+      if (b.get(x, yd, z)) { b.set(x, yd - 1, z, 'minecraft:chain[axis=y]'); b.set(x, yd - 2, z, 'minecraft:soul_lantern[hanging=true]') }
     }
   }
 

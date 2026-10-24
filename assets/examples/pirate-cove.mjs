@@ -27,7 +27,7 @@ export default function build(api) {
   const sCove = (x, z) => (Math.hypot((x - COVE.cx) / COVE.rx, (z - COVE.cz) / COVE.rz) - 1) * 34 + 3.5 * n2(x, z, 13, 3) + 7 * n2(x, z, 30, 31, 2)
   const sMouth = (x, z) => (z < COVE.cz ? 99 : Math.abs(x - (68 + 3 * Math.sin(z / 8))) - (14 + (z - COVE.cz) * 0.2))
   const sSea = (x, z) => 91 + 3 * n2(x, 0, 12, 4) - z - Math.max(0, x - 104) * 1.3 - Math.max(0, 12 - x) * 1.2
-  const beachMask = (x, z) => clamp(Math.max(1.3 - Math.hypot((x - 31) / 22, (z - 25) / 13), 1.1 - Math.hypot((x - 72) / 10, (z - 20) / 6)), 0, 1)
+  const beachMask = (x, z) => clamp(Math.max(1.3 - Math.hypot((x - 31) / 22, (z - 25) / 13), 1.1 - Math.hypot((x - 75) / 14, (z - 21) / 7)), 0, 1)
   const plateau = (x, z) => 21 + 19 * clamp((90 - z) / 66, 0, 1) ** 0.8 + (x < 34 ? 2 : 0) + 2.5 * n2(x, z, 20, 6)
 
   // per-column fields, computed once (noise is the expensive part)
@@ -72,7 +72,7 @@ export default function build(api) {
   // b.rockArch erodes and shades itself; b.erode scans every block in the builder, so building the
   // arch while the canvas is still empty keeps it fast. The terrain below is written with keep: true.
   const ROCK_RAMP = ['deepslate', 'tuff', 'stone', 'andesite']
-  b.rockArch([84, 1, 97], [100, 2, 86], { height: 21, thickness: 6, ramp: ROCK_RAMP, bands: { height: 3, amount: 0.16 }, seed: 5, roughness: 1.2 })
+  b.rockArch([95, 1, 99], [108, 3, 86], { height: 22, thickness: 6, lintel: 5, ramp: ROCK_RAMP, bands: { height: 3, amount: 0.16 }, seed: 5, roughness: 1.2 })
 
   // ------------------------------------------------------------------ 2. terrain mass in a voxel grid
   // The rock is decided in a typed array first, smoothed there (the same cellular automaton as
@@ -157,7 +157,7 @@ export default function build(api) {
   }
   // grass only on the plateau proper (with coarse/rooted dirt patches) over a brown soil lip;
   // sand over sandstone on the beach. Cliff ledges stay rock (moss is added later, in patches).
-  const grass = kit.palette({ grass_block: 30, coarse_dirt: 4, rooted_dirt: 2, moss_block: 3 }, { scale: 4, seed: 41 })
+  const grass = kit.palette({ grass_block: 40, coarse_dirt: 2, moss_block: 3 }, { scale: 7, seed: 41 })
   for (let x = 0; x < W; x += 1)
     for (let z = 0; z < D; z += 1) {
       const i = idx(x, z)
@@ -201,18 +201,22 @@ export default function build(api) {
     for (let x = 0; x < W; x += 1)
       for (let z = 0; z < D; z += 1)
         for (let y = SEA - 1; y <= topRock[idx(x, z)]; y += 1) {
-          if (!G[gi(x, y, z)]) continue
+          if (!G[gi(x, y, z)] || x === 0 || x === W - 1 || z === 0) continue
           const n = b.nameAt(x, y, z)
           if (n !== 'minecraft:stone' && n !== 'minecraft:andesite' && n !== 'minecraft:tuff') continue
           const band = (((y + Math.round(2 * BW[idx(x, z)])) % 12) + 12) % 12
           if (y <= SEA + 1 && exposed(x, y, z)) b.set(x, y, z, kit.noise.coherent01(x, y, z, { scale: 3, seed: 51 }) < 0.45 ? 'mossy_cobblestone' : 'tuff')
-          else if (band === 3 && n !== 'minecraft:tuff' && exposed(x, y, z)) b.set(x, y, z, 'calcite')
+          else if (band === 3 && n !== 'minecraft:tuff' && exposed(x, y, z) && kit.noise.coherent01(x, 0, z, { scale: 9, seed: 53 }) < 0.55) b.set(x, y, z, 'calcite')
           else if (y > SEA + 3 && !b.has(x, y + 1, z) && kit.noise.coherent01(x, y, z, { scale: 4, seed: 52 }) < 0.4) b.set(x, y, z, 'moss_block')
         }
   }
 
+  // vines curtain the cliff faces below the lip. b.overgrow grows on ANY full block (it has no
+  // `only`), so it runs now, before the wool sails and the plank shacks exist.
+  if (at('detail')) b.overgrow([1, SEA + 3, 1], [W - 2, H - 1, D - 2], { amount: 0.3, maxLength: 6, moss: false, seed: 5 })
+
   // ------------------------------------------------------------------ 6. the galleon (the hero)
-  const ship = galleon(b, kit, { bow: [82, 3, 58], L: 44 })
+  const ship = galleon(b, kit, { bow: [79, 3, 60], L: 44 })
   if (!at('detail')) return b.finish({ name: 'pirate-cove' })
 
   // ------------------------------------------------------------------ helpers for everything built on the land
@@ -242,15 +246,19 @@ export default function build(api) {
     const r = kit.rng(seed)
     const a = az ?? r() * Math.PI * 2
     const pts = [0, 0.33, 0.66, 1].map(t => [x + Math.cos(a) * bend * t * t, y + h * t, z + Math.sin(a) * bend * t * t])
-    b.curve(pts, 'jungle_wood', { radius: t => 0.9 - 0.4 * t })
+    // trunk: a thin curve whose offset grows with height², ringed by alternating bark tones
+    b.curve(pts, (px, py) => (py % 3 === 0 ? 'stripped_jungle_wood' : 'jungle_wood'), { radius: 0.5 })
     const T = pts[3].map(Math.round)
+    b.set(T[0], T[1], T[2], 'jungle_wood')
+    b.set(T[0], T[1] - 1, T[2], 'jungle_wood')
     b.set(T[0], T[1] + 1, T[2], 'jungle_leaves')
-    for (let i = 0; i < 7; i += 1) {
-      const fa = (i * Math.PI * 2) / 7 + r.range(-0.25, 0.25)
-      const Lf = r.range(4.5, 6.2)
-      const mid = [T[0] + Math.cos(fa) * Lf * 0.5, T[1] + 1.4, T[2] + Math.sin(fa) * Lf * 0.5]
-      const end = [T[0] + Math.cos(fa) * Lf, T[1] - 2.2, T[2] + Math.sin(fa) * Lf]
-      b.curve([[T[0], T[1] + 1, T[2]], mid, end], i % 3 ? 'jungle_leaves' : 'oak_leaves', { radius: t => (t > 0.2 && t < 0.75 ? 0.9 : 0.5) })
+    // 9 fronds: thin 1-block arcs that rise, then droop well below the crown
+    for (let i = 0; i < 9; i += 1) {
+      const fa = (i * Math.PI * 2) / 9 + r.range(-0.2, 0.2)
+      const Lf = r.range(5, 7)
+      const mid = [T[0] + Math.cos(fa) * Lf * 0.45, T[1] + 1.6, T[2] + Math.sin(fa) * Lf * 0.45]
+      const end = [T[0] + Math.cos(fa) * Lf, T[1] - 2.5, T[2] + Math.sin(fa) * Lf]
+      b.curve([[T[0], T[1] + 1, T[2]], mid, end], i % 4 ? 'jungle_leaves' : 'oak_leaves', { radius: 0.5 })
     }
     for (const [dx, dz, f] of [[1, 0, 'west'], [-1, 0, 'east'], [0, 1, 'north']]) b.set(T[0] + dx, T[1] - 1, T[2] + dz, `cocoa[age=2,facing=${f}]`, { keep: true })
   }
@@ -260,13 +268,17 @@ export default function build(api) {
   // and a lean-to porch facing the pier — the social centre and the brightest building at night.
   const TV = { x0: 21, x1: 31, z0: 20, z1: 27 }
   let tvF = 0
-  for (let x = TV.x0; x <= TV.x1; x += 1) for (let z = TV.z0; z <= TV.z1 + 3; z += 1) if (BM[idx(x, z)] > 0.05) tvF = Math.max(tvF, ground(x, z))
+  for (let x = TV.x0; x <= TV.x1; x += 1)
+    for (let z = TV.z0; z <= TV.z1 + 3; z += 1) {
+      const g = ground(x, z)
+      if (g <= SEA + 4) tvF = Math.max(tvF, g) // beach cells only; cliff rock behind is dug out
+    }
   tvF += 1
   {
     const { x0, x1, z0, z1 } = TV
     const F = tvF
     for (let x = x0 - 1; x <= x1 + 1; x += 1) for (let z = z0 - 1; z <= z1 + 4; z += 1) for (let y = F; y <= F + 14; y += 1) if (isTerr(x, y, z)) b.set(x, y, z, 'air')
-    for (let x = x0; x <= x1; x += 1) for (let z = z0; z <= z1; z += 1) for (let y = F - 1; y >= F - 4; y -= 1) b.set(x, y, z, 'cobblestone', { only: n => !n || n.name === 'minecraft:water' || TERR.has(n.name) })
+    b.box([x0, F - 4, z0], [x1, F - 1, z1], kit.palette({ cobblestone: 3, mossy_cobblestone: 1 }, { scale: 2, seed: 60 }))
     b.walls([x0, F, z0], [x1, F + 3, z1], kit.palette({ cobblestone: 5, mossy_cobblestone: 2, stone: 2, andesite: 1 }, { scale: 2, seed: 61 }))
     b.box([x0 + 1, F - 1, z0 + 1], [x1 - 1, F - 1, z1 - 1], 'spruce_planks')
     b.box([x0, F + 4, z0], [x1, F + 4, z1], 'spruce_planks')
@@ -291,7 +303,7 @@ export default function build(api) {
     for (let x = x0; x <= x1; x += 1) for (let z = pz0; z <= pz1; z += 1) post(x, F - 2, z, 'spruce_planks')
     for (const x of [x0, x0 + 5, x1]) {
       b.box([x, F, pz1], [x, F + 2, pz1], 'stripped_spruce_log[axis=y]')
-      b.hangingLantern([x, F + 2, pz1 - 1], 0)
+      b.hangingLantern([x, F + 3, pz1 - 1], 0)
     }
     b.roof({ x0, z0: pz0 + 1, x1, z1: pz1, y: F + 3, type: 'shed', rises: 'north', material: 'spruce', pitch: 0.5, overhang: 1, gableOverhang: 0 })
     for (let x = x0 + 1; x < x1; x += 1) if (x !== x0 + 5) b.set(x, F, pz1, 'spruce_fence')
@@ -308,7 +320,12 @@ export default function build(api) {
       b.set(x + 1, F, z0 + 4, kit.stairs('spruce', 'west'))
       b.set(x - 1, F, z0 + 4, kit.stairs('spruce', 'east'))
     }
-    for (const [x, z] of [[x0 + 3, z0 + 5], [x1 - 3, z0 + 2], [x0 + 3, z0 + 2]]) b.hangingLantern([x, F + 3, z], 0)
+    for (const [x, z] of [[x0 + 3, z0 + 5], [x1 - 3, z0 + 2], [x0 + 3, z0 + 2]]) b.hangingLantern([x, F + 4, z], 0)
+    // a lantern just inside every window so the panes glow at night
+    for (const x of [x0 + 2, x1 - 2]) lantern(x, F, z1 - 1)
+    for (const x of [x0 + 2, x0 + 7, x1 - 1]) lantern(x, F + 5, z1)
+    lantern(x1 - 1, F + 5, z0 + 3)
+    lantern(x1 - 1, F, z0 + 4)
     for (const [x, z] of [[x0 + 3, z0 + 3], [x1 - 2, z0 + 3]]) lantern(x, F + 5, z)
   }
 
@@ -328,7 +345,7 @@ export default function build(api) {
     }
     if (z % 3 === 0) for (const x of [xf, xf + 2]) post(x, DECK - 1, z)
     if (z % 9 < 6) b.set(xf + 3, DECK + 1, z, 'spruce_fence')
-    if (z % 12 === 4) {
+    if (z % 8 === 4) {
       b.set(xf + 3, DECK + 1, z, 'spruce_fence')
       b.set(xf + 3, DECK + 2, z, 'spruce_fence')
       lantern(xf + 3, DECK + 3, z)
@@ -411,6 +428,7 @@ export default function build(api) {
     else b.roof({ x0, z0, x1, z1, y: F + wallH + 1, axis: 'x', material: roof, pitch: 1, overhang: 1, gableOverhang: 1, gable: P, eaveTrim: true })
     b.hangingLantern([x1 + 1, F + wallH, dz + 1], 0)
     lantern(x0 + 1, F + 1, z1 - 1)
+    lantern(x1 - 1, F + 1, z0 + 2)
     b.set(x0 + 1, F + 1, z0 + 1, 'barrel[facing=up]')
     const s = { x0, x1, xp, z0, z1, F }
     shacks.push(s)
@@ -517,27 +535,25 @@ export default function build(api) {
 
   // ------------------------------------------------------------------ 13. vegetation
   // palms: a grove on the beach (leaning out over the sand) and a few on the cliff tops
-  const palmSpots = [[34, 23, 9, 3, 0.6], [41, 21, 12, 4, 1.2], [46, 25, 10, 3, 1.8], [18, 31, 11, 4, 0.2], [70, 19, 9, 3, 1.4]]
+  const palmSpots = [[35, 23, 9, 3, 0.6], [41, 21, 12, 4, 1.2], [47, 26, 10, 3, 1.8], [81, 22, 11, 4, 1.4], [86, 24, 8, 3, 2.2]]
   for (const [i, [x, z, h, bend, az]] of palmSpots.entries()) {
     const g = ground(x, z)
     if (g > 0) palm([x, g + 1, z], { h, bend, seed: 100 + i, az })
   }
   const rng = kit.rng(7)
   for (let i = 0; i < 70; i += 1) {
-    const x = rng.int(1, W - 2)
-    const z = rng.int(1, D - 2)
+    const x = rng.int(5, W - 6)
+    const z = rng.int(5, D - 6)
     const g = ground(x, z)
     if (g < SEA + 6 || b.nameAt(x, g, z) !== 'minecraft:grass_block' || b.has(x, g + 1, z)) continue
     const k = rng()
     if (k < 0.18) palm([x, g + 1, z], { h: rng.int(8, 12), bend: 3, seed: 200 + i })
-    else if (k < 0.3) b.tree([x, g + 1, z], 'jungle', { height: rng.int(10, 14), seed: 300 + i })
+    else if (k < 0.25) b.tree([x, g + 1, z], 'jungle', { height: rng.int(9, 11), seed: 300 + i })
     else b.bush([x, g + 1, z], { radius: rng.range(1.4, 2.4), leaves: ['jungle_leaves', 'jungle_leaves', 'azalea_leaves', 'oak_leaves'], log: 'jungle_log', seed: 400 + i })
   }
   // vines curtain the cliff faces below the lip; moss carpet is added separately (not everywhere)
-  b.overgrow([0, SEA + 3, 0], [W - 1, H - 1, D - 1], { amount: 0.3, maxLength: 6, moss: false, seed: 5 })
   b.scatter({ on: ['minecraft:grass_block'], density: 0.3, clump: 6, seed: 9, paints: [[10, 'short_grass'], [4, 'fern'], [3, 'tall_grass'], [2, 'large_fern'], [1, 'dandelion'], [1, 'poppy']] })
-  b.scatter({ on: ['minecraft:sand'], density: 0.05, clump: 4, seed: 10, paints: [[3, 'short_grass'], [2, 'dead_bush']] })
-  b.scatter({ on: ['minecraft:sand', 'minecraft:clay', 'minecraft:gravel'], density: 0.0, seed: 11, paints: [[1, 'seagrass']] })
+  b.scatter({ on: ['minecraft:sand'], density: 0.03, clump: 4, seed: 10, paints: [[1, 'dead_bush']] })
   // seagrass meadows in the shallows (placed into the water column)
   for (let x = 0; x < W; x += 1)
     for (let z = 0; z < D; z += 1) {
@@ -820,6 +836,22 @@ function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 
   for (let w = -hwS + 2; w <= hwS - 2; w += 2) {
     put(L - 1, w, MAIN + 1, 'lantern')
     put(L - 1, w, QD + 1, 'lantern')
+  }
+  // deck lanterns on posts along the waist rail and at the bow; lanterns in the gun deck and hold
+  for (const u of [12, 24])
+    for (const sgn of [-1, 1]) {
+      const y = ship.deckY(u) + 1
+      const w = outerW(u, y, sgn)
+      put(u, sgn * w, y + 2, 'spruce_fence')
+      put(u, sgn * w, y + 3, 'lantern')
+    }
+  put(1, 0, FC + 2, 'spruce_fence')
+  put(1, 0, FC + 3, 'lantern')
+  for (const u of [8, 16, 30]) {
+    put(u, 2, 7, 'lantern')
+    let y = 1
+    while (y < 6 && solidAt(u, -2, y)) y += 1
+    if (y < 6) put(u, -2, y, 'lantern')
   }
   // anchor cable from the hawse on the starboard bow down into the water
   {
