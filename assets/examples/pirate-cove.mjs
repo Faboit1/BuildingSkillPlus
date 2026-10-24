@@ -24,7 +24,7 @@ export default function build(api) {
 
   // ------------------------------------------------------------------ site: signed distance to the shore
   const COVE = { cx: 62, cz: 50, rx: 44, rz: 31 }
-  const sCove = (x, z) => (Math.hypot((x - COVE.cx) / COVE.rx, (z - COVE.cz) / COVE.rz) - 1) * 34 + 3.5 * n2(x, z, 13, 3) + 7 * n2(x, z, 30, 31, 2)
+  const sCove = (x, z) => (Math.hypot((x - COVE.cx) / COVE.rx, (z - COVE.cz) / COVE.rz) - 1) * 34 + 3.5 * n2(x, z, 13, 3) + 7 * n2(x, z, 30, 31, 2) + 6 * beachMask(x, z)
   const sMouth = (x, z) => (z < COVE.cz ? 99 : Math.abs(x - (68 + 3 * Math.sin(z / 8))) - (14 + (z - COVE.cz) * 0.2))
   const sSea = (x, z) => 91 + 3 * n2(x, 0, 12, 4) - z - Math.max(0, x - 104) * 1.3 - Math.max(0, 12 - x) * 1.2
   const beachMask = (x, z) => clamp(Math.max(1.3 - Math.hypot((x - 31) / 22, (z - 25) / 13), 1.1 - Math.hypot((x - 75) / 14, (z - 21) / 7)), 0, 1)
@@ -252,10 +252,10 @@ export default function build(api) {
     b.set(T[0], T[1], T[2], 'jungle_wood')
     b.set(T[0], T[1] - 1, T[2], 'jungle_wood')
     b.set(T[0], T[1] + 1, T[2], 'jungle_leaves')
-    // 9 fronds: thin 1-block arcs that rise, then droop well below the crown
-    for (let i = 0; i < 9; i += 1) {
-      const fa = (i * Math.PI * 2) / 9 + r.range(-0.2, 0.2)
-      const Lf = r.range(5, 7)
+    // 7 fronds: thin 1-block arcs that rise, then droop well below the crown
+    for (let i = 0; i < 7; i += 1) {
+      const fa = (i * Math.PI * 2) / 7 + r.range(-0.25, 0.25)
+      const Lf = r.range(4.5, 6.5)
       const mid = [T[0] + Math.cos(fa) * Lf * 0.45, T[1] + 1.6, T[2] + Math.sin(fa) * Lf * 0.45]
       const end = [T[0] + Math.cos(fa) * Lf, T[1] - 2.5, T[2] + Math.sin(fa) * Lf]
       b.curve([[T[0], T[1] + 1, T[2]], mid, end], i % 4 ? 'jungle_leaves' : 'oak_leaves', { radius: 0.5 })
@@ -322,10 +322,12 @@ export default function build(api) {
     }
     for (const [x, z] of [[x0 + 3, z0 + 5], [x1 - 3, z0 + 2], [x0 + 3, z0 + 2]]) b.hangingLantern([x, F + 4, z], 0)
     // a lantern just inside every window so the panes glow at night
-    for (const x of [x0 + 2, x1 - 2]) lantern(x, F, z1 - 1)
-    for (const x of [x0 + 2, x0 + 7, x1 - 1]) lantern(x, F + 5, z1)
-    lantern(x1 - 1, F + 5, z0 + 3)
-    lantern(x1 - 1, F, z0 + 4)
+    // window glow: a lantern is ~3 px at scene distance and vanishes at night; a full emissive
+    // block (shroomlight, read as a lamp in the room) right behind each pane makes the window glow
+    for (const x of [x0 + 2, x1 - 2]) b.set(x, F + 1, z1 - 1, 'shroomlight')
+    for (const x of [x0 + 2, x0 + 7, x1 - 1]) b.set(x, F + 6, z1, 'shroomlight')
+    b.set(x1 - 1, F + 6, z0 + 3, 'shroomlight')
+    b.set(x1 - 1, F + 1, z0 + 4, 'shroomlight')
     for (const [x, z] of [[x0 + 3, z0 + 3], [x1 - 2, z0 + 3]]) lantern(x, F + 5, z)
   }
 
@@ -422,7 +424,11 @@ export default function build(api) {
     const dz = door ?? z0 + 1
     b.door([x1, F + 1, dz], 'east', { material: wood === 'mangrove' ? 'spruce' : wood })
     b.set(xp, F + 1, dz, 'air')
-    for (let z = z0 + 1; z < z1; z += 1) if (Math.abs(z - dz) > 1 && (z - z0) % 3 === 2) b.window([x1, F + 2, z], 'east', { width: 1, height: wallH > 4 ? 2 : 1, shutters: true, material: 'spruce', sill: false })
+    for (let z = z0 + 1; z < z1; z += 1) {
+      if (Math.abs(z - dz) <= 1 || (z - z0) % 3 !== 2) continue
+      b.window([x1, F + 2, z], 'east', { width: 1, height: wallH > 4 ? 2 : 1, shutters: true, material: 'spruce', sill: false })
+      b.set(x1 - 1, F + 2, z, 'shroomlight') // lamp behind the window
+    }
     b.window([x0 + Math.floor(depth / 2), F + 2, z1], 'south', { width: 1, height: 1, sill: false })
     if (type === 'shed') b.roof({ x0, z0, x1, z1, y: F + wallH + 1, type: 'shed', rises: 'west', material: roof, pitch: 0.5, overhang: 1, gableOverhang: 1, gable: P })
     else b.roof({ x0, z0, x1, z1, y: F + wallH + 1, axis: 'x', material: roof, pitch: 1, overhang: 1, gableOverhang: 1, gable: P, eaveTrim: true })
@@ -535,7 +541,7 @@ export default function build(api) {
 
   // ------------------------------------------------------------------ 13. vegetation
   // palms: a grove on the beach (leaning out over the sand) and a few on the cliff tops
-  const palmSpots = [[35, 23, 9, 3, 0.6], [41, 21, 12, 4, 1.2], [47, 26, 10, 3, 1.8], [81, 22, 11, 4, 1.4], [86, 24, 8, 3, 2.2]]
+  const palmSpots = [[34, 26, 9, 3, 0.9], [42, 21, 12, 4, 1.3], [50, 28, 10, 4, 1.9], [82, 22, 11, 4, 1.4], [89, 25, 8, 3, 2.3]]
   for (const [i, [x, z, h, bend, az]] of palmSpots.entries()) {
     const g = ground(x, z)
     if (g > 0) palm([x, g + 1, z], { h, bend, seed: 100 + i, az })
@@ -562,6 +568,17 @@ export default function build(api) {
       const c = kit.noise.coherent01(x, 0, z, { scale: 5, seed: 12 })
       if (c < 0.3 && kit.noise.hash01(x, y, z, 13) < 0.5) b.set(x, y + 1, z, 'seagrass')
     }
+  // a bonfire on the beach between the palms: campfire ringed by log seats
+  {
+    const fx = 44
+    const fz = 25
+    const g = ground(fx, fz)
+    if (b.nameAt(fx, g, fz) === 'minecraft:sand') {
+      b.set(fx, g + 1, fz, 'campfire[lit=true,signal_fire=false,facing=north]')
+      for (const [dx, dz, ax] of [[0, -2, 'x'], [0, 2, 'x'], [-2, 0, 'z'], [2, 0, 'z']]) b.set(fx + dx, ground(fx + dx, fz + dz) + 1, fz + dz, `stripped_spruce_log[axis=${ax}]`)
+      b.set(fx + 2, ground(fx + 2, fz + 2) + 1, fz + 2, 'barrel[facing=up]')
+    }
+  }
   void ship
   return b.finish({ name: 'pirate-cove' })
 }
@@ -685,7 +702,11 @@ function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 
   for (const sgn of [-1, 1])
     for (let u = U_QD + 2; u <= L - 3; u += 3) {
       put(u, sgn * hwAt(u, MAIN + 2), MAIN + 2, 'glass_pane')
-      if (u > U_PD) put(u, sgn * hwAt(u, QD + 2), QD + 2, 'glass_pane')
+      put(u, sgn * (hwAt(u, MAIN + 2) - 1), MAIN + 2, 'shroomlight') // cabin lamp behind the pane
+      if (u > U_PD) {
+        put(u, sgn * hwAt(u, QD + 2), QD + 2, 'glass_pane')
+        put(u, sgn * (hwAt(u, QD + 2) - 1), QD + 2, 'shroomlight')
+      }
     }
   // quarter galleries: little bay windows bulging out at the stern corners, roofed with stairs
   for (const sgn of [-1, 1]) {
@@ -879,9 +900,9 @@ function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 
     }
 
   // ---- lights: cabin lanterns behind the stern and gallery panes
-  for (let w = -hwS + 2; w <= hwS - 2; w += 2) {
-    put(L - 1, w, MAIN + 1, 'lantern')
-    put(L - 1, w, QD + 1, 'lantern')
+  for (let w = -hwS + 1; w <= hwS - 1; w += 2) {
+    put(L - 1, w, MAIN + 2, 'shroomlight') // the great cabin glows through the stern windows
+    put(L - 1, w, QD + 2, 'shroomlight')
   }
   // rudder hung on the sternpost, its head through the counter; gilded figurehead plinth at the beak
   for (let y = 1; y <= MAIN - 1; y += 1) put(L + 1, 0, y, y < 5 ? 'dark_oak_planks' : 'stripped_dark_oak_log[axis=y]')

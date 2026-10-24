@@ -324,11 +324,11 @@ export default function build(api) {
     const out = Math.sign(z - CZ)
     if (out === 0) continue
     const r = clamp(1 - Math.abs(z - CZ) / span(x), 0, 1)
-    const wet = 0.7 * (1 - r) ** 2 + 0.25 * (1 - Math.min(1, Math.abs(u(x))))
+    const wet = 0.55 * (1 - r) ** 2 + 0.25 * (1 - Math.min(1, Math.abs(u(x))))
     for (let y = yTop - 3; y < yTop; y += 1) {
       const blk = b.get(x, y, z)
       if (!blk || !(/_planks$/.test(blk.name) || blk.props?.half === 'top') || b.has(x, y, z + out)) continue
-      if (kit.noise.coherent01(x, y, z, { scale: 3.5, seed: 91 }) + wet > 1.0) b.set(x, y, z, 'moss_block')
+      if (kit.noise.coherent01(x, y, z, { scale: 2.5, seed: 91 }) + wet > 1.0) b.set(x, y, z, 'moss_block')
     }
   }
 
