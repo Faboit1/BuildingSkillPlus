@@ -62,7 +62,7 @@ Returning `null` from a function leaves the position untouched (great for masks)
 
 | Method | Notes |
 | --- | --- |
-| `b.set(x, y, z, paint, opts?)` | `opts.keep` only fills empty cells; `opts.only` replaces only matching blocks (`'oak_*'`, `'*_planks'`, id, array, predicate); `opts.mask(x,y,z,b)`; `opts.nbt` block entity |
+| `b.set(x, y, z, paint, opts?)` | `opts.keep` only fills empty cells; `opts.only` replaces only matching blocks (`'oak_*'`, `'*_planks'`, id, array, predicate); empty cells match `'air'` in the list and predicates receive `null` for them (`only: ['air', 'water']` fills air and water only); `opts.mask(x,y,z,b)`; `opts.nbt` block entity |
 | `b.get(x, y, z)` / `b.nameAt` / `b.has` / `b.is(x, y, z, test)` | read back `{ name, props }`; `is` tests against an id, id list, predicate or `null`/`'air'` |
 | `b.remove(x, y, z)` | delete |
 | `b.topY(x, z, test?)` | highest block in a column (optionally matching `test`) |
@@ -408,7 +408,7 @@ which shows as a second layer in cutaways.
 | `b.groundY(x, z, on?)` | walking surface of a column: highest terrain (or `on`) block with only air/plants above; -1 if none. Use it instead of `b.topY` to place props under canopies, brims and jetties |
 | `b.path(points2d, { width, paint, jitter, on })` | winding path on the walking surface: the highest terrain block with only air/plants above (continues under jetties and canopies, never repaints props or floors). `dirt_path` is 1/16 lower than full blocks: use it alone (lanes, ruts) or mix only full blocks (`coarse_dirt`, `gravel`, `packed_mud`, `rooted_dirt`), otherwise close-ups show a maze of tiny steps |
 | `b.pond([cx, level, cz], r, { depth, rim, bed })` | |
-| `b.overgrow(a, c, { amount, maxLength, moss })` | vines on exposed walls + moss carpet |
+| `b.overgrow(a, c, { amount, maxLength, moss, only })` | vines on exposed walls + moss carpet; `only` limits it to some blocks (stone, not sails or planks). Run it after the last dig, or vines may hang in air |
 | `b.island([cx, topY, cz], r, { depth, top, soil, rock })` | floating island |
 | `b.weather(a, c, { share, mossBias, scale, variants })` | swaps blocks for cracked/mossy/oxidized variants in organic patches; `share` is the exact fraction aged (0.1–0.3 typical), moss and cracks form their own clumps (`mossBias` = moss share). `variants: { 'minecraft:deepslate_tiles': ['minecraft:cracked_deepslate_tiles', 'minecraft:cobbled_deepslate'] }` turns it into a general patchy material swap (mottled roofs, worn floors). The older `amount` is a raw threshold on blocky noise (0.22 ≈ 10%, 0.38 ≈ 30%) |
 

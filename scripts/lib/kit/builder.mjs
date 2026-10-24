@@ -91,7 +91,8 @@ export class Builder {
 
   // Places a paint at one position. Options:
   //   keep: true → only fill empty positions
-  //   only: id | id[] | predicate(block) → only replace existing matching blocks
+  //   only: id | id[] | predicate(block) → only replace matching blocks ('air' in a list, or a
+  //         predicate returning true for null, also lets it fill empty cells)
   //   nbt: NbtCompound block-entity data
   set(x, y, z, paint, opts) {
     x = toInt(x)
@@ -130,7 +131,18 @@ export class Builder {
   }
 
   matches(block, test) {
-    if (!block) return test === null || test === 'air'
+    if (!block) {
+      // empty cells: null / 'air' match, lists may contain them, predicates receive null
+      if (typeof test === 'function') {
+        try {
+          return Boolean(test(null))
+        } catch {
+          return false
+        }
+      }
+      if (Array.isArray(test)) return test.some(t => t === null || t === 'air' || t === 'minecraft:air')
+      return test === null || test === 'air' || test === 'minecraft:air'
+    }
     if (typeof test === 'function') return Boolean(test(block))
     const list = Array.isArray(test) ? test : [test]
     return list.some(t => {

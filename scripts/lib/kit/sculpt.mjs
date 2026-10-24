@@ -396,12 +396,25 @@ export function erode(b, a, c, { preset = 'smooth', iterations = 1, only, protec
   const inBox = (x, y, z) => x >= min[0] && y >= min[1] && z >= min[2] && x <= max[0] && y <= max[1] && z <= max[2]
   const solid = (x, y, z) => b.has(x, y, z)
   const eligible = block => (only === undefined || b.matches(block, only))
+  // visit only the box (plus a 1-block rim for fills), not every block of the build
+  const volume = (max[0] - min[0] + 3) * (max[1] - min[1] + 3) * (max[2] - min[2] + 3)
+  const cellsIn = (pad = 0) => {
+    if (volume > b.blocks.size) return b.entries()
+    const out = []
+    for (let x = min[0] - pad; x <= max[0] + pad; x += 1)
+      for (let y = min[1] - pad; y <= max[1] + pad; y += 1)
+        for (let z = min[2] - pad; z <= max[2] + pad; z += 1) {
+          const blk = b.get(x, y, z)
+          if (blk) out.push([x, y, z, blk])
+        }
+    return out
+  }
   let removed = 0
   let added = 0
   for (let it = 0; it < iterations; it += 1) {
     for (let r = 0; r < ec; r += 1) {
       const kill = []
-      for (const [x, y, z, block] of b.entries()) {
+      for (const [x, y, z, block] of cellsIn(0)) {
         if (!inBox(x, y, z) || !eligible(block)) continue
         if (protect && protect(x, y, z, block)) continue
         let empty = 0
@@ -413,7 +426,7 @@ export function erode(b, a, c, { preset = 'smooth', iterations = 1, only, protec
     }
     for (let r = 0; r < fc; r += 1) {
       const add = new Map()
-      for (const [x, y, z] of b.entries()) {
+      for (const [x, y, z] of cellsIn(1)) {
         for (const [dx, dy, dz] of N6) {
           const ex = x + dx
           const ey = y + dy
@@ -486,7 +499,7 @@ export function hull(b, opts = {}) {
     gunports = null,
     paint = {},
   } = opts
-  const P = { bottom: 'dark_oak_planks', wale: 'stripped_dark_oak_log', side: 'spruce_planks', deck: 'spruce_planks', trim: 'stripped_spruce_log', ...paint }
+  const P = { bottom: 'dark_oak_planks', wale: 'stripped_dark_oak_wood', side: 'spruce_planks', deck: 'spruce_planks', trim: 'stripped_spruce_log', ...paint }
   const hv = DIR[heading]
   if (!hv || hv[1] !== 0) throw new Error(`hull heading must be north/east/south/west, got ${heading}`)
   const rv = [-hv[2], 0, hv[0]] // starboard (right-hand side looking forward)
@@ -915,7 +928,7 @@ export function rockArch(b, footA, footB, opts = {}) {
     return Math.max(fin, -hole) + roughness * fbm3(x, y, z, { scale, octaves: 3, seed })
   }
   const R = Au + roughness * 2 + 2
-  const lo = [m[0] - R, m[1] - embed, m[2] - R]
+  const lo = [m[0] - R, Math.max(0, m[1] - embed), m[2] - R] // the embedded footing never goes below y = 0
   const hi = [m[0] + R, m[1] + height + roughness * 2 + 2, m[2] + R]
   b.sdf(lo, hi, f, ramp[Math.floor(ramp.length / 2)])
   const marker = withNamespace(parseBlock(ramp[Math.floor(ramp.length / 2)]).name)

@@ -436,12 +436,15 @@ export function pond(b, center, radius, { depth = 2, rim = 'minecraft:gravel', b
 }
 
 // Vines/moss growing on exposed wall faces inside a box (ruins, old towers, cliffs).
-export function overgrow(b, a, c, { amount = 0.25, maxLength = 5, moss = true, seed = 0 } = {}) {
+// `only` limits which blocks get vines and moss (e.g. ['*stone_bricks', 'cobblestone']), so sails,
+// plank walls and roofs stay clean.
+export function overgrow(b, a, c, { amount = 0.25, maxLength = 5, moss = true, seed = 0, only } = {}) {
   const min = [Math.min(a[0], c[0]), Math.min(a[1], c[1]), Math.min(a[2], c[2])]
   const max = [Math.max(a[0], c[0]), Math.max(a[1], c[1]), Math.max(a[2], c[2])]
   for (const [x, y, z, block] of b.entries()) {
     if (x < min[0] || y < min[1] || z < min[2] || x > max[0] || y > max[1] || z > max[2]) continue
     if (!isFullSolid(block.name)) continue
+    if (only !== undefined && !b.matches(block, only)) continue
     if (moss && !b.get(x, y + 1, z) && coherent01(x, y, z, { scale: 4, seed: seed + 3 }) < amount * 0.8) {
       b.set(x, y + 1, z, 'minecraft:moss_carpet', { keep: true })
     }
