@@ -563,7 +563,7 @@ export default function build(api) {
     b.set(tx, top + 1, tz + 1, 'campfire[lit=true]')
     b.set(tx + 2, top + 1, tz + 2, 'bell[attachment=floor,facing=south]')
     lantern(tx - 2, top + 1, tz + 2)
-    lantern(tx + 1, g + 1, tz + 1) // inside the frame, at the foot of the ladder
+    lantern(tx + 1, ground(tx + 1, tz + 1) + 1, tz + 1) // inside the frame, at the foot of the ladder
   }
 
   // ------------------------------------------------------------------ 6e. the treasure cave
@@ -647,7 +647,7 @@ export default function build(api) {
     }
   // vines whose rock was dug away by a building no longer touch anything: remove them
   for (const [x, y, z, blk] of b.entries().filter(e => e[3].name === 'minecraft:vine').sort((p, q) => q[1] - p[1])) {
-    const held = [['north', 0, -1], ['south', 0, 1], ['east', 1, 0], ['west', -1, 0]].some(([f, dx, dz]) => blk.props?.[f] === 'true' && b.has(x + dx, y, z + dz) && b.nameAt(x + dx, y, z + dz) !== 'minecraft:vine')
+    const held = [['north', 0, -1], ['south', 0, 1], ['east', 1, 0], ['west', -1, 0]].some(([f, dx, dz]) => blk.props?.[f] === 'true' && b.has(x + dx, y, z + dz) && !/water|vine|lantern|leaves|_slab|_stairs|_fence|_trapdoor|chain|_pane|grass|fern|cobweb/.test(b.nameAt(x + dx, y, z + dz)))
     if (!held && b.nameAt(x, y + 1, z) !== 'minecraft:vine') b.remove(x, y, z)
   }
 

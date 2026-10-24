@@ -1,4 +1,58 @@
-// ELVEN TREEHOUSE (work in progress)
+// ELVEN TREEHOUSE: the Heartwood, an ancient buttressed tree carrying an elven settlement
+//
+// BRIEF. One hero: a colossal ancient tree whose silhouette carries a small elven settlement.
+// A hall pavilion stands on a lobe of the lower platform, a music gazebo sits on a west limb,
+// a spiral stair winds round the trunk, and a sagging rope bridge crosses a stream to a younger
+// cherry tree with a "collar" pavilion round its trunk. The stream runs from a spring under a
+// mossy outcrop to a lily pool. The forest floor has ferns, moss, mushrooms, fallen logs and
+// rim trees. The lighting is planned for a magical night shot.
+// References: Lothlorien and Rivendell (pale curved architecture inside living wood), kapok and
+// ceiba buttress roots, banyan prop roots, community elven treehouses (platform rings, curved
+// brackets, lanterns on chains).
+//
+// SCALE (canvas 80 x 92 x 80). The tree is 79 tall. The trunk radius is 6.8 at the ground plus
+// 3.2 of root flare (about 20 across with the flutes) and 4.5 at the fork (y 44). Seven fin
+// buttress roots reach 13-17 out. The crown is about 58 wide and 25 tall: five big masses and
+// one lower shelf, each about 2.3 : 1 wide-to-tall. The platforms are at y 24 (hall; the
+// deck is ring plus lobe, ~30 across), y 38 (music) and y 26 (companion). The hall is 13
+// across, with walls 6 tall and a roof 12 tall (elven roofs run about twice their walls).
+// Openings are at player scale: arches 2 wide x 3 tall, stair steps rise 1.
+//
+// PALETTE (role: blocks, L*)
+//   bark    spruce_wood 17 / dark_oak_wood 20 / mangrove_wood 29 / oak_wood 38, shaded by surface
+//           normal + occlusion (b.shadeSurface); moss_block 43 on upward faces, heavier low down
+//   leaves  spruce leaves 29 (shadowed underside) -> oak / dark oak 38-40 (body) -> azalea 45 +
+//           flowering azalea (sunlit top); cherry leaves 76 on the companion (the warm accent)
+//   walls   calcite 89 (wall field); stripped birch 72 (columns, ring beams, deck rims, brackets);
+//           birch planks 72 (decks); smooth quartz stairs (arch heads, column feet)
+//   roofs   oxidized cut copper 58: 31 L* below the calcite walls. The teal is the cool
+//           complement to the pink cherry and the warm lanterns.
+//   lights  lantern, soul lantern, pearlescent froglight capitals, shroomlights in the bracket
+//           tips and canopy hearts, end-rod finials, glow lichen, glow berries
+//   ground  grass / podzol / moss / coarse dirt by shade and wetness; calcite + polished diorite
+//           stepping stones; stone / andesite / tuff / mossy cobble rocks
+//
+// TECHNIQUES WORTH STEALING (each section explains why)
+//   1. The trunk is a signed-distance field, not a cylinder. Its radius(y, theta) combines a
+//      taper, an exponential root flare and five twisting flutes. It is smooth-unioned (smin)
+//      with fin-shaped buttress roots and the limbs, plus vertically stretched bark noise
+//      (furrows) that the shading pass picks up.
+//   2. The architecture is planned BEFORE the tree is rasterized. Decks, pavilion volumes, the
+//      stair helix and the bridge corridor are reserved, and every bark/leaf placement is
+//      masked out of them. The tree grows around the settlement; nothing is carved afterwards.
+//   3. The crown is a few large, flattened masses with lumpy sub-lobes, ragged undersides,
+//      see-through gaps and a vertical leaf-shade gradient. It is not one ball per branch
+//      ("broccoli"). Secondary branches are steered so they end inside a mass.
+//   4. The roofs are bell-cast solids of revolution quantized to half blocks: a stair on every
+//      sloped course, slabs on the flared eave, an upturned lip.
+//   5. Ground work (paths, plants) reads the heightmap, never b.topY: under a canopy, the top
+//      block of a column is a leaf.
+//   6. Night: the renderer lights each face from its brightest emitter within 18 blocks, so
+//      the glow comes from full-block emitters placed where they wash surfaces: froglight
+//      column capitals, shroomlights cupped in the deck brackets, lanterns hung on chains.
+//
+// STAGES: STAGE=structure renders the placeholders (brown wool bark, grey wool rock);
+// STAGE=texture adds shading and moss; the default (detail) adds plants, lights and props.
 
 const SIZE = [80, 92, 80]
 const TAU = Math.PI * 2
@@ -18,8 +72,8 @@ const norm3 = v => {
 export default function build(api) {
   const { kit } = api
   const { noise } = kit
-  const STAGES = ['massing', 'structure', 'texture', 'detail', 'final']
-  const stage = STAGES.indexOf(process.env.STAGE ?? 'final')
+  const STAGES = ['structure', 'texture', 'detail']
+  const stage = STAGES.indexOf(process.env.STAGE ?? 'detail')
   const at = s => stage >= STAGES.indexOf(s)
   const b = api.builder(SIZE, { seed: 4242 })
   const [W, H, D] = SIZE
@@ -300,7 +354,7 @@ export default function build(api) {
     L1: tube([[31.4, 12, 40], [31, 16, 45], [30.5, 19, 51], [30.2, 20.2, 56], [30.6, 21.4, 61], [31.2, 19, 65.5], [31.8, 13, 68], [32, ground(32, 69) - 2, 69]], 2.8, 1.2, { k: 2.2, rf: s => (s < 0.75 ? lerp(2.8, 1.35, s / 0.75) : lerp(1.35, 1.7, (s - 0.75) / 0.25)) }),
     L2: tube([[30, 27, 37.5], [25, 31.5, 38.6], [20, 34.6, 39.8], [15, 35.6, 40.8], [11, 38.5, 41.5], [8.5, 43, 43], [8, 50, 46], [9.5, 56, 49]], 2.5, 1.0, { k: 2.2 }),
     L3: tube([[31, 17, 34], [30, 21, 28], [28.5, 25, 22], [27, 30, 17], [26, 35, 13]], 2.3, 1.0, { k: 2.2 }),
-    L4: tube([[33, 30, 37.5], [39, 34, 39.5], [45, 38, 41.5], [50, 43, 43], [53, 48, 44]], 2.0, 0.9, { k: 2.0 }),
+    L4: tube([[33, 30, 37.5], [39, 34, 39.5], [45, 39, 41.5], [50, 46, 42], [52, 55, 39.5]], 2.0, 0.9, { k: 2.0 }),
   }
 
   const BARK = 'minecraft:brown_wool' // placeholder: shaded into a mixed bark ramp later
@@ -329,8 +383,7 @@ export default function build(api) {
     { c: [47, 64, 33], r: [12, 5.5, 11], seed: 103 }, // east, on FB
     { c: [17, 62, 50], r: [12, 5, 10.5], seed: 104 }, // south-west, on FD and L2
     { c: [38, 65, 52], r: [10, 4.8, 9], seed: 105 }, // south, a roof of leaves over the hall
-    { c: [26, 39, 15], r: [9, 3.6, 8], seed: 106 }, // lower shelf (north), on L3
-    { c: [51, 50, 44], r: [8.5, 3.6, 7.5], seed: 107 }, // lower shelf (east), on L4
+    { c: [26, 39, 15], r: [10, 3.2, 8], seed: 106 }, // one lower shelf (north, behind the trunk), on L3
   ]
   const massD = ([x, y, z], { c, r }) => Math.sqrt(((x - c[0]) / r[0]) ** 2 + ((y - c[1]) / r[1]) ** 2 + ((z - c[2]) / r[2]) ** 2)
   const inMass = (p, k = 0.8) => MASSES.some(m => massD(p, m) <= k)
