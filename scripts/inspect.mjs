@@ -327,6 +327,8 @@ const officialValues = short => {
   return entry ? new Map(Object.entries(entry.v ?? {}).map(([k, list]) => [k, new Set(list)])) : null
 }
 
+const FRAME_ID = /(_log|_wood|_stem|_hyphae|_pillar|^minecraft:bamboo_block|^minecraft:stripped_bamboo_block)$/
+
 const CONNECTION_EXCEPTIONS = new Set(['barrier', 'carved_pumpkin', 'jack_o_lantern', 'melon', 'pumpkin'])
 const NON_OPAQUE_FULL = /(^|_)glass$|^ice$|^frosted_ice$|^packed_ice$|^blue_ice$|^slime_block$|^honey_block$|^barrier$|^spawner$|^trial_spawner$|^vault$|^beacon$|^tinted_glass$|_leaves$|^mangrove_roots$/
 const STONEISH = /(stone|cobble|brick|deepslate|andesite|diorite|granite|tuff|basalt|prismarine|quartz|purpur|calcite|obsidian|netherrack|tiles|bedrock)/
@@ -2179,6 +2181,8 @@ function computeScore(model, info, lighting, colors) {
       const other = info[grid.get(p)].name
       if (other !== name) different += 1
       const os = stepOf.get(other)
+      // frame timbers against infill are intended contrast (timber framing), not splatter
+      if (FRAME_ID.test(name) || FRAME_ID.test(other)) continue
       if (mine !== undefined && os !== undefined && Math.abs(os - mine) > 2) jumps += 1
     }
     if (present >= 3) {
@@ -2298,7 +2302,12 @@ function computeScore(model, info, lighting, colors) {
   let roofPair = null
   if (roofCells >= 8 && wallRows.length && roofRows.length && wallFaces >= 30) {
     const [roofId, roof] = roofRows[0]
-    const [wallId, wall] = wallRows[0]
+    // the wall field: the most common wall-face block that is not a frame timber and not the
+    // roof material itself (steep roofs expose full roof blocks on their gable-side rows)
+    const family = id => id.replace(/^minecraft:/, '').replace(/_(stairs|slab|wall|planks|block)$/, '').replace(/s$/, '')
+    const roofFamilies = new Set([...roofById.keys()].map(family))
+    const field = wallRows.find(([id]) => !FRAME_ID.test(id) && !roofFamilies.has(family(id))) ?? wallRows[0]
+    const [wallId, wall] = field
     roofContrast = Math.abs(roof.L - wall.L)
     roofPair = `roof ${strip(roofId)} ${Math.round(roof.L)} vs wall ${strip(wallId)} ${Math.round(wall.L)}`
   }

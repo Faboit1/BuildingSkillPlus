@@ -150,6 +150,9 @@ b.roof({
                         // stair, the outermost eave row stays bare. 'block' uses full blocks inside.
   rises: 'north',       // shed only: direction the roof climbs toward
   overwrite: true,      // false = only fill empty cells: lean-tos against a wall, roofs meeting existing walls
+  merge: false,         // true = join roofs already built: per column the higher surface wins (cross gables
+                        // and wings with their own pitch get clean valleys). Start the wing's back end where
+                        // the main roof is already as high as the wing's ridge, or a hole opens behind it
 })
 // → { topY, base, axis, cells }   cells: Map "x,z" → { tb, kind }; the roof block of a column
 //    sits at base + tb, kind is 'stairs' | 'slab' | 'block'. Use it to put things on the roof

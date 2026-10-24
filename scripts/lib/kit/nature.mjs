@@ -123,7 +123,19 @@ function hangStrand(b, x, y, z, length, kind = 'cave_vines') {
 // (height, trunk radius, leaves list, log, wood, branches [min,max], blob [min,max], ...).
 //   b.tree([x, y, z], 'oak', { seed: 3 })   // y = first log block (ground level + 1)
 export function tree(b, base, species = 'oak', opts = {}) {
-  const preset = { ...(SPECIES[species] ?? SPECIES.oak), ...opts }
+  const base0 = SPECIES[species] ?? SPECIES.oak
+  opts = Object.fromEntries(Object.entries(opts).filter(([, v]) => v !== undefined)) // { height: undefined } keeps the preset
+  const preset = { ...base0, ...opts }
+  // a tree shorter than its species' usual height gets a proportionally smaller crown, trunk,
+  // roots and branch count (unless those are given), so a 4-tall garden oak is not 9 wide
+  if (typeof opts.height === 'number' && Array.isArray(base0.height) && opts.height < base0.height[0]) {
+    const k = Math.max(0.35, opts.height / base0.height[0])
+    if (opts.blob === undefined && base0.blob) preset.blob = base0.blob.map(v => Math.max(1.3, v * k))
+    if (opts.trunk === undefined) preset.trunk = Math.max(0.5, base0.trunk * k)
+    if (opts.roots === undefined) preset.roots = Math.round((base0.roots ?? 0) * k)
+    if (opts.branches === undefined && base0.branches) preset.branches = base0.branches.map(v => Math.max(1, Math.round(v * k)))
+    if (opts.radius === undefined && base0.radius) preset.radius = Math.max(1.5, base0.radius * k)
+  }
   const rng = createRng((opts.seed ?? 0) * 977 + Math.round(base[0]) * 31 + Math.round(base[2]) * 17 + 5)
   const height = opts.height ?? rng.int(preset.height[0], preset.height[1])
   const [bx, by, bz] = base

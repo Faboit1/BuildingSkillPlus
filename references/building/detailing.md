@@ -668,7 +668,8 @@ function sconce(b, kit, { mat = 'stone_brick', lantern = 'lantern' } = {}) {
 
 #### 6.14 Sign brackets
 A: hanging sign under a fence arm. B: wall hanging sign (its own bracket). Hanging signs render as
-plain white boards in the preview (their textures are not in the atlas); they are correct in-game.
+plain boards in the preview (white or flat wood colour, no text: their textures are not in the
+atlas); they are correct in-game.
 Size `[3, 2, 3]`.
 
 ```js

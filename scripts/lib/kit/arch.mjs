@@ -148,6 +148,27 @@ function fillUnderRoof(b, cells, base, y, footprint, paint, mat) {
 // wall line (wall top + 1). `gable` fills every wall-line cell up to the roof (gable
 // triangles, the tall side of a shed). Returns { topY, axis, base, cells }.
 export function roof(b, opts) {
+  if (opts.merge) {
+    // Merge with roofs already built: build on a scratch canvas, then per column the higher
+    // surface wins (valleys and cross gables with their own pitch, no attic clutter above).
+    const tmp = b.module(b.size)
+    const result = roof(tmp, { ...opts, merge: false })
+    const columns = new Map()
+    for (const [x, y, z, block] of tmp.entries()) {
+      const key = `${x},${z}`
+      if (!columns.has(key)) columns.set(key, [])
+      columns.get(key).push([y, block])
+    }
+    for (const [key, list] of columns) {
+      const [x, z] = key.split(',').map(Number)
+      const top = Math.max(...list.map(([y]) => y))
+      if (top <= b.topY(x, z)) continue // the existing roof is higher here
+      const low = Math.min(...list.map(([y]) => y))
+      for (let y = low; y <= top; y += 1) b.remove(x, y, z)
+      for (const [y, block] of list) b.set(x, y, z, block)
+    }
+    return result
+  }
   const {
     x0, z0, x1, z1, y,
     type = 'gable',

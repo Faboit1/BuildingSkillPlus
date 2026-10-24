@@ -607,7 +607,8 @@ export class Builder {
     const cells = []
     for (const [x, y, z, block] of this.entries()) {
       if (x < min[0] || y < min[1] || z < min[2] || x > max[0] || y > max[1] || z > max[2]) continue
-      if (only !== undefined && !this.matches(block, only)) continue
+      // `only` may be an id, a list, or a predicate (block, x, y, z) => boolean
+      if (only !== undefined && !(typeof only === 'function' ? only(block, x, y, z, this) : this.matches(block, only))) continue
       cells.push([x, y, z, block])
     }
     if (cells.length === 0 || n === 0) return this
