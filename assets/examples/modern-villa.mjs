@@ -180,6 +180,20 @@ export default function build(api) {
   b.stairway([14, Y1 + 1, 33], 'north', 5, 'polished_deepslate', { width: 3 })
   for (let x = 14; x <= 16; x++) for (let z = 29; z <= 33; z++) for (let y = ground(x, z) - 2; y < Y1 + 33 - z; y++) set(x, y, z, 'polished_deepslate')
 
+  // cliff stair from the pool deck down to the cove: 9 steps along the rock face, cut into the
+  // cliff (rock cleared above the treads), dark parapet on the sea side, then a timber jetty
+  b.stairway([3, SEA + 2, 41], 'east', 9, 'polished_deepslate', { width: 2, base: 1 })
+  for (let i = 0; i < 9; i++) {
+    const x = 3 + i, y = SEA + 2 + i
+    for (const z of [40, 41]) for (let yy = y + 1; yy <= Y1 + 3; yy++) if (!inR(TER, x, z)) b.remove(x, yy, z)
+    for (let yy = 1; yy <= y + 1; yy++) set(x, yy, 42, 'polished_deepslate')        // parapet, one above the tread
+  }
+  for (let x = 0; x <= 2; x++) for (const z of [40, 41]) for (let y = SEA + 2; y <= Y1; y++) b.remove(x, y, z)
+  for (let z = 43; z <= 54; z++) for (const x of [3, 4]) {
+    set(x, SEA + 1, z, 'stripped_spruce_wood')
+    if (z % 3 === 0 || z === 54) for (let y = 0; y <= SEA; y++) if (!b.has(x, y, z) || b.nameAt(x, y, z) === 'minecraft:water') set(x, y, z, 'stripped_spruce_log[axis=y]')
+  }
+
   if (at('detail')) {
     // ============================================================== roofs
     // L1 roof: lawn garden west of L2, raised timber deck in front of L2, glass balustrade
@@ -312,7 +326,7 @@ export default function build(api) {
     }
     // balustrades along the deck edges
     for (let x = TER.x0; x <= TER.x1; x++) if (x < POOL.x0 - 2 || x > POOL.x1 + 2) set(x, F1, TER.z1, RAIL)
-    for (let z = TER.z0; z <= TER.z1; z++) { set(TER.x1, F1, z, RAIL); if (z > 35) set(TER.x0, F1, z, RAIL) }
+    for (let z = TER.z0; z <= TER.z1; z++) { set(TER.x1, F1, z, RAIL); if (z > 35 && z < 40) set(TER.x0, F1, z, RAIL) }
   }
 
 

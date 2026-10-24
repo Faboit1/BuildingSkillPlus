@@ -232,7 +232,12 @@ export default function build(api) {
 
   // ------------------------------------------------------------------ 9. porch and stable carpentry
   b.box([PORCH.x0, FL0, PORCH.z0], [PORCH.x1, FL0, PORCH.z1], PLINTH)
-  for (let x = PORCH.x0 + 1; x <= PORCH.x1 - 1; x += 1) b.set(x, FL0, PORCH.z1 + 1, 'stone_brick_stairs[facing=north,half=bottom]')
+  // two steps down from the porch to the forecourt
+  for (let x = PORCH.x0 + 1; x <= PORCH.x1 - 1; x += 1) {
+    b.set(x, FL0, PORCH.z1 + 1, 'stone_brick_stairs[facing=north,half=bottom]')
+    b.set(x, FL0 - 1, PORCH.z1 + 2, 'stone_brick_stairs[facing=north,half=bottom]')
+    for (let y = ground(x, PORCH.z1 + 2); y < FL0 - 1; y += 1) b.set(x, y, PORCH.z1 + 2, PLINTH)
+  }
   // knee braces between the porch posts and the bay's sill beams
   b.set(PORCH.x0 + 1, FL1 - 1, PORCH.z1, 'dark_oak_stairs[facing=west,half=top]')
   b.set(PORCH.x1 - 1, FL1 - 1, PORCH.z1, 'dark_oak_stairs[facing=east,half=top]')
@@ -269,6 +274,187 @@ export default function build(api) {
 
   // ------------------------------------------------------------------ 11. interior
   if (at('interior')) interior()
+  if (at('landscape')) landscape()
+  if (at('final')) propsAndLights()
+
+  // ------------------------------------------------------------------ 12. landscape
+  // Order: paved ground and paths -> trees and garden -> scatter. (Props and lights come
+  // after all of it, because path/scatter repaint the top block of each column.)
+  function landscape() {
+    const top = (x, z) => ground(x, z)
+    const isGrass = (x, z) => b.nameAt(x, top(x, z), z) === 'minecraft:grass_block' && !b.has(x, top(x, z) + 1, z)
+    const pave = (x, z, paint) => { if (isGrass(x, z) || /dirt|gravel|cobble/.test(b.nameAt(x, top(x, z), z) ?? '')) b.set(x, top(x, z), z, paint) }
+    // the crossroads: two cart roads, slightly wandering, worn to gravel and cobble in the ruts
+    const road = kit.palette({ dirt_path: 6, coarse_dirt: 2, gravel: 2, cobblestone: 1 }, { scale: 2, seed: 31 })
+    b.path([[3, -1], [2.6, 12], [3.4, 26], [3, 40], [2.6, 46]], { width: 5, paint: road, jitter: 0.5, seed: 1 })
+    b.path([[-1, 40], [12, 39.6], [26, 40.4], [40, 40], [52, 39.6]], { width: 5, paint: road, jitter: 0.5, seed: 2 })
+    // cobbled forecourt between the inn and the road; flags near the door, cobble further out
+    const court = kit.gradient([
+      kit.palette({ stone_bricks: 3, polished_andesite: 2, andesite: 1 }, { scale: 1.5, seed: 4 }),
+      kit.palette({ cobblestone: 4, andesite: 2, gravel: 1, stone_bricks: 1 }, { scale: 2, seed: 5 }),
+      kit.palette({ cobblestone: 2, gravel: 2, coarse_dirt: 2, dirt_path: 1 }, { scale: 2, seed: 6 }),
+    ], { axis: 'z', from: 32, to: 38, dither: 0.7 })
+    for (let x = 7; x <= 41; x += 1) for (let z = 31; z <= 38; z += 1) {
+      const edge = Math.abs(x - 24) > 15 + 2 * kit.noise.fbm2(x, z, { scale: 4, seed: 9 })
+      if (!edge) pave(x, z, court)
+    }
+    // stable yard: hard-standing of cobble and gravel, a dirt track in from the road
+    const yard = kit.palette({ gravel: 3, coarse_dirt: 3, cobblestone: 2, dirt_path: 2 }, { scale: 2.5, seed: 8 })
+    for (let x = 36; x <= 51; x += 1) for (let z = 10; z <= 38; z += 1) {
+      const d = Math.min(x - 36, 51 - x, z - 10, 38 - z)
+      if (d < 2 && kit.noise.hash01(x, 0, z, 3) < 0.5) continue
+      if (!inR(STABLE, x, z)) pave(x, z, yard)
+    }
+    // transition ring at the wall base: a 1-wide strip of gravel and coarse dirt
+    for (let x = 6; x <= 34; x += 1) for (let z = 8; z <= 20; z += 1) {
+      if (onPad(x, z) || nearPad(x, z)) continue
+      const near = [[1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [-2, 0], [0, 2], [0, -2]].some(([dx, dz]) => nearPad(x + dx, z + dz))
+      if (near && kit.noise.hash01(x, 1, z, 4) < 0.7) pave(x, z, kit.palette({ coarse_dirt: 3, gravel: 2, rooted_dirt: 1 }, { scale: 1.5 }))
+    }
+
+    // kitchen garden behind the inn, fenced, entered from the kitchen door
+    const GD = { x0: 6, x1: 22, z0: 2, z1: 17 }
+    for (let x = GD.x0; x <= GD.x1; x += 1) for (let z = GD.z0; z <= GD.z1; z += 1) {
+      const rim = x === GD.x0 || x === GD.x1 || z === GD.z0 || z === GD.z1
+      if (!rim) continue
+      if ((x === GD.x1 && z === 16) || (z === GD.z1 && x === 9)) {
+        b.set(x, top(x, z) + 1, z, `spruce_fence_gate[facing=${x === GD.x1 ? 'east' : 'south'}]`)
+        continue
+      }
+      b.set(x, top(x, z) + 1, z, (x + z) % 6 === 0 ? 'spruce_log[axis=y]' : 'spruce_fence')
+    }
+    b.path([[24, 16], [20, 16], [16, 15.5], [12, 15], [9, 16], [9, 18]], { width: 1.6, paint: kit.palette({ coarse_dirt: 3, gravel: 2, dirt_path: 2 }, { scale: 1 }), jitter: 0.2, seed: 5 })
+    b.path([[11.5, 15], [11.5, 4]], { width: 1.2, paint: kit.palette({ dirt_path: 3, coarse_dirt: 2 }, { scale: 1 }), jitter: 0.1, seed: 6 })
+    // raised beds: log kerbs, farmland, ripe crops
+    const crops = ['carrots[age=7]', 'wheat[age=7]', 'potatoes[age=7]', 'beetroots[age=3]']
+    for (const [x0, x1, z0, z1, i] of [[8, 10, 4, 13, 0], [13, 15, 4, 8, 1], [13, 15, 10, 13, 2], [17, 20, 4, 7, 3]]) {
+      for (let x = x0; x <= x1; x += 1) for (let z = z0; z <= z1; z += 1) {
+        const y = top(x, z) + 1
+        const kerb = x === x0 || x === x1 || z === z0 || z === z1
+        b.set(x, y - 1, z, 'dirt')
+        b.set(x, y, z, kerb ? `spruce_log[axis=${z === z0 || z === z1 ? 'x' : 'z'}]` : 'farmland[moisture=7]')
+        if (!kerb) b.set(x, y + 1, z, crops[(i + (z > (z0 + z1) / 2 ? 1 : 0)) % 4])
+      }
+    }
+    // herb and berry bed, beehives, compost, water butt, a bench under the apple tree
+    for (let x = 17; x <= 20; x += 1) for (let z = 10; z <= 12; z += 1) {
+      b.set(x, top(x, z), z, 'rooted_dirt')
+      b.set(x, top(x, z) + 1, z, ['sweet_berry_bush[age=3]', 'allium', 'fern', 'oxeye_daisy', 'cornflower'][(x * 3 + z) % 5])
+    }
+    for (const x of [7, 8]) { b.set(x, top(x, 15) + 1, 15, 'spruce_slab[type=top]'); b.set(x, top(x, 15) + 2, 15, 'beehive[facing=east,honey_level=3]') }
+    b.set(21, top(21, 3) + 1, 3, 'composter[level=6]')
+    b.set(23, top(23, 14) + 1, 14, 'barrel[facing=up]')
+    b.tree([19, top(19, 15) + 1, 15], 'oak', { height: 5, seed: 8, trunk: 0.6, leaves: ['oak_leaves', 'flowering_azalea_leaves', 'azalea_leaves'] })
+    // woodpile against the chimney, sheltered by its weathering
+    for (let z = 22; z <= 26; z += 1) for (let y = top(7, z) + 1; y <= top(7, z) + (z === 22 || z === 26 ? 1 : 2); y += 1) b.set(7, y, z, (y + z) % 3 ? 'oak_log[axis=x]' : 'spruce_log[axis=x]')
+
+    // trees in three sizes, kept off the street front so the inn stays the focus
+    b.tree([45, top(45, 5) + 1, 5], 'big_oak', { seed: 3, height: 13 })
+    b.tree([16, top(16, 0) + 1, 0], 'oak', { seed: 5, height: 9 })
+    b.tree([49, top(49, 31) + 1, 31], 'birch', { seed: 2, height: 9 })
+    for (const [x, z, r] of [[35, 8, 1.7], [6, 19, 1.6], [37, 33, 1.5], [10, 36, 1.4], [50, 15, 1.8], [33, 4, 1.6]]) b.bush([x, top(x, z) + 1, z], { radius: r, seed: x * 3 + z })
+    // grass and flowers last among the landscape: clumped, thin near paths
+    b.scatter({ density: 0.28, seed: 4, paints: [[12, 'short_grass'], [4, 'tall_grass'], [2, 'fern'], [1, 'dandelion'], [1, 'poppy'], [1, 'oxeye_daisy'], [1, 'cornflower']] })
+  }
+
+  // ------------------------------------------------------------------ 13. props and lights (last)
+  function propsAndLights() {
+    const top = (x, z) => ground(x, z)
+    // the sign: a bracket off the corner post toward the crossroads, board and lantern below it
+    b.set(UP.x0 - 1, FL1 + 3, UP.z1, 'dark_oak_fence')
+    b.set(UP.x0 - 2, FL1 + 3, UP.z1, 'dark_oak_fence')
+    b.set(UP.x0 - 3, FL1 + 3, UP.z1, 'dark_oak_fence')
+    b.set(UP.x0 - 1, FL1 + 2, UP.z1, 'dark_oak_stairs[facing=east,half=top]')
+    b.set(UP.x0 - 2, FL1 + 2, UP.z1, 'dark_oak_hanging_sign[attached=true,rotation=0]')
+    b.set(UP.x0 - 3, FL1 + 2, UP.z1, 'lantern[hanging=true]')
+    // porch: built-in benches, lanterns flanking the door, barrels and a crate stack
+    for (let z = PORCH.z0; z <= PORCH.z1 - 1; z += 1) {
+      b.set(PORCH.x0 + 1, FL0 + 1, z, 'spruce_stairs[facing=west,half=bottom]')
+      b.set(PORCH.x1 - 1, FL0 + 1, z, 'spruce_stairs[facing=east,half=bottom]')
+    }
+    for (const x of [DOOR_X - 2, DOOR_X + 2]) b.set(x, FL1 - 1, PORCH.z1 - 1, 'lantern[hanging=true]')
+    b.set(DOOR_X, FL1 - 1, PORCH.z1, 'lantern[hanging=true]')
+    for (const [x, z, id] of [[15, 32, 'barrel[facing=up]'], [15, 33, 'barrel[facing=up]'], [14, 32, 'barrel[facing=south]'], [27, 32, 'barrel[facing=up]'], [28, 32, 'hay_block[axis=x]']]) b.set(x, top(x, z) + 1, z, id)
+    b.set(15, top(15, 32) + 2, 32, 'flower_pot')
+    b.set(27, top(27, 32) + 2, 32, 'potted_red_tulip')
+    // street benches against the jettied front
+    for (const x0 of [30]) { for (let x = x0; x <= x0 + 2; x += 1) b.set(x, top(x, 32) + 1, 32, 'spruce_stairs[facing=north,half=bottom]'); b.set(x0 - 1, top(x0 - 1, 32) + 1, 32, 'spruce_trapdoor[facing=west,open=true]'); b.set(x0 + 3, top(x0 + 3, 32) + 1, 32, 'spruce_trapdoor[facing=east,open=true]') }
+    // horse trough by the road
+    for (let x = 9; x <= 11; x += 1) { b.set(x, top(x, 35) + 1, 35, 'water_cauldron[level=3]') }
+    b.set(8, top(8, 35) + 1, 35, 'spruce_fence')
+    b.set(12, top(12, 35) + 1, 35, 'spruce_fence')
+    // lamp posts: crossroads corner, yard gate, garden gate
+    b.lampPost([7, top(7, 37) + 1, 37], { height: 4, post: 'dark_oak_fence', foot: 'cobblestone_wall', arm: 'east' })
+    b.lampPost([41, top(41, 36) + 1, 36], { height: 4, post: 'dark_oak_fence', foot: 'cobblestone_wall', arm: 'west' })
+    b.lampPost([10, top(10, 18) + 1, 18], { height: 3, post: 'spruce_fence', foot: 'cobblestone_wall' })
+    // a signpost at the crossroads
+    for (let y = 1; y <= 3; y += 1) b.set(6, top(6, 43) + y, 43, 'spruce_fence')
+    b.set(5, top(6, 43) + 3, 43, 'spruce_wall_sign[facing=west]')
+    b.set(6, top(6, 43) + 2, 42, 'spruce_wall_sign[facing=north]')
+
+    // stable: mangers of hay, water, stall rails, tack
+    for (const z of [22, 26]) for (let x = STABLE.x0; x <= STABLE.x0 + 3; x += 1) b.set(x, 7, z, 'spruce_fence')
+    for (const z of [20, 24, 28]) {
+      b.set(STABLE.x0, 7, z, 'hay_block[axis=z]')
+      b.set(STABLE.x0, 7, z + 1, 'water_cauldron[level=3]')
+      b.set(STABLE.x0 + 1, 7, z, 'spruce_trapdoor[facing=east,half=bottom,open=true]')
+    }
+    b.set(STABLE.x0, 7, 19, 'chest[facing=east]')
+    b.set(STABLE.x0, 8, 19, 'saddle' in {} ? 'air' : 'brown_carpet')
+    b.set(STABLE.x0 + 2, 7, 29, 'hay_block[axis=x]')
+    b.set(STABLE.x0 + 3, 7, 29, 'hay_block[axis=z]')
+    b.set(STABLE.x0 + 2, 8, 29, 'hay_block[axis=x]')
+    b.set(STABLE.x1, 8, 24, 'lantern[hanging=true]')
+    b.set(37, 12, 24, 'lantern[hanging=true]')
+    // stable yard: well, cart, trough and hitching rail, hay and casks
+    const well = b.module([5, 6, 5])
+    for (let x = 1; x <= 3; x += 1) for (let z = 1; z <= 3; z += 1) {
+      const ring = x !== 2 || z !== 2
+      well.set(x, 0, z, ring ? 'cobblestone' : 'water')
+      if (ring) well.set(x, 1, z, x === 2 || z === 2 ? 'cobblestone_wall' : 'mossy_cobblestone_wall')
+    }
+    for (const x of [1, 3]) for (let y = 2; y <= 3; y += 1) well.set(x, y, 2, 'spruce_fence')
+    well.set(2, 3, 2, 'spruce_fence')
+    well.set(2, 2, 2, 'chain[axis=y]')
+    for (let x = 0; x <= 4; x += 1) {
+      well.set(x, 4, 1, 'spruce_stairs[facing=south,half=bottom]')
+      well.set(x, 4, 3, 'spruce_stairs[facing=north,half=bottom]')
+      well.set(x, 4, 2, 'spruce_planks')
+      well.set(x, 5, 2, 'spruce_slab[type=bottom]')
+    }
+    b.stamp(well, [45, top(47, 18), 16])
+    b.set(47, top(47, 18) - 1, 18, 'water')
+    b.set(48, top(48, 21) + 1, 21, 'water_cauldron[level=2]')
+    // a hay wagon: plank bed on grindstone wheels, shafts resting on the ground
+    const cx = 44, cz = 27, cy = top(45, 29) + 1
+    for (let z = cz; z <= cz + 3; z += 1) {
+      for (let x = cx; x <= cx + 2; x += 1) b.set(x, cy, z, 'spruce_slab[type=top]')
+      b.set(cx - 1, cy, z, z === cz || z === cz + 3 ? 'grindstone[face=wall,facing=west]' : 'spruce_trapdoor[facing=west,open=true]')
+      b.set(cx + 3, cy, z, z === cz || z === cz + 3 ? 'grindstone[face=wall,facing=east]' : 'spruce_trapdoor[facing=east,open=true]')
+    }
+    b.set(cx, cy + 1, cz + 1, 'hay_block[axis=z]')
+    b.set(cx + 1, cy + 1, cz + 1, 'hay_block[axis=z]')
+    b.set(cx + 1, cy + 1, cz + 2, 'hay_block[axis=z]')
+    b.set(cx + 2, cy + 1, cz + 2, 'barrel[facing=south]')
+    b.set(cx, cy + 1, cz + 3, 'barrel[facing=up]')
+    b.set(cx + 1, cy, cz + 4, 'spruce_fence')
+    b.set(cx + 1, cy - 1 < top(cx + 1, cz + 5) ? cy : cy, cz + 5, 'spruce_fence')
+    // hitching rail and trough along the stable front
+    for (let z = 19; z <= 23; z += 1) b.set(43, top(43, z) + 1, z, z === 19 || z === 23 ? 'spruce_log[axis=y]' : 'spruce_fence')
+    for (let z = 20; z <= 22; z += 1) b.set(44, top(44, z) + 1, z, 'water_cauldron[level=3]')
+    // hay stack and casks in the yard corner; crate stack by the kitchen door
+    for (const [x, z, h] of [[49, 11, 2], [50, 11, 1], [49, 12, 1], [50, 12, 2], [48, 11, 1]]) for (let k = 1; k <= h; k += 1) b.set(x, top(x, z) + k, z, 'hay_block[axis=y]')
+    for (const [x, z, id] of [[33, 11, 'barrel[facing=up]'], [34, 11, 'barrel[facing=east]'], [33, 10, 'barrel[facing=up]'], [34, 12, 'composter[level=3]']]) b.set(x, top(x, z) + 1, z, id)
+    b.set(33, top(33, 11) + 2, 11, 'barrel[facing=north]')
+    b.lampPost([43, top(43, 25) + 1, 25], { height: 3, post: 'spruce_fence', foot: 'cobblestone_wall' })
+    // door lights: kitchen doors, the stable, under the front jetty
+    b.set(WING.x1 + 1, FL1 - 2, 12, 'lantern[hanging=true]')
+    b.set(WING.x1 + 1, FL1 - 1, 12, 'spruce_fence')
+    b.set(WING.x0 - 1, FL1 - 2, 15, 'lantern[hanging=true]')
+    b.set(WING.x0 - 1, FL1 - 1, 15, 'spruce_fence')
+    for (const x of [13, 33]) b.set(x, FL1 - 1, UP.z1 + 1, 'lantern[hanging=true]')
+    for (const x of [13, 33]) b.set(x, FL1, UP.z1 + 1, 'dark_oak_fence')
+  }
   function interior() {
     const G = FL0 + 1   // first air row of the ground floor
     const U = FL1 + 1   // first air row upstairs

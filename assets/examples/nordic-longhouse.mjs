@@ -122,7 +122,7 @@ export default function build(api) {
   const wReal = x => 5 + 1.6 * (1 - Math.min(1, u(x) ** 2))
   const Wd = x => Math.round(wReal(clamp(x, X0, X1)))
   const EAVE = F + 5
-  const ridgeRise = x => 10 + 2.5 * Math.min(1.25, u(x) ** 2)
+  const ridgeRise = x => 10 + 2.5 * Math.min(1, u(x) ** 2)
   const span = x => wReal(x) + 1.25
   const prof = r => 0.65 * r + 0.35 * r * r
   const roofT = (x, z) => EAVE + ridgeRise(x) * prof(clamp(1 - Math.abs(z - CZ) / span(x), 0, 1))
@@ -234,7 +234,7 @@ export default function build(api) {
     for (let y = yTop - 3; y < yTop; y += 1) {
       const blk = b.get(x, y, z)
       if (!blk || !/_planks$/.test(blk.name) || b.has(x, y, z + out)) continue
-      if (kit.noise.coherent01(x, y, z, { scale: 3.5, seed: 91 }) + wet > 1.02) b.set(x, y, z, 'moss_block')
+      if (kit.noise.coherent01(x, y, z, { scale: 3.5, seed: 91 }) + wet > 0.92) b.set(x, y, z, 'moss_block')
     }
   }
   // ---- gable ends: barge boards along the rake and crossed horns over the apex
@@ -716,6 +716,20 @@ export default function build(api) {
   }
   for (const [x, z, h] of [[30, 12, 11], [56, 12, 9], [21, 17, 13]]) b.tree([x, ground(x, z) + 1, z], 'spruce', { seed: x, height: h, radius: 3 })
 
+  // a small fenced barley field behind the hall (wheat stands in for barley), strips of ripe and
+  // green crop with a fallow strip; fences follow the ground, the gate faces the hall
+  {
+    const fx0 = 34, fx1 = 47, fz0 = 10, fz1 = 15
+    for (let x = fx0; x <= fx1; x += 1) for (let z = fz0; z <= fz1; z += 1) {
+      const g = ground(x, z)
+      const edge = x === fx0 || x === fx1 || z === fz0 || z === fz1
+      for (let y = g + 1; y <= g + 3; y += 1) b.remove(x, y, z)
+      if (edge) { b.set(x, g + 1, z, x === 40 && z === fz1 ? 'spruce_fence_gate[facing=south,open=false]' : 'spruce_fence'); continue }
+      b.set(x, g, z, 'farmland[moisture=7]')
+      const strip = Math.floor((x - fx0 - 1) / 4)
+      b.set(x, g + 1, z, strip === 1 ? (hash(x, 0, z, 71) < 0.5 ? 'carrots[age=5]' : 'potatoes[age=6]') : strip === 2 ? 'wheat[age=4]' : 'wheat[age=7]')
+    }
+  }
   // ground cover
   b.scatter({ density: 0.22, clump: 6, seed: 3, paints: [[10, 'short_grass'], [3, 'fern'], [2, 'tall_grass'], [1, 'large_fern']] })
   b.scatter({ x0: 0, z0: 0, x1: W - 1, z1: 10, on: ['minecraft:podzol', 'minecraft:grass_block'], density: 0.08, clump: 5, seed: 4, paints: [[3, 'sweet_berry_bush[age=3]'], [2, 'fern'], [1, 'brown_mushroom']] })
