@@ -98,9 +98,29 @@ All accept `opts.hollow` (watertight shell) and `opts.thickness` where it makes 
 | `b.fillWhere(min, max, inside, paint)` | generic predicate rasterizer |
 
 `kit.sdf`: `sphere(c, r)`, `ellipsoid(c, radii)`, `box(min, max)`, `capsule(a, b, r \| t => r)`,
-`cylinder(base, r, h)`, `torus(c, R, r)`, `union(...)`, `intersect(...)`, `subtract(a, b)`,
-`smoothUnion(k, ...)` (organic fillets), `displace(f, amount, scale)` (noisy rock surfaces),
-`shell(f, thickness)`.
+`taper(a, b, r0, r1)` (limbs, horns, branches), `cylinder(base, r, h)`, `torus(c, R, r)`,
+`union(...)`, `intersect(...)`, `subtract(a, b)`, `smoothUnion(k, ...)` (organic fillets),
+`displace(f, amount, scale)` (noisy rock surfaces), `shell(f, thickness)`.
+`kit.catmullRom(points, { samplesPerBlock })` returns a smooth centripetal spline through the points.
+
+## Builder: sculpting
+
+Organic forms, statues, ships and landmarks (`scripts/lib/kit/sculpt.mjs`; techniques and numbers
+in `references/building/sculpting.md`). Block out in a placeholder (`white_wool`), check the
+silhouette render, then shade.
+
+| Method | Notes |
+| --- | --- |
+| `b.tubeAlong(points, s => r, paint, opts)` | watertight tapered tube on a centripetal Catmull-Rom (tails, necks, roots, cables); never thinner than 0.87; a function paint also gets `s` (0..1 along) |
+| `b.shadeSurface(min, max, rampDarkToLight, { only, light, ambient, bands, base })` | shade a sculpted volume by surface normal · light + occlusion; every ramp step used, clumped dither, stairs/slabs keep shape. Ramp is **dark → light** (auto-flipped by measured L\* if reversed). Use for statues, rocks, creatures; use `b.texture` for architecture |
+| `b.erode(min, max, { preset, iterations, only, protect })` | VoxelSniper presets: `smooth`, `melt`, `fill`, `lift`, `floatclean` |
+| `b.hull({ bow, heading, length, beam, ... })` | lofted ship hull (keel, sheer, tumblehome, decks, bulwark, gunports, `doubleEnded` longships); returns `at(u, w, y)`, `deckY(u)`, `mast(u)`, `halfBreadth(u)` |
+| `b.crystalCluster(base, opts)` | hexagonal crystals with pyramid tips on a bed |
+| `b.hugeMushroom(base, { type: 'red'\|'brown', ... })` | stem + cap with correct mushroom-block faces |
+| `b.fixMushroomFaces(min, max)` | recompute mushroom-block faces after hand edits |
+| `b.cloud(center, { length, ... })` | flat-based cumulus, shaded from above |
+| `b.rockArch(footA, footB, opts)` | eroded natural arch with strata |
+| `b.figure(base, { height, heads, build, facing, paint, pose })` | humanoid statue on an armature (pose: arm raise/swing/elbow, leg swing/spread/knee, contrapposto, headTurn, lean); returns joint positions |
 
 ## Builder: architecture
 

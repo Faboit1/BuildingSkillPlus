@@ -9,8 +9,9 @@ import * as materials from './materials.mjs'
 import { NATURE_METHODS, TREE_SPECIES } from './nature.mjs'
 import * as noise from './noise.mjs'
 import * as paint from './paint.mjs'
+import { EROSION_PRESETS, SCULPT_METHODS, centripetalCatmullRom, sdEllipsoid, sdTaper } from './sculpt.mjs'
 
-for (const [name, fn] of Object.entries({ ...ARCH_METHODS, ...NATURE_METHODS })) {
+for (const [name, fn] of Object.entries({ ...ARCH_METHODS, ...NATURE_METHODS, ...SCULPT_METHODS })) {
   Builder.prototype[name] = function method(...args) {
     return fn(this, ...args)
   }
@@ -20,10 +21,10 @@ for (const [name, fn] of Object.entries({ ...ARCH_METHODS, ...NATURE_METHODS }))
 const len3 = (x, y, z) => Math.sqrt(x * x + y * y + z * z)
 export const sdf = {
   sphere: (c, r) => (x, y, z) => len3(x - c[0], y - c[1], z - c[2]) - r,
-  ellipsoid: (c, radii) => (x, y, z) => {
-    const k0 = len3((x - c[0]) / radii[0], (y - c[1]) / radii[1], (z - c[2]) / radii[2])
-    return (k0 - 1) * Math.min(...radii)
-  },
+  // Quilez bound: close to the true distance, so smooth unions of ellipsoids blend evenly
+  ellipsoid: (c, radii) => (x, y, z) => sdEllipsoid([x, y, z], c, radii),
+  // capsule from a to b whose radius tapers linearly from r0 to r1 (limbs, branches, horns)
+  taper: (a, b, r0, r1) => (x, y, z) => sdTaper([x, y, z], a, b, r0, r1),
   box: (min, max) => (x, y, z) => {
     const cx = (min[0] + max[0]) / 2
     const cy = (min[1] + max[1]) / 2
@@ -105,6 +106,8 @@ export function createKit() {
     hash01: noise.hash01,
     // shapes
     sdf,
+    catmullRom: centripetalCatmullRom,
+    EROSION_PRESETS,
     onionProfile,
     TREE_SPECIES,
   }
