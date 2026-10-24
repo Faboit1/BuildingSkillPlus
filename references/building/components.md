@@ -983,20 +983,35 @@ for (let x = 13; x <= 19; x++) b.set(x, H.F - 1, H.z1 + 1, 'stone_brick_stairs[f
 - **Orders** (Romanesque and Gothic portals): repeat the arch 2–3 times, each 1 deeper and 1 narrower.
 - **Arcade:** arches between piers 1–3 wide; a blind arcade (−1 recess) enlivens a long wall.
 
-`b.arch(a, c, paint, { type: 'round' | 'pointed' | 'segmental' | 'flat', thickness, depth, fill, spandrel, top, rise })`
-builds full-block voussoirs: `a` and `c` are the springer cells (same y, inclusive opening width),
-`depth` runs toward +z (or +x), `rise` is the segmental height, `fill` clears the opening. Use it
-for pointed and segmental arches; round heads read better with the stair-smoothed profile below
-(full-block round arches end in a 1-wide notch at the crown).
+`b.arch(a, c, paint, { type: 'round' | 'pointed' | 'segmental' | 'flat', thickness, depth, fill, spandrel, top, rise, stairs })`
+builds the arch: `a` and `c` are the springer cells (same y, inclusive opening width), `depth` runs
+toward +z (or +x), `rise` is the segmental height, `fill` clears the opening (`fill: null` draws only
+the ring, e.g. a relieving arch). Partly open cells become upside-down stairs of the ring material,
+so small arches keep their curve or point (`stairs: false` for full blocks only). Kit output, `paint`
+= the wall block:
 
-```js
-b.box([0, H.F, 20], [36, H.F + 13, 21], 'stone_bricks')                                        // 2-deep wall
-b.box([2, H.F, 20], [10, H.F + 3, 21], 'air');  b.arch([2, H.F + 4, 20], [10, H.F + 4, 20], 'polished_andesite', { type: 'pointed', depth: 2 })
-b.box([14, H.F, 20], [24, H.F + 3, 21], 'air'); b.arch([14, H.F + 4, 20], [24, H.F + 4, 20], 'polished_andesite', { type: 'segmental', rise: 3, depth: 2 })
+```text
+round, span 7                     pointed, span 7                   segmental, span 11, rise 3
+                                  y10  #  #  #  #  #  #  #  #  #
+y9   #  #  #  #  #  #  #  #  #    y9   #  #  #  #     #  #  #  #
+y8   #  #  #  #  #  #  #  #  #    y8   #  #  #           #  #  #    y8   #  #  #  #  #  #  #  #  #  #  #  #  #
+y7   #  #  #  p     q  #  #  #    y7   #  #                 #  #    y7   #  #  #  #  #  #  #  #  #  #  #  #  #
+y6   #  #                 #  #    y6   #  p                 q  #    y6   #  #  #  p  p           q  q  #  #  #
+y5   #  p                 q  #    y5   #                       #    y5   #  #  p                       q  #  #
+y4   #                       #    y4   #                       #    y4   #  p                             q  #
+y3   #                       #    y3   #                       #    y3   #                                   #
+y2   #                       #    y2   #                       #    y2   #                                   #
 ```
 
-For spans up to ~9 a stair-smoothed profile reads rounder than full-block voussoirs. `rows` = the
-opening width of each row above the springing (outer row first, same parity as the span):
+```js
+b.box([0, H.F, 20], [40, H.F + 13, 21], 'stone_bricks')                                        // 2-deep wall
+b.box([2, H.F, 20], [8, H.F + 3, 21], 'air');   b.arch([2, H.F + 4, 20], [8, H.F + 4, 20], 'polished_andesite', { type: 'round', depth: 2 })
+b.box([12, H.F, 20], [18, H.F + 3, 21], 'air'); b.arch([12, H.F + 4, 20], [18, H.F + 4, 20], 'polished_andesite', { type: 'pointed', depth: 2 })
+b.box([22, H.F, 20], [32, H.F + 3, 21], 'air'); b.arch([22, H.F + 4, 20], [32, H.F + 4, 20], 'polished_andesite', { type: 'segmental', rise: 3, depth: 2 })
+```
+
+To dictate an exact profile (basket, Tudor, lancet), give the opening width of each row above the
+springing (outer row first, same parity as the span) to this helper:
 
 ```text
 span 3, [1]: shoulders    span 5, [3]: basket         span 7, [5, 3]: round

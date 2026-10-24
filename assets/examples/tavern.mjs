@@ -295,17 +295,18 @@ export default function build(api) {
   }
   for (const z of [STABLE.z0, STABLE.z1]) for (let x = STABLE.x0; x <= STABLE.x1; x += 1) {
     const top = shedUnder(x, z)
-    for (let y = 6; y < top; y += 1) b.set(x, y, z, x === STABLE.x1 ? POST : y === 6 ? PLINTH : 'stripped_spruce_log[axis=y]')
+    for (let y = 6; y < top; y += 1) b.set(x, y, z, x === STABLE.x1 ? 'spruce_log[axis=y]' : y === 6 ? PLINTH : 'stripped_spruce_log[axis=y]')
   }
-  for (const z of [22, 26]) b.box([STABLE.x1, 6, z], [STABLE.x1, 9, z], POST)
-  for (let z = STABLE.z0; z <= STABLE.z1; z += 1) b.set(STABLE.x1, 9, z, z === STABLE.z0 || z === STABLE.z1 || z === 22 || z === 26 ? POST : beam('z'))
+  // the stable is rougher carpentry than the inn: spruce in the bark, not dark oak
+  for (const z of [22, 26]) b.box([STABLE.x1, 6, z], [STABLE.x1, 9, z], 'spruce_log[axis=y]')
+  for (let z = STABLE.z0; z <= STABLE.z1; z += 1) b.set(STABLE.x1, 9, z, z === STABLE.z0 || z === STABLE.z1 || z === 22 || z === 26 ? 'spruce_log[axis=y]' : 'spruce_log[axis=z]')
 
   // ------------------------------------------------------------------ 10. texture (one call per surface role)
   if (at('texture')) {
     const stoneRamp = ['andesite', 'cobblestone', 'stone_bricks', 'tuff_bricks']
     b.texture([MAIN.x0, FL0, WING.z0], [MAIN.x1, FL1 - 1, MAIN.z1], stoneRamp, { only: STONE, focus: [[DOOR_X, FL0 + 2, MAIN.z1]], maxStep: 1, seed: 3 })
     b.texture([0, 0, 0], [51, FL0, 45], ['tuff_bricks', 'cobbled_deepslate', 'deepslate_bricks'], { only: PLINTH, base: 0.35, seed: 5 })
-    b.texture([0, FL1, 0], [51, 30, 45], ['calcite', 'smooth_sandstone'], { only: DAUB, mid: 0.55, base: 0.2, drip: 0.15, noise: 0.18, maxStep: 1, seed: 7 })
+    b.texture([0, FL1, 0], [51, 30, 45], ['calcite', 'smooth_sandstone'], { only: DAUB, mid: 0.7, base: 0.2, drip: 0.15, noise: 0.18, maxStep: 1, seed: 7 })
     b.texture([0, 9, 0], [51, 30, 45], ['cobbled_deepslate', 'deepslate_bricks', 'deepslate_tiles'],
       { only: n => /deepslate/.test(n.name), mid: 0.75, base: 0.3, top: 0.35, edge: 0.1, noise: 0.2, maxStep: 1, seed: 11 })
     // chimneys after the roof (their sooty top uses cobbled deepslate, which the roof pass would catch)

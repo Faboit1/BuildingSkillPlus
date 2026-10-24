@@ -697,8 +697,10 @@ function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 
     }
   }
   // rails: fence railings on every deck edge, dark slab cap on the waist bulwark
+  // castle rails: a balustrade of open trapdoor panels (panel on the outer edge) between fence posts
   const railRun = (u0, u1, y) => {
-    for (let u = u0; u <= u1; u += 1) for (const sgn of [-1, 1]) put(u, sgn * hwAt(u, y - 1), y, 'spruce_fence')
+    for (let u = u0; u <= u1; u += 1)
+      for (const sgn of [-1, 1]) put(u, sgn * hwAt(u, y - 1), y, u % 3 === 1 || u === u0 || u === u1 ? 'spruce_fence' : `spruce_trapdoor[facing=${OUT(-sgn)},half=bottom,open=true]`)
   }
   railRun(U_QD, U_PD - 1, QD + 1)
   railRun(U_PD, L, PD + 1)
@@ -707,7 +709,9 @@ function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 
     for (const sgn of [-1, 1]) {
       const y = ship.deckY(u) + 1
       const w = outerW(u, y, sgn)
-      if (w >= 0) put(u, sgn * w, y + 1, 'dark_oak_slab[type=bottom]')
+      if (w < 0) continue
+      put(u, sgn * w, y + 1, 'dark_oak_slab[type=bottom]')
+      put(u, sgn * (w - 1), y, 'spruce_slab[type=bottom]', { keep: true }) // gangway along the bulwark
     }
   // break of the quarterdeck: transverse rail, two stairs up from the waist, a door into the cabin
   for (let w = -hwAt(U_QD, QD) + 1; w <= hwAt(U_QD, QD) - 1; w += 1) put(U_QD, w, QD + 1, 'spruce_fence')

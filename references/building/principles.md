@@ -303,7 +303,9 @@ far away while a 3-px trapdoor only reads up close. Pixel-per-block thresholds:
 - **Glass panes beat glass blocks** in houses: a free 7 px reveal and thin frame lines. Full glass
   belongs set back a whole block, or in greenhouses and modern curtain walls.
 
-Frame at 0, infill at −1, for a whole upper storey (frame plane = the ground-floor wall face):
+Frame at 0, infill at −1, for a whole upper storey (frame plane = the ground-floor wall face). For a
+single wall, `b.timberWall(a, c, { inset: 1, facing })` does the same; for a closed box this version
+keeps the corners clean (infill walls inset by 1, frame-only planes on the wall lines):
 
 ```js
 const y0 = H.F + 4, y1 = H.F + 8
@@ -519,8 +521,8 @@ small and light-catching (trapdoors, buttons, chains). Spend blocks on the first
   (Tudor) or light stone frame on dark brick (§9).
 - Posts are logs `axis=y`; beams use `axis` along their run; corner beams with bark on every face
   use `*_wood`. `b.timberWall` orients them for you.
-- **Braces only in bays ≥ 4 wide**; one brace direction per panel, mirrored about the bay centre.
-  Knee braces (upside-down stairs, leg on the post) work in any bay.
+- **Diagonal braces read only in panels ≥ 5 wide × 4 tall**; one brace direction per panel,
+  mirrored about the bay centre. Knee braces (upside-down stairs, leg on the post) work in any bay.
 - **Floor beams span the short direction** of the house (WesterosCraft).
 - Details and recipes: [components.md §2.1](components.md#21-timber-framing).
 
