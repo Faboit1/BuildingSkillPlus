@@ -542,8 +542,8 @@ export default function build(api) {
   }
   const rng = kit.rng(7)
   for (let i = 0; i < 70; i += 1) {
-    const x = rng.int(5, W - 6)
-    const z = rng.int(5, D - 6)
+    const x = rng.int(9, W - 10)
+    const z = rng.int(9, D - 10)
     const g = ground(x, z)
     if (g < SEA + 6 || b.nameAt(x, g, z) !== 'minecraft:grass_block' || b.has(x, g + 1, z)) continue
     const k = rng()
@@ -832,7 +832,6 @@ function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 
   for (let u = -1; u >= -4; u -= 1)
     for (let w = -(4 + u); w <= 4 + u; w += 1) put(u, w, 11, 'spruce_slab[type=top]')
   for (let u = -1; u >= -3; u -= 1) put(u, 0, 10, kit.stairs('dark_oak', AFT, 'top'))
-  put(-5, 0, 11, 'stripped_dark_oak_wood')
   put(-5, 0, 12, 'skeleton_skull[rotation=12]')
 
   // ---- rigging: shrouds fan from each masthead to channels (top slabs) outside the rail;
@@ -884,6 +883,10 @@ function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 
     put(L - 1, w, MAIN + 1, 'lantern')
     put(L - 1, w, QD + 1, 'lantern')
   }
+  // rudder hung on the sternpost, its head through the counter; gilded figurehead plinth at the beak
+  for (let y = 1; y <= MAIN - 1; y += 1) put(L + 1, 0, y, y < 5 ? 'dark_oak_planks' : 'stripped_dark_oak_log[axis=y]')
+  put(L + 1, 0, 0, kit.stairs('dark_oak', FWD, 'top'))
+  put(-5, 0, 11, 'gold_block')
   // deck lanterns on posts along the waist rail and at the bow; lanterns in the gun deck and hold
   for (const u of [12, 24])
     for (const sgn of [-1, 1]) {

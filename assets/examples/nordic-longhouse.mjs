@@ -241,6 +241,13 @@ export default function build(api) {
     const wx = Wd(x)
     for (let z = CZ - wx - 1; z <= CZ + wx + 1; z += 1) roofCols.set(`${x},${z}`, Math.round(roofT(x, z) * 2) / 2) // one of eave overhang
   }
+  // cap the ridge one block above its neighbours: where the bell-cast profile is steepest (the
+  // gable ends) the ridge column would otherwise stand 2.5-3 blocks proud, a thin fin that reads
+  // as a chimney
+  for (let x = X0 - 1; x <= X1 + 1; x += 1) {
+    const n = Math.max(roofCols.get(`${x},${CZ - 1}`), roofCols.get(`${x},${CZ + 1}`))
+    roofCols.set(`${x},${CZ}`, Math.min(roofCols.get(`${x},${CZ}`), Math.ceil(n) + 1))
+  }
   const tq = (x, z) => roofCols.get(`${x},${z}`)
   const topPiece = new Map() // y of each column's top block (used by the porch, moss, horns, louvre)
   for (const [key, top] of roofCols) {
@@ -334,7 +341,8 @@ export default function build(api) {
     // each arm is a face-connected staircase (a diagonal-only step reads as a detached block)
     b.set(gx, yR + 1, CZ, 'dark_oak_planks')
     for (const s of [-1, 1]) {
-      for (const [dz, dy] of [[1, 1], [1, 2], [2, 2], [2, 3], [2, 4]]) b.set(gx, yR + dy, CZ + s * dz, 'dark_oak_planks')
+      for (const [dz, dy] of [[1, 0], [1, 1], [1, 2], [2, 2], [2, 3], [2, 4]]) b.set(gx, yR + dy, CZ + s * dz, 'dark_oak_planks')
+      for (let y = yR - 1; y > yR - 4 && !b.has(gx, y, CZ + s); y -= 1) b.set(gx, y, CZ + s, 'dark_oak_planks') // seat it on the rake
       const inward = s > 0 ? 'north' : 'south'
       b.set(gx, yR + 5, CZ + s * 2, `dark_oak_stairs[facing=${inward},half=bottom]`) // crown
       b.set(gx, yR + 4, CZ + s * 3, `dark_oak_stairs[facing=${inward},half=top]`) // snout looking out

@@ -88,23 +88,20 @@ export default function build(api) {
   })
   for (let x = 0; x < W; x += 1)
     for (let z = 0; z < D; z += 1) {
-      if (!inIsland(x, z) || streamD(x, z) > 4) continue
+      if (!inIsland(x, z)) continue
       for (let y = ground(x, z) + 1; y <= WATER; y += 1) b.set(x, y, z, 'minecraft:water')
     }
-  // A placed structure does not flow, but in game any water touching air at its side or below
-  // would spill: drop such cells until the stream is fully contained.
-  for (let changed = true; changed;) {
-    changed = false
-    for (let x = 0; x < W; x += 1)
-      for (let z = 0; z < D; z += 1)
-        for (let y = 1; y <= WATER; y += 1) {
-          if (b.nameAt(x, y, z) !== 'minecraft:water') continue
-          if ([[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, -1, 0]].some(([dx, dy, dz]) => !b.get(x + dx, y + dy, z + dz))) {
-            b.remove(x, y, z)
-            changed = true
-          }
+  // A placed structure does not flow, but in game water touching air at its side would spill
+  // (low spots on the rim bevel): give every such cell a little earth levee instead.
+  for (let x = 0; x < W; x += 1)
+    for (let z = 0; z < D; z += 1)
+      for (let y = 1; y <= WATER; y += 1) {
+        if (b.nameAt(x, y, z) !== 'minecraft:water') continue
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          if (b.get(x + dx, y, z + dz) || !inB(x + dx, y, z + dz)) continue
+          for (let yy = 0; yy <= y; yy += 1) if (!b.get(x + dx, yy, z + dz)) b.set(x + dx, yy, z + dz, yy === y ? 'minecraft:grass_block' : 'minecraft:dirt')
         }
-  }
+      }
   const g0 = ground(T[0], T[1])
 
   // ------------------------------------------------------------------ great trunk (analytic)
@@ -742,7 +739,7 @@ export default function build(api) {
   // of a column is a leaf, so topY-based helpers (b.path, b.scatter) would paint the crown.
   const RIVER = (x, z) => streamD(x, z)
   const surfaceMix = {
-    bank: kit.palette({ gravel: 4, mud: 2, clay: 1, coarse_dirt: 2 }, { scale: 2.5, seed: 31 }),
+    bank: kit.palette({ coarse_dirt: 4, gravel: 3, dirt: 1 }, { scale: 4, seed: 31 }),
     roots: kit.palette({ podzol: 6, moss_block: 4, grass_block: 3, coarse_dirt: 1 }, { scale: 5, seed: 32 }),
     floor: kit.palette({ grass_block: 12, podzol: 4, moss_block: 2, coarse_dirt: 1 }, { scale: 6, seed: 33 }),
     meadow: kit.palette({ grass_block: 20, coarse_dirt: 1, podzol: 1 }, { scale: 5, seed: 34 }),
@@ -851,13 +848,13 @@ export default function build(api) {
     const RIM_TREES = [
       [9, 22, 'birch', 12], [13, 15, 'birch', 10], [6, 30, 'birch', 9],
       [12, 71, 'spruce', 13], [19, 75, 'azalea', 6], [8, 63, 'spruce', 10],
-      [72, 47, 'birch', 11], [67, 60, 'oak', 9], [74, 38, 'azalea', 6], [62, 7, 'birch', 11],
+      [72, 47, 'birch', 11], [72, 58, 'oak', 9], [74, 38, 'azalea', 6], [62, 7, 'birch', 11],
     ]
     RIM_TREES.forEach(([x, z, sp, h], i) => {
       const y = canPlant(x, z, 2)
       if (y !== null) b.tree([x, y + 1, z], sp, { seed: 30 + i, height: h })
     })
-    for (const [x, z, r] of [[24, 70, 1.6], [37, 72, 1.3], [57, 52, 1.5], [21, 30, 1.4], [44, 22, 1.5], [10, 52, 1.6], [60, 70, 1.4]]) {
+    for (const [x, z, r] of [[24, 70, 1.6], [37, 72, 1.3], [62, 52, 1.3], [21, 30, 1.4], [44, 22, 1.5], [10, 52, 1.6], [60, 70, 1.4]]) {
       const y = canPlant(x, z, 1)
       if (y !== null) b.bush([x, y + 1, z], { radius: r, leaves: ['azalea_leaves', 'flowering_azalea_leaves', 'oak_leaves'], seed: x * 3 + z })
     }
@@ -962,7 +959,7 @@ export default function build(api) {
       // underside: glow berries in clumps, shroomlight hearts showing through the leaves
       if (air(x, y - 1, z)) {
         if (clump < 0.3 && u < (leaf ? 0.09 : 0.05)) glowBerries(x, y, z, 2 + Math.floor(kit.hash01(x, 0, z, 86) * 5))
-        else if (leaf && blk.name !== 'minecraft:cherry_leaves' && u > 0.984) b.set(x, y, z, 'minecraft:shroomlight')
+        else if (leaf && blk.name !== 'minecraft:cherry_leaves' && u > 0.988) b.set(x, y, z, 'minecraft:shroomlight')
       }
       if (!bark) continue
       // glow lichen on shaded (north-facing) bark, in patches

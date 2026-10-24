@@ -174,7 +174,7 @@ export function rasterRoof(b, field, opts = {}) {
   const ribs = opts.ribs ? roofMaterial(opts.ribs) : null
   const ridgeMat = roofMaterial(opts.ridge, mat)
   const under = roofMaterial(opts.rafter ?? opts.underside, mat)
-  const { thickness = 1, only = null, rim = null, keepBelow = null, overwrite = true, placed = null, cols = new Map() } = opts
+  const { thickness = 1, only = null, rim = null, keepBelow = null, overwrite = true, placed = null, tag = 'roof', cols = new Map() } = opts
   const ol = field.outline
   const outsideOutline = ol ? (x, z) => x < ol.x0 || x > ol.x1 || z < ol.z0 || z > ol.z1 : () => false
   for (const c of field.values()) {
@@ -242,7 +242,7 @@ export function rasterRoof(b, field, opts = {}) {
       const keep = !overwrite || (keepBelow && yy < keepBelow.level && keepBelow.test(c.x, c.z))
       if (keep && b.has(c.x, yy, c.z)) continue
       b.set(c.x, yy, c.z, block)
-      if (placed) placed.add(`${c.x},${yy},${c.z}`)
+      if (placed) placed.set(`${c.x},${yy},${c.z}`, `${tag}:${isTop ? 'top' : m === under ? 'under' : 'riser'}`)
       lowest = Math.min(lowest, yy)
     }
     const key = K(c.x, c.z)
@@ -309,7 +309,9 @@ export function eastRoof(b, opts = {}) {
   const fieldOpts = { ...outline, pitch, lift, liftReach, liftCurve, bead, stopRing, hole }
   const minSpan = Math.min(spanX, spanZ)
   const alongSpan = axis === 'x' ? spanX : spanZ
-  const inset = Math.max(1, Math.min(opts.inset ?? Math.max(2, Math.floor(minSpan / 4)), Math.floor((alongSpan - 1) / 2) - 1))
+  // irimoya: by default the gable rises one ring inside the wall line (the hip skirt covers the whole
+  // overhang); bigger roofs use a quarter of the short span
+  const inset = Math.max(1, Math.min(opts.inset ?? Math.max(overhang + 1, Math.floor(minSpan / 4)), Math.floor((alongSpan - 1) / 2) - 1))
 
   // trailing steep rises repeated on a hip stack into a spike
   if ((type === 'hip' || type === 'pyramid') && Array.isArray(pitch) && pitch.length && pitch[pitch.length - 1] > 1) {
@@ -322,7 +324,7 @@ export function eastRoof(b, opts = {}) {
   const others = above ? (Array.isArray(above) ? above : [above]) : []
   const otherTop = (x, z) => Math.max(-Infinity, ...others.map(o => (o.surface ? o.surface(x, z) : -Infinity)))
   const userOnly = c => (!only || only(c)) && (!others.length || c.top > otherTop(c.x, c.z))
-  const placed = new Set()
+  const placed = new Map() // "x,y,z" → "<field>:<top|riser|under>": what a later fill may replace
   const cols = new Map()
   const rOpts = {
     base, material: mat, ribs, ridge: ridgeMat, rafter, thickness, overwrite, placed, cols,
@@ -340,16 +342,18 @@ export function eastRoof(b, opts = {}) {
     field = roofField({ ...fieldOpts, type: 'hip' })
     gabF = roofField({ ...fieldOpts, type: 'gable', axis, inset })
     for (const c of gabF.values()) c.top = base + c.t
-    rasterRoof(b, field, { ...rOpts, only: c => { const g = gabF.get(K(c.x, c.z)); return (!g || g.sec === 'hip' || c.t <= g.t) && userOnly(c) } })
-    rasterRoof(b, gabF, { ...rOpts, only: c => c.sec === 'gable' && userOnly(c) })
+    rasterRoof(b, field, { ...rOpts, tag: 'hip', only: c => { const g = gabF.get(K(c.x, c.z)); return (!g || g.sec === 'hip' || c.t <= g.t) && userOnly(c) } })
+    rasterRoof(b, gabF, { ...rOpts, tag: 'gable', rim: null, only: c => c.sec === 'gable' && userOnly(c) })
   } else {
     field = roofField({ ...fieldOpts, type: type === 'gable' ? 'gable' : 'hip', axis, inset: 0 })
     rasterRoof(b, field, { ...rOpts, only: userOnly })
   }
   const gField = type === 'irimoya' ? gabF : type === 'gable' ? field : null
-  const isRoof = (x, yy, z) => placed.has(`${x},${yy},${z}`)
+  // A gable fill replaces only empty cells, soffit pieces, and (irimoya) hip pieces hidden under
+  // the gable: never the tile surface or visible risers (the ridge riser shows from both slopes).
   const fillCell = (x, yy, z, paint) => {
-    if (!b.has(x, yy, z) || isRoof(x, yy, z)) {
+    const role = placed.get(`${x},${yy},${z}`)
+    if (!b.has(x, yy, z) || (role && (role.endsWith(':under') || role.startsWith('hip:')))) {
       b.set(x, yy, z, paint)
       placed.delete(`${x},${yy},${z}`)
     }
@@ -395,17 +399,28 @@ export function eastRoof(b, opts = {}) {
       }
     }
   }
-  // Ridge ends (onigawara): a ridge block and a stair whose tall back faces outward, so the ridge
-  // flicks up at both ends.
+  // Ridge ends (onigawara): the ridge flicks up at both ends with a stair whose tall back faces
+  // outward. Small roofs swap the ridge-cap slab for the stair (+0.5); roofs 13+ wide across the
+  // ridge (or ridgeEnds: 'large') stack a block and the stair (+1.5).
   if (gField && opts.ridgeEnds !== false) {
+    const crossSpan = axis === 'x' ? spanZ : spanX
+    const big = opts.ridgeEnds === 'large' || (opts.ridgeEnds !== 'small' && crossSpan >= 13)
     for (const end of gableEnds) {
       for (const c of gField.values()) {
         if (!c.ridge || (axis === 'x' ? c.x : c.z) !== end.rake) continue
         const col = cols.get(K(c.x, c.z))
         if (!col || col.sec !== 'gable') continue
-        b.set(c.x, col.y, c.z, ridgeMat.block)
-        b.set(c.x, col.y + 1, c.z, `${ridgeMat.stairs}[facing=${end.out},half=bottom]`)
-        col.y += 1
+        const stair = `${ridgeMat.stairs}[facing=${end.out},half=bottom]`
+        if (big) {
+          b.set(c.x, col.y, c.z, ridgeMat.block)
+          b.set(c.x, col.y + 1, c.z, stair)
+          col.y += 1
+        } else if (col.kind === 'slab') {
+          b.set(c.x, col.y, c.z, stair)
+        } else {
+          b.set(c.x, col.y + 1, c.z, stair)
+          col.y += 1
+        }
         col.top = col.y + 1
       }
     }

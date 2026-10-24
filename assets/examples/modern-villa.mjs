@@ -368,7 +368,7 @@ export default function build(api) {
     // ceiling lights: in the slab under the upper deck boards (hidden from above), one row 4 apart,
     // plus soffit downlights in the overhang over the terrace
     for (let x = 21; x <= 49; x += 4) set(x, Y2, 30, LIGHT)
-    for (let x = 22; x <= 50; x += 6) set(x, Y2, L1.z1 + 1, LIGHT)
+    for (const x of [20, 28, 36, 44]) set(x, Y2, L1.z1 + 1, LIGHT)                // (kept clear of the planter cells above)
 
     // --- L2: corridor along the north, three rooms to the south between white partitions
     const F2 = Y2 + 1

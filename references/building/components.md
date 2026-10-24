@@ -565,12 +565,15 @@ block down, and only the front wall extends down to the roof; it warns if it is 
 ```js
 b.walls([2, H.F, 10], [18, H.F + 4, 20], 'white_terracotta')
 b.roof({ x0: 2, z0: 10, x1: 18, z1: 20, y: H.F + 5, axis: 'x', material: 'spruce', gable: 'spruce_planks', eaveTrim: true })
-b.dormer([6, H.F + 5, 20], 'south', { material: 'spruce', wall: 'spruce_planks', width: 5, height: 3 })              // on the wall line
+b.dormer([6, H.F + 5, 20], 'south', { material: 'spruce', wall: 'white_terracotta', width: 3, height: 3 })           // on the wall line
 b.dormer([14, H.F + 6, 19], 'south', { material: 'dark_oak', wall: 'stripped_spruce_log', width: 3, height: 2 })     // one row in
 ```
 
-- Outer width 3 (1-wide window) or 5 (3-wide window); ridge ≥ 1 below the main ridge. On cottages
-  put the front on the wall line with width 5: a 3-wide dormer set back from the eave reads as a hole.
+- Outer width 3 (1-wide window) or 5 (3-wide window); ridge ≥ 1 below the main ridge (the kit warns
+  when it is not). Put the front on the wall line or 1 row in: set back further, a small dormer reads
+  as a hole in the roof. A 5-wide dormer needs a roof ≥ 13 deep to fit below the ridge.
+- Make the dormer read against the roof: front wall in the façade material, or a darker roof
+  material than the main roof. A spruce dormer with plank cheeks on a spruce roof disappears.
 - Align dormers with the bays and windows below; odd counts, symmetric on formal fronts; at most
   one per 4–6 blocks of roof length. Use them on every large roof (wiki: avoid "a large expanse of
   blank sloping roof").

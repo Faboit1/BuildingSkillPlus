@@ -100,7 +100,7 @@ export default function build(api) {
       for (let i = 0; i <= n; i += 1) {
         const u = Math.round(ua + ((ub - ua) * i) / n)
         const y = Math.round(ya + ((yb - ya) * i) / n)
-        b.set(...(along === 'x' ? [u, y, w] : [w, y, u]), 'dark_oak_wood')
+        b.set(...(along === 'x' ? [u, y, w] : [w, y, u]), POST)
       }
     }
   }
@@ -310,7 +310,7 @@ export default function build(api) {
     b.texture([0, 9, 0], [51, 30, 45], ['cobbled_deepslate', 'deepslate_bricks', 'deepslate_tiles'],
       { only: n => /deepslate/.test(n.name), mid: 0.75, base: 0.3, top: 0.35, edge: 0.1, noise: 0.2, maxStep: 1, seed: 11 })
     // chimneys after the roof (their sooty top uses cobbled deepslate, which the roof pass would catch)
-    b.texture([0, 0, 0], [51, 31, 45], ['cobblestone', 'stone_bricks', 'tuff', 'tuff_bricks', 'cobbled_deepslate'], { only: CHIM, base: 0.25, top: -0.35, seed: 9 })
+    b.texture([0, 0, 0], [51, 31, 45], ['cobblestone', 'stone_bricks', 'tuff_bricks', 'cobbled_deepslate'], { only: CHIM, base: 0.25, top: -0.35, seed: 9 })
     // age: moss and cracks low on the walls and on the shaded north side only
     b.weather([0, 0, 0], [51, FL0 + 1, 45], { share: 0.2, mossBias: 0.7, seed: 2 })
     b.weather([0, FL0, 0], [51, FL1, MAIN.z0], { share: 0.12, mossBias: 0.8, seed: 3 })
@@ -386,7 +386,10 @@ export default function build(api) {
     for (const x of [7, 8]) { b.set(x, top(x, 15) + 1, 15, 'spruce_slab[type=top]'); b.set(x, top(x, 15) + 2, 15, 'beehive[facing=east,honey_level=3]') }
     b.set(21, top(21, 3) + 1, 3, 'composter[level=6]')
     b.set(23, top(23, 14) + 1, 14, 'barrel[facing=up]')
-    b.tree([20, top(20, 15) + 1, 15], 'oak', { height: 4, seed: 8, trunk: 0.5, leaves: ['oak_leaves', 'flowering_azalea_leaves', 'azalea_leaves'] })
+    // a small apple standard by the herb bed: short trunk, one round crown (b.tree presets are too big here)
+    const ag = top(20, 15)
+    b.box([20, ag + 1, 15], [20, ag + 2, 15], 'oak_log[axis=y]')
+    b.leafBlob([20, ag + 4, 15], [2.2, 1.5, 2.2], ['oak_leaves', 'flowering_azalea_leaves'], { seed: 8, holes: 0.12 })
     // woodpile against the chimney, sheltered by its weathering
     for (let z = 22; z <= 26; z += 1) for (let y = top(7, z) + 1; y <= top(7, z) + (z === 22 || z === 26 ? 1 : 2); y += 1) b.set(7, y, z, (y + z) % 3 ? 'oak_log[axis=x]' : 'spruce_log[axis=x]')
 
@@ -507,7 +510,7 @@ export default function build(api) {
     const G = FL0 + 1   // first air row of the ground floor
     const U = FL1 + 1   // first air row upstairs
     const A = FL2 + 1   // first air row in the attic
-    const plaster = kit.palette({ calcite: 4, white_terracotta: 1 }, { scale: 3, seed: 2 })
+    const plaster = kit.palette({ smooth_sandstone: 3, calcite: 2 }, { scale: 3, seed: 2 })
 
     // ---- furniture modules, authored with their front facing south, stamped rotated
     const M = {}
@@ -558,6 +561,14 @@ export default function build(api) {
     M.cabinet.set(0, 2, 0, 'spruce_trapdoor[facing=south,half=top,open=false]')
 
     // ---- ground floor: the taproom ------------------------------------------------------
+    // the thick street walls are limewashed inside above a plank skirting; the stone shows
+    // only in the reveals, so the cutaway reads as rubble wall + plaster lining
+    const stoneIds = /andesite|cobblestone|stone_bricks|tuff/
+    const lining = (x, y, z) => { if (stoneIds.test(b.nameAt(x, y, z) ?? '')) b.set(x, y, z, y === G ? 'spruce_planks' : plaster) }
+    for (let y = G; y <= FL1 - 1; y += 1) {
+      for (let z = MAIN.z0 + 1; z <= MAIN.z1 - 1; z += 1) lining(MAIN.x0 + 1, y, z)
+      for (let x = MAIN.x0 + 2; x <= MAIN.x1 - 1; x += 1) lining(x, y, MAIN.z1 - 1)
+    }
     // floor: dark border ring around a spruce field, stone hearth, flags behind the bar
     b.box([14, FL0, 20], [33, FL0, 28], (x, y, z) => {
       if (x === 15 && z >= 21 && z <= 27) return 'stone_bricks'
