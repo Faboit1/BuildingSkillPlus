@@ -13,7 +13,7 @@
 // Scale: monumental (~2x). Arcade openings 3 x 5.5, hall 12 clear, iwan 11 wide x 18 tall in a
 // 19 x 24 frame, dome 19 wide x 22 tall on an 8-tall drum, minarets 5 wide x 46 tall (9:1).
 // Skyline tiers: dome 55 > minarets 51 > pishtaq 33 > hall 24 > gate 21 > wings 18 > arcades 16
-// > stalls 9, so the eye climbs from the market to the dome.
+// > stalls 10, so the eye climbs from the market to the dome.
 //
 // Palette, by role (L* from scripts/lib/data/block-colors.json):
 //   walls   smooth_sandstone 85.5 / cut_sandstone 82.8 / sandstone 81.8 via b.texture: a calm

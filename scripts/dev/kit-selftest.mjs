@@ -207,6 +207,14 @@ const stateAt = (b, x, y, z) => {
   e.box([0, 0, 0], [19, 19, 19], 'stone_bricks')
   e.weather([0, 0, 0], [19, 19, 19], { share: 0.25 })
   check('weather share exact', Math.abs((8000 - e.count('stone_bricks')) / 8000 - 0.25) < 0.005)
+  // discs include their centre; onion profiles have one bulge
+  const dsc = kit.builder([12, 12, 12])
+  dsc.disc([5, 5, 5], 1.8, 'stone')
+  check('disc has centre', dsc.count('stone') === 9 && dsc.nameAt(5, 5, 5) === 'minecraft:stone')
+  const on = kit.onionProfile(4, 12)
+  const radii = Array.from({ length: 12 }, (_, d) => on(d, d / 11))
+  const peaks = radii.filter((v, i) => i > 0 && i < 11 && v > radii[i - 1] && v >= radii[i + 1]).length
+  check('onion single bulge', peaks === 1 && radii[11] < 0.5, radii.map(v => v.toFixed(1)).join(' '))
   // flared cones use stairs above the slab brim (no all-slab cone)
   const c = kit.builder([20, 20, 20])
   c.coneRoof([10, 5, 10], 4, { material: 'deepslate_tile', pitch: 2 })

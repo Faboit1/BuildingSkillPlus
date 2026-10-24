@@ -371,11 +371,11 @@ export class Builder {
 
   // Horizontal disc at y = c[1]. opts.inner makes an annulus.
   disc(c, r, paint, opts = {}) {
-    const inner = opts.inner ?? -1
+    const inner = opts.inner
     const inside = (x, y, z) => {
       if (y !== c[1]) return false
       const d2 = (x - c[0]) ** 2 + (z - c[2]) ** 2
-      return d2 <= r * r && d2 > inner * inner
+      return d2 <= r * r && (inner === undefined || inner < 0 || d2 > inner * inner)
     }
     const { inner: _inner, ...rest } = opts
     return this.fillWhere([c[0] - r, c[1], c[2] - r], [c[0] + r, c[1], c[2] + r], inside, paint, rest)

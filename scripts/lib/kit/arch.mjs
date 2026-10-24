@@ -323,10 +323,24 @@ export function lathe(b, center, height, radius, paint, opts = {}) {
   return b.fillWhere([cx - maxR - 1, y0, cz - maxR - 1], [cx + maxR + 1, y0 + height - 1, cz + maxR + 1], inside, paint, opts)
 }
 
-// Onion dome profile helper: base radius r, total height h.
-export const onionProfile = (r, h) => (dy, t) => {
-  const bulge = Math.sin(Math.min(1, t * 1.6) * Math.PI) * 0.35
-  return t < 0.62 ? r * (0.82 + bulge) : r * 1.15 * Math.max(0, (1 - t) / 0.38) ** 1.35
+// Onion dome profile for b.lathe: nominal radius r (the bulb reaches ~1.15 r, the neck ~0.82 r),
+// stretched to the lathe's height. A sphere whose centre sits `neck`·R above the base, continued
+// from the `turn` angle by a slope-continuous concave tip (`tip` = curvature), so there is one
+// smooth bulge and a long ogee point.
+//   b.lathe([x, y, z], 10, kit.onionProfile(3.5, 10), 'oxidized_copper')
+export const onionProfile = (r, h, { neck = 0.7, turn = 58, tip = 2.4 } = {}) => {
+  void h
+  const R = 1.15 * r
+  const c = neck * R
+  const th = (turn * Math.PI) / 180
+  const y1 = c + Math.sin(th) * R
+  const r1 = Math.cos(th) * R
+  const L = (tip * r1) / Math.tan(th)
+  const H = y1 + L
+  return (dy, t) => {
+    const y = t * H
+    return y < y1 ? Math.sqrt(Math.max(0, R * R - (y - c) ** 2)) : r1 * Math.max(0, 1 - (y - y1) / L) ** tip
+  }
 }
 
 // Windows. pos = bottom-left opening cell on the wall plane, as seen from outside.
