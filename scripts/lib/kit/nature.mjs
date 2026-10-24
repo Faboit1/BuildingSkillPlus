@@ -154,7 +154,9 @@ export function tree(b, base, species = 'oak', opts = {}) {
           b.set(x, y, z, `${ns(preset.leaves[0])}[persistent=true,distance=1,waterlogged=false]`, { keep: true })
         }
     }
-    b.set(bx, by + height + 2, bz, `${ns(preset.leaves[0])}[persistent=true,distance=1,waterlogged=false]`, { keep: true })
+    // tip leaf only when it sits on leaves (never a floating block)
+    const under = b.get(bx, by + height + 1, bz)
+    if (under && /_leaves$/.test(under.name)) b.set(bx, by + height + 2, bz, `${ns(preset.leaves[0])}[persistent=true,distance=1,waterlogged=false]`, { keep: true })
   } else {
     limb(b, trunkPts, r0, r1, preset)
   }
@@ -254,7 +256,8 @@ export function bush(b, base, { radius = 1.6, leaves = ['oak_leaves', 'azalea_le
 
 // Natural rock: noise-displaced ellipsoid painted with a paint (use a palette/gradient).
 //   b.boulder([x, y, z], [4, 3, 3.5], kit.palette({ stone: 5, andesite: 3, cobblestone: 2, mossy_cobblestone: 1 }))
-export function boulder(b, c, radii, paint = 'minecraft:stone', { seed = 0, roughness = 0.3, mossTop } = {}) {
+export function boulder(b, c, radii, paint = 'minecraft:stone', { seed = 0, roughness = 0.3, mossTop: mossOpt } = {}) {
+  const mossTop = mossOpt === true ? 'minecraft:moss_block' : mossOpt
   const r = Array.isArray(radii) ? radii : [radii, radii * 0.75, radii]
   const R = Math.ceil(Math.max(...r) * (1 + roughness)) + 1
   for (let x = Math.floor(c[0] - R); x <= Math.ceil(c[0] + R); x += 1)
@@ -350,7 +353,10 @@ export function scatter(b, { x0 = 0, z0 = 0, x1, z1, on = ['minecraft:grass_bloc
 }
 
 // Paint a winding path onto the top surface along 2D control points [[x, z], ...].
-export function path(b, points, { width = 3, paint = 'minecraft:dirt_path', jitter = 0.6, seed = 0 } = {}) {
+const PLANTISH = /(short_grass|tall_grass|fern|_flower|dandelion|poppy|orchid|allium|bluet|tulip|daisy|cornflower|lily_of_the_valley|rose_bush|lilac|peony|sunflower|_sapling|moss_carpet|_carpet|snow|dead_bush|sweet_berry_bush|pink_petals|vine|lichen|mushroom)$/
+const TERRAIN = ['minecraft:grass_block', 'minecraft:dirt', 'minecraft:coarse_dirt', 'minecraft:podzol', 'minecraft:rooted_dirt', 'minecraft:mud', 'minecraft:moss_block', 'minecraft:dirt_path', 'minecraft:gravel', 'minecraft:sand', 'minecraft:red_sand', 'minecraft:snow_block', 'minecraft:stone', 'minecraft:andesite', 'minecraft:mycelium', 'minecraft:packed_mud', 'minecraft:clay']
+
+export function path(b, points, { width = 3, paint = 'minecraft:dirt_path', jitter = 0.6, seed = 0, on = TERRAIN } = {}) {
   const pts = points.map(p => [p[0], 0, p[1]])
   let length = 0
   for (let i = 1; i < pts.length; i += 1) length += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][2] - pts[i - 1][2])
@@ -365,10 +371,12 @@ export function path(b, points, { width = 3, paint = 'minecraft:dirt_path', jitt
         const key = `${x},${z}`
         if (done.has(key)) continue
         done.add(key)
-        const y = b.topY(x, z)
-        if (y < 0) continue
-        const above = b.get(x, y + 1, z)
-        if (above) b.remove(x, y + 1, z)
+        // walk down through plants/carpets to the ground; only paint terrain blocks so
+        // paths never overwrite lanterns, fences or building parts
+        let y = b.topY(x, z)
+        while (y > 0 && b.get(x, y, z) && PLANTISH.test(b.get(x, y, z).name)) y -= 1
+        if (y < 0 || !b.matches(b.get(x, y, z), on)) continue
+        for (let k = y + 1; k <= y + 2; k += 1) if (b.get(x, k, z) && PLANTISH.test(b.get(x, k, z).name)) b.remove(x, k, z)
         b.set(x, y, z, paint)
       }
   }
