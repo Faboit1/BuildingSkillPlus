@@ -1,0 +1,4553 @@
+{
+  "andesite": {
+    "kind": "stone",
+    "group": "andesite",
+    "block": "minecraft:andesite",
+    "stairs": "minecraft:andesite_stairs",
+    "slab": "minecraft:andesite_slab",
+    "wall": "minecraft:andesite_wall",
+    "polished": "minecraft:polished_andesite",
+    "avg_color": "#89898a"
+  },
+  "polished_andesite": {
+    "kind": "stone",
+    "group": "andesite",
+    "block": "minecraft:polished_andesite",
+    "stairs": "minecraft:polished_andesite_stairs",
+    "slab": "minecraft:polished_andesite_slab",
+    "avg_color": "#878988",
+    "substitutes": {
+      "wall": [
+        "minecraft:andesite_wall",
+        "minecraft:cobblestone_wall",
+        "minecraft:stone_brick_wall"
+      ]
+    }
+  },
+  "brick": {
+    "kind": "stone",
+    "group": "brick",
+    "block": "minecraft:bricks",
+    "stairs": "minecraft:brick_stairs",
+    "slab": "minecraft:brick_slab",
+    "wall": "minecraft:brick_wall",
+    "avg_color": "#996559"
+  },
+  "calcite": {
+    "kind": "stone",
+    "group": "calcite",
+    "block": "minecraft:calcite",
+    "avg_color": "#e1e2de",
+    "substitutes": {
+      "stairs": [
+        "minecraft:quartz_stairs",
+        "minecraft:smooth_quartz_stairs",
+        "minecraft:polished_diorite_stairs"
+      ],
+      "slab": [
+        "minecraft:quartz_slab",
+        "minecraft:smooth_quartz_slab",
+        "minecraft:polished_diorite_slab"
+      ],
+      "wall": [
+        "minecraft:diorite_wall",
+        "minecraft:sandstone_wall",
+        "minecraft:end_stone_brick_wall"
+      ]
+    }
+  },
+  "deepslate": {
+    "kind": "stone",
+    "group": "deepslate",
+    "block": "minecraft:deepslate",
+    "chiseled": "minecraft:chiseled_deepslate",
+    "polished": "minecraft:polished_deepslate",
+    "bricks": "minecraft:deepslate_bricks",
+    "tiles": "minecraft:deepslate_tiles",
+    "cobbled": "minecraft:cobbled_deepslate",
+    "avg_color": "#555557",
+    "substitutes": {
+      "stairs": [
+        "minecraft:cobbled_deepslate_stairs",
+        "minecraft:polished_deepslate_stairs",
+        "minecraft:deepslate_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:cobbled_deepslate_slab",
+        "minecraft:polished_deepslate_slab",
+        "minecraft:deepslate_brick_slab"
+      ],
+      "wall": [
+        "minecraft:cobbled_deepslate_wall",
+        "minecraft:polished_deepslate_wall",
+        "minecraft:deepslate_brick_wall"
+      ]
+    }
+  },
+  "chiseled_deepslate": {
+    "kind": "stone",
+    "group": "deepslate",
+    "block": "minecraft:chiseled_deepslate",
+    "polished": "minecraft:polished_deepslate",
+    "bricks": "minecraft:deepslate_bricks",
+    "tiles": "minecraft:deepslate_tiles",
+    "cobbled": "minecraft:cobbled_deepslate",
+    "avg_color": "#39393a",
+    "substitutes": {
+      "stairs": [
+        "minecraft:polished_deepslate_stairs",
+        "minecraft:deepslate_tile_stairs",
+        "minecraft:deepslate_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:polished_deepslate_slab",
+        "minecraft:deepslate_tile_slab",
+        "minecraft:deepslate_brick_slab"
+      ],
+      "wall": [
+        "minecraft:polished_deepslate_wall",
+        "minecraft:deepslate_tile_wall",
+        "minecraft:deepslate_brick_wall"
+      ]
+    }
+  },
+  "cobbled_deepslate": {
+    "kind": "stone",
+    "group": "deepslate",
+    "block": "minecraft:cobbled_deepslate",
+    "stairs": "minecraft:cobbled_deepslate_stairs",
+    "slab": "minecraft:cobbled_deepslate_slab",
+    "wall": "minecraft:cobbled_deepslate_wall",
+    "chiseled": "minecraft:chiseled_deepslate",
+    "polished": "minecraft:polished_deepslate",
+    "bricks": "minecraft:deepslate_bricks",
+    "tiles": "minecraft:deepslate_tiles",
+    "avg_color": "#515153"
+  },
+  "cracked_deepslate_bricks": {
+    "kind": "stone",
+    "group": "deepslate",
+    "block": "minecraft:cracked_deepslate_bricks",
+    "chiseled": "minecraft:chiseled_deepslate",
+    "polished": "minecraft:polished_deepslate",
+    "bricks": "minecraft:deepslate_bricks",
+    "tiles": "minecraft:deepslate_tiles",
+    "cobbled": "minecraft:cobbled_deepslate",
+    "avg_color": "#454546",
+    "substitutes": {
+      "stairs": [
+        "minecraft:deepslate_brick_stairs",
+        "minecraft:polished_deepslate_stairs",
+        "minecraft:cobbled_deepslate_stairs"
+      ],
+      "slab": [
+        "minecraft:deepslate_brick_slab",
+        "minecraft:polished_deepslate_slab",
+        "minecraft:cobbled_deepslate_slab"
+      ],
+      "wall": [
+        "minecraft:deepslate_brick_wall",
+        "minecraft:polished_deepslate_wall",
+        "minecraft:cobbled_deepslate_wall"
+      ]
+    }
+  },
+  "cracked_deepslate_tiles": {
+    "kind": "stone",
+    "group": "deepslate",
+    "block": "minecraft:cracked_deepslate_tiles",
+    "chiseled": "minecraft:chiseled_deepslate",
+    "polished": "minecraft:polished_deepslate",
+    "bricks": "minecraft:deepslate_bricks",
+    "tiles": "minecraft:deepslate_tiles",
+    "cobbled": "minecraft:cobbled_deepslate",
+    "avg_color": "#373737",
+    "substitutes": {
+      "stairs": [
+        "minecraft:deepslate_tile_stairs",
+        "minecraft:deepslate_brick_stairs",
+        "minecraft:polished_deepslate_stairs"
+      ],
+      "slab": [
+        "minecraft:deepslate_tile_slab",
+        "minecraft:deepslate_brick_slab",
+        "minecraft:polished_deepslate_slab"
+      ],
+      "wall": [
+        "minecraft:deepslate_tile_wall",
+        "minecraft:deepslate_brick_wall",
+        "minecraft:polished_deepslate_wall"
+      ]
+    }
+  },
+  "deepslate_brick": {
+    "kind": "stone",
+    "group": "deepslate",
+    "block": "minecraft:deepslate_bricks",
+    "stairs": "minecraft:deepslate_brick_stairs",
+    "slab": "minecraft:deepslate_brick_slab",
+    "wall": "minecraft:deepslate_brick_wall",
+    "chiseled": "minecraft:chiseled_deepslate",
+    "cracked": "minecraft:cracked_deepslate_bricks",
+    "polished": "minecraft:polished_deepslate",
+    "tiles": "minecraft:deepslate_tiles",
+    "cobbled": "minecraft:cobbled_deepslate",
+    "avg_color": "#4b4b4b"
+  },
+  "deepslate_tile": {
+    "kind": "stone",
+    "group": "deepslate",
+    "block": "minecraft:deepslate_tiles",
+    "stairs": "minecraft:deepslate_tile_stairs",
+    "slab": "minecraft:deepslate_tile_slab",
+    "wall": "minecraft:deepslate_tile_wall",
+    "chiseled": "minecraft:chiseled_deepslate",
+    "cracked": "minecraft:cracked_deepslate_tiles",
+    "polished": "minecraft:polished_deepslate",
+    "bricks": "minecraft:deepslate_bricks",
+    "cobbled": "minecraft:cobbled_deepslate",
+    "avg_color": "#393939"
+  },
+  "polished_deepslate": {
+    "kind": "stone",
+    "group": "deepslate",
+    "block": "minecraft:polished_deepslate",
+    "stairs": "minecraft:polished_deepslate_stairs",
+    "slab": "minecraft:polished_deepslate_slab",
+    "wall": "minecraft:polished_deepslate_wall",
+    "chiseled": "minecraft:chiseled_deepslate",
+    "bricks": "minecraft:deepslate_bricks",
+    "tiles": "minecraft:deepslate_tiles",
+    "cobbled": "minecraft:cobbled_deepslate",
+    "avg_color": "#4c4c4c"
+  },
+  "diorite": {
+    "kind": "stone",
+    "group": "diorite",
+    "block": "minecraft:diorite",
+    "stairs": "minecraft:diorite_stairs",
+    "slab": "minecraft:diorite_slab",
+    "wall": "minecraft:diorite_wall",
+    "polished": "minecraft:polished_diorite",
+    "avg_color": "#c1c1c1"
+  },
+  "polished_diorite": {
+    "kind": "stone",
+    "group": "diorite",
+    "block": "minecraft:polished_diorite",
+    "stairs": "minecraft:polished_diorite_stairs",
+    "slab": "minecraft:polished_diorite_slab",
+    "avg_color": "#c5c5c6",
+    "substitutes": {
+      "wall": [
+        "minecraft:diorite_wall",
+        "minecraft:sandstone_wall",
+        "minecraft:andesite_wall"
+      ]
+    }
+  },
+  "dripstone": {
+    "kind": "stone",
+    "group": "dripstone",
+    "block": "minecraft:dripstone_block",
+    "avg_color": "#886e5e",
+    "substitutes": {
+      "stairs": [
+        "minecraft:mud_brick_stairs",
+        "minecraft:granite_stairs",
+        "minecraft:polished_granite_stairs"
+      ],
+      "slab": [
+        "minecraft:mud_brick_slab",
+        "minecraft:granite_slab",
+        "minecraft:polished_granite_slab"
+      ],
+      "wall": [
+        "minecraft:mud_brick_wall",
+        "minecraft:granite_wall",
+        "minecraft:brick_wall"
+      ]
+    }
+  },
+  "granite": {
+    "kind": "stone",
+    "group": "granite",
+    "block": "minecraft:granite",
+    "stairs": "minecraft:granite_stairs",
+    "slab": "minecraft:granite_slab",
+    "wall": "minecraft:granite_wall",
+    "polished": "minecraft:polished_granite",
+    "avg_color": "#986a59"
+  },
+  "polished_granite": {
+    "kind": "stone",
+    "group": "granite",
+    "block": "minecraft:polished_granite",
+    "stairs": "minecraft:polished_granite_stairs",
+    "slab": "minecraft:polished_granite_slab",
+    "avg_color": "#9c6d5c",
+    "substitutes": {
+      "wall": [
+        "minecraft:granite_wall",
+        "minecraft:brick_wall",
+        "minecraft:mud_brick_wall"
+      ]
+    }
+  },
+  "obsidian": {
+    "kind": "stone",
+    "group": "obsidian",
+    "block": "minecraft:obsidian",
+    "avg_color": "#150e23",
+    "substitutes": {
+      "stairs": [
+        "minecraft:blackstone_stairs",
+        "minecraft:polished_blackstone_brick_stairs",
+        "minecraft:nether_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:blackstone_slab",
+        "minecraft:polished_blackstone_brick_slab",
+        "minecraft:nether_brick_slab"
+      ],
+      "wall": [
+        "minecraft:blackstone_wall",
+        "minecraft:polished_blackstone_brick_wall",
+        "minecraft:nether_brick_wall"
+      ]
+    }
+  },
+  "crying_obsidian": {
+    "kind": "stone",
+    "group": "obsidian",
+    "block": "minecraft:crying_obsidian",
+    "avg_color": "#310d5c"
+  },
+  "quartz": {
+    "kind": "stone",
+    "group": "quartz",
+    "block": "minecraft:quartz_block",
+    "stairs": "minecraft:quartz_stairs",
+    "slab": "minecraft:quartz_slab",
+    "pillar": "minecraft:quartz_pillar",
+    "chiseled": "minecraft:chiseled_quartz_block",
+    "smooth": "minecraft:smooth_quartz",
+    "bricks": "minecraft:quartz_bricks",
+    "avg_color": "#ece6df",
+    "substitutes": {
+      "wall": [
+        "minecraft:diorite_wall",
+        "minecraft:sandstone_wall",
+        "minecraft:end_stone_brick_wall"
+      ]
+    }
+  },
+  "chiseled_quartz_block": {
+    "kind": "stone",
+    "group": "quartz",
+    "block": "minecraft:chiseled_quartz_block",
+    "pillar": "minecraft:quartz_pillar",
+    "smooth": "minecraft:smooth_quartz",
+    "bricks": "minecraft:quartz_bricks",
+    "avg_color": "#e8e3da",
+    "substitutes": {
+      "stairs": [
+        "minecraft:quartz_stairs",
+        "minecraft:smooth_quartz_stairs",
+        "minecraft:smooth_sandstone_stairs"
+      ],
+      "slab": [
+        "minecraft:quartz_slab",
+        "minecraft:smooth_quartz_slab",
+        "minecraft:smooth_sandstone_slab"
+      ],
+      "wall": [
+        "minecraft:diorite_wall",
+        "minecraft:sandstone_wall",
+        "minecraft:end_stone_brick_wall"
+      ]
+    }
+  },
+  "quartz_bricks": {
+    "kind": "stone",
+    "group": "quartz",
+    "block": "minecraft:quartz_bricks",
+    "pillar": "minecraft:quartz_pillar",
+    "chiseled": "minecraft:chiseled_quartz_block",
+    "smooth": "minecraft:smooth_quartz",
+    "avg_color": "#ebe5de",
+    "substitutes": {
+      "stairs": [
+        "minecraft:quartz_stairs",
+        "minecraft:smooth_quartz_stairs",
+        "minecraft:polished_diorite_stairs"
+      ],
+      "slab": [
+        "minecraft:quartz_slab",
+        "minecraft:smooth_quartz_slab",
+        "minecraft:polished_diorite_slab"
+      ],
+      "wall": [
+        "minecraft:diorite_wall",
+        "minecraft:sandstone_wall",
+        "minecraft:end_stone_brick_wall"
+      ]
+    }
+  },
+  "quartz_pillar": {
+    "kind": "stone",
+    "group": "quartz",
+    "block": "minecraft:quartz_pillar",
+    "chiseled": "minecraft:chiseled_quartz_block",
+    "smooth": "minecraft:smooth_quartz",
+    "bricks": "minecraft:quartz_bricks",
+    "avg_color": "#ebe7e0",
+    "substitutes": {
+      "stairs": [
+        "minecraft:quartz_stairs",
+        "minecraft:smooth_quartz_stairs",
+        "minecraft:polished_diorite_stairs"
+      ],
+      "slab": [
+        "minecraft:quartz_slab",
+        "minecraft:smooth_quartz_slab",
+        "minecraft:polished_diorite_slab"
+      ],
+      "wall": [
+        "minecraft:diorite_wall",
+        "minecraft:sandstone_wall",
+        "minecraft:end_stone_brick_wall"
+      ]
+    }
+  },
+  "smooth_quartz": {
+    "kind": "stone",
+    "group": "quartz",
+    "block": "minecraft:smooth_quartz",
+    "stairs": "minecraft:smooth_quartz_stairs",
+    "slab": "minecraft:smooth_quartz_slab",
+    "pillar": "minecraft:quartz_pillar",
+    "chiseled": "minecraft:chiseled_quartz_block",
+    "bricks": "minecraft:quartz_bricks",
+    "avg_color": "#ede6e0",
+    "substitutes": {
+      "wall": [
+        "minecraft:diorite_wall",
+        "minecraft:sandstone_wall"
+      ]
+    }
+  },
+  "red_sandstone": {
+    "kind": "stone",
+    "group": "red_sandstone",
+    "block": "minecraft:red_sandstone",
+    "stairs": "minecraft:red_sandstone_stairs",
+    "slab": "minecraft:red_sandstone_slab",
+    "wall": "minecraft:red_sandstone_wall",
+    "chiseled": "minecraft:chiseled_red_sandstone",
+    "smooth": "minecraft:smooth_red_sandstone",
+    "cut": "minecraft:cut_red_sandstone",
+    "avg_color": "#bb641f"
+  },
+  "chiseled_red_sandstone": {
+    "kind": "stone",
+    "group": "red_sandstone",
+    "block": "minecraft:chiseled_red_sandstone",
+    "smooth": "minecraft:smooth_red_sandstone",
+    "cut": "minecraft:cut_red_sandstone",
+    "avg_color": "#b7621e",
+    "substitutes": {
+      "stairs": [
+        "minecraft:red_sandstone_stairs",
+        "minecraft:smooth_red_sandstone_stairs",
+        "minecraft:acacia_stairs"
+      ],
+      "slab": [
+        "minecraft:red_sandstone_slab",
+        "minecraft:smooth_red_sandstone_slab",
+        "minecraft:cut_red_sandstone_slab"
+      ],
+      "wall": [
+        "minecraft:red_sandstone_wall",
+        "minecraft:mud_brick_wall",
+        "minecraft:granite_wall"
+      ]
+    }
+  },
+  "cut_red_sandstone": {
+    "kind": "stone",
+    "group": "red_sandstone",
+    "block": "minecraft:cut_red_sandstone",
+    "slab": "minecraft:cut_red_sandstone_slab",
+    "chiseled": "minecraft:chiseled_red_sandstone",
+    "smooth": "minecraft:smooth_red_sandstone",
+    "avg_color": "#bb6521",
+    "substitutes": {
+      "stairs": [
+        "minecraft:smooth_red_sandstone_stairs",
+        "minecraft:red_sandstone_stairs",
+        "minecraft:acacia_stairs"
+      ],
+      "wall": [
+        "minecraft:red_sandstone_wall",
+        "minecraft:mud_brick_wall",
+        "minecraft:granite_wall"
+      ]
+    }
+  },
+  "smooth_red_sandstone": {
+    "kind": "stone",
+    "group": "red_sandstone",
+    "block": "minecraft:smooth_red_sandstone",
+    "stairs": "minecraft:smooth_red_sandstone_stairs",
+    "slab": "minecraft:smooth_red_sandstone_slab",
+    "chiseled": "minecraft:chiseled_red_sandstone",
+    "cut": "minecraft:cut_red_sandstone",
+    "avg_color": "#b66220",
+    "substitutes": {
+      "wall": [
+        "minecraft:red_sandstone_wall",
+        "minecraft:mud_brick_wall",
+        "minecraft:granite_wall"
+      ]
+    }
+  },
+  "sandstone": {
+    "kind": "stone",
+    "group": "sandstone",
+    "block": "minecraft:sandstone",
+    "stairs": "minecraft:sandstone_stairs",
+    "slab": "minecraft:sandstone_slab",
+    "wall": "minecraft:sandstone_wall",
+    "chiseled": "minecraft:chiseled_sandstone",
+    "smooth": "minecraft:smooth_sandstone",
+    "cut": "minecraft:cut_sandstone",
+    "avg_color": "#dacea0"
+  },
+  "chiseled_sandstone": {
+    "kind": "stone",
+    "group": "sandstone",
+    "block": "minecraft:chiseled_sandstone",
+    "smooth": "minecraft:smooth_sandstone",
+    "cut": "minecraft:cut_sandstone",
+    "avg_color": "#dbd0a3",
+    "substitutes": {
+      "stairs": [
+        "minecraft:sandstone_stairs",
+        "minecraft:smooth_sandstone_stairs",
+        "minecraft:end_stone_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:sandstone_slab",
+        "minecraft:cut_sandstone_slab",
+        "minecraft:smooth_sandstone_slab"
+      ],
+      "wall": [
+        "minecraft:sandstone_wall",
+        "minecraft:end_stone_brick_wall",
+        "minecraft:diorite_wall"
+      ]
+    }
+  },
+  "cut_sandstone": {
+    "kind": "stone",
+    "group": "sandstone",
+    "block": "minecraft:cut_sandstone",
+    "slab": "minecraft:cut_sandstone_slab",
+    "chiseled": "minecraft:chiseled_sandstone",
+    "smooth": "minecraft:smooth_sandstone",
+    "avg_color": "#dcd2a5",
+    "substitutes": {
+      "stairs": [
+        "minecraft:smooth_sandstone_stairs",
+        "minecraft:sandstone_stairs",
+        "minecraft:end_stone_brick_stairs"
+      ],
+      "wall": [
+        "minecraft:sandstone_wall",
+        "minecraft:end_stone_brick_wall",
+        "minecraft:diorite_wall"
+      ]
+    }
+  },
+  "smooth_sandstone": {
+    "kind": "stone",
+    "group": "sandstone",
+    "block": "minecraft:smooth_sandstone",
+    "stairs": "minecraft:smooth_sandstone_stairs",
+    "slab": "minecraft:smooth_sandstone_slab",
+    "chiseled": "minecraft:chiseled_sandstone",
+    "cut": "minecraft:cut_sandstone",
+    "avg_color": "#e0d6ab",
+    "substitutes": {
+      "wall": [
+        "minecraft:sandstone_wall",
+        "minecraft:end_stone_brick_wall",
+        "minecraft:diorite_wall"
+      ]
+    }
+  },
+  "stone": {
+    "kind": "stone",
+    "group": "stone",
+    "block": "minecraft:stone",
+    "stairs": "minecraft:stone_stairs",
+    "slab": "minecraft:stone_slab",
+    "button": "minecraft:stone_button",
+    "pressure_plate": "minecraft:stone_pressure_plate",
+    "chiseled": "minecraft:chiseled_stone_bricks",
+    "smooth": "minecraft:smooth_stone",
+    "bricks": "minecraft:stone_bricks",
+    "cobbled": "minecraft:cobblestone",
+    "avg_color": "#7e7e7e",
+    "substitutes": {
+      "wall": [
+        "minecraft:stone_brick_wall",
+        "minecraft:cobblestone_wall",
+        "minecraft:mossy_stone_brick_wall"
+      ]
+    }
+  },
+  "chiseled_stone_bricks": {
+    "kind": "stone",
+    "group": "stone",
+    "block": "minecraft:chiseled_stone_bricks",
+    "smooth": "minecraft:smooth_stone",
+    "bricks": "minecraft:stone_bricks",
+    "cobbled": "minecraft:cobblestone",
+    "avg_color": "#7a797a",
+    "substitutes": {
+      "stairs": [
+        "minecraft:stone_brick_stairs",
+        "minecraft:stone_stairs",
+        "minecraft:cobblestone_stairs"
+      ],
+      "slab": [
+        "minecraft:stone_brick_slab",
+        "minecraft:stone_slab",
+        "minecraft:cobblestone_slab"
+      ],
+      "wall": [
+        "minecraft:stone_brick_wall",
+        "minecraft:cobblestone_wall",
+        "minecraft:mossy_stone_brick_wall"
+      ]
+    }
+  },
+  "cobblestone": {
+    "kind": "stone",
+    "group": "stone",
+    "block": "minecraft:cobblestone",
+    "stairs": "minecraft:cobblestone_stairs",
+    "slab": "minecraft:cobblestone_slab",
+    "wall": "minecraft:cobblestone_wall",
+    "chiseled": "minecraft:chiseled_stone_bricks",
+    "mossy": "minecraft:mossy_cobblestone",
+    "smooth": "minecraft:smooth_stone",
+    "bricks": "minecraft:stone_bricks",
+    "avg_color": "#848484"
+  },
+  "cracked_stone_bricks": {
+    "kind": "stone",
+    "group": "stone",
+    "block": "minecraft:cracked_stone_bricks",
+    "chiseled": "minecraft:chiseled_stone_bricks",
+    "smooth": "minecraft:smooth_stone",
+    "bricks": "minecraft:stone_bricks",
+    "cobbled": "minecraft:cobblestone",
+    "avg_color": "#787778",
+    "substitutes": {
+      "stairs": [
+        "minecraft:stone_brick_stairs",
+        "minecraft:stone_stairs",
+        "minecraft:cobblestone_stairs"
+      ],
+      "slab": [
+        "minecraft:stone_brick_slab",
+        "minecraft:stone_slab",
+        "minecraft:cobblestone_slab"
+      ],
+      "wall": [
+        "minecraft:stone_brick_wall",
+        "minecraft:cobblestone_wall",
+        "minecraft:mossy_stone_brick_wall"
+      ]
+    }
+  },
+  "mossy_cobblestone": {
+    "kind": "stone",
+    "group": "stone",
+    "block": "minecraft:mossy_cobblestone",
+    "stairs": "minecraft:mossy_cobblestone_stairs",
+    "slab": "minecraft:mossy_cobblestone_slab",
+    "wall": "minecraft:mossy_cobblestone_wall",
+    "chiseled": "minecraft:chiseled_stone_bricks",
+    "smooth": "minecraft:smooth_stone",
+    "bricks": "minecraft:stone_bricks",
+    "cobbled": "minecraft:cobblestone",
+    "avg_color": "#727967"
+  },
+  "mossy_stone_brick": {
+    "kind": "stone",
+    "group": "stone",
+    "block": "minecraft:mossy_stone_bricks",
+    "stairs": "minecraft:mossy_stone_brick_stairs",
+    "slab": "minecraft:mossy_stone_brick_slab",
+    "wall": "minecraft:mossy_stone_brick_wall",
+    "chiseled": "minecraft:chiseled_stone_bricks",
+    "smooth": "minecraft:smooth_stone",
+    "bricks": "minecraft:stone_bricks",
+    "cobbled": "minecraft:cobblestone",
+    "avg_color": "#767b6e"
+  },
+  "smooth_stone": {
+    "kind": "stone",
+    "group": "stone",
+    "block": "minecraft:smooth_stone",
+    "slab": "minecraft:smooth_stone_slab",
+    "chiseled": "minecraft:chiseled_stone_bricks",
+    "bricks": "minecraft:stone_bricks",
+    "cobbled": "minecraft:cobblestone",
+    "avg_color": "#a0a0a0",
+    "substitutes": {
+      "stairs": [
+        "minecraft:stone_stairs",
+        "minecraft:cobblestone_stairs",
+        "minecraft:stone_brick_stairs"
+      ],
+      "wall": [
+        "minecraft:cobblestone_wall",
+        "minecraft:stone_brick_wall",
+        "minecraft:andesite_wall"
+      ]
+    }
+  },
+  "stone_brick": {
+    "kind": "stone",
+    "group": "stone",
+    "block": "minecraft:stone_bricks",
+    "stairs": "minecraft:stone_brick_stairs",
+    "slab": "minecraft:stone_brick_slab",
+    "wall": "minecraft:stone_brick_wall",
+    "chiseled": "minecraft:chiseled_stone_bricks",
+    "cracked": "minecraft:cracked_stone_bricks",
+    "mossy": "minecraft:mossy_stone_bricks",
+    "smooth": "minecraft:smooth_stone",
+    "cobbled": "minecraft:cobblestone",
+    "avg_color": "#7c7c7c"
+  },
+  "tuff": {
+    "kind": "stone",
+    "group": "tuff",
+    "block": "minecraft:tuff",
+    "stairs": "minecraft:tuff_stairs",
+    "slab": "minecraft:tuff_slab",
+    "wall": "minecraft:tuff_wall",
+    "chiseled": "minecraft:chiseled_tuff",
+    "polished": "minecraft:polished_tuff",
+    "bricks": "minecraft:tuff_bricks",
+    "avg_color": "#6f6f69"
+  },
+  "chiseled_tuff": {
+    "kind": "stone",
+    "group": "tuff",
+    "block": "minecraft:chiseled_tuff",
+    "polished": "minecraft:polished_tuff",
+    "bricks": "minecraft:tuff_bricks",
+    "avg_color": "#5e625b",
+    "substitutes": {
+      "stairs": [
+        "minecraft:polished_tuff_stairs",
+        "minecraft:tuff_brick_stairs",
+        "minecraft:tuff_stairs"
+      ],
+      "slab": [
+        "minecraft:polished_tuff_slab",
+        "minecraft:tuff_brick_slab",
+        "minecraft:tuff_slab"
+      ],
+      "wall": [
+        "minecraft:polished_tuff_wall",
+        "minecraft:tuff_brick_wall",
+        "minecraft:tuff_wall"
+      ]
+    }
+  },
+  "chiseled_tuff_bricks": {
+    "kind": "stone",
+    "group": "tuff",
+    "block": "minecraft:chiseled_tuff_bricks",
+    "chiseled": "minecraft:chiseled_tuff",
+    "polished": "minecraft:polished_tuff",
+    "bricks": "minecraft:tuff_bricks",
+    "avg_color": "#6a6d66",
+    "substitutes": {
+      "stairs": [
+        "minecraft:tuff_brick_stairs",
+        "minecraft:tuff_stairs",
+        "minecraft:polished_tuff_stairs"
+      ],
+      "slab": [
+        "minecraft:tuff_brick_slab",
+        "minecraft:tuff_slab",
+        "minecraft:polished_tuff_slab"
+      ],
+      "wall": [
+        "minecraft:tuff_brick_wall",
+        "minecraft:tuff_wall",
+        "minecraft:polished_tuff_wall"
+      ]
+    }
+  },
+  "polished_tuff": {
+    "kind": "stone",
+    "group": "tuff",
+    "block": "minecraft:polished_tuff",
+    "stairs": "minecraft:polished_tuff_stairs",
+    "slab": "minecraft:polished_tuff_slab",
+    "wall": "minecraft:polished_tuff_wall",
+    "chiseled": "minecraft:chiseled_tuff",
+    "bricks": "minecraft:tuff_bricks",
+    "avg_color": "#636965"
+  },
+  "tuff_brick": {
+    "kind": "stone",
+    "group": "tuff",
+    "block": "minecraft:tuff_bricks",
+    "stairs": "minecraft:tuff_brick_stairs",
+    "slab": "minecraft:tuff_brick_slab",
+    "wall": "minecraft:tuff_brick_wall",
+    "chiseled": "minecraft:chiseled_tuff_bricks",
+    "polished": "minecraft:polished_tuff",
+    "avg_color": "#666962"
+  },
+  "acacia": {
+    "kind": "wood",
+    "group": "acacia",
+    "block": "minecraft:acacia_planks",
+    "planks": "minecraft:acacia_planks",
+    "log": "minecraft:acacia_log",
+    "wood": "minecraft:acacia_wood",
+    "stripped_log": "minecraft:stripped_acacia_log",
+    "stripped_wood": "minecraft:stripped_acacia_wood",
+    "leaves": "minecraft:acacia_leaves",
+    "sapling": "minecraft:acacia_sapling",
+    "stairs": "minecraft:acacia_stairs",
+    "slab": "minecraft:acacia_slab",
+    "fence": "minecraft:acacia_fence",
+    "fence_gate": "minecraft:acacia_fence_gate",
+    "door": "minecraft:acacia_door",
+    "trapdoor": "minecraft:acacia_trapdoor",
+    "button": "minecraft:acacia_button",
+    "pressure_plate": "minecraft:acacia_pressure_plate",
+    "sign": "minecraft:acacia_sign",
+    "wall_sign": "minecraft:acacia_wall_sign",
+    "hanging_sign": "minecraft:acacia_hanging_sign",
+    "wall_hanging_sign": "minecraft:acacia_wall_hanging_sign",
+    "avg_color": "#aa5b33"
+  },
+  "bamboo": {
+    "kind": "wood",
+    "group": "bamboo",
+    "block": "minecraft:bamboo_planks",
+    "planks": "minecraft:bamboo_planks",
+    "log": "minecraft:bamboo_block",
+    "stripped_log": "minecraft:stripped_bamboo_block",
+    "stairs": "minecraft:bamboo_stairs",
+    "slab": "minecraft:bamboo_slab",
+    "fence": "minecraft:bamboo_fence",
+    "fence_gate": "minecraft:bamboo_fence_gate",
+    "door": "minecraft:bamboo_door",
+    "trapdoor": "minecraft:bamboo_trapdoor",
+    "button": "minecraft:bamboo_button",
+    "pressure_plate": "minecraft:bamboo_pressure_plate",
+    "sign": "minecraft:bamboo_sign",
+    "wall_sign": "minecraft:bamboo_wall_sign",
+    "hanging_sign": "minecraft:bamboo_hanging_sign",
+    "wall_hanging_sign": "minecraft:bamboo_wall_hanging_sign",
+    "mosaic": "minecraft:bamboo_mosaic",
+    "avg_color": "#c4af52"
+  },
+  "bamboo_mosaic": {
+    "kind": "wood",
+    "group": "bamboo",
+    "block": "minecraft:bamboo_mosaic",
+    "stairs": "minecraft:bamboo_mosaic_stairs",
+    "slab": "minecraft:bamboo_mosaic_slab",
+    "avg_color": "#c1ac4f"
+  },
+  "birch": {
+    "kind": "wood",
+    "group": "birch",
+    "block": "minecraft:birch_planks",
+    "planks": "minecraft:birch_planks",
+    "log": "minecraft:birch_log",
+    "wood": "minecraft:birch_wood",
+    "stripped_log": "minecraft:stripped_birch_log",
+    "stripped_wood": "minecraft:stripped_birch_wood",
+    "leaves": "minecraft:birch_leaves",
+    "sapling": "minecraft:birch_sapling",
+    "stairs": "minecraft:birch_stairs",
+    "slab": "minecraft:birch_slab",
+    "fence": "minecraft:birch_fence",
+    "fence_gate": "minecraft:birch_fence_gate",
+    "door": "minecraft:birch_door",
+    "trapdoor": "minecraft:birch_trapdoor",
+    "button": "minecraft:birch_button",
+    "pressure_plate": "minecraft:birch_pressure_plate",
+    "sign": "minecraft:birch_sign",
+    "wall_sign": "minecraft:birch_wall_sign",
+    "hanging_sign": "minecraft:birch_hanging_sign",
+    "wall_hanging_sign": "minecraft:birch_wall_hanging_sign",
+    "avg_color": "#c2b17a"
+  },
+  "cherry": {
+    "kind": "wood",
+    "group": "cherry",
+    "block": "minecraft:cherry_planks",
+    "planks": "minecraft:cherry_planks",
+    "log": "minecraft:cherry_log",
+    "wood": "minecraft:cherry_wood",
+    "stripped_log": "minecraft:stripped_cherry_log",
+    "stripped_wood": "minecraft:stripped_cherry_wood",
+    "leaves": "minecraft:cherry_leaves",
+    "sapling": "minecraft:cherry_sapling",
+    "stairs": "minecraft:cherry_stairs",
+    "slab": "minecraft:cherry_slab",
+    "fence": "minecraft:cherry_fence",
+    "fence_gate": "minecraft:cherry_fence_gate",
+    "door": "minecraft:cherry_door",
+    "trapdoor": "minecraft:cherry_trapdoor",
+    "button": "minecraft:cherry_button",
+    "pressure_plate": "minecraft:cherry_pressure_plate",
+    "sign": "minecraft:cherry_sign",
+    "wall_sign": "minecraft:cherry_wall_sign",
+    "hanging_sign": "minecraft:cherry_hanging_sign",
+    "wall_hanging_sign": "minecraft:cherry_wall_hanging_sign",
+    "avg_color": "#e3b4ae"
+  },
+  "crimson": {
+    "kind": "wood",
+    "group": "crimson",
+    "block": "minecraft:crimson_planks",
+    "planks": "minecraft:crimson_planks",
+    "log": "minecraft:crimson_stem",
+    "wood": "minecraft:crimson_hyphae",
+    "stripped_log": "minecraft:stripped_crimson_stem",
+    "stripped_wood": "minecraft:stripped_crimson_hyphae",
+    "leaves": "minecraft:nether_wart_block",
+    "sapling": "minecraft:crimson_fungus",
+    "stairs": "minecraft:crimson_stairs",
+    "slab": "minecraft:crimson_slab",
+    "fence": "minecraft:crimson_fence",
+    "fence_gate": "minecraft:crimson_fence_gate",
+    "door": "minecraft:crimson_door",
+    "trapdoor": "minecraft:crimson_trapdoor",
+    "button": "minecraft:crimson_button",
+    "pressure_plate": "minecraft:crimson_pressure_plate",
+    "sign": "minecraft:crimson_sign",
+    "wall_sign": "minecraft:crimson_wall_sign",
+    "hanging_sign": "minecraft:crimson_hanging_sign",
+    "wall_hanging_sign": "minecraft:crimson_wall_hanging_sign",
+    "avg_color": "#693249"
+  },
+  "dark_oak": {
+    "kind": "wood",
+    "group": "dark_oak",
+    "block": "minecraft:dark_oak_planks",
+    "planks": "minecraft:dark_oak_planks",
+    "log": "minecraft:dark_oak_log",
+    "wood": "minecraft:dark_oak_wood",
+    "stripped_log": "minecraft:stripped_dark_oak_log",
+    "stripped_wood": "minecraft:stripped_dark_oak_wood",
+    "leaves": "minecraft:dark_oak_leaves",
+    "sapling": "minecraft:dark_oak_sapling",
+    "stairs": "minecraft:dark_oak_stairs",
+    "slab": "minecraft:dark_oak_slab",
+    "fence": "minecraft:dark_oak_fence",
+    "fence_gate": "minecraft:dark_oak_fence_gate",
+    "door": "minecraft:dark_oak_door",
+    "trapdoor": "minecraft:dark_oak_trapdoor",
+    "button": "minecraft:dark_oak_button",
+    "pressure_plate": "minecraft:dark_oak_pressure_plate",
+    "sign": "minecraft:dark_oak_sign",
+    "wall_sign": "minecraft:dark_oak_wall_sign",
+    "hanging_sign": "minecraft:dark_oak_hanging_sign",
+    "wall_hanging_sign": "minecraft:dark_oak_wall_hanging_sign",
+    "avg_color": "#442c15"
+  },
+  "jungle": {
+    "kind": "wood",
+    "group": "jungle",
+    "block": "minecraft:jungle_planks",
+    "planks": "minecraft:jungle_planks",
+    "log": "minecraft:jungle_log",
+    "wood": "minecraft:jungle_wood",
+    "stripped_log": "minecraft:stripped_jungle_log",
+    "stripped_wood": "minecraft:stripped_jungle_wood",
+    "leaves": "minecraft:jungle_leaves",
+    "sapling": "minecraft:jungle_sapling",
+    "stairs": "minecraft:jungle_stairs",
+    "slab": "minecraft:jungle_slab",
+    "fence": "minecraft:jungle_fence",
+    "fence_gate": "minecraft:jungle_fence_gate",
+    "door": "minecraft:jungle_door",
+    "trapdoor": "minecraft:jungle_trapdoor",
+    "button": "minecraft:jungle_button",
+    "pressure_plate": "minecraft:jungle_pressure_plate",
+    "sign": "minecraft:jungle_sign",
+    "wall_sign": "minecraft:jungle_wall_sign",
+    "hanging_sign": "minecraft:jungle_hanging_sign",
+    "wall_hanging_sign": "minecraft:jungle_wall_hanging_sign",
+    "avg_color": "#a47654"
+  },
+  "mangrove": {
+    "kind": "wood",
+    "group": "mangrove",
+    "block": "minecraft:mangrove_planks",
+    "planks": "minecraft:mangrove_planks",
+    "log": "minecraft:mangrove_log",
+    "wood": "minecraft:mangrove_wood",
+    "stripped_log": "minecraft:stripped_mangrove_log",
+    "stripped_wood": "minecraft:stripped_mangrove_wood",
+    "leaves": "minecraft:mangrove_leaves",
+    "sapling": "minecraft:mangrove_propagule",
+    "stairs": "minecraft:mangrove_stairs",
+    "slab": "minecraft:mangrove_slab",
+    "fence": "minecraft:mangrove_fence",
+    "fence_gate": "minecraft:mangrove_fence_gate",
+    "door": "minecraft:mangrove_door",
+    "trapdoor": "minecraft:mangrove_trapdoor",
+    "button": "minecraft:mangrove_button",
+    "pressure_plate": "minecraft:mangrove_pressure_plate",
+    "sign": "minecraft:mangrove_sign",
+    "wall_sign": "minecraft:mangrove_wall_sign",
+    "hanging_sign": "minecraft:mangrove_hanging_sign",
+    "wall_hanging_sign": "minecraft:mangrove_wall_hanging_sign",
+    "avg_color": "#773832"
+  },
+  "oak": {
+    "kind": "wood",
+    "group": "oak",
+    "block": "minecraft:oak_planks",
+    "planks": "minecraft:oak_planks",
+    "log": "minecraft:oak_log",
+    "wood": "minecraft:oak_wood",
+    "stripped_log": "minecraft:stripped_oak_log",
+    "stripped_wood": "minecraft:stripped_oak_wood",
+    "leaves": "minecraft:oak_leaves",
+    "sapling": "minecraft:oak_sapling",
+    "stairs": "minecraft:oak_stairs",
+    "slab": "minecraft:oak_slab",
+    "fence": "minecraft:oak_fence",
+    "fence_gate": "minecraft:oak_fence_gate",
+    "door": "minecraft:oak_door",
+    "trapdoor": "minecraft:oak_trapdoor",
+    "button": "minecraft:oak_button",
+    "pressure_plate": "minecraft:oak_pressure_plate",
+    "sign": "minecraft:oak_sign",
+    "wall_sign": "minecraft:oak_wall_sign",
+    "hanging_sign": "minecraft:oak_hanging_sign",
+    "wall_hanging_sign": "minecraft:oak_wall_hanging_sign",
+    "avg_color": "#a58651"
+  },
+  "bookshelf": {
+    "kind": "wood",
+    "group": "oak",
+    "block": "minecraft:bookshelf",
+    "chiseled": "minecraft:chiseled_bookshelf",
+    "avg_color": "#91754f"
+  },
+  "spruce": {
+    "kind": "wood",
+    "group": "spruce",
+    "block": "minecraft:spruce_planks",
+    "planks": "minecraft:spruce_planks",
+    "log": "minecraft:spruce_log",
+    "wood": "minecraft:spruce_wood",
+    "stripped_log": "minecraft:stripped_spruce_log",
+    "stripped_wood": "minecraft:stripped_spruce_wood",
+    "leaves": "minecraft:spruce_leaves",
+    "sapling": "minecraft:spruce_sapling",
+    "stairs": "minecraft:spruce_stairs",
+    "slab": "minecraft:spruce_slab",
+    "fence": "minecraft:spruce_fence",
+    "fence_gate": "minecraft:spruce_fence_gate",
+    "door": "minecraft:spruce_door",
+    "trapdoor": "minecraft:spruce_trapdoor",
+    "button": "minecraft:spruce_button",
+    "pressure_plate": "minecraft:spruce_pressure_plate",
+    "sign": "minecraft:spruce_sign",
+    "wall_sign": "minecraft:spruce_wall_sign",
+    "hanging_sign": "minecraft:spruce_hanging_sign",
+    "wall_hanging_sign": "minecraft:spruce_wall_hanging_sign",
+    "avg_color": "#755631"
+  },
+  "warped": {
+    "kind": "wood",
+    "group": "warped",
+    "block": "minecraft:warped_planks",
+    "planks": "minecraft:warped_planks",
+    "log": "minecraft:warped_stem",
+    "wood": "minecraft:warped_hyphae",
+    "stripped_log": "minecraft:stripped_warped_stem",
+    "stripped_wood": "minecraft:stripped_warped_hyphae",
+    "leaves": "minecraft:warped_wart_block",
+    "sapling": "minecraft:warped_fungus",
+    "stairs": "minecraft:warped_stairs",
+    "slab": "minecraft:warped_slab",
+    "fence": "minecraft:warped_fence",
+    "fence_gate": "minecraft:warped_fence_gate",
+    "door": "minecraft:warped_door",
+    "trapdoor": "minecraft:warped_trapdoor",
+    "button": "minecraft:warped_button",
+    "pressure_plate": "minecraft:warped_pressure_plate",
+    "sign": "minecraft:warped_sign",
+    "wall_sign": "minecraft:warped_wall_sign",
+    "hanging_sign": "minecraft:warped_hanging_sign",
+    "wall_hanging_sign": "minecraft:warped_wall_hanging_sign",
+    "avg_color": "#2d6d68"
+  },
+  "copper": {
+    "kind": "metal",
+    "group": "copper",
+    "oxidation": "none",
+    "waxed": false,
+    "block": "minecraft:copper_block",
+    "door": "minecraft:copper_door",
+    "trapdoor": "minecraft:copper_trapdoor",
+    "chiseled": "minecraft:chiseled_copper",
+    "cut": "minecraft:cut_copper",
+    "grate": "minecraft:copper_grate",
+    "bulb": "minecraft:copper_bulb",
+    "avg_color": "#c26d52",
+    "substitutes": {
+      "stairs": [
+        "minecraft:cut_copper_stairs",
+        "minecraft:polished_granite_stairs",
+        "minecraft:granite_stairs"
+      ],
+      "slab": [
+        "minecraft:cut_copper_slab",
+        "minecraft:polished_granite_slab",
+        "minecraft:granite_slab"
+      ],
+      "wall": [
+        "minecraft:granite_wall",
+        "minecraft:brick_wall",
+        "minecraft:red_sandstone_wall"
+      ]
+    }
+  },
+  "cut_copper": {
+    "kind": "metal",
+    "group": "copper",
+    "oxidation": "none",
+    "waxed": false,
+    "block": "minecraft:cut_copper",
+    "stairs": "minecraft:cut_copper_stairs",
+    "slab": "minecraft:cut_copper_slab",
+    "chiseled": "minecraft:chiseled_copper",
+    "grate": "minecraft:copper_grate",
+    "bulb": "minecraft:copper_bulb",
+    "avg_color": "#c16d53",
+    "substitutes": {
+      "wall": [
+        "minecraft:granite_wall",
+        "minecraft:brick_wall",
+        "minecraft:red_sandstone_wall"
+      ]
+    }
+  },
+  "raw_copper": {
+    "kind": "metal",
+    "group": "copper",
+    "block": "minecraft:raw_copper_block",
+    "avg_color": "#a36d53",
+    "substitutes": {
+      "stairs": [
+        "minecraft:cut_copper_stairs",
+        "minecraft:polished_granite_stairs",
+        "minecraft:granite_stairs"
+      ],
+      "slab": [
+        "minecraft:cut_copper_slab",
+        "minecraft:polished_granite_slab",
+        "minecraft:granite_slab"
+      ],
+      "wall": [
+        "minecraft:granite_wall",
+        "minecraft:brick_wall",
+        "minecraft:mud_brick_wall"
+      ]
+    }
+  },
+  "exposed_copper": {
+    "kind": "metal",
+    "group": "exposed_copper",
+    "oxidation": "exposed",
+    "waxed": false,
+    "block": "minecraft:exposed_copper",
+    "door": "minecraft:exposed_copper_door",
+    "trapdoor": "minecraft:exposed_copper_trapdoor",
+    "chiseled": "minecraft:exposed_chiseled_copper",
+    "cut": "minecraft:exposed_cut_copper",
+    "grate": "minecraft:exposed_copper_grate",
+    "bulb": "minecraft:exposed_copper_bulb",
+    "avg_color": "#a47e69",
+    "substitutes": {
+      "stairs": [
+        "minecraft:exposed_cut_copper_stairs",
+        "minecraft:polished_granite_stairs",
+        "minecraft:granite_stairs"
+      ],
+      "slab": [
+        "minecraft:exposed_cut_copper_slab",
+        "minecraft:polished_granite_slab",
+        "minecraft:granite_slab"
+      ],
+      "wall": [
+        "minecraft:granite_wall",
+        "minecraft:mud_brick_wall",
+        "minecraft:brick_wall"
+      ]
+    }
+  },
+  "exposed_cut_copper": {
+    "kind": "metal",
+    "group": "exposed_copper",
+    "oxidation": "exposed",
+    "waxed": false,
+    "block": "minecraft:exposed_cut_copper",
+    "stairs": "minecraft:exposed_cut_copper_stairs",
+    "slab": "minecraft:exposed_cut_copper_slab",
+    "chiseled": "minecraft:exposed_chiseled_copper",
+    "grate": "minecraft:exposed_copper_grate",
+    "bulb": "minecraft:exposed_copper_bulb",
+    "avg_color": "#9e7b67",
+    "substitutes": {
+      "wall": [
+        "minecraft:granite_wall",
+        "minecraft:mud_brick_wall",
+        "minecraft:brick_wall"
+      ]
+    }
+  },
+  "gold": {
+    "kind": "metal",
+    "group": "gold",
+    "block": "minecraft:gold_block",
+    "pressure_plate": "minecraft:light_weighted_pressure_plate",
+    "avg_color": "#f7d345",
+    "substitutes": {
+      "stairs": [
+        "minecraft:sandstone_stairs",
+        "minecraft:end_stone_brick_stairs",
+        "minecraft:bamboo_stairs"
+      ],
+      "slab": [
+        "minecraft:sandstone_slab",
+        "minecraft:end_stone_brick_slab",
+        "minecraft:cut_sandstone_slab"
+      ],
+      "wall": [
+        "minecraft:sandstone_wall",
+        "minecraft:end_stone_brick_wall"
+      ]
+    }
+  },
+  "raw_gold": {
+    "kind": "metal",
+    "group": "gold",
+    "block": "minecraft:raw_gold_block",
+    "avg_color": "#e0b13d",
+    "substitutes": {
+      "stairs": [
+        "minecraft:bamboo_stairs",
+        "minecraft:bamboo_mosaic_stairs",
+        "minecraft:sandstone_stairs"
+      ],
+      "slab": [
+        "minecraft:bamboo_slab",
+        "minecraft:bamboo_mosaic_slab",
+        "minecraft:sandstone_slab"
+      ],
+      "wall": [
+        "minecraft:sandstone_wall"
+      ]
+    }
+  },
+  "iron": {
+    "kind": "metal",
+    "group": "iron",
+    "block": "minecraft:iron_block",
+    "door": "minecraft:iron_door",
+    "trapdoor": "minecraft:iron_trapdoor",
+    "pressure_plate": "minecraft:heavy_weighted_pressure_plate",
+    "bars": "minecraft:iron_bars",
+    "avg_color": "#dddddd",
+    "substitutes": {
+      "stairs": [
+        "minecraft:quartz_stairs",
+        "minecraft:smooth_quartz_stairs",
+        "minecraft:polished_diorite_stairs"
+      ],
+      "slab": [
+        "minecraft:quartz_slab",
+        "minecraft:smooth_quartz_slab",
+        "minecraft:polished_diorite_slab"
+      ],
+      "wall": [
+        "minecraft:diorite_wall",
+        "minecraft:sandstone_wall"
+      ]
+    }
+  },
+  "raw_iron": {
+    "kind": "metal",
+    "group": "iron",
+    "block": "minecraft:raw_iron_block",
+    "avg_color": "#ad8e74",
+    "substitutes": {
+      "stairs": [
+        "minecraft:exposed_cut_copper_stairs",
+        "minecraft:polished_granite_stairs",
+        "minecraft:jungle_stairs"
+      ],
+      "slab": [
+        "minecraft:exposed_cut_copper_slab",
+        "minecraft:polished_granite_slab",
+        "minecraft:jungle_slab"
+      ],
+      "wall": [
+        "minecraft:granite_wall",
+        "minecraft:mud_brick_wall",
+        "minecraft:cobblestone_wall"
+      ]
+    }
+  },
+  "netherite": {
+    "kind": "metal",
+    "group": "netherite",
+    "block": "minecraft:netherite_block",
+    "avg_color": "#444042",
+    "substitutes": {
+      "stairs": [
+        "minecraft:deepslate_tile_stairs",
+        "minecraft:polished_blackstone_stairs",
+        "minecraft:polished_deepslate_stairs"
+      ],
+      "slab": [
+        "minecraft:deepslate_tile_slab",
+        "minecraft:polished_blackstone_slab",
+        "minecraft:polished_deepslate_slab"
+      ],
+      "wall": [
+        "minecraft:deepslate_tile_wall",
+        "minecraft:polished_blackstone_wall",
+        "minecraft:polished_deepslate_wall"
+      ]
+    }
+  },
+  "oxidized_copper": {
+    "kind": "metal",
+    "group": "oxidized_copper",
+    "oxidation": "oxidized",
+    "waxed": false,
+    "block": "minecraft:oxidized_copper",
+    "door": "minecraft:oxidized_copper_door",
+    "trapdoor": "minecraft:oxidized_copper_trapdoor",
+    "chiseled": "minecraft:oxidized_chiseled_copper",
+    "cut": "minecraft:oxidized_cut_copper",
+    "grate": "minecraft:oxidized_copper_grate",
+    "bulb": "minecraft:oxidized_copper_bulb",
+    "avg_color": "#54a587",
+    "substitutes": {
+      "stairs": [
+        "minecraft:oxidized_cut_copper_stairs",
+        "minecraft:prismarine_stairs",
+        "minecraft:prismarine_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:oxidized_cut_copper_slab",
+        "minecraft:prismarine_slab",
+        "minecraft:prismarine_brick_slab"
+      ],
+      "wall": [
+        "minecraft:prismarine_wall"
+      ]
+    }
+  },
+  "oxidized_cut_copper": {
+    "kind": "metal",
+    "group": "oxidized_copper",
+    "oxidation": "oxidized",
+    "waxed": false,
+    "block": "minecraft:oxidized_cut_copper",
+    "stairs": "minecraft:oxidized_cut_copper_stairs",
+    "slab": "minecraft:oxidized_cut_copper_slab",
+    "chiseled": "minecraft:oxidized_chiseled_copper",
+    "grate": "minecraft:oxidized_copper_grate",
+    "bulb": "minecraft:oxidized_copper_bulb",
+    "avg_color": "#529d81",
+    "substitutes": {
+      "wall": [
+        "minecraft:prismarine_wall",
+        "minecraft:mossy_cobblestone_wall"
+      ]
+    }
+  },
+  "waxed_copper": {
+    "kind": "metal",
+    "group": "waxed_copper",
+    "oxidation": "none",
+    "waxed": true,
+    "block": "minecraft:waxed_copper_block",
+    "door": "minecraft:waxed_copper_door",
+    "trapdoor": "minecraft:waxed_copper_trapdoor",
+    "chiseled": "minecraft:waxed_chiseled_copper",
+    "cut": "minecraft:waxed_cut_copper",
+    "grate": "minecraft:waxed_copper_grate",
+    "bulb": "minecraft:waxed_copper_bulb",
+    "avg_color": "#c26d52",
+    "substitutes": {
+      "stairs": [
+        "minecraft:waxed_cut_copper_stairs",
+        "minecraft:polished_granite_stairs",
+        "minecraft:granite_stairs"
+      ],
+      "slab": [
+        "minecraft:waxed_cut_copper_slab",
+        "minecraft:polished_granite_slab",
+        "minecraft:granite_slab"
+      ],
+      "wall": [
+        "minecraft:granite_wall",
+        "minecraft:brick_wall",
+        "minecraft:red_sandstone_wall"
+      ]
+    }
+  },
+  "waxed_cut_copper": {
+    "kind": "metal",
+    "group": "waxed_copper",
+    "oxidation": "none",
+    "waxed": true,
+    "block": "minecraft:waxed_cut_copper",
+    "stairs": "minecraft:waxed_cut_copper_stairs",
+    "slab": "minecraft:waxed_cut_copper_slab",
+    "chiseled": "minecraft:waxed_chiseled_copper",
+    "grate": "minecraft:waxed_copper_grate",
+    "bulb": "minecraft:waxed_copper_bulb",
+    "avg_color": "#c16d53",
+    "substitutes": {
+      "wall": [
+        "minecraft:granite_wall",
+        "minecraft:brick_wall",
+        "minecraft:red_sandstone_wall"
+      ]
+    }
+  },
+  "waxed_exposed_copper": {
+    "kind": "metal",
+    "group": "waxed_exposed_copper",
+    "oxidation": "exposed",
+    "waxed": true,
+    "block": "minecraft:waxed_exposed_copper",
+    "door": "minecraft:waxed_exposed_copper_door",
+    "trapdoor": "minecraft:waxed_exposed_copper_trapdoor",
+    "chiseled": "minecraft:waxed_exposed_chiseled_copper",
+    "cut": "minecraft:waxed_exposed_cut_copper",
+    "grate": "minecraft:waxed_exposed_copper_grate",
+    "bulb": "minecraft:waxed_exposed_copper_bulb",
+    "avg_color": "#a47e69",
+    "substitutes": {
+      "stairs": [
+        "minecraft:waxed_exposed_cut_copper_stairs",
+        "minecraft:polished_granite_stairs",
+        "minecraft:granite_stairs"
+      ],
+      "slab": [
+        "minecraft:waxed_exposed_cut_copper_slab",
+        "minecraft:polished_granite_slab",
+        "minecraft:granite_slab"
+      ],
+      "wall": [
+        "minecraft:granite_wall",
+        "minecraft:mud_brick_wall",
+        "minecraft:brick_wall"
+      ]
+    }
+  },
+  "waxed_exposed_cut_copper": {
+    "kind": "metal",
+    "group": "waxed_exposed_copper",
+    "oxidation": "exposed",
+    "waxed": true,
+    "block": "minecraft:waxed_exposed_cut_copper",
+    "stairs": "minecraft:waxed_exposed_cut_copper_stairs",
+    "slab": "minecraft:waxed_exposed_cut_copper_slab",
+    "chiseled": "minecraft:waxed_exposed_chiseled_copper",
+    "grate": "minecraft:waxed_exposed_copper_grate",
+    "bulb": "minecraft:waxed_exposed_copper_bulb",
+    "avg_color": "#9e7b67",
+    "substitutes": {
+      "wall": [
+        "minecraft:granite_wall",
+        "minecraft:mud_brick_wall",
+        "minecraft:brick_wall"
+      ]
+    }
+  },
+  "waxed_oxidized_copper": {
+    "kind": "metal",
+    "group": "waxed_oxidized_copper",
+    "oxidation": "oxidized",
+    "waxed": true,
+    "block": "minecraft:waxed_oxidized_copper",
+    "door": "minecraft:waxed_oxidized_copper_door",
+    "trapdoor": "minecraft:waxed_oxidized_copper_trapdoor",
+    "chiseled": "minecraft:waxed_oxidized_chiseled_copper",
+    "cut": "minecraft:waxed_oxidized_cut_copper",
+    "grate": "minecraft:waxed_oxidized_copper_grate",
+    "bulb": "minecraft:waxed_oxidized_copper_bulb",
+    "avg_color": "#54a587",
+    "substitutes": {
+      "stairs": [
+        "minecraft:waxed_oxidized_cut_copper_stairs",
+        "minecraft:prismarine_stairs",
+        "minecraft:prismarine_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:waxed_oxidized_cut_copper_slab",
+        "minecraft:prismarine_slab",
+        "minecraft:prismarine_brick_slab"
+      ],
+      "wall": [
+        "minecraft:prismarine_wall"
+      ]
+    }
+  },
+  "waxed_oxidized_cut_copper": {
+    "kind": "metal",
+    "group": "waxed_oxidized_copper",
+    "oxidation": "oxidized",
+    "waxed": true,
+    "block": "minecraft:waxed_oxidized_cut_copper",
+    "stairs": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "slab": "minecraft:waxed_oxidized_cut_copper_slab",
+    "chiseled": "minecraft:waxed_oxidized_chiseled_copper",
+    "grate": "minecraft:waxed_oxidized_copper_grate",
+    "bulb": "minecraft:waxed_oxidized_copper_bulb",
+    "avg_color": "#529d81",
+    "substitutes": {
+      "wall": [
+        "minecraft:prismarine_wall",
+        "minecraft:mossy_cobblestone_wall"
+      ]
+    }
+  },
+  "waxed_weathered_copper": {
+    "kind": "metal",
+    "group": "waxed_weathered_copper",
+    "oxidation": "weathered",
+    "waxed": true,
+    "block": "minecraft:waxed_weathered_copper",
+    "door": "minecraft:waxed_weathered_copper_door",
+    "trapdoor": "minecraft:waxed_weathered_copper_trapdoor",
+    "chiseled": "minecraft:waxed_weathered_chiseled_copper",
+    "cut": "minecraft:waxed_weathered_cut_copper",
+    "grate": "minecraft:waxed_weathered_copper_grate",
+    "bulb": "minecraft:waxed_weathered_copper_bulb",
+    "avg_color": "#6d9b71",
+    "substitutes": {
+      "stairs": [
+        "minecraft:waxed_weathered_cut_copper_stairs",
+        "minecraft:waxed_oxidized_cut_copper_stairs",
+        "minecraft:prismarine_stairs"
+      ],
+      "slab": [
+        "minecraft:waxed_weathered_cut_copper_slab",
+        "minecraft:waxed_oxidized_cut_copper_slab",
+        "minecraft:prismarine_slab"
+      ],
+      "wall": [
+        "minecraft:prismarine_wall",
+        "minecraft:mossy_cobblestone_wall",
+        "minecraft:mossy_stone_brick_wall"
+      ]
+    }
+  },
+  "waxed_weathered_cut_copper": {
+    "kind": "metal",
+    "group": "waxed_weathered_copper",
+    "oxidation": "weathered",
+    "waxed": true,
+    "block": "minecraft:waxed_weathered_cut_copper",
+    "stairs": "minecraft:waxed_weathered_cut_copper_stairs",
+    "slab": "minecraft:waxed_weathered_cut_copper_slab",
+    "chiseled": "minecraft:waxed_weathered_chiseled_copper",
+    "grate": "minecraft:waxed_weathered_copper_grate",
+    "bulb": "minecraft:waxed_weathered_copper_bulb",
+    "avg_color": "#6f946e",
+    "substitutes": {
+      "wall": [
+        "minecraft:prismarine_wall",
+        "minecraft:mossy_cobblestone_wall",
+        "minecraft:mossy_stone_brick_wall"
+      ]
+    }
+  },
+  "weathered_copper": {
+    "kind": "metal",
+    "group": "weathered_copper",
+    "oxidation": "weathered",
+    "waxed": false,
+    "block": "minecraft:weathered_copper",
+    "door": "minecraft:weathered_copper_door",
+    "trapdoor": "minecraft:weathered_copper_trapdoor",
+    "chiseled": "minecraft:weathered_chiseled_copper",
+    "cut": "minecraft:weathered_cut_copper",
+    "grate": "minecraft:weathered_copper_grate",
+    "bulb": "minecraft:weathered_copper_bulb",
+    "avg_color": "#6d9b71",
+    "substitutes": {
+      "stairs": [
+        "minecraft:weathered_cut_copper_stairs",
+        "minecraft:oxidized_cut_copper_stairs",
+        "minecraft:prismarine_stairs"
+      ],
+      "slab": [
+        "minecraft:weathered_cut_copper_slab",
+        "minecraft:oxidized_cut_copper_slab",
+        "minecraft:prismarine_slab"
+      ],
+      "wall": [
+        "minecraft:prismarine_wall",
+        "minecraft:mossy_cobblestone_wall",
+        "minecraft:mossy_stone_brick_wall"
+      ]
+    }
+  },
+  "weathered_cut_copper": {
+    "kind": "metal",
+    "group": "weathered_copper",
+    "oxidation": "weathered",
+    "waxed": false,
+    "block": "minecraft:weathered_cut_copper",
+    "stairs": "minecraft:weathered_cut_copper_stairs",
+    "slab": "minecraft:weathered_cut_copper_slab",
+    "chiseled": "minecraft:weathered_chiseled_copper",
+    "grate": "minecraft:weathered_copper_grate",
+    "bulb": "minecraft:weathered_copper_bulb",
+    "avg_color": "#6f946e",
+    "substitutes": {
+      "wall": [
+        "minecraft:prismarine_wall",
+        "minecraft:mossy_cobblestone_wall",
+        "minecraft:mossy_stone_brick_wall"
+      ]
+    }
+  },
+  "clay": {
+    "kind": "earth",
+    "group": "clay",
+    "block": "minecraft:clay",
+    "avg_color": "#a1a7b4",
+    "substitutes": {
+      "stairs": [
+        "minecraft:andesite_stairs",
+        "minecraft:diorite_stairs",
+        "minecraft:polished_diorite_stairs"
+      ],
+      "slab": [
+        "minecraft:smooth_stone_slab",
+        "minecraft:andesite_slab",
+        "minecraft:diorite_slab"
+      ],
+      "wall": [
+        "minecraft:andesite_wall",
+        "minecraft:diorite_wall",
+        "minecraft:cobblestone_wall"
+      ]
+    }
+  },
+  "dirt": {
+    "kind": "earth",
+    "group": "dirt",
+    "block": "minecraft:dirt",
+    "avg_color": "#8a6346",
+    "substitutes": {
+      "stairs": [
+        "minecraft:mud_brick_stairs",
+        "minecraft:granite_stairs",
+        "minecraft:polished_granite_stairs"
+      ],
+      "slab": [
+        "minecraft:mud_brick_slab",
+        "minecraft:granite_slab",
+        "minecraft:polished_granite_slab"
+      ],
+      "wall": [
+        "minecraft:mud_brick_wall",
+        "minecraft:granite_wall",
+        "minecraft:brick_wall"
+      ]
+    }
+  },
+  "coarse_dirt": {
+    "kind": "earth",
+    "group": "dirt",
+    "block": "minecraft:coarse_dirt",
+    "avg_color": "#7d5a3f",
+    "substitutes": {
+      "stairs": [
+        "minecraft:mud_brick_stairs",
+        "minecraft:granite_stairs",
+        "minecraft:spruce_stairs"
+      ],
+      "slab": [
+        "minecraft:mud_brick_slab",
+        "minecraft:granite_slab",
+        "minecraft:spruce_slab"
+      ],
+      "wall": [
+        "minecraft:mud_brick_wall",
+        "minecraft:granite_wall",
+        "minecraft:brick_wall"
+      ]
+    }
+  },
+  "rooted_dirt": {
+    "kind": "earth",
+    "group": "dirt",
+    "block": "minecraft:rooted_dirt",
+    "avg_color": "#946b52",
+    "substitutes": {
+      "stairs": [
+        "minecraft:mud_brick_stairs",
+        "minecraft:granite_stairs",
+        "minecraft:polished_granite_stairs"
+      ],
+      "slab": [
+        "minecraft:mud_brick_slab",
+        "minecraft:granite_slab",
+        "minecraft:polished_granite_slab"
+      ],
+      "wall": [
+        "minecraft:mud_brick_wall",
+        "minecraft:granite_wall",
+        "minecraft:brick_wall"
+      ]
+    }
+  },
+  "gravel": {
+    "kind": "earth",
+    "group": "gravel",
+    "block": "minecraft:gravel",
+    "avg_color": "#858180",
+    "substitutes": {
+      "stairs": [
+        "minecraft:stone_brick_stairs",
+        "minecraft:stone_stairs",
+        "minecraft:cobblestone_stairs"
+      ],
+      "slab": [
+        "minecraft:stone_brick_slab",
+        "minecraft:stone_slab",
+        "minecraft:cobblestone_slab"
+      ],
+      "wall": [
+        "minecraft:stone_brick_wall",
+        "minecraft:cobblestone_wall",
+        "minecraft:andesite_wall"
+      ]
+    }
+  },
+  "hay": {
+    "kind": "earth",
+    "group": "hay",
+    "block": "minecraft:hay_block",
+    "avg_color": "#a88d20",
+    "substitutes": {
+      "stairs": [
+        "minecraft:bamboo_mosaic_stairs",
+        "minecraft:oak_stairs",
+        "minecraft:bamboo_stairs"
+      ],
+      "slab": [
+        "minecraft:bamboo_mosaic_slab",
+        "minecraft:oak_slab",
+        "minecraft:bamboo_slab"
+      ]
+    }
+  },
+  "ice": {
+    "kind": "earth",
+    "group": "ice",
+    "block": "minecraft:ice",
+    "avg_color": "#92b8fe"
+  },
+  "blue_ice": {
+    "kind": "earth",
+    "group": "ice",
+    "block": "minecraft:blue_ice",
+    "avg_color": "#75a8fd"
+  },
+  "packed_ice": {
+    "kind": "earth",
+    "group": "ice",
+    "block": "minecraft:packed_ice",
+    "avg_color": "#8fb4fb"
+  },
+  "moss": {
+    "kind": "earth",
+    "group": "moss",
+    "block": "minecraft:moss_block",
+    "carpet": "minecraft:moss_carpet",
+    "avg_color": "#5b6f2e",
+    "substitutes": {
+      "stairs": [
+        "minecraft:mossy_cobblestone_stairs",
+        "minecraft:mossy_stone_brick_stairs",
+        "minecraft:dark_prismarine_stairs"
+      ],
+      "slab": [
+        "minecraft:mossy_cobblestone_slab",
+        "minecraft:mossy_stone_brick_slab",
+        "minecraft:dark_prismarine_slab"
+      ],
+      "wall": [
+        "minecraft:mossy_cobblestone_wall",
+        "minecraft:mossy_stone_brick_wall",
+        "minecraft:tuff_brick_wall"
+      ]
+    }
+  },
+  "mud": {
+    "kind": "earth",
+    "group": "mud",
+    "block": "minecraft:mud",
+    "bricks": "minecraft:mud_bricks",
+    "avg_color": "#3d3a3d",
+    "substitutes": {
+      "stairs": [
+        "minecraft:deepslate_tile_stairs",
+        "minecraft:polished_blackstone_stairs",
+        "minecraft:polished_blackstone_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:deepslate_tile_slab",
+        "minecraft:polished_blackstone_slab",
+        "minecraft:polished_blackstone_brick_slab"
+      ],
+      "wall": [
+        "minecraft:deepslate_tile_wall",
+        "minecraft:polished_blackstone_wall",
+        "minecraft:polished_blackstone_brick_wall"
+      ]
+    }
+  },
+  "mud_brick": {
+    "kind": "earth",
+    "group": "mud",
+    "block": "minecraft:mud_bricks",
+    "stairs": "minecraft:mud_brick_stairs",
+    "slab": "minecraft:mud_brick_slab",
+    "wall": "minecraft:mud_brick_wall",
+    "avg_color": "#8b6950"
+  },
+  "packed_mud": {
+    "kind": "earth",
+    "group": "mud",
+    "block": "minecraft:packed_mud",
+    "bricks": "minecraft:mud_bricks",
+    "avg_color": "#8f6b50",
+    "substitutes": {
+      "stairs": [
+        "minecraft:mud_brick_stairs",
+        "minecraft:granite_stairs",
+        "minecraft:polished_granite_stairs"
+      ],
+      "slab": [
+        "minecraft:mud_brick_slab",
+        "minecraft:granite_slab",
+        "minecraft:polished_granite_slab"
+      ],
+      "wall": [
+        "minecraft:mud_brick_wall",
+        "minecraft:granite_wall",
+        "minecraft:brick_wall"
+      ]
+    }
+  },
+  "sand": {
+    "kind": "earth",
+    "group": "sand",
+    "block": "minecraft:sand",
+    "avg_color": "#dbd0a4",
+    "substitutes": {
+      "stairs": [
+        "minecraft:sandstone_stairs",
+        "minecraft:smooth_sandstone_stairs",
+        "minecraft:end_stone_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:cut_sandstone_slab",
+        "minecraft:sandstone_slab",
+        "minecraft:smooth_sandstone_slab"
+      ],
+      "wall": [
+        "minecraft:sandstone_wall",
+        "minecraft:end_stone_brick_wall",
+        "minecraft:diorite_wall"
+      ]
+    }
+  },
+  "red_sand": {
+    "kind": "earth",
+    "group": "sand",
+    "block": "minecraft:red_sand",
+    "avg_color": "#bf6721",
+    "substitutes": {
+      "stairs": [
+        "minecraft:red_sandstone_stairs",
+        "minecraft:smooth_red_sandstone_stairs",
+        "minecraft:acacia_stairs"
+      ],
+      "slab": [
+        "minecraft:cut_red_sandstone_slab",
+        "minecraft:red_sandstone_slab",
+        "minecraft:smooth_red_sandstone_slab"
+      ],
+      "wall": [
+        "minecraft:red_sandstone_wall",
+        "minecraft:mud_brick_wall",
+        "minecraft:granite_wall"
+      ]
+    }
+  },
+  "snow": {
+    "kind": "earth",
+    "group": "snow",
+    "block": "minecraft:snow_block",
+    "avg_color": "#f9fefe",
+    "substitutes": {
+      "stairs": [
+        "minecraft:smooth_quartz_stairs",
+        "minecraft:quartz_stairs",
+        "minecraft:polished_diorite_stairs"
+      ],
+      "slab": [
+        "minecraft:smooth_quartz_slab",
+        "minecraft:quartz_slab",
+        "minecraft:polished_diorite_slab"
+      ],
+      "wall": [
+        "minecraft:diorite_wall"
+      ]
+    }
+  },
+  "basalt": {
+    "kind": "nether",
+    "group": "basalt",
+    "block": "minecraft:basalt",
+    "polished": "minecraft:polished_basalt",
+    "smooth": "minecraft:smooth_basalt",
+    "avg_color": "#4f4f53",
+    "substitutes": {
+      "stairs": [
+        "minecraft:cobbled_deepslate_stairs",
+        "minecraft:polished_deepslate_stairs",
+        "minecraft:deepslate_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:cobbled_deepslate_slab",
+        "minecraft:polished_deepslate_slab",
+        "minecraft:deepslate_brick_slab"
+      ],
+      "wall": [
+        "minecraft:cobbled_deepslate_wall",
+        "minecraft:polished_deepslate_wall",
+        "minecraft:deepslate_brick_wall"
+      ]
+    }
+  },
+  "polished_basalt": {
+    "kind": "nether",
+    "group": "basalt",
+    "block": "minecraft:polished_basalt",
+    "smooth": "minecraft:smooth_basalt",
+    "avg_color": "#606061",
+    "substitutes": {
+      "stairs": [
+        "minecraft:cobbled_deepslate_stairs",
+        "minecraft:tuff_brick_stairs",
+        "minecraft:polished_deepslate_stairs"
+      ],
+      "slab": [
+        "minecraft:cobbled_deepslate_slab",
+        "minecraft:tuff_brick_slab",
+        "minecraft:polished_deepslate_slab"
+      ],
+      "wall": [
+        "minecraft:cobbled_deepslate_wall",
+        "minecraft:tuff_brick_wall",
+        "minecraft:polished_deepslate_wall"
+      ]
+    }
+  },
+  "smooth_basalt": {
+    "kind": "nether",
+    "group": "basalt",
+    "block": "minecraft:smooth_basalt",
+    "polished": "minecraft:polished_basalt",
+    "avg_color": "#4b4b4f",
+    "substitutes": {
+      "stairs": [
+        "minecraft:cobbled_deepslate_stairs",
+        "minecraft:polished_deepslate_stairs",
+        "minecraft:deepslate_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:cobbled_deepslate_slab",
+        "minecraft:polished_deepslate_slab",
+        "minecraft:deepslate_brick_slab"
+      ],
+      "wall": [
+        "minecraft:cobbled_deepslate_wall",
+        "minecraft:polished_deepslate_wall",
+        "minecraft:deepslate_brick_wall"
+      ]
+    }
+  },
+  "blackstone": {
+    "kind": "nether",
+    "group": "blackstone",
+    "block": "minecraft:blackstone",
+    "stairs": "minecraft:blackstone_stairs",
+    "slab": "minecraft:blackstone_slab",
+    "wall": "minecraft:blackstone_wall",
+    "chiseled": "minecraft:chiseled_polished_blackstone",
+    "polished": "minecraft:polished_blackstone",
+    "bricks": "minecraft:polished_blackstone_bricks",
+    "avg_color": "#2c272e"
+  },
+  "chiseled_polished_blackstone": {
+    "kind": "nether",
+    "group": "blackstone",
+    "block": "minecraft:chiseled_polished_blackstone",
+    "polished": "minecraft:polished_blackstone",
+    "bricks": "minecraft:polished_blackstone_bricks",
+    "avg_color": "#39353e",
+    "substitutes": {
+      "stairs": [
+        "minecraft:polished_blackstone_stairs",
+        "minecraft:polished_blackstone_brick_stairs",
+        "minecraft:blackstone_stairs"
+      ],
+      "slab": [
+        "minecraft:polished_blackstone_slab",
+        "minecraft:polished_blackstone_brick_slab",
+        "minecraft:blackstone_slab"
+      ],
+      "wall": [
+        "minecraft:polished_blackstone_wall",
+        "minecraft:polished_blackstone_brick_wall",
+        "minecraft:blackstone_wall"
+      ]
+    }
+  },
+  "cracked_polished_blackstone_bricks": {
+    "kind": "nether",
+    "group": "blackstone",
+    "block": "minecraft:cracked_polished_blackstone_bricks",
+    "chiseled": "minecraft:chiseled_polished_blackstone",
+    "polished": "minecraft:polished_blackstone",
+    "bricks": "minecraft:polished_blackstone_bricks",
+    "avg_color": "#2f2a32",
+    "substitutes": {
+      "stairs": [
+        "minecraft:polished_blackstone_brick_stairs",
+        "minecraft:blackstone_stairs",
+        "minecraft:polished_blackstone_stairs"
+      ],
+      "slab": [
+        "minecraft:polished_blackstone_brick_slab",
+        "minecraft:blackstone_slab",
+        "minecraft:polished_blackstone_slab"
+      ],
+      "wall": [
+        "minecraft:polished_blackstone_brick_wall",
+        "minecraft:blackstone_wall",
+        "minecraft:polished_blackstone_wall"
+      ]
+    }
+  },
+  "gilded_blackstone": {
+    "kind": "nether",
+    "group": "blackstone",
+    "block": "minecraft:gilded_blackstone",
+    "chiseled": "minecraft:chiseled_polished_blackstone",
+    "polished": "minecraft:polished_blackstone",
+    "bricks": "minecraft:polished_blackstone_bricks",
+    "avg_color": "#48382c",
+    "substitutes": {
+      "stairs": [
+        "minecraft:blackstone_stairs",
+        "minecraft:polished_blackstone_brick_stairs",
+        "minecraft:polished_blackstone_stairs"
+      ],
+      "slab": [
+        "minecraft:blackstone_slab",
+        "minecraft:polished_blackstone_brick_slab",
+        "minecraft:polished_blackstone_slab"
+      ],
+      "wall": [
+        "minecraft:blackstone_wall",
+        "minecraft:polished_blackstone_brick_wall",
+        "minecraft:polished_blackstone_wall"
+      ]
+    }
+  },
+  "polished_blackstone": {
+    "kind": "nether",
+    "group": "blackstone",
+    "block": "minecraft:polished_blackstone",
+    "stairs": "minecraft:polished_blackstone_stairs",
+    "slab": "minecraft:polished_blackstone_slab",
+    "wall": "minecraft:polished_blackstone_wall",
+    "button": "minecraft:polished_blackstone_button",
+    "pressure_plate": "minecraft:polished_blackstone_pressure_plate",
+    "chiseled": "minecraft:chiseled_polished_blackstone",
+    "bricks": "minecraft:polished_blackstone_bricks",
+    "avg_color": "#37333c"
+  },
+  "polished_blackstone_brick": {
+    "kind": "nether",
+    "group": "blackstone",
+    "block": "minecraft:polished_blackstone_bricks",
+    "stairs": "minecraft:polished_blackstone_brick_stairs",
+    "slab": "minecraft:polished_blackstone_brick_slab",
+    "wall": "minecraft:polished_blackstone_brick_wall",
+    "chiseled": "minecraft:chiseled_polished_blackstone",
+    "cracked": "minecraft:cracked_polished_blackstone_bricks",
+    "polished": "minecraft:polished_blackstone",
+    "avg_color": "#332e37"
+  },
+  "glowstone": {
+    "kind": "nether",
+    "group": "glowstone",
+    "block": "minecraft:glowstone",
+    "avg_color": "#b8976f",
+    "substitutes": {
+      "stairs": [
+        "minecraft:oak_stairs",
+        "minecraft:birch_stairs",
+        "minecraft:jungle_stairs"
+      ],
+      "slab": [
+        "minecraft:oak_slab",
+        "minecraft:birch_slab",
+        "minecraft:jungle_slab"
+      ],
+      "wall": [
+        "minecraft:sandstone_wall",
+        "minecraft:mud_brick_wall",
+        "minecraft:red_sandstone_wall"
+      ]
+    }
+  },
+  "nether_brick": {
+    "kind": "nether",
+    "group": "nether_brick",
+    "block": "minecraft:nether_bricks",
+    "stairs": "minecraft:nether_brick_stairs",
+    "slab": "minecraft:nether_brick_slab",
+    "wall": "minecraft:nether_brick_wall",
+    "fence": "minecraft:nether_brick_fence",
+    "chiseled": "minecraft:chiseled_nether_bricks",
+    "cracked": "minecraft:cracked_nether_bricks",
+    "avg_color": "#2e171b"
+  },
+  "chiseled_nether_bricks": {
+    "kind": "nether",
+    "group": "nether_brick",
+    "block": "minecraft:chiseled_nether_bricks",
+    "avg_color": "#32191e",
+    "substitutes": {
+      "stairs": [
+        "minecraft:nether_brick_stairs",
+        "minecraft:blackstone_stairs",
+        "minecraft:red_nether_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:nether_brick_slab",
+        "minecraft:blackstone_slab",
+        "minecraft:red_nether_brick_slab"
+      ],
+      "wall": [
+        "minecraft:nether_brick_wall",
+        "minecraft:blackstone_wall",
+        "minecraft:red_nether_brick_wall"
+      ]
+    }
+  },
+  "cracked_nether_bricks": {
+    "kind": "nether",
+    "group": "nether_brick",
+    "block": "minecraft:cracked_nether_bricks",
+    "chiseled": "minecraft:chiseled_nether_bricks",
+    "avg_color": "#2b1519",
+    "substitutes": {
+      "stairs": [
+        "minecraft:nether_brick_stairs",
+        "minecraft:blackstone_stairs",
+        "minecraft:polished_blackstone_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:nether_brick_slab",
+        "minecraft:blackstone_slab",
+        "minecraft:polished_blackstone_brick_slab"
+      ],
+      "wall": [
+        "minecraft:nether_brick_wall",
+        "minecraft:blackstone_wall",
+        "minecraft:polished_blackstone_brick_wall"
+      ]
+    }
+  },
+  "netherrack": {
+    "kind": "nether",
+    "group": "netherrack",
+    "block": "minecraft:netherrack",
+    "avg_color": "#632828",
+    "substitutes": {
+      "stairs": [
+        "minecraft:red_nether_brick_stairs",
+        "minecraft:mangrove_stairs",
+        "minecraft:nether_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:red_nether_brick_slab",
+        "minecraft:mangrove_slab",
+        "minecraft:nether_brick_slab"
+      ],
+      "wall": [
+        "minecraft:red_nether_brick_wall",
+        "minecraft:nether_brick_wall"
+      ]
+    }
+  },
+  "red_nether_brick": {
+    "kind": "nether",
+    "group": "red_nether_brick",
+    "block": "minecraft:red_nether_bricks",
+    "stairs": "minecraft:red_nether_brick_stairs",
+    "slab": "minecraft:red_nether_brick_slab",
+    "wall": "minecraft:red_nether_brick_wall",
+    "avg_color": "#4a080a"
+  },
+  "shroomlight": {
+    "kind": "nether",
+    "group": "shroomlight",
+    "block": "minecraft:shroomlight",
+    "avg_color": "#f29d5d",
+    "substitutes": {
+      "stairs": [
+        "minecraft:red_sandstone_stairs",
+        "minecraft:oak_stairs",
+        "minecraft:jungle_stairs"
+      ],
+      "slab": [
+        "minecraft:cut_red_sandstone_slab",
+        "minecraft:red_sandstone_slab",
+        "minecraft:oak_slab"
+      ],
+      "wall": [
+        "minecraft:red_sandstone_wall"
+      ]
+    }
+  },
+  "end_stone": {
+    "kind": "end",
+    "group": "end_stone",
+    "block": "minecraft:end_stone",
+    "bricks": "minecraft:end_stone_bricks",
+    "avg_color": "#dce09f",
+    "substitutes": {
+      "stairs": [
+        "minecraft:end_stone_brick_stairs",
+        "minecraft:sandstone_stairs",
+        "minecraft:smooth_sandstone_stairs"
+      ],
+      "slab": [
+        "minecraft:end_stone_brick_slab",
+        "minecraft:cut_sandstone_slab",
+        "minecraft:sandstone_slab"
+      ],
+      "wall": [
+        "minecraft:end_stone_brick_wall",
+        "minecraft:sandstone_wall"
+      ]
+    }
+  },
+  "end_stone_brick": {
+    "kind": "end",
+    "group": "end_stone",
+    "block": "minecraft:end_stone_bricks",
+    "stairs": "minecraft:end_stone_brick_stairs",
+    "slab": "minecraft:end_stone_brick_slab",
+    "wall": "minecraft:end_stone_brick_wall",
+    "avg_color": "#dce2a4"
+  },
+  "purpur": {
+    "kind": "end",
+    "group": "purpur",
+    "block": "minecraft:purpur_block",
+    "stairs": "minecraft:purpur_stairs",
+    "slab": "minecraft:purpur_slab",
+    "pillar": "minecraft:purpur_pillar",
+    "avg_color": "#ab80ab"
+  },
+  "purpur_pillar": {
+    "kind": "end",
+    "group": "purpur",
+    "block": "minecraft:purpur_pillar",
+    "avg_color": "#ad83ad",
+    "substitutes": {
+      "stairs": [
+        "minecraft:purpur_stairs"
+      ],
+      "slab": [
+        "minecraft:purpur_slab"
+      ]
+    }
+  },
+  "prismarine": {
+    "kind": "ocean",
+    "group": "prismarine",
+    "block": "minecraft:prismarine",
+    "stairs": "minecraft:prismarine_stairs",
+    "slab": "minecraft:prismarine_slab",
+    "wall": "minecraft:prismarine_wall",
+    "bricks": "minecraft:prismarine_bricks",
+    "avg_color": "#68a596"
+  },
+  "dark_prismarine": {
+    "kind": "ocean",
+    "group": "prismarine",
+    "block": "minecraft:dark_prismarine",
+    "stairs": "minecraft:dark_prismarine_stairs",
+    "slab": "minecraft:dark_prismarine_slab",
+    "bricks": "minecraft:prismarine_bricks",
+    "avg_color": "#355f4e",
+    "substitutes": {
+      "wall": [
+        "minecraft:tuff_brick_wall",
+        "minecraft:polished_tuff_wall",
+        "minecraft:mossy_cobblestone_wall"
+      ]
+    }
+  },
+  "prismarine_brick": {
+    "kind": "ocean",
+    "group": "prismarine",
+    "block": "minecraft:prismarine_bricks",
+    "stairs": "minecraft:prismarine_brick_stairs",
+    "slab": "minecraft:prismarine_brick_slab",
+    "avg_color": "#66ada1",
+    "substitutes": {
+      "wall": [
+        "minecraft:prismarine_wall"
+      ]
+    }
+  },
+  "sea_lantern": {
+    "kind": "ocean",
+    "group": "sea_lantern",
+    "block": "minecraft:sea_lantern",
+    "avg_color": "#b8cec5",
+    "substitutes": {
+      "stairs": [
+        "minecraft:diorite_stairs",
+        "minecraft:polished_diorite_stairs",
+        "minecraft:prismarine_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:diorite_slab",
+        "minecraft:polished_diorite_slab",
+        "minecraft:smooth_stone_slab"
+      ],
+      "wall": [
+        "minecraft:diorite_wall",
+        "minecraft:prismarine_wall",
+        "minecraft:end_stone_brick_wall"
+      ]
+    }
+  },
+  "amethyst": {
+    "kind": "decorative",
+    "group": "amethyst",
+    "block": "minecraft:amethyst_block",
+    "avg_color": "#8c68c2",
+    "substitutes": {
+      "stairs": [
+        "minecraft:purpur_stairs"
+      ],
+      "slab": [
+        "minecraft:purpur_slab"
+      ]
+    }
+  },
+  "bone": {
+    "kind": "decorative",
+    "group": "bone",
+    "block": "minecraft:bone_block",
+    "avg_color": "#dfdcc7",
+    "substitutes": {
+      "stairs": [
+        "minecraft:quartz_stairs",
+        "minecraft:smooth_sandstone_stairs",
+        "minecraft:smooth_quartz_stairs"
+      ],
+      "slab": [
+        "minecraft:quartz_slab",
+        "minecraft:cut_sandstone_slab",
+        "minecraft:smooth_sandstone_slab"
+      ],
+      "wall": [
+        "minecraft:sandstone_wall",
+        "minecraft:end_stone_brick_wall",
+        "minecraft:diorite_wall"
+      ]
+    }
+  },
+  "coal": {
+    "kind": "decorative",
+    "group": "coal",
+    "block": "minecraft:coal_block",
+    "avg_color": "#121111",
+    "substitutes": {
+      "stairs": [
+        "minecraft:blackstone_stairs",
+        "minecraft:polished_blackstone_brick_stairs",
+        "minecraft:deepslate_tile_stairs"
+      ],
+      "slab": [
+        "minecraft:blackstone_slab",
+        "minecraft:polished_blackstone_brick_slab",
+        "minecraft:deepslate_tile_slab"
+      ],
+      "wall": [
+        "minecraft:blackstone_wall",
+        "minecraft:polished_blackstone_brick_wall",
+        "minecraft:deepslate_tile_wall"
+      ]
+    }
+  },
+  "black_concrete": {
+    "kind": "decorative",
+    "group": "concrete",
+    "color": "black",
+    "block": "minecraft:black_concrete",
+    "carpet": "minecraft:black_carpet",
+    "pane": "minecraft:black_stained_glass_pane",
+    "glass": "minecraft:black_stained_glass",
+    "concrete_powder": "minecraft:black_concrete_powder",
+    "terracotta": "minecraft:black_terracotta",
+    "glazed_terracotta": "minecraft:black_glazed_terracotta",
+    "wool": "minecraft:black_wool",
+    "candle": "minecraft:black_candle",
+    "banner": "minecraft:black_banner",
+    "bed": "minecraft:black_bed",
+    "avg_color": "#080a0f",
+    "substitutes": {
+      "stairs": [
+        "minecraft:blackstone_stairs",
+        "minecraft:polished_blackstone_brick_stairs",
+        "minecraft:polished_blackstone_stairs"
+      ],
+      "slab": [
+        "minecraft:blackstone_slab",
+        "minecraft:polished_blackstone_brick_slab",
+        "minecraft:polished_blackstone_slab"
+      ],
+      "wall": [
+        "minecraft:blackstone_wall",
+        "minecraft:polished_blackstone_brick_wall",
+        "minecraft:polished_blackstone_wall"
+      ]
+    }
+  },
+  "blue_concrete": {
+    "kind": "decorative",
+    "group": "concrete",
+    "color": "blue",
+    "block": "minecraft:blue_concrete",
+    "carpet": "minecraft:blue_carpet",
+    "pane": "minecraft:blue_stained_glass_pane",
+    "glass": "minecraft:blue_stained_glass",
+    "concrete_powder": "minecraft:blue_concrete_powder",
+    "terracotta": "minecraft:blue_terracotta",
+    "glazed_terracotta": "minecraft:blue_glazed_terracotta",
+    "wool": "minecraft:blue_wool",
+    "candle": "minecraft:blue_candle",
+    "banner": "minecraft:blue_banner",
+    "bed": "minecraft:blue_bed",
+    "avg_color": "#2d2f8f"
+  },
+  "brown_concrete": {
+    "kind": "decorative",
+    "group": "concrete",
+    "color": "brown",
+    "block": "minecraft:brown_concrete",
+    "carpet": "minecraft:brown_carpet",
+    "pane": "minecraft:brown_stained_glass_pane",
+    "glass": "minecraft:brown_stained_glass",
+    "concrete_powder": "minecraft:brown_concrete_powder",
+    "terracotta": "minecraft:brown_terracotta",
+    "glazed_terracotta": "minecraft:brown_glazed_terracotta",
+    "wool": "minecraft:brown_wool",
+    "candle": "minecraft:brown_candle",
+    "banner": "minecraft:brown_banner",
+    "bed": "minecraft:brown_bed",
+    "avg_color": "#603c20",
+    "substitutes": {
+      "stairs": [
+        "minecraft:dark_oak_stairs",
+        "minecraft:spruce_stairs",
+        "minecraft:mud_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:dark_oak_slab",
+        "minecraft:spruce_slab",
+        "minecraft:mud_brick_slab"
+      ],
+      "wall": [
+        "minecraft:mud_brick_wall",
+        "minecraft:red_nether_brick_wall"
+      ]
+    }
+  },
+  "cyan_concrete": {
+    "kind": "decorative",
+    "group": "concrete",
+    "color": "cyan",
+    "block": "minecraft:cyan_concrete",
+    "carpet": "minecraft:cyan_carpet",
+    "pane": "minecraft:cyan_stained_glass_pane",
+    "glass": "minecraft:cyan_stained_glass",
+    "concrete_powder": "minecraft:cyan_concrete_powder",
+    "terracotta": "minecraft:cyan_terracotta",
+    "glazed_terracotta": "minecraft:cyan_glazed_terracotta",
+    "wool": "minecraft:cyan_wool",
+    "candle": "minecraft:cyan_candle",
+    "banner": "minecraft:cyan_banner",
+    "bed": "minecraft:cyan_bed",
+    "avg_color": "#157788",
+    "substitutes": {
+      "stairs": [
+        "minecraft:warped_stairs",
+        "minecraft:polished_tuff_stairs",
+        "minecraft:dark_prismarine_stairs"
+      ],
+      "slab": [
+        "minecraft:warped_slab",
+        "minecraft:polished_tuff_slab",
+        "minecraft:dark_prismarine_slab"
+      ],
+      "wall": [
+        "minecraft:polished_tuff_wall"
+      ]
+    }
+  },
+  "gray_concrete": {
+    "kind": "decorative",
+    "group": "concrete",
+    "color": "gray",
+    "block": "minecraft:gray_concrete",
+    "carpet": "minecraft:gray_carpet",
+    "pane": "minecraft:gray_stained_glass_pane",
+    "glass": "minecraft:gray_stained_glass",
+    "concrete_powder": "minecraft:gray_concrete_powder",
+    "terracotta": "minecraft:gray_terracotta",
+    "glazed_terracotta": "minecraft:gray_glazed_terracotta",
+    "wool": "minecraft:gray_wool",
+    "candle": "minecraft:gray_candle",
+    "banner": "minecraft:gray_banner",
+    "bed": "minecraft:gray_bed",
+    "avg_color": "#373a3e",
+    "substitutes": {
+      "stairs": [
+        "minecraft:deepslate_tile_stairs",
+        "minecraft:polished_blackstone_stairs",
+        "minecraft:polished_blackstone_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:deepslate_tile_slab",
+        "minecraft:polished_blackstone_slab",
+        "minecraft:polished_blackstone_brick_slab"
+      ],
+      "wall": [
+        "minecraft:deepslate_tile_wall",
+        "minecraft:polished_blackstone_wall",
+        "minecraft:polished_blackstone_brick_wall"
+      ]
+    }
+  },
+  "green_concrete": {
+    "kind": "decorative",
+    "group": "concrete",
+    "color": "green",
+    "block": "minecraft:green_concrete",
+    "carpet": "minecraft:green_carpet",
+    "pane": "minecraft:green_stained_glass_pane",
+    "glass": "minecraft:green_stained_glass",
+    "concrete_powder": "minecraft:green_concrete_powder",
+    "terracotta": "minecraft:green_terracotta",
+    "glazed_terracotta": "minecraft:green_glazed_terracotta",
+    "wool": "minecraft:green_wool",
+    "candle": "minecraft:green_candle",
+    "banner": "minecraft:green_banner",
+    "bed": "minecraft:green_bed",
+    "avg_color": "#495b24",
+    "substitutes": {
+      "stairs": [
+        "minecraft:dark_prismarine_stairs",
+        "minecraft:mossy_cobblestone_stairs",
+        "minecraft:tuff_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:dark_prismarine_slab",
+        "minecraft:mossy_cobblestone_slab",
+        "minecraft:tuff_brick_slab"
+      ],
+      "wall": [
+        "minecraft:mossy_cobblestone_wall",
+        "minecraft:tuff_brick_wall"
+      ]
+    }
+  },
+  "light_blue_concrete": {
+    "kind": "decorative",
+    "group": "concrete",
+    "color": "light_blue",
+    "block": "minecraft:light_blue_concrete",
+    "carpet": "minecraft:light_blue_carpet",
+    "pane": "minecraft:light_blue_stained_glass_pane",
+    "glass": "minecraft:light_blue_stained_glass",
+    "concrete_powder": "minecraft:light_blue_concrete_powder",
+    "terracotta": "minecraft:light_blue_terracotta",
+    "glazed_terracotta": "minecraft:light_blue_glazed_terracotta",
+    "wool": "minecraft:light_blue_wool",
+    "candle": "minecraft:light_blue_candle",
+    "banner": "minecraft:light_blue_banner",
+    "bed": "minecraft:light_blue_bed",
+    "avg_color": "#2489c7"
+  },
+  "light_gray_concrete": {
+    "kind": "decorative",
+    "group": "concrete",
+    "color": "light_gray",
+    "block": "minecraft:light_gray_concrete",
+    "carpet": "minecraft:light_gray_carpet",
+    "pane": "minecraft:light_gray_stained_glass_pane",
+    "glass": "minecraft:light_gray_stained_glass",
+    "concrete_powder": "minecraft:light_gray_concrete_powder",
+    "terracotta": "minecraft:light_gray_terracotta",
+    "glazed_terracotta": "minecraft:light_gray_glazed_terracotta",
+    "wool": "minecraft:light_gray_wool",
+    "candle": "minecraft:light_gray_candle",
+    "banner": "minecraft:light_gray_banner",
+    "bed": "minecraft:light_gray_bed",
+    "avg_color": "#7d7d73",
+    "substitutes": {
+      "stairs": [
+        "minecraft:mossy_stone_brick_stairs",
+        "minecraft:stone_stairs",
+        "minecraft:tuff_stairs"
+      ],
+      "slab": [
+        "minecraft:mossy_stone_brick_slab",
+        "minecraft:stone_slab",
+        "minecraft:tuff_slab"
+      ],
+      "wall": [
+        "minecraft:mossy_stone_brick_wall",
+        "minecraft:tuff_wall",
+        "minecraft:stone_brick_wall"
+      ]
+    }
+  },
+  "lime_concrete": {
+    "kind": "decorative",
+    "group": "concrete",
+    "color": "lime",
+    "block": "minecraft:lime_concrete",
+    "carpet": "minecraft:lime_carpet",
+    "pane": "minecraft:lime_stained_glass_pane",
+    "glass": "minecraft:lime_stained_glass",
+    "concrete_powder": "minecraft:lime_concrete_powder",
+    "terracotta": "minecraft:lime_terracotta",
+    "glazed_terracotta": "minecraft:lime_glazed_terracotta",
+    "wool": "minecraft:lime_wool",
+    "candle": "minecraft:lime_candle",
+    "banner": "minecraft:lime_banner",
+    "bed": "minecraft:lime_bed",
+    "avg_color": "#5ea919",
+    "substitutes": {
+      "stairs": [
+        "minecraft:weathered_cut_copper_stairs"
+      ],
+      "slab": [
+        "minecraft:weathered_cut_copper_slab"
+      ]
+    }
+  },
+  "magenta_concrete": {
+    "kind": "decorative",
+    "group": "concrete",
+    "color": "magenta",
+    "block": "minecraft:magenta_concrete",
+    "carpet": "minecraft:magenta_carpet",
+    "pane": "minecraft:magenta_stained_glass_pane",
+    "glass": "minecraft:magenta_stained_glass",
+    "concrete_powder": "minecraft:magenta_concrete_powder",
+    "terracotta": "minecraft:magenta_terracotta",
+    "glazed_terracotta": "minecraft:magenta_glazed_terracotta",
+    "wool": "minecraft:magenta_wool",
+    "candle": "minecraft:magenta_candle",
+    "banner": "minecraft:magenta_banner",
+    "bed": "minecraft:magenta_bed",
+    "avg_color": "#a9309f"
+  },
+  "orange_concrete": {
+    "kind": "decorative",
+    "group": "concrete",
+    "color": "orange",
+    "block": "minecraft:orange_concrete",
+    "carpet": "minecraft:orange_carpet",
+    "pane": "minecraft:orange_stained_glass_pane",
+    "glass": "minecraft:orange_stained_glass",
+    "concrete_powder": "minecraft:orange_concrete_powder",
+    "terracotta": "minecraft:orange_terracotta",
+    "glazed_terracotta": "minecraft:orange_glazed_terracotta",
+    "wool": "minecraft:orange_wool",
+    "candle": "minecraft:orange_candle",
+    "banner": "minecraft:orange_banner",
+    "bed": "minecraft:orange_bed",
+    "avg_color": "#e06101",
+    "substitutes": {
+      "stairs": [
+        "minecraft:red_sandstone_stairs",
+        "minecraft:smooth_red_sandstone_stairs",
+        "minecraft:acacia_stairs"
+      ],
+      "slab": [
+        "minecraft:cut_red_sandstone_slab",
+        "minecraft:red_sandstone_slab",
+        "minecraft:smooth_red_sandstone_slab"
+      ],
+      "wall": [
+        "minecraft:red_sandstone_wall"
+      ]
+    }
+  },
+  "pink_concrete": {
+    "kind": "decorative",
+    "group": "concrete",
+    "color": "pink",
+    "block": "minecraft:pink_concrete",
+    "carpet": "minecraft:pink_carpet",
+    "pane": "minecraft:pink_stained_glass_pane",
+    "glass": "minecraft:pink_stained_glass",
+    "concrete_powder": "minecraft:pink_concrete_powder",
+    "terracotta": "minecraft:pink_terracotta",
+    "glazed_terracotta": "minecraft:pink_glazed_terracotta",
+    "wool": "minecraft:pink_wool",
+    "candle": "minecraft:pink_candle",
+    "banner": "minecraft:pink_banner",
+    "bed": "minecraft:pink_bed",
+    "avg_color": "#d6658f",
+    "substitutes": {
+      "stairs": [
+        "minecraft:purpur_stairs"
+      ],
+      "slab": [
+        "minecraft:purpur_slab"
+      ]
+    }
+  },
+  "purple_concrete": {
+    "kind": "decorative",
+    "group": "concrete",
+    "color": "purple",
+    "block": "minecraft:purple_concrete",
+    "carpet": "minecraft:purple_carpet",
+    "pane": "minecraft:purple_stained_glass_pane",
+    "glass": "minecraft:purple_stained_glass",
+    "concrete_powder": "minecraft:purple_concrete_powder",
+    "terracotta": "minecraft:purple_terracotta",
+    "glazed_terracotta": "minecraft:purple_glazed_terracotta",
+    "wool": "minecraft:purple_wool",
+    "candle": "minecraft:purple_candle",
+    "banner": "minecraft:purple_banner",
+    "bed": "minecraft:purple_bed",
+    "avg_color": "#64209c"
+  },
+  "red_concrete": {
+    "kind": "decorative",
+    "group": "concrete",
+    "color": "red",
+    "block": "minecraft:red_concrete",
+    "carpet": "minecraft:red_carpet",
+    "pane": "minecraft:red_stained_glass_pane",
+    "glass": "minecraft:red_stained_glass",
+    "concrete_powder": "minecraft:red_concrete_powder",
+    "terracotta": "minecraft:red_terracotta",
+    "glazed_terracotta": "minecraft:red_glazed_terracotta",
+    "wool": "minecraft:red_wool",
+    "candle": "minecraft:red_candle",
+    "banner": "minecraft:red_banner",
+    "bed": "minecraft:red_bed",
+    "avg_color": "#8e2121",
+    "substitutes": {
+      "stairs": [
+        "minecraft:mangrove_stairs",
+        "minecraft:red_nether_brick_stairs",
+        "minecraft:acacia_stairs"
+      ],
+      "slab": [
+        "minecraft:mangrove_slab",
+        "minecraft:red_nether_brick_slab",
+        "minecraft:acacia_slab"
+      ],
+      "wall": [
+        "minecraft:red_nether_brick_wall"
+      ]
+    }
+  },
+  "white_concrete": {
+    "kind": "decorative",
+    "group": "concrete",
+    "color": "white",
+    "block": "minecraft:white_concrete",
+    "carpet": "minecraft:white_carpet",
+    "pane": "minecraft:white_stained_glass_pane",
+    "glass": "minecraft:white_stained_glass",
+    "concrete_powder": "minecraft:white_concrete_powder",
+    "terracotta": "minecraft:white_terracotta",
+    "glazed_terracotta": "minecraft:white_glazed_terracotta",
+    "wool": "minecraft:white_wool",
+    "candle": "minecraft:white_candle",
+    "banner": "minecraft:white_banner",
+    "bed": "minecraft:white_bed",
+    "avg_color": "#cfd5d6",
+    "substitutes": {
+      "stairs": [
+        "minecraft:smooth_quartz_stairs",
+        "minecraft:quartz_stairs",
+        "minecraft:polished_diorite_stairs"
+      ],
+      "slab": [
+        "minecraft:smooth_quartz_slab",
+        "minecraft:quartz_slab",
+        "minecraft:polished_diorite_slab"
+      ],
+      "wall": [
+        "minecraft:diorite_wall",
+        "minecraft:sandstone_wall"
+      ]
+    }
+  },
+  "yellow_concrete": {
+    "kind": "decorative",
+    "group": "concrete",
+    "color": "yellow",
+    "block": "minecraft:yellow_concrete",
+    "carpet": "minecraft:yellow_carpet",
+    "pane": "minecraft:yellow_stained_glass_pane",
+    "glass": "minecraft:yellow_stained_glass",
+    "concrete_powder": "minecraft:yellow_concrete_powder",
+    "terracotta": "minecraft:yellow_terracotta",
+    "glazed_terracotta": "minecraft:yellow_glazed_terracotta",
+    "wool": "minecraft:yellow_wool",
+    "candle": "minecraft:yellow_candle",
+    "banner": "minecraft:yellow_banner",
+    "bed": "minecraft:yellow_bed",
+    "avg_color": "#f1af15",
+    "substitutes": {
+      "stairs": [
+        "minecraft:bamboo_stairs",
+        "minecraft:bamboo_mosaic_stairs",
+        "minecraft:birch_stairs"
+      ],
+      "slab": [
+        "minecraft:bamboo_slab",
+        "minecraft:bamboo_mosaic_slab",
+        "minecraft:birch_slab"
+      ]
+    }
+  },
+  "diamond": {
+    "kind": "decorative",
+    "group": "diamond",
+    "block": "minecraft:diamond_block",
+    "avg_color": "#71eee5",
+    "substitutes": {
+      "stairs": [
+        "minecraft:prismarine_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:prismarine_brick_slab"
+      ]
+    }
+  },
+  "emerald": {
+    "kind": "decorative",
+    "group": "emerald",
+    "block": "minecraft:emerald_block",
+    "avg_color": "#39ce63"
+  },
+  "ochre_froglight": {
+    "kind": "decorative",
+    "group": "froglight",
+    "block": "minecraft:ochre_froglight",
+    "avg_color": "#f8efc4",
+    "substitutes": {
+      "stairs": [
+        "minecraft:smooth_sandstone_stairs",
+        "minecraft:end_stone_brick_stairs",
+        "minecraft:sandstone_stairs"
+      ],
+      "slab": [
+        "minecraft:smooth_sandstone_slab",
+        "minecraft:cut_sandstone_slab",
+        "minecraft:end_stone_brick_slab"
+      ],
+      "wall": [
+        "minecraft:end_stone_brick_wall",
+        "minecraft:sandstone_wall"
+      ]
+    }
+  },
+  "pearlescent_froglight": {
+    "kind": "decorative",
+    "group": "froglight",
+    "block": "minecraft:pearlescent_froglight",
+    "avg_color": "#f0e8e9",
+    "substitutes": {
+      "stairs": [
+        "minecraft:smooth_quartz_stairs",
+        "minecraft:quartz_stairs",
+        "minecraft:polished_diorite_stairs"
+      ],
+      "slab": [
+        "minecraft:smooth_quartz_slab",
+        "minecraft:quartz_slab",
+        "minecraft:polished_diorite_slab"
+      ],
+      "wall": [
+        "minecraft:diorite_wall"
+      ]
+    }
+  },
+  "verdant_froglight": {
+    "kind": "decorative",
+    "group": "froglight",
+    "block": "minecraft:verdant_froglight",
+    "avg_color": "#ddefdb",
+    "substitutes": {
+      "stairs": [
+        "minecraft:end_stone_brick_stairs",
+        "minecraft:quartz_stairs",
+        "minecraft:smooth_sandstone_stairs"
+      ],
+      "slab": [
+        "minecraft:end_stone_brick_slab",
+        "minecraft:quartz_slab",
+        "minecraft:cut_sandstone_slab"
+      ],
+      "wall": [
+        "minecraft:end_stone_brick_wall",
+        "minecraft:sandstone_wall",
+        "minecraft:diorite_wall"
+      ]
+    }
+  },
+  "glass": {
+    "kind": "decorative",
+    "group": "glass",
+    "block": "minecraft:glass",
+    "pane": "minecraft:glass_pane",
+    "avg_color": "#b4d7dc"
+  },
+  "black_stained_glass": {
+    "kind": "decorative",
+    "group": "glass",
+    "color": "black",
+    "block": "minecraft:black_stained_glass",
+    "carpet": "minecraft:black_carpet",
+    "pane": "minecraft:black_stained_glass_pane",
+    "concrete": "minecraft:black_concrete",
+    "concrete_powder": "minecraft:black_concrete_powder",
+    "terracotta": "minecraft:black_terracotta",
+    "glazed_terracotta": "minecraft:black_glazed_terracotta",
+    "wool": "minecraft:black_wool",
+    "candle": "minecraft:black_candle",
+    "banner": "minecraft:black_banner",
+    "bed": "minecraft:black_bed",
+    "avg_color": "#191919"
+  },
+  "blue_stained_glass": {
+    "kind": "decorative",
+    "group": "glass",
+    "color": "blue",
+    "block": "minecraft:blue_stained_glass",
+    "carpet": "minecraft:blue_carpet",
+    "pane": "minecraft:blue_stained_glass_pane",
+    "concrete": "minecraft:blue_concrete",
+    "concrete_powder": "minecraft:blue_concrete_powder",
+    "terracotta": "minecraft:blue_terracotta",
+    "glazed_terracotta": "minecraft:blue_glazed_terracotta",
+    "wool": "minecraft:blue_wool",
+    "candle": "minecraft:blue_candle",
+    "banner": "minecraft:blue_banner",
+    "bed": "minecraft:blue_bed",
+    "avg_color": "#334cb2"
+  },
+  "brown_stained_glass": {
+    "kind": "decorative",
+    "group": "glass",
+    "color": "brown",
+    "block": "minecraft:brown_stained_glass",
+    "carpet": "minecraft:brown_carpet",
+    "pane": "minecraft:brown_stained_glass_pane",
+    "concrete": "minecraft:brown_concrete",
+    "concrete_powder": "minecraft:brown_concrete_powder",
+    "terracotta": "minecraft:brown_terracotta",
+    "glazed_terracotta": "minecraft:brown_glazed_terracotta",
+    "wool": "minecraft:brown_wool",
+    "candle": "minecraft:brown_candle",
+    "banner": "minecraft:brown_banner",
+    "bed": "minecraft:brown_bed",
+    "avg_color": "#664c33"
+  },
+  "cyan_stained_glass": {
+    "kind": "decorative",
+    "group": "glass",
+    "color": "cyan",
+    "block": "minecraft:cyan_stained_glass",
+    "carpet": "minecraft:cyan_carpet",
+    "pane": "minecraft:cyan_stained_glass_pane",
+    "concrete": "minecraft:cyan_concrete",
+    "concrete_powder": "minecraft:cyan_concrete_powder",
+    "terracotta": "minecraft:cyan_terracotta",
+    "glazed_terracotta": "minecraft:cyan_glazed_terracotta",
+    "wool": "minecraft:cyan_wool",
+    "candle": "minecraft:cyan_candle",
+    "banner": "minecraft:cyan_banner",
+    "bed": "minecraft:cyan_bed",
+    "avg_color": "#4c7f99"
+  },
+  "gray_stained_glass": {
+    "kind": "decorative",
+    "group": "glass",
+    "color": "gray",
+    "block": "minecraft:gray_stained_glass",
+    "carpet": "minecraft:gray_carpet",
+    "pane": "minecraft:gray_stained_glass_pane",
+    "concrete": "minecraft:gray_concrete",
+    "concrete_powder": "minecraft:gray_concrete_powder",
+    "terracotta": "minecraft:gray_terracotta",
+    "glazed_terracotta": "minecraft:gray_glazed_terracotta",
+    "wool": "minecraft:gray_wool",
+    "candle": "minecraft:gray_candle",
+    "banner": "minecraft:gray_banner",
+    "bed": "minecraft:gray_bed",
+    "avg_color": "#4c4c4c"
+  },
+  "green_stained_glass": {
+    "kind": "decorative",
+    "group": "glass",
+    "color": "green",
+    "block": "minecraft:green_stained_glass",
+    "carpet": "minecraft:green_carpet",
+    "pane": "minecraft:green_stained_glass_pane",
+    "concrete": "minecraft:green_concrete",
+    "concrete_powder": "minecraft:green_concrete_powder",
+    "terracotta": "minecraft:green_terracotta",
+    "glazed_terracotta": "minecraft:green_glazed_terracotta",
+    "wool": "minecraft:green_wool",
+    "candle": "minecraft:green_candle",
+    "banner": "minecraft:green_banner",
+    "bed": "minecraft:green_bed",
+    "avg_color": "#667f33"
+  },
+  "light_blue_stained_glass": {
+    "kind": "decorative",
+    "group": "glass",
+    "color": "light_blue",
+    "block": "minecraft:light_blue_stained_glass",
+    "carpet": "minecraft:light_blue_carpet",
+    "pane": "minecraft:light_blue_stained_glass_pane",
+    "concrete": "minecraft:light_blue_concrete",
+    "concrete_powder": "minecraft:light_blue_concrete_powder",
+    "terracotta": "minecraft:light_blue_terracotta",
+    "glazed_terracotta": "minecraft:light_blue_glazed_terracotta",
+    "wool": "minecraft:light_blue_wool",
+    "candle": "minecraft:light_blue_candle",
+    "banner": "minecraft:light_blue_banner",
+    "bed": "minecraft:light_blue_bed",
+    "avg_color": "#6699d8"
+  },
+  "light_gray_stained_glass": {
+    "kind": "decorative",
+    "group": "glass",
+    "color": "light_gray",
+    "block": "minecraft:light_gray_stained_glass",
+    "carpet": "minecraft:light_gray_carpet",
+    "pane": "minecraft:light_gray_stained_glass_pane",
+    "concrete": "minecraft:light_gray_concrete",
+    "concrete_powder": "minecraft:light_gray_concrete_powder",
+    "terracotta": "minecraft:light_gray_terracotta",
+    "glazed_terracotta": "minecraft:light_gray_glazed_terracotta",
+    "wool": "minecraft:light_gray_wool",
+    "candle": "minecraft:light_gray_candle",
+    "banner": "minecraft:light_gray_banner",
+    "bed": "minecraft:light_gray_bed",
+    "avg_color": "#999999"
+  },
+  "lime_stained_glass": {
+    "kind": "decorative",
+    "group": "glass",
+    "color": "lime",
+    "block": "minecraft:lime_stained_glass",
+    "carpet": "minecraft:lime_carpet",
+    "pane": "minecraft:lime_stained_glass_pane",
+    "concrete": "minecraft:lime_concrete",
+    "concrete_powder": "minecraft:lime_concrete_powder",
+    "terracotta": "minecraft:lime_terracotta",
+    "glazed_terracotta": "minecraft:lime_glazed_terracotta",
+    "wool": "minecraft:lime_wool",
+    "candle": "minecraft:lime_candle",
+    "banner": "minecraft:lime_banner",
+    "bed": "minecraft:lime_bed",
+    "avg_color": "#7fcc19"
+  },
+  "magenta_stained_glass": {
+    "kind": "decorative",
+    "group": "glass",
+    "color": "magenta",
+    "block": "minecraft:magenta_stained_glass",
+    "carpet": "minecraft:magenta_carpet",
+    "pane": "minecraft:magenta_stained_glass_pane",
+    "concrete": "minecraft:magenta_concrete",
+    "concrete_powder": "minecraft:magenta_concrete_powder",
+    "terracotta": "minecraft:magenta_terracotta",
+    "glazed_terracotta": "minecraft:magenta_glazed_terracotta",
+    "wool": "minecraft:magenta_wool",
+    "candle": "minecraft:magenta_candle",
+    "banner": "minecraft:magenta_banner",
+    "bed": "minecraft:magenta_bed",
+    "avg_color": "#b24cd8"
+  },
+  "orange_stained_glass": {
+    "kind": "decorative",
+    "group": "glass",
+    "color": "orange",
+    "block": "minecraft:orange_stained_glass",
+    "carpet": "minecraft:orange_carpet",
+    "pane": "minecraft:orange_stained_glass_pane",
+    "concrete": "minecraft:orange_concrete",
+    "concrete_powder": "minecraft:orange_concrete_powder",
+    "terracotta": "minecraft:orange_terracotta",
+    "glazed_terracotta": "minecraft:orange_glazed_terracotta",
+    "wool": "minecraft:orange_wool",
+    "candle": "minecraft:orange_candle",
+    "banner": "minecraft:orange_banner",
+    "bed": "minecraft:orange_bed",
+    "avg_color": "#d87f33"
+  },
+  "pink_stained_glass": {
+    "kind": "decorative",
+    "group": "glass",
+    "color": "pink",
+    "block": "minecraft:pink_stained_glass",
+    "carpet": "minecraft:pink_carpet",
+    "pane": "minecraft:pink_stained_glass_pane",
+    "concrete": "minecraft:pink_concrete",
+    "concrete_powder": "minecraft:pink_concrete_powder",
+    "terracotta": "minecraft:pink_terracotta",
+    "glazed_terracotta": "minecraft:pink_glazed_terracotta",
+    "wool": "minecraft:pink_wool",
+    "candle": "minecraft:pink_candle",
+    "banner": "minecraft:pink_banner",
+    "bed": "minecraft:pink_bed",
+    "avg_color": "#f27fa5"
+  },
+  "purple_stained_glass": {
+    "kind": "decorative",
+    "group": "glass",
+    "color": "purple",
+    "block": "minecraft:purple_stained_glass",
+    "carpet": "minecraft:purple_carpet",
+    "pane": "minecraft:purple_stained_glass_pane",
+    "concrete": "minecraft:purple_concrete",
+    "concrete_powder": "minecraft:purple_concrete_powder",
+    "terracotta": "minecraft:purple_terracotta",
+    "glazed_terracotta": "minecraft:purple_glazed_terracotta",
+    "wool": "minecraft:purple_wool",
+    "candle": "minecraft:purple_candle",
+    "banner": "minecraft:purple_banner",
+    "bed": "minecraft:purple_bed",
+    "avg_color": "#7f3fb2"
+  },
+  "red_stained_glass": {
+    "kind": "decorative",
+    "group": "glass",
+    "color": "red",
+    "block": "minecraft:red_stained_glass",
+    "carpet": "minecraft:red_carpet",
+    "pane": "minecraft:red_stained_glass_pane",
+    "concrete": "minecraft:red_concrete",
+    "concrete_powder": "minecraft:red_concrete_powder",
+    "terracotta": "minecraft:red_terracotta",
+    "glazed_terracotta": "minecraft:red_glazed_terracotta",
+    "wool": "minecraft:red_wool",
+    "candle": "minecraft:red_candle",
+    "banner": "minecraft:red_banner",
+    "bed": "minecraft:red_bed",
+    "avg_color": "#993333"
+  },
+  "tinted_glass": {
+    "kind": "decorative",
+    "group": "glass",
+    "block": "minecraft:tinted_glass",
+    "avg_color": "#2d2730"
+  },
+  "white_stained_glass": {
+    "kind": "decorative",
+    "group": "glass",
+    "color": "white",
+    "block": "minecraft:white_stained_glass",
+    "carpet": "minecraft:white_carpet",
+    "pane": "minecraft:white_stained_glass_pane",
+    "concrete": "minecraft:white_concrete",
+    "concrete_powder": "minecraft:white_concrete_powder",
+    "terracotta": "minecraft:white_terracotta",
+    "glazed_terracotta": "minecraft:white_glazed_terracotta",
+    "wool": "minecraft:white_wool",
+    "candle": "minecraft:white_candle",
+    "banner": "minecraft:white_banner",
+    "bed": "minecraft:white_bed",
+    "avg_color": "#ffffff"
+  },
+  "yellow_stained_glass": {
+    "kind": "decorative",
+    "group": "glass",
+    "color": "yellow",
+    "block": "minecraft:yellow_stained_glass",
+    "carpet": "minecraft:yellow_carpet",
+    "pane": "minecraft:yellow_stained_glass_pane",
+    "concrete": "minecraft:yellow_concrete",
+    "concrete_powder": "minecraft:yellow_concrete_powder",
+    "terracotta": "minecraft:yellow_terracotta",
+    "glazed_terracotta": "minecraft:yellow_glazed_terracotta",
+    "wool": "minecraft:yellow_wool",
+    "candle": "minecraft:yellow_candle",
+    "banner": "minecraft:yellow_banner",
+    "bed": "minecraft:yellow_bed",
+    "avg_color": "#e5e533"
+  },
+  "lapis": {
+    "kind": "decorative",
+    "group": "lapis",
+    "block": "minecraft:lapis_block",
+    "avg_color": "#1f458d"
+  },
+  "redstone": {
+    "kind": "decorative",
+    "group": "redstone",
+    "block": "minecraft:redstone_block",
+    "avg_color": "#b61a05",
+    "substitutes": {
+      "stairs": [
+        "minecraft:acacia_stairs",
+        "minecraft:smooth_red_sandstone_stairs",
+        "minecraft:mangrove_stairs"
+      ],
+      "slab": [
+        "minecraft:acacia_slab",
+        "minecraft:smooth_red_sandstone_slab",
+        "minecraft:mangrove_slab"
+      ]
+    }
+  },
+  "terracotta": {
+    "kind": "decorative",
+    "group": "terracotta",
+    "block": "minecraft:terracotta",
+    "avg_color": "#985e44",
+    "substitutes": {
+      "stairs": [
+        "minecraft:granite_stairs",
+        "minecraft:brick_stairs",
+        "minecraft:polished_granite_stairs"
+      ],
+      "slab": [
+        "minecraft:granite_slab",
+        "minecraft:brick_slab",
+        "minecraft:polished_granite_slab"
+      ],
+      "wall": [
+        "minecraft:granite_wall",
+        "minecraft:brick_wall",
+        "minecraft:mud_brick_wall"
+      ]
+    }
+  },
+  "black_terracotta": {
+    "kind": "decorative",
+    "group": "terracotta",
+    "color": "black",
+    "block": "minecraft:black_terracotta",
+    "carpet": "minecraft:black_carpet",
+    "pane": "minecraft:black_stained_glass_pane",
+    "glass": "minecraft:black_stained_glass",
+    "concrete": "minecraft:black_concrete",
+    "concrete_powder": "minecraft:black_concrete_powder",
+    "glazed_terracotta": "minecraft:black_glazed_terracotta",
+    "wool": "minecraft:black_wool",
+    "candle": "minecraft:black_candle",
+    "banner": "minecraft:black_banner",
+    "bed": "minecraft:black_bed",
+    "avg_color": "#251710",
+    "substitutes": {
+      "stairs": [
+        "minecraft:nether_brick_stairs",
+        "minecraft:blackstone_stairs",
+        "minecraft:polished_blackstone_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:nether_brick_slab",
+        "minecraft:blackstone_slab",
+        "minecraft:polished_blackstone_brick_slab"
+      ],
+      "wall": [
+        "minecraft:nether_brick_wall",
+        "minecraft:blackstone_wall",
+        "minecraft:polished_blackstone_brick_wall"
+      ]
+    }
+  },
+  "blue_terracotta": {
+    "kind": "decorative",
+    "group": "terracotta",
+    "color": "blue",
+    "block": "minecraft:blue_terracotta",
+    "carpet": "minecraft:blue_carpet",
+    "pane": "minecraft:blue_stained_glass_pane",
+    "glass": "minecraft:blue_stained_glass",
+    "concrete": "minecraft:blue_concrete",
+    "concrete_powder": "minecraft:blue_concrete_powder",
+    "glazed_terracotta": "minecraft:blue_glazed_terracotta",
+    "wool": "minecraft:blue_wool",
+    "candle": "minecraft:blue_candle",
+    "banner": "minecraft:blue_banner",
+    "bed": "minecraft:blue_bed",
+    "avg_color": "#4a3c5b",
+    "substitutes": {
+      "stairs": [
+        "minecraft:polished_blackstone_stairs",
+        "minecraft:polished_blackstone_brick_stairs",
+        "minecraft:blackstone_stairs"
+      ],
+      "slab": [
+        "minecraft:polished_blackstone_slab",
+        "minecraft:polished_blackstone_brick_slab",
+        "minecraft:blackstone_slab"
+      ],
+      "wall": [
+        "minecraft:polished_blackstone_wall",
+        "minecraft:polished_blackstone_brick_wall",
+        "minecraft:blackstone_wall"
+      ]
+    }
+  },
+  "brown_terracotta": {
+    "kind": "decorative",
+    "group": "terracotta",
+    "color": "brown",
+    "block": "minecraft:brown_terracotta",
+    "carpet": "minecraft:brown_carpet",
+    "pane": "minecraft:brown_stained_glass_pane",
+    "glass": "minecraft:brown_stained_glass",
+    "concrete": "minecraft:brown_concrete",
+    "concrete_powder": "minecraft:brown_concrete_powder",
+    "glazed_terracotta": "minecraft:brown_glazed_terracotta",
+    "wool": "minecraft:brown_wool",
+    "candle": "minecraft:brown_candle",
+    "banner": "minecraft:brown_banner",
+    "bed": "minecraft:brown_bed",
+    "avg_color": "#4d3324",
+    "substitutes": {
+      "stairs": [
+        "minecraft:dark_oak_stairs",
+        "minecraft:nether_brick_stairs",
+        "minecraft:deepslate_tile_stairs"
+      ],
+      "slab": [
+        "minecraft:dark_oak_slab",
+        "minecraft:nether_brick_slab",
+        "minecraft:deepslate_tile_slab"
+      ],
+      "wall": [
+        "minecraft:nether_brick_wall",
+        "minecraft:deepslate_tile_wall",
+        "minecraft:red_nether_brick_wall"
+      ]
+    }
+  },
+  "cyan_terracotta": {
+    "kind": "decorative",
+    "group": "terracotta",
+    "color": "cyan",
+    "block": "minecraft:cyan_terracotta",
+    "carpet": "minecraft:cyan_carpet",
+    "pane": "minecraft:cyan_stained_glass_pane",
+    "glass": "minecraft:cyan_stained_glass",
+    "concrete": "minecraft:cyan_concrete",
+    "concrete_powder": "minecraft:cyan_concrete_powder",
+    "glazed_terracotta": "minecraft:cyan_glazed_terracotta",
+    "wool": "minecraft:cyan_wool",
+    "candle": "minecraft:cyan_candle",
+    "banner": "minecraft:cyan_banner",
+    "bed": "minecraft:cyan_bed",
+    "avg_color": "#575b5b",
+    "substitutes": {
+      "stairs": [
+        "minecraft:polished_tuff_stairs",
+        "minecraft:cobbled_deepslate_stairs",
+        "minecraft:polished_deepslate_stairs"
+      ],
+      "slab": [
+        "minecraft:polished_tuff_slab",
+        "minecraft:cobbled_deepslate_slab",
+        "minecraft:polished_deepslate_slab"
+      ],
+      "wall": [
+        "minecraft:polished_tuff_wall",
+        "minecraft:cobbled_deepslate_wall",
+        "minecraft:polished_deepslate_wall"
+      ]
+    }
+  },
+  "gray_terracotta": {
+    "kind": "decorative",
+    "group": "terracotta",
+    "color": "gray",
+    "block": "minecraft:gray_terracotta",
+    "carpet": "minecraft:gray_carpet",
+    "pane": "minecraft:gray_stained_glass_pane",
+    "glass": "minecraft:gray_stained_glass",
+    "concrete": "minecraft:gray_concrete",
+    "concrete_powder": "minecraft:gray_concrete_powder",
+    "glazed_terracotta": "minecraft:gray_glazed_terracotta",
+    "wool": "minecraft:gray_wool",
+    "candle": "minecraft:gray_candle",
+    "banner": "minecraft:gray_banner",
+    "bed": "minecraft:gray_bed",
+    "avg_color": "#3a2a24",
+    "substitutes": {
+      "stairs": [
+        "minecraft:nether_brick_stairs",
+        "minecraft:blackstone_stairs",
+        "minecraft:deepslate_tile_stairs"
+      ],
+      "slab": [
+        "minecraft:nether_brick_slab",
+        "minecraft:blackstone_slab",
+        "minecraft:deepslate_tile_slab"
+      ],
+      "wall": [
+        "minecraft:nether_brick_wall",
+        "minecraft:blackstone_wall",
+        "minecraft:deepslate_tile_wall"
+      ]
+    }
+  },
+  "green_terracotta": {
+    "kind": "decorative",
+    "group": "terracotta",
+    "color": "green",
+    "block": "minecraft:green_terracotta",
+    "carpet": "minecraft:green_carpet",
+    "pane": "minecraft:green_stained_glass_pane",
+    "glass": "minecraft:green_stained_glass",
+    "concrete": "minecraft:green_concrete",
+    "concrete_powder": "minecraft:green_concrete_powder",
+    "glazed_terracotta": "minecraft:green_glazed_terracotta",
+    "wool": "minecraft:green_wool",
+    "candle": "minecraft:green_candle",
+    "banner": "minecraft:green_banner",
+    "bed": "minecraft:green_bed",
+    "avg_color": "#4c532a",
+    "substitutes": {
+      "stairs": [
+        "minecraft:dark_prismarine_stairs",
+        "minecraft:polished_tuff_stairs",
+        "minecraft:tuff_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:dark_prismarine_slab",
+        "minecraft:polished_tuff_slab",
+        "minecraft:tuff_brick_slab"
+      ],
+      "wall": [
+        "minecraft:polished_tuff_wall",
+        "minecraft:tuff_brick_wall",
+        "minecraft:mossy_cobblestone_wall"
+      ]
+    }
+  },
+  "light_blue_terracotta": {
+    "kind": "decorative",
+    "group": "terracotta",
+    "color": "light_blue",
+    "block": "minecraft:light_blue_terracotta",
+    "carpet": "minecraft:light_blue_carpet",
+    "pane": "minecraft:light_blue_stained_glass_pane",
+    "glass": "minecraft:light_blue_stained_glass",
+    "concrete": "minecraft:light_blue_concrete",
+    "concrete_powder": "minecraft:light_blue_concrete_powder",
+    "glazed_terracotta": "minecraft:light_blue_glazed_terracotta",
+    "wool": "minecraft:light_blue_wool",
+    "candle": "minecraft:light_blue_candle",
+    "banner": "minecraft:light_blue_banner",
+    "bed": "minecraft:light_blue_bed",
+    "avg_color": "#726d8a",
+    "substitutes": {
+      "stairs": [
+        "minecraft:stone_stairs",
+        "minecraft:stone_brick_stairs",
+        "minecraft:purpur_stairs"
+      ],
+      "slab": [
+        "minecraft:stone_slab",
+        "minecraft:stone_brick_slab",
+        "minecraft:purpur_slab"
+      ],
+      "wall": [
+        "minecraft:stone_brick_wall",
+        "minecraft:andesite_wall",
+        "minecraft:polished_tuff_wall"
+      ]
+    }
+  },
+  "light_gray_terracotta": {
+    "kind": "decorative",
+    "group": "terracotta",
+    "color": "light_gray",
+    "block": "minecraft:light_gray_terracotta",
+    "carpet": "minecraft:light_gray_carpet",
+    "pane": "minecraft:light_gray_stained_glass_pane",
+    "glass": "minecraft:light_gray_stained_glass",
+    "concrete": "minecraft:light_gray_concrete",
+    "concrete_powder": "minecraft:light_gray_concrete_powder",
+    "glazed_terracotta": "minecraft:light_gray_glazed_terracotta",
+    "wool": "minecraft:light_gray_wool",
+    "candle": "minecraft:light_gray_candle",
+    "banner": "minecraft:light_gray_banner",
+    "bed": "minecraft:light_gray_bed",
+    "avg_color": "#876b62",
+    "substitutes": {
+      "stairs": [
+        "minecraft:granite_stairs",
+        "minecraft:mud_brick_stairs",
+        "minecraft:polished_granite_stairs"
+      ],
+      "slab": [
+        "minecraft:granite_slab",
+        "minecraft:mud_brick_slab",
+        "minecraft:polished_granite_slab"
+      ],
+      "wall": [
+        "minecraft:granite_wall",
+        "minecraft:mud_brick_wall",
+        "minecraft:brick_wall"
+      ]
+    }
+  },
+  "lime_terracotta": {
+    "kind": "decorative",
+    "group": "terracotta",
+    "color": "lime",
+    "block": "minecraft:lime_terracotta",
+    "carpet": "minecraft:lime_carpet",
+    "pane": "minecraft:lime_stained_glass_pane",
+    "glass": "minecraft:lime_stained_glass",
+    "concrete": "minecraft:lime_concrete",
+    "concrete_powder": "minecraft:lime_concrete_powder",
+    "glazed_terracotta": "minecraft:lime_glazed_terracotta",
+    "wool": "minecraft:lime_wool",
+    "candle": "minecraft:lime_candle",
+    "banner": "minecraft:lime_banner",
+    "bed": "minecraft:lime_bed",
+    "avg_color": "#687635",
+    "substitutes": {
+      "stairs": [
+        "minecraft:mossy_cobblestone_stairs",
+        "minecraft:mossy_stone_brick_stairs",
+        "minecraft:tuff_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:mossy_cobblestone_slab",
+        "minecraft:mossy_stone_brick_slab",
+        "minecraft:tuff_brick_slab"
+      ],
+      "wall": [
+        "minecraft:mossy_cobblestone_wall",
+        "minecraft:mossy_stone_brick_wall",
+        "minecraft:tuff_brick_wall"
+      ]
+    }
+  },
+  "magenta_terracotta": {
+    "kind": "decorative",
+    "group": "terracotta",
+    "color": "magenta",
+    "block": "minecraft:magenta_terracotta",
+    "carpet": "minecraft:magenta_carpet",
+    "pane": "minecraft:magenta_stained_glass_pane",
+    "glass": "minecraft:magenta_stained_glass",
+    "concrete": "minecraft:magenta_concrete",
+    "concrete_powder": "minecraft:magenta_concrete_powder",
+    "glazed_terracotta": "minecraft:magenta_glazed_terracotta",
+    "wool": "minecraft:magenta_wool",
+    "candle": "minecraft:magenta_candle",
+    "banner": "minecraft:magenta_banner",
+    "bed": "minecraft:magenta_bed",
+    "avg_color": "#96586d",
+    "substitutes": {
+      "stairs": [
+        "minecraft:brick_stairs",
+        "minecraft:granite_stairs",
+        "minecraft:purpur_stairs"
+      ],
+      "slab": [
+        "minecraft:brick_slab",
+        "minecraft:granite_slab",
+        "minecraft:purpur_slab"
+      ],
+      "wall": [
+        "minecraft:brick_wall",
+        "minecraft:granite_wall"
+      ]
+    }
+  },
+  "orange_terracotta": {
+    "kind": "decorative",
+    "group": "terracotta",
+    "color": "orange",
+    "block": "minecraft:orange_terracotta",
+    "carpet": "minecraft:orange_carpet",
+    "pane": "minecraft:orange_stained_glass_pane",
+    "glass": "minecraft:orange_stained_glass",
+    "concrete": "minecraft:orange_concrete",
+    "concrete_powder": "minecraft:orange_concrete_powder",
+    "glazed_terracotta": "minecraft:orange_glazed_terracotta",
+    "wool": "minecraft:orange_wool",
+    "candle": "minecraft:orange_candle",
+    "banner": "minecraft:orange_banner",
+    "bed": "minecraft:orange_bed",
+    "avg_color": "#a25426",
+    "substitutes": {
+      "stairs": [
+        "minecraft:smooth_red_sandstone_stairs",
+        "minecraft:red_sandstone_stairs",
+        "minecraft:acacia_stairs"
+      ],
+      "slab": [
+        "minecraft:smooth_red_sandstone_slab",
+        "minecraft:red_sandstone_slab",
+        "minecraft:cut_red_sandstone_slab"
+      ],
+      "wall": [
+        "minecraft:red_sandstone_wall",
+        "minecraft:mud_brick_wall",
+        "minecraft:granite_wall"
+      ]
+    }
+  },
+  "pink_terracotta": {
+    "kind": "decorative",
+    "group": "terracotta",
+    "color": "pink",
+    "block": "minecraft:pink_terracotta",
+    "carpet": "minecraft:pink_carpet",
+    "pane": "minecraft:pink_stained_glass_pane",
+    "glass": "minecraft:pink_stained_glass",
+    "concrete": "minecraft:pink_concrete",
+    "concrete_powder": "minecraft:pink_concrete_powder",
+    "glazed_terracotta": "minecraft:pink_glazed_terracotta",
+    "wool": "minecraft:pink_wool",
+    "candle": "minecraft:pink_candle",
+    "banner": "minecraft:pink_banner",
+    "bed": "minecraft:pink_bed",
+    "avg_color": "#a24e4f",
+    "substitutes": {
+      "stairs": [
+        "minecraft:brick_stairs",
+        "minecraft:granite_stairs",
+        "minecraft:polished_granite_stairs"
+      ],
+      "slab": [
+        "minecraft:brick_slab",
+        "minecraft:granite_slab",
+        "minecraft:polished_granite_slab"
+      ],
+      "wall": [
+        "minecraft:brick_wall",
+        "minecraft:granite_wall",
+        "minecraft:mud_brick_wall"
+      ]
+    }
+  },
+  "purple_terracotta": {
+    "kind": "decorative",
+    "group": "terracotta",
+    "color": "purple",
+    "block": "minecraft:purple_terracotta",
+    "carpet": "minecraft:purple_carpet",
+    "pane": "minecraft:purple_stained_glass_pane",
+    "glass": "minecraft:purple_stained_glass",
+    "concrete": "minecraft:purple_concrete",
+    "concrete_powder": "minecraft:purple_concrete_powder",
+    "glazed_terracotta": "minecraft:purple_glazed_terracotta",
+    "wool": "minecraft:purple_wool",
+    "candle": "minecraft:purple_candle",
+    "banner": "minecraft:purple_banner",
+    "bed": "minecraft:purple_bed",
+    "avg_color": "#764656",
+    "substitutes": {
+      "stairs": [
+        "minecraft:crimson_stairs",
+        "minecraft:mangrove_stairs",
+        "minecraft:brick_stairs"
+      ],
+      "slab": [
+        "minecraft:crimson_slab",
+        "minecraft:mangrove_slab",
+        "minecraft:brick_slab"
+      ],
+      "wall": [
+        "minecraft:brick_wall"
+      ]
+    }
+  },
+  "red_terracotta": {
+    "kind": "decorative",
+    "group": "terracotta",
+    "color": "red",
+    "block": "minecraft:red_terracotta",
+    "carpet": "minecraft:red_carpet",
+    "pane": "minecraft:red_stained_glass_pane",
+    "glass": "minecraft:red_stained_glass",
+    "concrete": "minecraft:red_concrete",
+    "concrete_powder": "minecraft:red_concrete_powder",
+    "glazed_terracotta": "minecraft:red_glazed_terracotta",
+    "wool": "minecraft:red_wool",
+    "candle": "minecraft:red_candle",
+    "banner": "minecraft:red_banner",
+    "bed": "minecraft:red_bed",
+    "avg_color": "#8f3d2f",
+    "substitutes": {
+      "stairs": [
+        "minecraft:mangrove_stairs",
+        "minecraft:brick_stairs",
+        "minecraft:granite_stairs"
+      ],
+      "slab": [
+        "minecraft:mangrove_slab",
+        "minecraft:brick_slab",
+        "minecraft:granite_slab"
+      ],
+      "wall": [
+        "minecraft:brick_wall",
+        "minecraft:granite_wall",
+        "minecraft:mud_brick_wall"
+      ]
+    }
+  },
+  "white_terracotta": {
+    "kind": "decorative",
+    "group": "terracotta",
+    "color": "white",
+    "block": "minecraft:white_terracotta",
+    "carpet": "minecraft:white_carpet",
+    "pane": "minecraft:white_stained_glass_pane",
+    "glass": "minecraft:white_stained_glass",
+    "concrete": "minecraft:white_concrete",
+    "concrete_powder": "minecraft:white_concrete_powder",
+    "glazed_terracotta": "minecraft:white_glazed_terracotta",
+    "wool": "minecraft:white_wool",
+    "candle": "minecraft:white_candle",
+    "banner": "minecraft:white_banner",
+    "bed": "minecraft:white_bed",
+    "avg_color": "#d2b2a1",
+    "substitutes": {
+      "stairs": [
+        "minecraft:cherry_stairs",
+        "minecraft:smooth_quartz_stairs",
+        "minecraft:quartz_stairs"
+      ],
+      "slab": [
+        "minecraft:cherry_slab",
+        "minecraft:smooth_quartz_slab",
+        "minecraft:quartz_slab"
+      ],
+      "wall": [
+        "minecraft:diorite_wall",
+        "minecraft:sandstone_wall"
+      ]
+    }
+  },
+  "yellow_terracotta": {
+    "kind": "decorative",
+    "group": "terracotta",
+    "color": "yellow",
+    "block": "minecraft:yellow_terracotta",
+    "carpet": "minecraft:yellow_carpet",
+    "pane": "minecraft:yellow_stained_glass_pane",
+    "glass": "minecraft:yellow_stained_glass",
+    "concrete": "minecraft:yellow_concrete",
+    "concrete_powder": "minecraft:yellow_concrete_powder",
+    "glazed_terracotta": "minecraft:yellow_glazed_terracotta",
+    "wool": "minecraft:yellow_wool",
+    "candle": "minecraft:yellow_candle",
+    "banner": "minecraft:yellow_banner",
+    "bed": "minecraft:yellow_bed",
+    "avg_color": "#ba8523",
+    "substitutes": {
+      "stairs": [
+        "minecraft:smooth_red_sandstone_stairs",
+        "minecraft:red_sandstone_stairs",
+        "minecraft:oak_stairs"
+      ],
+      "slab": [
+        "minecraft:cut_red_sandstone_slab",
+        "minecraft:smooth_red_sandstone_slab",
+        "minecraft:red_sandstone_slab"
+      ],
+      "wall": [
+        "minecraft:red_sandstone_wall"
+      ]
+    }
+  },
+  "black_wool": {
+    "kind": "decorative",
+    "group": "wool",
+    "color": "black",
+    "block": "minecraft:black_wool",
+    "carpet": "minecraft:black_carpet",
+    "pane": "minecraft:black_stained_glass_pane",
+    "glass": "minecraft:black_stained_glass",
+    "concrete": "minecraft:black_concrete",
+    "concrete_powder": "minecraft:black_concrete_powder",
+    "terracotta": "minecraft:black_terracotta",
+    "glazed_terracotta": "minecraft:black_glazed_terracotta",
+    "candle": "minecraft:black_candle",
+    "banner": "minecraft:black_banner",
+    "bed": "minecraft:black_bed",
+    "avg_color": "#16161b",
+    "substitutes": {
+      "stairs": [
+        "minecraft:blackstone_stairs",
+        "minecraft:polished_blackstone_brick_stairs",
+        "minecraft:polished_blackstone_stairs"
+      ],
+      "slab": [
+        "minecraft:blackstone_slab",
+        "minecraft:polished_blackstone_brick_slab",
+        "minecraft:polished_blackstone_slab"
+      ],
+      "wall": [
+        "minecraft:blackstone_wall",
+        "minecraft:polished_blackstone_brick_wall",
+        "minecraft:polished_blackstone_wall"
+      ]
+    }
+  },
+  "blue_wool": {
+    "kind": "decorative",
+    "group": "wool",
+    "color": "blue",
+    "block": "minecraft:blue_wool",
+    "carpet": "minecraft:blue_carpet",
+    "pane": "minecraft:blue_stained_glass_pane",
+    "glass": "minecraft:blue_stained_glass",
+    "concrete": "minecraft:blue_concrete",
+    "concrete_powder": "minecraft:blue_concrete_powder",
+    "terracotta": "minecraft:blue_terracotta",
+    "glazed_terracotta": "minecraft:blue_glazed_terracotta",
+    "candle": "minecraft:blue_candle",
+    "banner": "minecraft:blue_banner",
+    "bed": "minecraft:blue_bed",
+    "avg_color": "#353a9e"
+  },
+  "brown_wool": {
+    "kind": "decorative",
+    "group": "wool",
+    "color": "brown",
+    "block": "minecraft:brown_wool",
+    "carpet": "minecraft:brown_carpet",
+    "pane": "minecraft:brown_stained_glass_pane",
+    "glass": "minecraft:brown_stained_glass",
+    "concrete": "minecraft:brown_concrete",
+    "concrete_powder": "minecraft:brown_concrete_powder",
+    "terracotta": "minecraft:brown_terracotta",
+    "glazed_terracotta": "minecraft:brown_glazed_terracotta",
+    "candle": "minecraft:brown_candle",
+    "banner": "minecraft:brown_banner",
+    "bed": "minecraft:brown_bed",
+    "avg_color": "#734829",
+    "substitutes": {
+      "stairs": [
+        "minecraft:spruce_stairs",
+        "minecraft:mud_brick_stairs",
+        "minecraft:granite_stairs"
+      ],
+      "slab": [
+        "minecraft:spruce_slab",
+        "minecraft:mud_brick_slab",
+        "minecraft:granite_slab"
+      ],
+      "wall": [
+        "minecraft:mud_brick_wall",
+        "minecraft:granite_wall",
+        "minecraft:brick_wall"
+      ]
+    }
+  },
+  "cyan_wool": {
+    "kind": "decorative",
+    "group": "wool",
+    "color": "cyan",
+    "block": "minecraft:cyan_wool",
+    "carpet": "minecraft:cyan_carpet",
+    "pane": "minecraft:cyan_stained_glass_pane",
+    "glass": "minecraft:cyan_stained_glass",
+    "concrete": "minecraft:cyan_concrete",
+    "concrete_powder": "minecraft:cyan_concrete_powder",
+    "terracotta": "minecraft:cyan_terracotta",
+    "glazed_terracotta": "minecraft:cyan_glazed_terracotta",
+    "candle": "minecraft:cyan_candle",
+    "banner": "minecraft:cyan_banner",
+    "bed": "minecraft:cyan_bed",
+    "avg_color": "#158a91",
+    "substitutes": {
+      "stairs": [
+        "minecraft:prismarine_stairs",
+        "minecraft:prismarine_brick_stairs",
+        "minecraft:warped_stairs"
+      ],
+      "slab": [
+        "minecraft:prismarine_slab",
+        "minecraft:prismarine_brick_slab",
+        "minecraft:warped_slab"
+      ],
+      "wall": [
+        "minecraft:prismarine_wall"
+      ]
+    }
+  },
+  "gray_wool": {
+    "kind": "decorative",
+    "group": "wool",
+    "color": "gray",
+    "block": "minecraft:gray_wool",
+    "carpet": "minecraft:gray_carpet",
+    "pane": "minecraft:gray_stained_glass_pane",
+    "glass": "minecraft:gray_stained_glass",
+    "concrete": "minecraft:gray_concrete",
+    "concrete_powder": "minecraft:gray_concrete_powder",
+    "terracotta": "minecraft:gray_terracotta",
+    "glazed_terracotta": "minecraft:gray_glazed_terracotta",
+    "candle": "minecraft:gray_candle",
+    "banner": "minecraft:gray_banner",
+    "bed": "minecraft:gray_bed",
+    "avg_color": "#3f4548",
+    "substitutes": {
+      "stairs": [
+        "minecraft:deepslate_tile_stairs",
+        "minecraft:polished_deepslate_stairs",
+        "minecraft:deepslate_brick_stairs"
+      ],
+      "slab": [
+        "minecraft:deepslate_tile_slab",
+        "minecraft:polished_deepslate_slab",
+        "minecraft:deepslate_brick_slab"
+      ],
+      "wall": [
+        "minecraft:deepslate_tile_wall",
+        "minecraft:polished_deepslate_wall",
+        "minecraft:deepslate_brick_wall"
+      ]
+    }
+  },
+  "green_wool": {
+    "kind": "decorative",
+    "group": "wool",
+    "color": "green",
+    "block": "minecraft:green_wool",
+    "carpet": "minecraft:green_carpet",
+    "pane": "minecraft:green_stained_glass_pane",
+    "glass": "minecraft:green_stained_glass",
+    "concrete": "minecraft:green_concrete",
+    "concrete_powder": "minecraft:green_concrete_powder",
+    "terracotta": "minecraft:green_terracotta",
+    "glazed_terracotta": "minecraft:green_glazed_terracotta",
+    "candle": "minecraft:green_candle",
+    "banner": "minecraft:green_banner",
+    "bed": "minecraft:green_bed",
+    "avg_color": "#556e1c",
+    "substitutes": {
+      "stairs": [
+        "minecraft:mossy_cobblestone_stairs"
+      ],
+      "slab": [
+        "minecraft:mossy_cobblestone_slab"
+      ],
+      "wall": [
+        "minecraft:mossy_cobblestone_wall"
+      ]
+    }
+  },
+  "light_blue_wool": {
+    "kind": "decorative",
+    "group": "wool",
+    "color": "light_blue",
+    "block": "minecraft:light_blue_wool",
+    "carpet": "minecraft:light_blue_carpet",
+    "pane": "minecraft:light_blue_stained_glass_pane",
+    "glass": "minecraft:light_blue_stained_glass",
+    "concrete": "minecraft:light_blue_concrete",
+    "concrete_powder": "minecraft:light_blue_concrete_powder",
+    "terracotta": "minecraft:light_blue_terracotta",
+    "glazed_terracotta": "minecraft:light_blue_glazed_terracotta",
+    "candle": "minecraft:light_blue_candle",
+    "banner": "minecraft:light_blue_banner",
+    "bed": "minecraft:light_blue_bed",
+    "avg_color": "#3cb0da"
+  },
+  "light_gray_wool": {
+    "kind": "decorative",
+    "group": "wool",
+    "color": "light_gray",
+    "block": "minecraft:light_gray_wool",
+    "carpet": "minecraft:light_gray_carpet",
+    "pane": "minecraft:light_gray_stained_glass_pane",
+    "glass": "minecraft:light_gray_stained_glass",
+    "concrete": "minecraft:light_gray_concrete",
+    "concrete_powder": "minecraft:light_gray_concrete_powder",
+    "terracotta": "minecraft:light_gray_terracotta",
+    "glazed_terracotta": "minecraft:light_gray_glazed_terracotta",
+    "candle": "minecraft:light_gray_candle",
+    "banner": "minecraft:light_gray_banner",
+    "bed": "minecraft:light_gray_bed",
+    "avg_color": "#8e8f87",
+    "substitutes": {
+      "stairs": [
+        "minecraft:andesite_stairs",
+        "minecraft:polished_andesite_stairs",
+        "minecraft:stone_stairs"
+      ],
+      "slab": [
+        "minecraft:andesite_slab",
+        "minecraft:polished_andesite_slab",
+        "minecraft:stone_slab"
+      ],
+      "wall": [
+        "minecraft:andesite_wall",
+        "minecraft:cobblestone_wall",
+        "minecraft:stone_brick_wall"
+      ]
+    }
+  },
+  "lime_wool": {
+    "kind": "decorative",
+    "group": "wool",
+    "color": "lime",
+    "block": "minecraft:lime_wool",
+    "carpet": "minecraft:lime_carpet",
+    "pane": "minecraft:lime_stained_glass_pane",
+    "glass": "minecraft:lime_stained_glass",
+    "concrete": "minecraft:lime_concrete",
+    "concrete_powder": "minecraft:lime_concrete_powder",
+    "terracotta": "minecraft:lime_terracotta",
+    "glazed_terracotta": "minecraft:lime_glazed_terracotta",
+    "candle": "minecraft:lime_candle",
+    "banner": "minecraft:lime_banner",
+    "bed": "minecraft:lime_bed",
+    "avg_color": "#71ba1a"
+  },
+  "magenta_wool": {
+    "kind": "decorative",
+    "group": "wool",
+    "color": "magenta",
+    "block": "minecraft:magenta_wool",
+    "carpet": "minecraft:magenta_carpet",
+    "pane": "minecraft:magenta_stained_glass_pane",
+    "glass": "minecraft:magenta_stained_glass",
+    "concrete": "minecraft:magenta_concrete",
+    "concrete_powder": "minecraft:magenta_concrete_powder",
+    "terracotta": "minecraft:magenta_terracotta",
+    "glazed_terracotta": "minecraft:magenta_glazed_terracotta",
+    "candle": "minecraft:magenta_candle",
+    "banner": "minecraft:magenta_banner",
+    "bed": "minecraft:magenta_bed",
+    "avg_color": "#be46b5",
+    "substitutes": {
+      "stairs": [
+        "minecraft:purpur_stairs"
+      ],
+      "slab": [
+        "minecraft:purpur_slab"
+      ]
+    }
+  },
+  "orange_wool": {
+    "kind": "decorative",
+    "group": "wool",
+    "color": "orange",
+    "block": "minecraft:orange_wool",
+    "carpet": "minecraft:orange_carpet",
+    "pane": "minecraft:orange_stained_glass_pane",
+    "glass": "minecraft:orange_stained_glass",
+    "concrete": "minecraft:orange_concrete",
+    "concrete_powder": "minecraft:orange_concrete_powder",
+    "terracotta": "minecraft:orange_terracotta",
+    "glazed_terracotta": "minecraft:orange_glazed_terracotta",
+    "candle": "minecraft:orange_candle",
+    "banner": "minecraft:orange_banner",
+    "bed": "minecraft:orange_bed",
+    "avg_color": "#f17716",
+    "substitutes": {
+      "stairs": [
+        "minecraft:red_sandstone_stairs",
+        "minecraft:smooth_red_sandstone_stairs",
+        "minecraft:cut_copper_stairs"
+      ],
+      "slab": [
+        "minecraft:cut_red_sandstone_slab",
+        "minecraft:red_sandstone_slab",
+        "minecraft:smooth_red_sandstone_slab"
+      ],
+      "wall": [
+        "minecraft:red_sandstone_wall"
+      ]
+    }
+  },
+  "pink_wool": {
+    "kind": "decorative",
+    "group": "wool",
+    "color": "pink",
+    "block": "minecraft:pink_wool",
+    "carpet": "minecraft:pink_carpet",
+    "pane": "minecraft:pink_stained_glass_pane",
+    "glass": "minecraft:pink_stained_glass",
+    "concrete": "minecraft:pink_concrete",
+    "concrete_powder": "minecraft:pink_concrete_powder",
+    "terracotta": "minecraft:pink_terracotta",
+    "glazed_terracotta": "minecraft:pink_glazed_terracotta",
+    "candle": "minecraft:pink_candle",
+    "banner": "minecraft:pink_banner",
+    "bed": "minecraft:pink_bed",
+    "avg_color": "#ee90ad",
+    "substitutes": {
+      "stairs": [
+        "minecraft:purpur_stairs",
+        "minecraft:cherry_stairs"
+      ],
+      "slab": [
+        "minecraft:purpur_slab",
+        "minecraft:cherry_slab"
+      ]
+    }
+  },
+  "purple_wool": {
+    "kind": "decorative",
+    "group": "wool",
+    "color": "purple",
+    "block": "minecraft:purple_wool",
+    "carpet": "minecraft:purple_carpet",
+    "pane": "minecraft:purple_stained_glass_pane",
+    "glass": "minecraft:purple_stained_glass",
+    "concrete": "minecraft:purple_concrete",
+    "concrete_powder": "minecraft:purple_concrete_powder",
+    "terracotta": "minecraft:purple_terracotta",
+    "glazed_terracotta": "minecraft:purple_glazed_terracotta",
+    "candle": "minecraft:purple_candle",
+    "banner": "minecraft:purple_banner",
+    "bed": "minecraft:purple_bed",
+    "avg_color": "#7b2bad"
+  },
+  "red_wool": {
+    "kind": "decorative",
+    "group": "wool",
+    "color": "red",
+    "block": "minecraft:red_wool",
+    "carpet": "minecraft:red_carpet",
+    "pane": "minecraft:red_stained_glass_pane",
+    "glass": "minecraft:red_stained_glass",
+    "concrete": "minecraft:red_concrete",
+    "concrete_powder": "minecraft:red_concrete_powder",
+    "terracotta": "minecraft:red_terracotta",
+    "glazed_terracotta": "minecraft:red_glazed_terracotta",
+    "candle": "minecraft:red_candle",
+    "banner": "minecraft:red_banner",
+    "bed": "minecraft:red_bed",
+    "avg_color": "#a12823",
+    "substitutes": {
+      "stairs": [
+        "minecraft:mangrove_stairs",
+        "minecraft:brick_stairs",
+        "minecraft:granite_stairs"
+      ],
+      "slab": [
+        "minecraft:mangrove_slab",
+        "minecraft:brick_slab",
+        "minecraft:granite_slab"
+      ],
+      "wall": [
+        "minecraft:brick_wall",
+        "minecraft:granite_wall"
+      ]
+    }
+  },
+  "white_wool": {
+    "kind": "decorative",
+    "group": "wool",
+    "color": "white",
+    "block": "minecraft:white_wool",
+    "carpet": "minecraft:white_carpet",
+    "pane": "minecraft:white_stained_glass_pane",
+    "glass": "minecraft:white_stained_glass",
+    "concrete": "minecraft:white_concrete",
+    "concrete_powder": "minecraft:white_concrete_powder",
+    "terracotta": "minecraft:white_terracotta",
+    "glazed_terracotta": "minecraft:white_glazed_terracotta",
+    "candle": "minecraft:white_candle",
+    "banner": "minecraft:white_banner",
+    "bed": "minecraft:white_bed",
+    "avg_color": "#eaeded",
+    "substitutes": {
+      "stairs": [
+        "minecraft:quartz_stairs",
+        "minecraft:smooth_quartz_stairs",
+        "minecraft:polished_diorite_stairs"
+      ],
+      "slab": [
+        "minecraft:quartz_slab",
+        "minecraft:smooth_quartz_slab",
+        "minecraft:polished_diorite_slab"
+      ],
+      "wall": [
+        "minecraft:diorite_wall",
+        "minecraft:sandstone_wall"
+      ]
+    }
+  },
+  "yellow_wool": {
+    "kind": "decorative",
+    "group": "wool",
+    "color": "yellow",
+    "block": "minecraft:yellow_wool",
+    "carpet": "minecraft:yellow_carpet",
+    "pane": "minecraft:yellow_stained_glass_pane",
+    "glass": "minecraft:yellow_stained_glass",
+    "concrete": "minecraft:yellow_concrete",
+    "concrete_powder": "minecraft:yellow_concrete_powder",
+    "terracotta": "minecraft:yellow_terracotta",
+    "glazed_terracotta": "minecraft:yellow_glazed_terracotta",
+    "candle": "minecraft:yellow_candle",
+    "banner": "minecraft:yellow_banner",
+    "bed": "minecraft:yellow_bed",
+    "avg_color": "#f9c629",
+    "substitutes": {
+      "stairs": [
+        "minecraft:sandstone_stairs",
+        "minecraft:smooth_sandstone_stairs",
+        "minecraft:bamboo_stairs"
+      ],
+      "slab": [
+        "minecraft:sandstone_slab",
+        "minecraft:cut_sandstone_slab",
+        "minecraft:smooth_sandstone_slab"
+      ],
+      "wall": [
+        "minecraft:sandstone_wall"
+      ]
+    }
+  },
+  "color": {
+    "white": {
+      "wool": "minecraft:white_wool",
+      "carpet": "minecraft:white_carpet",
+      "concrete": "minecraft:white_concrete",
+      "concrete_powder": "minecraft:white_concrete_powder",
+      "terracotta": "minecraft:white_terracotta",
+      "glazed_terracotta": "minecraft:white_glazed_terracotta",
+      "stained_glass": "minecraft:white_stained_glass",
+      "stained_glass_pane": "minecraft:white_stained_glass_pane",
+      "candle": "minecraft:white_candle",
+      "candle_cake": "minecraft:white_candle_cake",
+      "banner": "minecraft:white_banner",
+      "wall_banner": "minecraft:white_wall_banner",
+      "bed": "minecraft:white_bed",
+      "shulker_box": "minecraft:white_shulker_box"
+    },
+    "orange": {
+      "wool": "minecraft:orange_wool",
+      "carpet": "minecraft:orange_carpet",
+      "concrete": "minecraft:orange_concrete",
+      "concrete_powder": "minecraft:orange_concrete_powder",
+      "terracotta": "minecraft:orange_terracotta",
+      "glazed_terracotta": "minecraft:orange_glazed_terracotta",
+      "stained_glass": "minecraft:orange_stained_glass",
+      "stained_glass_pane": "minecraft:orange_stained_glass_pane",
+      "candle": "minecraft:orange_candle",
+      "candle_cake": "minecraft:orange_candle_cake",
+      "banner": "minecraft:orange_banner",
+      "wall_banner": "minecraft:orange_wall_banner",
+      "bed": "minecraft:orange_bed",
+      "shulker_box": "minecraft:orange_shulker_box"
+    },
+    "magenta": {
+      "wool": "minecraft:magenta_wool",
+      "carpet": "minecraft:magenta_carpet",
+      "concrete": "minecraft:magenta_concrete",
+      "concrete_powder": "minecraft:magenta_concrete_powder",
+      "terracotta": "minecraft:magenta_terracotta",
+      "glazed_terracotta": "minecraft:magenta_glazed_terracotta",
+      "stained_glass": "minecraft:magenta_stained_glass",
+      "stained_glass_pane": "minecraft:magenta_stained_glass_pane",
+      "candle": "minecraft:magenta_candle",
+      "candle_cake": "minecraft:magenta_candle_cake",
+      "banner": "minecraft:magenta_banner",
+      "wall_banner": "minecraft:magenta_wall_banner",
+      "bed": "minecraft:magenta_bed",
+      "shulker_box": "minecraft:magenta_shulker_box"
+    },
+    "light_blue": {
+      "wool": "minecraft:light_blue_wool",
+      "carpet": "minecraft:light_blue_carpet",
+      "concrete": "minecraft:light_blue_concrete",
+      "concrete_powder": "minecraft:light_blue_concrete_powder",
+      "terracotta": "minecraft:light_blue_terracotta",
+      "glazed_terracotta": "minecraft:light_blue_glazed_terracotta",
+      "stained_glass": "minecraft:light_blue_stained_glass",
+      "stained_glass_pane": "minecraft:light_blue_stained_glass_pane",
+      "candle": "minecraft:light_blue_candle",
+      "candle_cake": "minecraft:light_blue_candle_cake",
+      "banner": "minecraft:light_blue_banner",
+      "wall_banner": "minecraft:light_blue_wall_banner",
+      "bed": "minecraft:light_blue_bed",
+      "shulker_box": "minecraft:light_blue_shulker_box"
+    },
+    "yellow": {
+      "wool": "minecraft:yellow_wool",
+      "carpet": "minecraft:yellow_carpet",
+      "concrete": "minecraft:yellow_concrete",
+      "concrete_powder": "minecraft:yellow_concrete_powder",
+      "terracotta": "minecraft:yellow_terracotta",
+      "glazed_terracotta": "minecraft:yellow_glazed_terracotta",
+      "stained_glass": "minecraft:yellow_stained_glass",
+      "stained_glass_pane": "minecraft:yellow_stained_glass_pane",
+      "candle": "minecraft:yellow_candle",
+      "candle_cake": "minecraft:yellow_candle_cake",
+      "banner": "minecraft:yellow_banner",
+      "wall_banner": "minecraft:yellow_wall_banner",
+      "bed": "minecraft:yellow_bed",
+      "shulker_box": "minecraft:yellow_shulker_box"
+    },
+    "lime": {
+      "wool": "minecraft:lime_wool",
+      "carpet": "minecraft:lime_carpet",
+      "concrete": "minecraft:lime_concrete",
+      "concrete_powder": "minecraft:lime_concrete_powder",
+      "terracotta": "minecraft:lime_terracotta",
+      "glazed_terracotta": "minecraft:lime_glazed_terracotta",
+      "stained_glass": "minecraft:lime_stained_glass",
+      "stained_glass_pane": "minecraft:lime_stained_glass_pane",
+      "candle": "minecraft:lime_candle",
+      "candle_cake": "minecraft:lime_candle_cake",
+      "banner": "minecraft:lime_banner",
+      "wall_banner": "minecraft:lime_wall_banner",
+      "bed": "minecraft:lime_bed",
+      "shulker_box": "minecraft:lime_shulker_box"
+    },
+    "pink": {
+      "wool": "minecraft:pink_wool",
+      "carpet": "minecraft:pink_carpet",
+      "concrete": "minecraft:pink_concrete",
+      "concrete_powder": "minecraft:pink_concrete_powder",
+      "terracotta": "minecraft:pink_terracotta",
+      "glazed_terracotta": "minecraft:pink_glazed_terracotta",
+      "stained_glass": "minecraft:pink_stained_glass",
+      "stained_glass_pane": "minecraft:pink_stained_glass_pane",
+      "candle": "minecraft:pink_candle",
+      "candle_cake": "minecraft:pink_candle_cake",
+      "banner": "minecraft:pink_banner",
+      "wall_banner": "minecraft:pink_wall_banner",
+      "bed": "minecraft:pink_bed",
+      "shulker_box": "minecraft:pink_shulker_box"
+    },
+    "gray": {
+      "wool": "minecraft:gray_wool",
+      "carpet": "minecraft:gray_carpet",
+      "concrete": "minecraft:gray_concrete",
+      "concrete_powder": "minecraft:gray_concrete_powder",
+      "terracotta": "minecraft:gray_terracotta",
+      "glazed_terracotta": "minecraft:gray_glazed_terracotta",
+      "stained_glass": "minecraft:gray_stained_glass",
+      "stained_glass_pane": "minecraft:gray_stained_glass_pane",
+      "candle": "minecraft:gray_candle",
+      "candle_cake": "minecraft:gray_candle_cake",
+      "banner": "minecraft:gray_banner",
+      "wall_banner": "minecraft:gray_wall_banner",
+      "bed": "minecraft:gray_bed",
+      "shulker_box": "minecraft:gray_shulker_box"
+    },
+    "light_gray": {
+      "wool": "minecraft:light_gray_wool",
+      "carpet": "minecraft:light_gray_carpet",
+      "concrete": "minecraft:light_gray_concrete",
+      "concrete_powder": "minecraft:light_gray_concrete_powder",
+      "terracotta": "minecraft:light_gray_terracotta",
+      "glazed_terracotta": "minecraft:light_gray_glazed_terracotta",
+      "stained_glass": "minecraft:light_gray_stained_glass",
+      "stained_glass_pane": "minecraft:light_gray_stained_glass_pane",
+      "candle": "minecraft:light_gray_candle",
+      "candle_cake": "minecraft:light_gray_candle_cake",
+      "banner": "minecraft:light_gray_banner",
+      "wall_banner": "minecraft:light_gray_wall_banner",
+      "bed": "minecraft:light_gray_bed",
+      "shulker_box": "minecraft:light_gray_shulker_box"
+    },
+    "cyan": {
+      "wool": "minecraft:cyan_wool",
+      "carpet": "minecraft:cyan_carpet",
+      "concrete": "minecraft:cyan_concrete",
+      "concrete_powder": "minecraft:cyan_concrete_powder",
+      "terracotta": "minecraft:cyan_terracotta",
+      "glazed_terracotta": "minecraft:cyan_glazed_terracotta",
+      "stained_glass": "minecraft:cyan_stained_glass",
+      "stained_glass_pane": "minecraft:cyan_stained_glass_pane",
+      "candle": "minecraft:cyan_candle",
+      "candle_cake": "minecraft:cyan_candle_cake",
+      "banner": "minecraft:cyan_banner",
+      "wall_banner": "minecraft:cyan_wall_banner",
+      "bed": "minecraft:cyan_bed",
+      "shulker_box": "minecraft:cyan_shulker_box"
+    },
+    "purple": {
+      "wool": "minecraft:purple_wool",
+      "carpet": "minecraft:purple_carpet",
+      "concrete": "minecraft:purple_concrete",
+      "concrete_powder": "minecraft:purple_concrete_powder",
+      "terracotta": "minecraft:purple_terracotta",
+      "glazed_terracotta": "minecraft:purple_glazed_terracotta",
+      "stained_glass": "minecraft:purple_stained_glass",
+      "stained_glass_pane": "minecraft:purple_stained_glass_pane",
+      "candle": "minecraft:purple_candle",
+      "candle_cake": "minecraft:purple_candle_cake",
+      "banner": "minecraft:purple_banner",
+      "wall_banner": "minecraft:purple_wall_banner",
+      "bed": "minecraft:purple_bed",
+      "shulker_box": "minecraft:purple_shulker_box"
+    },
+    "blue": {
+      "wool": "minecraft:blue_wool",
+      "carpet": "minecraft:blue_carpet",
+      "concrete": "minecraft:blue_concrete",
+      "concrete_powder": "minecraft:blue_concrete_powder",
+      "terracotta": "minecraft:blue_terracotta",
+      "glazed_terracotta": "minecraft:blue_glazed_terracotta",
+      "stained_glass": "minecraft:blue_stained_glass",
+      "stained_glass_pane": "minecraft:blue_stained_glass_pane",
+      "candle": "minecraft:blue_candle",
+      "candle_cake": "minecraft:blue_candle_cake",
+      "banner": "minecraft:blue_banner",
+      "wall_banner": "minecraft:blue_wall_banner",
+      "bed": "minecraft:blue_bed",
+      "shulker_box": "minecraft:blue_shulker_box"
+    },
+    "brown": {
+      "wool": "minecraft:brown_wool",
+      "carpet": "minecraft:brown_carpet",
+      "concrete": "minecraft:brown_concrete",
+      "concrete_powder": "minecraft:brown_concrete_powder",
+      "terracotta": "minecraft:brown_terracotta",
+      "glazed_terracotta": "minecraft:brown_glazed_terracotta",
+      "stained_glass": "minecraft:brown_stained_glass",
+      "stained_glass_pane": "minecraft:brown_stained_glass_pane",
+      "candle": "minecraft:brown_candle",
+      "candle_cake": "minecraft:brown_candle_cake",
+      "banner": "minecraft:brown_banner",
+      "wall_banner": "minecraft:brown_wall_banner",
+      "bed": "minecraft:brown_bed",
+      "shulker_box": "minecraft:brown_shulker_box"
+    },
+    "green": {
+      "wool": "minecraft:green_wool",
+      "carpet": "minecraft:green_carpet",
+      "concrete": "minecraft:green_concrete",
+      "concrete_powder": "minecraft:green_concrete_powder",
+      "terracotta": "minecraft:green_terracotta",
+      "glazed_terracotta": "minecraft:green_glazed_terracotta",
+      "stained_glass": "minecraft:green_stained_glass",
+      "stained_glass_pane": "minecraft:green_stained_glass_pane",
+      "candle": "minecraft:green_candle",
+      "candle_cake": "minecraft:green_candle_cake",
+      "banner": "minecraft:green_banner",
+      "wall_banner": "minecraft:green_wall_banner",
+      "bed": "minecraft:green_bed",
+      "shulker_box": "minecraft:green_shulker_box"
+    },
+    "red": {
+      "wool": "minecraft:red_wool",
+      "carpet": "minecraft:red_carpet",
+      "concrete": "minecraft:red_concrete",
+      "concrete_powder": "minecraft:red_concrete_powder",
+      "terracotta": "minecraft:red_terracotta",
+      "glazed_terracotta": "minecraft:red_glazed_terracotta",
+      "stained_glass": "minecraft:red_stained_glass",
+      "stained_glass_pane": "minecraft:red_stained_glass_pane",
+      "candle": "minecraft:red_candle",
+      "candle_cake": "minecraft:red_candle_cake",
+      "banner": "minecraft:red_banner",
+      "wall_banner": "minecraft:red_wall_banner",
+      "bed": "minecraft:red_bed",
+      "shulker_box": "minecraft:red_shulker_box"
+    },
+    "black": {
+      "wool": "minecraft:black_wool",
+      "carpet": "minecraft:black_carpet",
+      "concrete": "minecraft:black_concrete",
+      "concrete_powder": "minecraft:black_concrete_powder",
+      "terracotta": "minecraft:black_terracotta",
+      "glazed_terracotta": "minecraft:black_glazed_terracotta",
+      "stained_glass": "minecraft:black_stained_glass",
+      "stained_glass_pane": "minecraft:black_stained_glass_pane",
+      "candle": "minecraft:black_candle",
+      "candle_cake": "minecraft:black_candle_cake",
+      "banner": "minecraft:black_banner",
+      "wall_banner": "minecraft:black_wall_banner",
+      "bed": "minecraft:black_bed",
+      "shulker_box": "minecraft:black_shulker_box"
+    }
+  }
+}

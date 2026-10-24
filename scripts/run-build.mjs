@@ -4,6 +4,9 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import * as lodestone from '@mattzh72/lodestone'
+import { withDefaults } from './lib/kit/blocks.mjs'
+import { updateConnections } from './lib/kit/connect.mjs'
+import { createKit } from './lib/kit/index.mjs'
 
 const {
   BlockState,
@@ -20,11 +23,13 @@ const {
   Structure,
 } = lodestone
 
-const DEFAULT_DATA_VERSION = 3465
+// 1.21.1 — matches the preview pack and the block-state table the kit validates against.
+// Newer game versions upgrade renamed blocks automatically; use --data-version for older targets.
+const DEFAULT_DATA_VERSION = 3955
 
 function usage() {
   return `Usage:
-  node scripts/run-build.mjs <recipe.mjs> [--out-dir <dir>] [--name <name>] [--data-version <number>] [--compression gzip|zlib|none] [--no-block-state-updates] [--json]
+  node scripts/run-build.mjs <recipe.mjs> [--out-dir <dir>] [--name <name>] [--data-version <number>] [--compression gzip|zlib|none] [--no-block-state-updates] [--no-default-states] [--json]
 `
 }
 
@@ -36,6 +41,7 @@ function parseArgs(argv) {
     dataVersion: DEFAULT_DATA_VERSION,
     compression: 'gzip',
     updateBlockStates: true,
+    defaultStates: true,
     json: false,
     help: false,
   }
@@ -54,6 +60,8 @@ function parseArgs(argv) {
       options.json = true
     } else if (arg === '--no-block-state-updates') {
       options.updateBlockStates = false
+    } else if (arg === '--no-default-states') {
+      options.defaultStates = false
     } else if (arg === '--out-dir') {
       options.outDir = readValue(arg, index)
       index += 1
@@ -278,7 +286,10 @@ function createBlockNbt(object) {
 }
 
 function createApi() {
+  const kit = createKit()
   return {
+    kit,
+    builder: kit.builder,
     lodestone,
     Structure,
     BlockState,
@@ -301,6 +312,57 @@ function createApi() {
     cylinder,
     createBlockNbt,
   }
+}
+
+// Gives every block its full vanilla default state (e.g. grass_block → snowy=false). The game
+// fills these implicitly, but the previewer renders a block with missing properties as nothing.
+function fillDefaultStates(structure) {
+  const updates = []
+  for (const block of structure.getBlocks()) {
+    const name = block.state.getName().toString()
+    const props = block.state.getProperties()
+    const full = withDefaults({ name, props })
+    if (full.props && Object.keys(full.props).length !== Object.keys(props).length) updates.push([block.pos, name, full.props, block.nbt])
+  }
+  for (const [pos, name, props, nbt] of updates) structure.addBlock(pos, name, props, nbt)
+  return updates.length
+}
+
+// Runs the kit's vanilla-accurate connection pass over a Lodestone structure.
+function updateStructureConnections(structure) {
+  const [sx, , sz] = structure.getSize()
+  const key = (x, y, z) => x + sx * (z + sz * y)
+  const map = new Map()
+  const nbts = new Map()
+  for (const block of structure.getBlocks()) {
+    const [x, y, z] = block.pos
+    map.set(key(x, y, z), { name: block.state.getName().toString(), props: block.state.getProperties() })
+    if (block.nbt) nbts.set(key(x, y, z), block.nbt)
+  }
+  const changed = []
+  const store = {
+    get: (x, y, z) => (x < 0 || y < 0 || z < 0 || x >= sx || z >= sz ? null : map.get(key(x, y, z)) ?? null),
+    put: (x, y, z, block) => {
+      map.set(key(x, y, z), block)
+      changed.push([x, y, z])
+    },
+    entries: () => [...map.entries()].map(([k, block]) => {
+      const x = k % sx
+      const rest = (k - x) / sx
+      const z = rest % sz
+      return [x, (rest - z) / sz, z, block]
+    }),
+  }
+  const count = updateConnections(store)
+  const seen = new Set()
+  for (const [x, y, z] of changed) {
+    const k = key(x, y, z)
+    if (seen.has(k)) continue
+    seen.add(k)
+    const block = map.get(k)
+    structure.addBlock([x, y, z], block.name, block.props, nbts.get(k))
+  }
+  return count
 }
 
 function summarize(structure) {
@@ -339,8 +401,16 @@ async function main() {
     ...(recipe.metadata ?? {}),
     ...(result?.metadata ?? {}),
   }
-  const outputStructure = options.updateBlockStates ? structure.clone() : structure
-  const blockStateUpdates = options.updateBlockStates ? outputStructure.updateBlockStates() : { updatedBlocks: 0 }
+  // Builder-made structures already carry vanilla-accurate connection states. Raw-API
+  // structures get the same pass here: default states first, then stairs/walls/fences/panes.
+  const kitUpdated = metadata.blockStatesUpdated === true
+  const outputStructure = options.updateBlockStates || options.defaultStates ? structure.clone() : structure
+  const defaultsFilled = options.defaultStates ? fillDefaultStates(outputStructure) : 0
+  const blockStateUpdates = options.updateBlockStates && !kitUpdated
+    ? { updatedBlocks: updateStructureConnections(outputStructure) }
+    : { updatedBlocks: 0 }
+  const builderReport = metadata.builderReport
+  delete metadata.builderReport
   const name = slugify(options.name ?? metadata.name ?? path.basename(recipePath, path.extname(recipePath)))
   const outDir = path.resolve(options.outDir ?? path.join('minecraft-builds', name))
   await fs.mkdir(outDir, { recursive: true })
@@ -366,7 +436,9 @@ async function main() {
     dataVersion: options.dataVersion,
     compression: options.compression,
     updateBlockStates: options.updateBlockStates,
-    blockStateUpdates,
+    defaultStatesFilled: defaultsFilled,
+    blockStateUpdates: kitUpdated ? { updatedBlocks: builderReport?.connectionsUpdated ?? 0, by: 'kit' } : blockStateUpdates,
+    ...(builderReport ? { builder: { clipped: builderReport.clipped, leavesPersisted: builderReport.leavesPersisted, problems: builderReport.problems } } : {}),
     nbtPath,
     summaryPath: path.join(outDir, 'summary.json'),
     ...stats,
