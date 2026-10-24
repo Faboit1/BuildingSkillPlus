@@ -1,0 +1,123 @@
+[
+  {
+    "name": "medieval-house",
+    "size": [
+      44,
+      36,
+      44
+    ],
+    "blocks": 16440,
+    "problems": 0,
+    "seconds": 13
+  },
+  {
+    "name": "tavern",
+    "size": [
+      52,
+      38,
+      46
+    ],
+    "blocks": 16271,
+    "problems": 0,
+    "seconds": 20
+  },
+  {
+    "name": "castle",
+    "size": [
+      114,
+      66,
+      118
+    ],
+    "blocks": 155248,
+    "problems": 0,
+    "seconds": 35
+  },
+  {
+    "name": "gothic-cathedral",
+    "size": [
+      75,
+      92,
+      128
+    ],
+    "blocks": 105932,
+    "problems": 0,
+    "seconds": 46
+  },
+  {
+    "name": "wizard-tower",
+    "size": [
+      56,
+      88,
+      56
+    ],
+    "blocks": 25237,
+    "problems": 0,
+    "seconds": 39
+  },
+  {
+    "name": "japanese-shrine",
+    "size": [
+      72,
+      54,
+      72
+    ],
+    "blocks": 37188,
+    "problems": 0,
+    "seconds": 19
+  },
+  {
+    "name": "nordic-longhouse",
+    "size": [
+      88,
+      46,
+      72
+    ],
+    "blocks": 93333,
+    "problems": 0,
+    "seconds": 25
+  },
+  {
+    "name": "desert-palace",
+    "size": [
+      92,
+      60,
+      96
+    ],
+    "blocks": 91895,
+    "problems": 0,
+    "seconds": 18
+  },
+  {
+    "name": "coastal-village",
+    "size": [
+      96,
+      50,
+      80
+    ],
+    "blocks": 168697,
+    "problems": 0,
+    "seconds": 18
+  },
+  {
+    "name": "modern-villa",
+    "size": [
+      70,
+      45,
+      60
+    ],
+    "blocks": 61643,
+    "problems": 0,
+    "seconds": 18
+  },
+  {
+    "name": "walled-village",
+    "size": [
+      128,
+      64,
+      128
+    ],
+    "blocks": 290725,
+    "problems": 0,
+    "seconds": 30
+  }
+]
