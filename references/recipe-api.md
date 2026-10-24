@@ -50,7 +50,7 @@ Supported options:
   - Slugified to lowercase ASCII with `-` separators.
 - `--data-version <number>` or `--data-version=<number>`
   - Positive integer.
-  - Default: `3465`.
+  - Default: `3955` (Minecraft 1.21.1, matching the preview pack and kit validation).
 - `--compression gzip|zlib|none` or `--compression=<mode>`
   - Default: `gzip`.
 - `--no-block-state-updates`

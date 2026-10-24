@@ -8,14 +8,20 @@ console.warn = (...args) => {
   originalWarn(...args)
 }
 
+// Daylight is tuned to be colour-neutral (white sun, grey-blue sky fill) so block colours in
+// renders match their in-game textures; the Lodestone defaults tint everything orange/purple.
 const LIGHTING_PRESETS = {
   day: {
     direction: vec3.fromValues(0.35, 0.85, 0.25),
-    intensity: 1.15,
-    ambientIntensity: 0.62,
-    fillIntensity: 0.32,
-    rimIntensity: 0.35,
-    exposure: 1.08,
+    color: [1.0, 0.98, 0.94],
+    ambientColor: [0.86, 0.9, 1.0],
+    fillColor: [0.66, 0.68, 0.74],
+    rimColor: [1.0, 1.0, 1.0],
+    intensity: 0.78,
+    ambientIntensity: 0.56,
+    fillIntensity: 0.22,
+    rimIntensity: 0.06,
+    exposure: 1.0,
     sky: {
       zenithColor: [0.24, 0.48, 0.84],
       horizonColor: [0.78, 0.9, 1.0],
@@ -28,6 +34,12 @@ const LIGHTING_PRESETS = {
       color: [0.78, 0.86, 0.94],
       density: 0.00012,
       heightFalloff: 0.001,
+    },
+    // Daylight: light sources barely tint their surroundings (they do not light up a sunny scene).
+    emissive: {
+      range: 8,
+      intensity: 0.35,
+      tint: [1.0, 0.9, 0.75],
     },
   },
   night: {
@@ -80,13 +92,33 @@ const LIGHTING_PRESETS = {
   },
 }
 
+// Named camera presets. yaw is the compass direction the camera sits at, measured from
+// south (+z) toward east (+x): 0 = south, 90 = east, 180 = north, 270 = west.
+// pitch is degrees above the horizon. Elevation views use a narrow fov to flatten perspective.
+const VIEW_PRESETS = {
+  se: { yaw: 45, pitch: 30, fov: 40 },
+  sw: { yaw: 315, pitch: 30, fov: 40 },
+  ne: { yaw: 135, pitch: 30, fov: 40 },
+  nw: { yaw: 225, pitch: 30, fov: 40 },
+  south: { yaw: 0, pitch: 4, fov: 20 },
+  north: { yaw: 180, pitch: 4, fov: 20 },
+  east: { yaw: 90, pitch: 4, fov: 20 },
+  west: { yaw: 270, pitch: 4, fov: 20 },
+  top: { yaw: 0, pitch: 89.5, fov: 30 },
+  hero: { yaw: 30, pitch: 12, fov: 50 },
+  low: { yaw: 210, pitch: 6, fov: 55 },
+}
+
+const DEG = Math.PI / 180
+
+// Interactive camera orbiting a center point. Angles follow the same yaw/pitch convention.
 class OrbitCamera {
   constructor(canvas, center, distance, onChange = () => undefined) {
     this.canvas = canvas
     this.center = center
     this.distance = distance
-    this.xRotation = 0.62
-    this.yRotation = 0.82
+    this.pitch = 35 * DEG
+    this.yaw = 47 * DEG
     this.dragging = false
     this.lastPos = null
     this.onChange = onChange
@@ -108,15 +140,15 @@ class OrbitCamera {
     canvas.addEventListener('lostpointercapture', stopDragging)
     canvas.addEventListener('pointermove', event => {
       if (!this.dragging || !this.lastPos) return
-      this.yRotation += (event.clientX - this.lastPos[0]) / 160
-      this.xRotation += (event.clientY - this.lastPos[1]) / 160
-      this.xRotation = Math.max(-1.05, Math.min(1.35, this.xRotation))
+      this.yaw -= (event.clientX - this.lastPos[0]) / 160
+      this.pitch += (event.clientY - this.lastPos[1]) / 160
+      this.pitch = Math.max(-1.05, Math.min(1.55, this.pitch))
       this.lastPos = [event.clientX, event.clientY]
       this.onChange()
     })
     canvas.addEventListener('wheel', event => {
       event.preventDefault()
-      const distance = Math.max(4, Math.min(500, this.distance + event.deltaY * 0.08))
+      const distance = Math.max(4, Math.min(1500, this.distance + event.deltaY * 0.08))
       if (distance !== this.distance) {
         this.distance = distance
         this.onChange()
@@ -124,28 +156,33 @@ class OrbitCamera {
     }, { passive: false })
   }
 
-  getView() {
-    const view = mat4.create()
-    mat4.translate(view, view, [0, 0, -this.distance])
-    mat4.rotateX(view, view, this.xRotation)
-    mat4.rotateY(view, view, this.yRotation)
-    mat4.translate(view, view, [-this.center[0], -this.center[1], -this.center[2]])
-    return view
-  }
-
   getCamera() {
-    const inverse = mat4.create()
-    mat4.invert(inverse, this.getView())
     return {
-      position: vec3.fromValues(inverse[12], inverse[13], inverse[14]),
+      position: orbitPosition(this.center, this.yaw, this.pitch, this.distance),
       target: this.center,
     }
   }
 }
 
+function orbitPosition(center, yaw, pitch, distance) {
+  return vec3.fromValues(
+    center[0] + Math.sin(yaw) * Math.cos(pitch) * distance,
+    center[1] + Math.sin(pitch) * distance,
+    center[2] + Math.cos(yaw) * Math.cos(pitch) * distance,
+  )
+}
+
 function getParam(name, fallback) {
   const params = new URLSearchParams(window.location.search)
   return params.get(name) ?? fallback
+}
+
+function getNumberList(name, length) {
+  const raw = getParam(name, undefined)
+  if (!raw) return undefined
+  const values = raw.split(',').map(Number)
+  if (values.length !== length || !values.every(Number.isFinite)) return undefined
+  return values
 }
 
 function getLightingMode() {
@@ -179,6 +216,72 @@ async function loadStructure() {
   return Structure.fromNbt(NbtFile.read(bytes).root)
 }
 
+// Keeps only blocks inside an inclusive [x0,y0,z0,x1,y1,z1] box (used for cutaway renders).
+function clipStructure(structure, clip) {
+  const [x0, y0, z0, x1, y1, z1] = clip
+  const clipped = new Structure(structure.getSize())
+  for (const block of structure.getBlocks()) {
+    const [x, y, z] = block.pos
+    if (x < x0 || x > x1 || y < y0 || y > y1 || z < z0 || z > z1) continue
+    clipped.addBlock(block.pos, block.state.getName(), block.state.getProperties(), block.nbt)
+  }
+  return clipped
+}
+
+function computeBounds(structure) {
+  const min = [Infinity, Infinity, Infinity]
+  const max = [-Infinity, -Infinity, -Infinity]
+  for (const block of structure.getBlocks()) {
+    if (block.state.isAir?.() || block.state.getName().toString().endsWith(':air')) continue
+    for (let i = 0; i < 3; i += 1) {
+      min[i] = Math.min(min[i], block.pos[i])
+      max[i] = Math.max(max[i], block.pos[i] + 1)
+    }
+  }
+  if (!Number.isFinite(min[0])) {
+    const size = structure.getSize()
+    return { min: [0, 0, 0], max: [...size] }
+  }
+  return { min, max }
+}
+
+// Distance at which every corner of the bounds fits in the frustum for this view direction.
+function fitDistance(bounds, center, yaw, pitch, fovDeg, aspect, margin = 1.06) {
+  const forward = vec3.fromValues(
+    -Math.sin(yaw) * Math.cos(pitch),
+    -Math.sin(pitch),
+    -Math.cos(yaw) * Math.cos(pitch),
+  )
+  const worldUp = Math.abs(forward[1]) > 0.99 ? vec3.fromValues(0, 0, -1) : vec3.fromValues(0, 1, 0)
+  const right = vec3.normalize(vec3.create(), vec3.cross(vec3.create(), forward, worldUp))
+  const up = vec3.cross(vec3.create(), right, forward)
+  const tanV = Math.tan((fovDeg * DEG) / 2)
+  const tanH = tanV * aspect
+  let distance = 1
+  for (const cx of [bounds.min[0], bounds.max[0]])
+    for (const cy of [bounds.min[1], bounds.max[1]])
+      for (const cz of [bounds.min[2], bounds.max[2]]) {
+        const rel = vec3.fromValues(cx - center[0], cy - center[1], cz - center[2])
+        const along = vec3.dot(rel, forward)
+        const r = Math.abs(vec3.dot(rel, right))
+        const u = Math.abs(vec3.dot(rel, up))
+        distance = Math.max(distance, (r * margin) / tanH - along, (u * margin) / tanV - along)
+      }
+  return distance
+}
+
+function shadowSettingsFor(bounds, preset) {
+  const extent = Math.hypot(bounds.max[0] - bounds.min[0], bounds.max[1] - bounds.min[1], bounds.max[2] - bounds.min[2])
+  return {
+    ...preset,
+    shadow: {
+      ...(preset.shadow ?? {}),
+      frustumSize: Math.max(32, Math.ceil(extent * 1.15)),
+      mapSize: 4096,
+    },
+  }
+}
+
 function resize(renderer, canvas) {
   const rect = canvas.getBoundingClientRect()
   if (rect.width <= 0 || rect.height <= 0) return false
@@ -192,36 +295,61 @@ async function main() {
   const nameEl = document.getElementById('build-name')
   const statsEl = document.getElementById('build-stats')
   const lightingToggle = document.getElementById('lighting-toggle')
+  const capture = getParam('capture', '0') === '1'
   let lightingMode = getLightingMode()
 
   if (!(canvas instanceof HTMLCanvasElement)) throw new Error('Missing #preview canvas')
   if (!loading || !nameEl || !statsEl || !(lightingToggle instanceof HTMLButtonElement)) {
     throw new Error('Missing viewer controls')
   }
+  if (capture) document.body.classList.add('capture')
 
   nameEl.textContent = getParam('name', 'Minecraft Build')
   updateLightingButton(lightingToggle, lightingMode)
 
-  const [structure, pack] = await Promise.all([
+  const [loadedStructure, pack] = await Promise.all([
     loadStructure(),
     loadDefaultPackResources({ baseUrl: new URL('/__minecraft_builder__/default-pack/', window.location.href).toString() }),
   ])
-  const size = structure.getSize()
+  const clip = getNumberList('clip', 6)
+  const clipY = getParam('clipY', undefined)
+  const size = loadedStructure.getSize()
+  const clipBox = clip ?? (clipY !== undefined && Number.isFinite(Number(clipY))
+    ? [0, 0, 0, size[0] - 1, Number(clipY), size[2] - 1]
+    : undefined)
+  const structure = clipBox ? clipStructure(loadedStructure, clipBox) : loadedStructure
   const blockCount = structure.getBlocks().length
+  const bounds = computeBounds(structure)
   statsEl.textContent = `${size[0]} x ${size[1]} x ${size[2]} | ${blockCount.toLocaleString()} blocks`
 
+  const lightingFor = mode => shadowSettingsFor(bounds, LIGHTING_PRESETS[mode])
   const renderer = new ThreeStructureRenderer(canvas, structure, pack.resources, {
     chunkSize: 16,
-    drawDistance: 1000,
+    drawDistance: 4000,
     useInvisibleBlockBuffer: false,
     asyncBuild: true,
-    asyncChunkBuildTimeMs: 8,
-    sunlight: LIGHTING_PRESETS[lightingMode],
+    asyncChunkBuildTimeMs: capture ? 200 : 8,
+    preserveDrawingBuffer: capture,
+    sunlight: lightingFor(lightingMode),
   })
 
-  const center = vec3.fromValues(size[0] / 2, Math.max(1, size[1] / 2.5), size[2] / 2)
+  const boundsCenter = vec3.fromValues(
+    (bounds.min[0] + bounds.max[0]) / 2,
+    (bounds.min[1] + bounds.max[1]) / 2,
+    (bounds.min[2] + bounds.max[2]) / 2,
+  )
+  const initialFov = Number(getParam('fov', '45'))
+  renderer.setFOV(initialFov)
   let frameRequest = 0
-  const camera = new OrbitCamera(canvas, center, Math.max(18, Math.max(...size) * 1.9), requestRender)
+  const camera = new OrbitCamera(canvas, boundsCenter, 10, requestRender)
+  camera.yaw = Number(getParam('yaw', '47')) * DEG
+  camera.pitch = Number(getParam('pitch', '35')) * DEG
+  const target = getNumberList('target', 3)
+  if (target) camera.center = vec3.fromValues(...target)
+  const rect = canvas.getBoundingClientRect()
+  const aspect = rect.width / Math.max(1, rect.height)
+  camera.distance = Number(getParam('distance', '0')) ||
+    fitDistance(bounds, camera.center, camera.yaw, camera.pitch, initialFov, aspect) / Number(getParam('zoom', '1'))
 
   function render() {
     frameRequest = 0
@@ -237,7 +365,7 @@ async function main() {
 
   lightingToggle.addEventListener('click', () => {
     lightingMode = lightingMode === 'night' ? 'day' : 'night'
-    renderer.setSunlight(LIGHTING_PRESETS[lightingMode])
+    renderer.setSunlight(lightingFor(lightingMode))
     updateLightingButton(lightingToggle, lightingMode)
     setLightingUrl(lightingMode)
     requestRender()
@@ -252,9 +380,40 @@ async function main() {
     if (resize(renderer, canvas)) requestRender()
   })
   resizeObserver.observe(canvas)
+
+  // Programmatic API used by scripts/render.mjs for headless screenshots.
+  window.__mcbViewer = {
+    size,
+    bounds,
+    blockCount,
+    presets: VIEW_PRESETS,
+    setLighting(mode) {
+      lightingMode = mode === 'night' ? 'night' : 'day'
+      renderer.setSunlight(lightingFor(lightingMode))
+    },
+    // view: preset name or { yaw, pitch, fov, zoom, distance, target: [x,y,z] }
+    renderView(view, width, height) {
+      const spec = typeof view === 'string' ? { ...VIEW_PRESETS[view] } : { ...view }
+      if (!spec || spec.yaw === undefined) throw new Error(`Unknown view: ${JSON.stringify(view)}`)
+      canvas.style.width = `${width}px`
+      canvas.style.height = `${height}px`
+      renderer.setViewport(0, 0, width, height, 1)
+      const fov = spec.fov ?? 45
+      renderer.setFOV(fov)
+      const yaw = spec.yaw * DEG
+      const pitch = spec.pitch * DEG
+      const center = spec.target ? vec3.fromValues(...spec.target) : boundsCenter
+      const distance = spec.distance ??
+        fitDistance(bounds, center, yaw, pitch, fov, width / height) / (spec.zoom ?? 1)
+      renderer.lookAt(orbitPosition(center, yaw, pitch, distance), center)
+      renderer.drawStructure()
+      return canvas.toDataURL('image/png')
+    },
+  }
 }
 
 main().catch(error => {
   console.error(error)
+  window.__mcbViewerError = String(error?.stack ?? error)
   document.getElementById('loading').textContent = error.message
 })

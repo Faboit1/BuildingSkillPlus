@@ -1,0 +1,237 @@
+#!/usr/bin/env node
+
+// Fast invariant checks for the building kit. Run: npm test (or node scripts/dev/kit-selftest.mjs)
+// Each case builds a tiny scene in memory and asserts exact blocks/states; no rendering needed.
+
+import { createKit } from '../lib/kit/index.mjs'
+
+const kit = createKit()
+let failures = 0
+let passes = 0
+
+function check(name, condition, detail = '') {
+  if (condition) {
+    passes += 1
+  } else {
+    failures += 1
+    console.error(`FAIL ${name}${detail ? `: ${detail}` : ''}`)
+  }
+}
+
+const stateAt = (b, x, y, z) => {
+  const block = b.get(x, y, z)
+  return block ? kit.state(block) : 'air'
+}
+
+// --- parsing, defaults, validation -------------------------------------------------------
+{
+  const p = kit.parse('oak_stairs[facing=east,half=top]')
+  check('parse namespace', p.name === 'minecraft:oak_stairs')
+  check('parse props', p.props.facing === 'east' && p.props.half === 'top')
+  check('validate unknown id', kit.validate('minecraft:stone_brick').length === 1)
+  check('validate bad value', kit.validate('minecraft:oak_stairs[facing=up]').length === 1)
+  check('validate unknown prop', kit.validate('minecraft:stone[axis=y]').length === 1)
+  check('validate ok', kit.validate('minecraft:oak_log[axis=x]').length === 0)
+  check('exists chain', kit.exists('chain') && !kit.exists('iron_chain') && !kit.exists('pale_oak_planks'))
+}
+
+// --- rotation / mirroring ----------------------------------------------------------------
+{
+  const r = kit.rotate('oak_stairs[facing=north,half=bottom,shape=outer_left]', 1)
+  check('rotate facing', r.props.facing === 'east' && r.props.shape === 'outer_left')
+  const l = kit.rotate('oak_log[axis=x]', 1)
+  check('rotate axis', l.props.axis === 'z')
+  const f = kit.rotate('oak_fence[north=true,east=false,south=false,west=false]', 1)
+  check('rotate sides', f.props.east === 'true' && f.props.north === 'false')
+  const s = kit.rotate('oak_sign[rotation=2]', 2)
+  check('rotate sign', s.props.rotation === '10')
+  const m = kit.mirror('oak_stairs[facing=east,shape=inner_left]', 'x')
+  check('mirror facing+hand', m.props.facing === 'west' && m.props.shape === 'inner_right')
+  const d = kit.mirror('oak_door[facing=north,hinge=left]', 'x')
+  check('mirror hinge', d.props.hinge === 'right')
+}
+
+// --- materials ---------------------------------------------------------------------------
+{
+  check('material stone_bricks', kit.material('stone_bricks').stairs === 'minecraft:stone_brick_stairs')
+  check('material spruce', kit.material('spruce').trapdoor === 'minecraft:spruce_trapdoor')
+  check('material deepslate_tiles', kit.material('deepslate_tiles').slab === 'minecraft:deepslate_tile_slab')
+  check('material quartz', kit.material('quartz').stairs === 'minecraft:quartz_stairs')
+  check('helper stairs', kit.stairs('spruce', 'east', 'top') === 'minecraft:spruce_stairs[facing=east,half=top]')
+}
+
+// --- connections and fixups via finish() -------------------------------------------------
+{
+  const b = kit.builder([12, 6, 12])
+  // hip-style ring of stairs: corners must become outer shapes
+  b.box([2, 1, 2], [6, 1, 2], 'stone_brick_stairs[facing=south]')
+  b.box([2, 1, 6], [6, 1, 6], 'stone_brick_stairs[facing=north]')
+  b.box([2, 1, 3], [2, 1, 5], 'stone_brick_stairs[facing=east]')
+  b.box([6, 1, 3], [6, 1, 5], 'stone_brick_stairs[facing=west]')
+  b.set(2, 1, 2, 'stone_brick_stairs[facing=east]')
+  b.box([0, 0, 9], [4, 0, 9], 'cobblestone_wall')
+  b.set(8, 1, 8, 'oak_door[facing=south]')
+  b.set(10, 1, 8, 'tall_grass')
+  b.set(10, 3, 2, 'oak_leaves')
+  b.finish({ name: 'selftest' })
+  check('stair outer corner', b.get(2, 1, 2).props.shape.startsWith('outer'), stateAt(b, 2, 1, 2))
+  check('stair edge straight', b.get(4, 1, 2).props.shape === 'straight', stateAt(b, 4, 1, 2))
+  check('wall end post', b.get(0, 0, 9).props.up === 'true' && b.get(0, 0, 9).props.east === 'low', stateAt(b, 0, 0, 9))
+  check('wall middle no post', b.get(2, 0, 9).props.up === 'false', stateAt(b, 2, 0, 9))
+  check('door upper half', b.get(8, 2, 8)?.props.half === 'upper')
+  check('tall grass upper', b.get(10, 2, 8)?.props.half === 'upper')
+  check('leaves persistent', b.get(10, 3, 2).props.persistent === 'true')
+  check('defaults filled', b.get(4, 1, 2).props.waterlogged === 'false')
+}
+
+// --- roofs ------------------------------------------------------------------------------
+{
+  const b = kit.builder([20, 16, 20])
+  b.walls([4, 1, 4], [14, 4, 10], 'white_terracotta')
+  const res = b.roof({ x0: 4, z0: 4, x1: 14, z1: 10, y: 5, material: 'spruce', axis: 'x', gable: 'spruce_planks' })
+  // 1:1 gable on a 7-wide footprint with overhang 1 → 9 rows; ridge (odd) is a full block
+  check('gable eave stair', b.nameAt(9, 4, 3) === 'minecraft:spruce_stairs' && b.get(9, 4, 3).props.facing === 'south')
+  check('gable row over wall', b.get(9, 5, 4).props.facing === 'south')
+  check('gable ridge block', b.nameAt(9, 8, 7) === 'minecraft:spruce_planks', stateAt(b, 9, 8, 7))
+  check('gable underside stair', b.nameAt(9, 5, 5) === 'minecraft:spruce_stairs' && b.get(9, 5, 5).props.half === 'top' && b.get(9, 5, 5).props.facing === 'north', stateAt(b, 9, 5, 5))
+  check('gable fill', b.nameAt(4, 6, 7) === 'minecraft:spruce_planks', stateAt(b, 4, 6, 7))
+  check('gable topY', res.topY === 8)
+  const h = kit.builder([20, 16, 20])
+  h.roof({ x0: 4, z0: 4, x1: 12, z1: 12, y: 5, type: 'hip', material: 'stone_brick', overhang: 0 })
+  h.finish({ name: 'hip' })
+  check('hip corner outer', h.get(4, 5, 4).props.shape.startsWith('outer'), stateAt(h, 4, 5, 4))
+  check('hip apex', h.nameAt(8, 9, 8) === 'minecraft:stone_bricks', stateAt(h, 8, 9, 8))
+  const s = kit.builder([20, 16, 20])
+  s.roof({ x0: 4, z0: 4, x1: 12, z1: 10, y: 5, material: 'oak', pitch: 0.5, axis: 'x' })
+  check('slab roof eave', s.nameAt(8, 5, 3) === 'minecraft:oak_slab' && s.get(8, 5, 3).props.type === 'bottom', stateAt(s, 8, 5, 3))
+  check('slab roof inside full', s.nameAt(8, 5, 4) === 'minecraft:oak_planks', stateAt(s, 8, 5, 4))
+  const st = kit.builder([20, 20, 20])
+  st.roof({ x0: 4, z0: 4, x1: 12, z1: 10, y: 5, material: 'deepslate_tile', pitch: 2, axis: 'x' })
+  // steep rows overlap vertically: every column from the eave inward is face-connected
+  let gaps = 0
+  for (let z = 3; z <= 6; z += 1) {
+    const top = st.topY(8, z)
+    const next = st.topY(8, z + 1)
+    if (next - top > 2) gaps += 1
+    let y = top
+    while (y >= 0 && st.get(8, y, z)) y -= 1
+    if (st.get(8, y, z + 1) === null && st.get(8, y + 1, z + 1) === null && z < 6) gaps += 0
+  }
+  check('steep roof continuous', gaps === 0)
+}
+
+// --- shapes ------------------------------------------------------------------------------
+{
+  const b = kit.builder([20, 20, 20])
+  b.sphere([10, 10, 10], 4.5, 'stone')
+  check('sphere symmetric', b.has(5.5 + 0.5, 10, 10) === b.has(14, 10, 10))
+  check('sphere count', b.count() === 389 || b.count() > 300, String(b.count()))
+  const t = kit.builder([20, 20, 20])
+  t.tube([10, 0, 10], 4.5, 3, 'stone', { thickness: 1 })
+  let holes = 0
+  for (let a = 0; a < 64; a += 1) {
+    const ang = (a / 64) * Math.PI * 2
+    let hit = false
+    for (let r = 3; r <= 5; r += 0.25) if (t.has(Math.round(10 + Math.cos(ang) * r), 1, Math.round(10 + Math.sin(ang) * r))) hit = true
+    if (!hit) holes += 1
+  }
+  check('tube watertight', holes === 0, `${holes} rays escaped`)
+  const l = kit.builder([20, 20, 20])
+  l.line([1, 1, 1], [15, 9, 4], 'stone', { connect: 6 })
+  let disconnected = 0
+  for (const [x, y, z] of l.entries()) {
+    const n = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].filter(([dx, dy, dz]) => l.has(x + dx, y + dy, z + dz)).length
+    if (n === 0) disconnected += 1
+  }
+  check('6-connected line', disconnected === 0)
+}
+
+// --- roof finishing ---------------------------------------------------------------------
+{
+  // gable fill leaves no upside-down roof stair (see-through notch) on the gable wall line
+  const g = kit.builder([24, 16, 18])
+  g.roof({ x0: 4, z0: 4, x1: 16, z1: 12, y: 5, material: 'spruce', axis: 'x', gable: 'oak_planks' })
+  let notches = 0
+  for (const [x, y, z, blk] of g.entries()) if ((x === 4 || x === 16) && y >= 5 && blk.name === 'minecraft:spruce_stairs' && blk.props.half === 'top' && y < g.topY(x, z)) notches += 1
+  check('gable has no stair notches', notches === 0, `${notches}`)
+  // rake (gable overhang) rows get a down-slope soffit stair, the eave-most row does not
+  const rake = g.get(3, 6, 6)
+  check('rake soffit stair', rake?.name === 'minecraft:spruce_stairs' && rake.props.half === 'top' && rake.props.facing === 'north', stateAt(g, 3, 6, 6))
+  check('eave row bare', !g.get(3, 3, 3) || g.get(3, 3, 3).props.half !== 'top', stateAt(g, 3, 3, 3))
+  // half-step pitches never leave top slabs (half-block gaps) in the overhang
+  const a = kit.builder([24, 16, 20])
+  a.roof({ x0: 5, z0: 5, x1: 17, z1: 13, y: 5, type: 'hip', material: 'deepslate_tile', pitch: [0.5, 0.5, 1, 1, 2], overhang: 2 })
+  let topSlabs = 0
+  for (const [, , , blk] of a.entries()) if (blk.name.endsWith('_slab') && blk.props.type === 'top') topSlabs += 1
+  check('no top-slab eave gaps', topSlabs === 0, `${topSlabs}`)
+  // pitch 0 rows make a flat field (Mojang ring roofs)
+  const f = kit.builder([24, 16, 20])
+  f.roof({ x0: 5, z0: 5, x1: 15, z1: 13, y: 5, type: 'hip', material: 'acacia', pitch: [1, 1, 0] })
+  check('flat roof field', f.topY(10, 9) === f.topY(9, 9) && f.topY(10, 9) <= 6, `${f.topY(10, 9)}`)
+  // dormer cheeks never grow down into the rooms
+  const d = kit.builder([26, 18, 20])
+  d.walls([4, 1, 4], [20, 5, 14], 'white_terracotta')
+  d.roof({ x0: 4, z0: 4, x1: 20, z1: 14, y: 6, material: 'dark_oak', gable: 'spruce_planks' })
+  d.dormer([12, 6, 14], 'south', { height: 3, material: 'dark_oak' })
+  check('dormer keeps rooms clear', !d.get(13, 3, 12) && !d.get(11, 3, 12), stateAt(d, 13, 3, 12))
+}
+
+// --- arches, paths, timber, texture fallback, weather -------------------------------------------
+{
+  // a 5-wide pointed arch keeps a point: the top open row is a single centre cell, with stairs
+  const a = kit.builder([12, 12, 3])
+  a.box([0, 0, 1], [8, 10, 1], 'stone_bricks')
+  a.arch([2, 1, 1], [6, 1, 1], 'stone_bricks', { type: 'pointed' })
+  let apex = -1
+  for (let y = 1; y < 10; y += 1) if (!a.get(4, y, 1)) apex = y
+  const apexRow = [2, 3, 5, 6].filter(x => !a.get(x, apex, 1)).length
+  check('pointed arch has a point', apex >= 3 && apexRow === 0, `apex ${apex}, open beside ${apexRow}`)
+  check('arch shoulders are stairs', a.count('stone_brick_stairs') >= 2)
+  // b.path reaches the ground under an overhang
+  const p = kit.builder([16, 8, 9])
+  p.terrain({ height: () => 2 })
+  p.box([6, 4, 2], [9, 4, 6], 'oak_slab')
+  p.path([[0, 4], [15, 4]], { width: 3, paint: 'cobblestone', jitter: 0 })
+  check('path under overhang', p.nameAt(7, 2, 4) === 'minecraft:cobblestone' && p.groundY(7, 2) === 2)
+  // timberWall inset: frame on the outer plane, infill one block inside
+  const t = kit.builder([12, 8, 4])
+  t.timberWall([0, 0, 1], [10, 5, 1], { inset: 1, facing: 'north', posts: [0, 5, 10] })
+  check('timber inset', t.nameAt(2, 2, 1) === null && t.nameAt(2, 2, 2) === 'minecraft:white_terracotta' && t.nameAt(5, 2, 1) === 'minecraft:stripped_spruce_log')
+  // texture: a ramp step without walls borrows the nearest step's wall
+  const w = kit.builder([10, 4, 3])
+  w.box([0, 0, 1], [9, 0, 1], 'mud_brick_wall')
+  w.texture([0, 0, 0], [9, 3, 2], ['polished_andesite', 'stone_bricks'], { only: 'mud_brick_wall' })
+  check('texture shape fallback', w.count('mud_brick_wall') === 0 && w.count('stone_brick_wall') === 10)
+  // weather share is exact
+  const e = kit.builder([20, 20, 20])
+  e.box([0, 0, 0], [19, 19, 19], 'stone_bricks')
+  e.weather([0, 0, 0], [19, 19, 19], { share: 0.25 })
+  check('weather share exact', Math.abs((8000 - e.count('stone_bricks')) / 8000 - 0.25) < 0.005)
+  // discs include their centre; onion profiles have one bulge
+  const dsc = kit.builder([12, 12, 12])
+  dsc.disc([5, 5, 5], 1.8, 'stone')
+  check('disc has centre', dsc.count('stone') === 9 && dsc.nameAt(5, 5, 5) === 'minecraft:stone')
+  const on = kit.onionProfile(4, 12)
+  const radii = Array.from({ length: 12 }, (_, d) => on(d, d / 11))
+  const peaks = radii.filter((v, i) => i > 0 && i < 11 && v > radii[i - 1] && v >= radii[i + 1]).length
+  check('onion single bulge', peaks === 1 && radii[11] < 0.5, radii.map(v => v.toFixed(1)).join(' '))
+  // flared cones use stairs above the slab brim (no all-slab cone)
+  const c = kit.builder([20, 20, 20])
+  c.coneRoof([10, 5, 10], 4, { material: 'deepslate_tile', pitch: 2 })
+  check('flared cone has stairs', c.count('deepslate_tile_stairs') > c.count('deepslate_tile_slab'))
+}
+
+// --- texture ----------------------------------------------------------------------------
+{
+  const b = kit.builder([20, 12, 6], { seed: 2 })
+  b.box([0, 0, 2], [19, 9, 2], 'white_wool')
+  b.set(5, 10, 3, 'stone_brick_stairs[facing=south]')
+  b.texture([0, 0, 0], [19, 11, 5], ['polished_andesite', 'stone_bricks', 'cracked_stone_bricks', 'tuff_bricks', 'deepslate_bricks'], { only: 'white_wool' })
+  check('texture replaced all', b.count('white_wool') === 0)
+  check('texture keeps others', b.nameAt(5, 10, 3) === 'minecraft:stone_brick_stairs')
+  const bottom = b.nameAt(10, 0, 2)
+  check('texture darker base', ['minecraft:tuff_bricks', 'minecraft:deepslate_bricks', 'minecraft:cracked_stone_bricks'].includes(bottom), bottom)
+}
+
+console.log(`kit self-test: ${passes} passed, ${failures} failed`)
+if (failures > 0) process.exitCode = 1

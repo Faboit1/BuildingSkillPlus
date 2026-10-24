@@ -123,3 +123,8 @@ body {
     white-space: normal;
   }
 }
+
+body.capture .hud,
+body.capture .viewer-actions {
+  display: none;
+}
