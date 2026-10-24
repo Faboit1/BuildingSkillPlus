@@ -712,6 +712,90 @@ export function dormer(b, front, facing, { width = 3, height = 3, depth, materia
   return { depth: d }
 }
 
+// Straight stairway climbing from `from` (bottom step) toward `facing` for `rise` steps.
+//   b.stairway([x, y, z], 'north', 6, 'stone_brick', { width: 3, fill: true, sides: 'stone_brick_wall' })
+// Each step is one block forward and one up; `fill` closes the space underneath (down to `base`).
+export function stairway(b, from, facing, rise, matName = 'stone_brick', { width = 1, fill = true, base, sides, landing = 0 } = {}) {
+  const m = material(matName)
+  const fwd = DIR[facing]
+  const right = DIR[ccw(facing)]
+  const leftShift = -Math.floor((width - 1) / 2)
+  for (let i = 0; i < rise; i += 1) {
+    for (let w = 0; w < width; w += 1) {
+      const p = add(add(add(from, fwd, i), right, leftShift + w), UP, i)
+      b.set(...p, `${m.stairs}[facing=${facing},half=bottom]`)
+      if (fill) for (let y = p[1] - 1; y >= (base ?? from[1]); y -= 1) b.set(p[0], y, p[2], m.block, { keep: true })
+    }
+    if (sides) {
+      for (const s of [leftShift - 1, leftShift + width]) {
+        const p = add(add(add(from, fwd, i), right, s), UP, i)
+        b.set(...p, sides)
+        if (fill) for (let y = p[1] - 1; y >= (base ?? from[1]); y -= 1) b.set(p[0], y, p[2], m.block, { keep: true })
+      }
+    }
+  }
+  for (let k = 0; k < landing; k += 1) {
+    for (let w = 0; w < width; w += 1) {
+      const p = add(add(add(from, fwd, rise + k), right, leftShift + w), UP, rise - 1)
+      b.set(...p, m.block)
+    }
+  }
+  return b
+}
+
+// Bridge deck between two points (any direction), optionally arched, with railings and
+// end abutments. y follows a sine arch of height `arch` above the straight line.
+//   b.bridge([x0, y0, z0], [x1, y1, z1], { width: 3, deck: 'spruce_planks', edge: 'stone_bricks', arch: 3, railing: 'spruce_fence', posts: 'stone_brick_wall', postEvery: 4, lanterns: true })
+export function bridge(b, a, c, { width = 3, deck = 'minecraft:spruce_planks', edge, arch = 0, railing = 'minecraft:spruce_fence', posts, postEvery = 4, lanterns = false, beam } = {}) {
+  const dx = c[0] - a[0]
+  const dz = c[2] - a[2]
+  const len = Math.hypot(dx, dz)
+  const steps = Math.max(1, Math.ceil(len * 2))
+  const ux = dx / (len || 1)
+  const uz = dz / (len || 1)
+  const sx = -uz
+  const sz = ux
+  const half = (width - 1) / 2
+  const done = new Set()
+  let lastPost = -Infinity
+  let deckSlab = null
+  try {
+    deckSlab = material(parseBlock(deck).name).slab ?? null
+  } catch {
+    deckSlab = null
+  }
+  for (let i = 0; i <= steps; i += 1) {
+    const t = i / steps
+    const cx = a[0] + dx * t
+    const cz = a[2] + dz * t
+    const yf = a[1] + (c[1] - a[1]) * t + Math.sin(t * Math.PI) * arch
+    const y = Math.floor(yf)
+    const halfStep = deckSlab && yf - y >= 0.5
+    for (let w = -half - 1; w <= half + 1; w += 0.5) {
+      const x = Math.round(cx + sx * w)
+      const z = Math.round(cz + sz * w)
+      const key = `${x},${y},${z}`
+      if (done.has(key)) continue
+      done.add(key)
+      const outer = Math.abs(w) > half
+      if (!outer) {
+        b.set(x, y, z, edge && Math.abs(w) >= half - 0.25 ? edge : deck)
+        if (halfStep) b.set(x, y + 1, z, `${deckSlab}[type=bottom]`)
+        if (beam) b.set(x, y - 1, z, beam, { keep: true })
+      } else {
+        b.set(x, y, z, edge ?? deck)
+        if (halfStep) b.set(x, y + 1, z, edge ?? deck)
+        const along = t * len
+        const isPost = posts && along - lastPost >= postEvery - 0.01
+        b.set(x, y + 1 + (halfStep ? 1 : 0), z, isPost ? posts : railing)
+        if (isPost && lanterns && Math.abs(w) > half + 0.6) b.set(x, y + 2 + (halfStep ? 1 : 0), z, 'minecraft:lantern[hanging=false]')
+      }
+    }
+    if (posts && t * len - lastPost >= postEvery - 0.01) lastPost = t * len
+  }
+  return b
+}
+
 export const ARCH_METHODS = {
   roof,
   coneRoof,
@@ -727,4 +811,6 @@ export const ARCH_METHODS = {
   chimney,
   timberWall,
   dormer,
+  stairway,
+  bridge,
 }

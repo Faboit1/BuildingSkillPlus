@@ -147,6 +147,8 @@ slopes meet are resolved automatically.
 | `b.battlements([x0, z0], [x1, z1], y, paint, { period, height, cap })` | crenellated perimeter |
 | `b.spiralStairs(c, rInner, rOuter, y0, y1, material, { stepsPerTurn, core, clockwise })` | tower stairs |
 | `b.timberWall(a, c, { frame, infill, postEvery, beams, braces: true\|'all' })` | posts, beams, end-bay braces on a 1-thick plane |
+| `b.stairway(from, facing, rise, material, { width, fill, base, sides, landing })` | straight flight of stairs climbing toward `facing`, filled underneath, optional side walls |
+| `b.bridge(a, c, { width, deck, edge, arch, railing, posts, postEvery, lanterns, beam })` | deck between two points in any direction, sine arch of `arch` blocks, railings with posts and lanterns |
 | `b.lampPost(base, { height, post, foot, lantern, arm })` | `arm: 'east'` hangs the lantern |
 | `b.hangingLantern(anchor, length)` | chain + lantern below an anchor block |
 | `b.chimney(base, height, { paint, cap, smoke, size })` | campfire smoke inside |
