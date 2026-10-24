@@ -88,7 +88,8 @@ Search before guessing: `rg -n "keyword" references/`.
 
 ## Examples
 
-`assets/examples/` holds complete, commented showcase recipes built with the kit (medieval
+Start new recipes from `assets/templates/recipe-template.mjs` (staged: brief → site → massing →
+structure → material → detail → landscape → light). `assets/examples/` holds complete, commented showcase recipes built with the kit (medieval
 house, castle, gothic cathedral, Japanese shrine, wizard tower, coastal village, celestial forge).
 Read the one closest to your task before starting; reuse its structure, not its exact numbers.
 

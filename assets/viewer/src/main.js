@@ -35,6 +35,12 @@ const LIGHTING_PRESETS = {
       density: 0.00012,
       heightFalloff: 0.001,
     },
+    // Daylight: light sources barely tint their surroundings (they do not light up a sunny scene).
+    emissive: {
+      range: 8,
+      intensity: 0.35,
+      tint: [1.0, 0.9, 0.75],
+    },
   },
   night: {
     direction: vec3.fromValues(-0.32, 0.5, -0.42),

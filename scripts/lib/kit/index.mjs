@@ -4,6 +4,7 @@
 import * as blocks from './blocks.mjs'
 import { ARCH_METHODS, onionProfile } from './arch.mjs'
 import { Builder } from './builder.mjs'
+import * as colors from './colors.mjs'
 import * as materials from './materials.mjs'
 import { NATURE_METHODS, TREE_SPECIES } from './nature.mjs'
 import * as noise from './noise.mjs'
@@ -90,6 +91,14 @@ export function createKit() {
     pattern: paint.pattern,
     bands: paint.bands,
     AGED_VARIANTS: paint.AGED_VARIANTS,
+    // colours (measured from the vanilla 1.21.1 textures; see references/building/block-colors.md)
+    colors,
+    colorOf: colors.colorOf,
+    nearestBlock: colors.nearest,
+    ramp: colors.ramp,
+    sortByLightness: colors.sortByLightness,
+    contrast: colors.contrast,
+    paletteReport: colors.paletteReport,
     // noise & randomness
     noise,
     rng: noise.createRng,

@@ -1,4 +1,4 @@
 interface:
   display_name: "Minecraft Builder"
-  short_description: "Generate Minecraft NBT builds"
-  default_prompt: "Use minecraft-builder-skill to create a Minecraft build, export the .nbt file, and open a preview."
+  short_description: "Design, generate, render and export high-quality Minecraft builds"
+  default_prompt: "Use minecraft-builder-skill to design a high-quality Minecraft build with the building kit, render it from several angles to critique and refine it, then export the .nbt (and .schem if asked)."

@@ -91,8 +91,8 @@ All accept `opts.hollow` (watertight shell) and `opts.thickness` where it makes 
 | `b.disc(c, r, paint, { inner })` | horizontal disc / annulus |
 | `b.cone(base, r, h, paint)` | |
 | `b.prism([[x, z], ...], y0, y1, paint)` | extruded polygon footprint |
-| `b.line(a, c, paint, { radius })` | radius 0 = connected voxel line, > 0 = capsule |
-| `b.curve(points, paint, { radius })` | Catmull-Rom through points; `radius` may be `t => r` for tapering limbs, cables, arches, rivers |
+| `b.line(a, c, paint, { radius, connect })` | radius 0 = one-block line (`connect: 6` for a face-connected walk that reads solid; default 26 is fine for chains/fences); radius > 0 = capsule (≥ 0.87 stays watertight) |
+| `b.curve(points, paint, { radius })` | Catmull-Rom through points; `radius` may be `t => r` for tapering limbs, cables, arches, rivers. Tube radii are clamped to ≥ 0.87; radius < 0.6 draws a face-connected thin line |
 | `b.sdf(min, max, fn, paint)` | fill where `fn(x,y,z) <= 0`; combine `kit.sdf.*` |
 | `b.lathe(base, height, (dy, t) => r, paint)` | solid of revolution: domes, onion domes, vases, fountains |
 | `b.fillWhere(min, max, inside, paint)` | generic predicate rasterizer |
@@ -122,6 +122,8 @@ b.roof({
   eaveTrim: true,       // upside-down stairs / top slabs under the outermost row (thick eaves)
   ridgeCap: 'stone_brick_wall', // extra block on the ridge line
   thickness: 1,         // solid layers under the roof surface inside the walls
+  underside: 'stairs',  // 'stairs' puts an upside-down stair (same facing) under each 1:1 stair: clean 45° ceiling
+                        // inside, double-thick rake outside. 'block' uses full blocks.
   rises: 'north',       // shed only: direction the roof climbs toward
 })
 // → { topY, base, axis, cells }
@@ -164,6 +166,24 @@ slopes meet are resolved automatically.
 | `b.island([cx, topY, cz], r, { depth, top, soil, rock })` | floating island |
 | `b.weather(a, c, { amount, mossBias, scale })` | swaps blocks for cracked/mossy/oxidized variants in patches |
 
+### `b.texture(a, c, ramp, opts)` — gradient retexturing (the pro workflow)
+
+Block out with a placeholder, then texture it. `ramp` is ordered **light → dark** (material names
+or full-block ids). Each matching block gets a ramp step from: height (darker toward the base),
+exposed corners/edges/jambs, drip streaks under overhangs, focal points (brighter), clustered noise
+and a little jitter; then an anti-splatter pass keeps neighbours within `maxStep` steps. Shapes are
+preserved — a stair becomes a stair of the chosen material (falls back to keeping it if that
+material has no stair).
+
+```js
+b.texture([x0, y0, z0], [x1, y1, z1],
+  ['polished_andesite', 'stone_bricks', 'cracked_stone_bricks', 'tuff_bricks', 'deepslate_bricks'],
+  { only: 'white_wool', base: 0.3, edge: 0.18, drip: 0.09, focus: [[doorX, doorY, doorZ]], focusRadius: 6, scale: 6, noise: 0.22, seed: 1 })
+```
+
+Use ramps of one texture family (bricks → bricks) for walls; mixing very different textures
+(cobble next to bricks) reads as patchwork.
+
 ## Modules and stamping
 
 Author a detail once, stamp it anywhere, rotated and mirrored (block states rotate with it):
@@ -189,6 +209,17 @@ Helpers return state strings: `kit.stairs('spruce', 'east', 'top')`, `kit.slab('
 `kit.trapdoor('spruce', 'south', { open: true })`, `kit.log('oak', 'x')`, `kit.gate('spruce', 'north')`.
 `kit.variant('terracotta', 'stairs', 'granite')` tries fallbacks for missing shapes.
 
+## Colours
+
+Measured from the vanilla 1.21.1 textures (`scripts/lib/data/block-colors.json`, guide:
+`references/building/block-colors.md`, `references/building/palettes.md`).
+
+- `kit.colorOf(id)` → `{ side, top, avg, lab: [L, a, b], hue, sat, light, full, noise, ... }`
+- `kit.nearestBlock('#7c5c3a' | [L, a, b], { full, exclude, count })` → closest building block(s)
+- `kit.ramp(fromId, toId, steps)` → smoothest perceptual ladder of real blocks between two blocks
+- `kit.sortByLightness(ids)`, `kit.contrast(a, b)` → `{ dL, dE }`
+- `kit.paletteReport(ids)` → value spread, hue spread, too-similar pairs, busy textures, warnings
+
 ## Noise and randomness
 
 `kit.noise.hash01(x, y, z, seed)`, `kit.noise.perlin3`, `fbm2(x, z, { scale, octaves, seed })`,
@@ -209,9 +240,13 @@ In order it:
    Problems are printed (or thrown with `strict: true`).
 2. Fills every block's missing properties with vanilla defaults. The previewer renders a block
    with missing properties as nothing (e.g. bare `oak_log` or `grass_block`), so this matters.
-3. Computes vanilla neighbour states: stair corner shapes, wall sides/posts (low/tall/up),
+3. Completes partners: the upper half of doors and tall plants, the head of a bed, vine faces
+   from adjacent solid blocks.
+4. Computes vanilla neighbour states: stair corner shapes, wall sides/posts (low/tall/up),
    fence/pane/bars connections, fence gates in walls.
-4. Marks leaves `persistent=true` so they do not decay after placement.
-5. Builds the Lodestone `Structure` (`trim: true` shrinks it to the used bounds).
+5. Marks leaves `persistent=true` so they do not decay after placement.
+6. Builds the Lodestone `Structure` (`trim: true` shrinks it to the used bounds).
+
+`run-build.mjs` applies steps 2–5 to raw-API recipes too.
 
 `run-build.mjs` reports `builder.problems` and `builder.clipped` in its JSON summary.
