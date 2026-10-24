@@ -309,5 +309,65 @@ export default function build(api) {
     for (let z = TER.z0; z <= TER.z1; z++) { set(TER.x1, F1, z, RAIL); if (z > 35) set(TER.x0, F1, z, RAIL) }
   }
 
+
+  if (at('final')) {
+    // ============================================================== landscape (paths -> rocks/trees -> scatter -> props/lights)
+    const g = (x, z) => b.topY(x, z, blk => /grass_block|dirt|moss_block|podzol|coarse_dirt|stone|andesite|tuff|sand|gravel|cobblestone|deepslate/.test(blk.name))
+    // driveway: dark basalt with gravel shoulders, straight and calm (modern = no wobble)
+    for (let x = 0; x <= 27; x++) for (let z = 5; z <= 13; z++) {
+      const drive = x >= 12 ? z >= 5 && z <= 14 : z >= 7 && z <= 11
+      const shoulder = x < 12 && (z === 6 || z === 12)
+      if (drive) set(x, UP, z, 'smooth_basalt')
+      else if (shoulder) set(x, UP, z, 'gravel')
+    }
+    for (let x = 12; x <= 27; x++) set(x, UP, 14, 'smooth_basalt')
+    // entry walk: large pavers with grass joints, carport -> door under the L3 overhang
+    for (let x = 28; x <= 36; x++) for (const z of [12, 13]) if ((x - 28) % 3 !== 2) set(x, UP, z, 'smooth_stone')
+    for (const x of [33, 34]) for (const z of [14, 15]) set(x, UP, z, 'smooth_stone')
+    // stepping stones from the carport to the garden stair
+    for (let z = 17; z <= 27; z += 2) { set(14, UP, z, 'smooth_stone'); set(15, UP, z, 'smooth_stone') }
+
+    // rocks: half-buried clusters along the cliff foot and on the banks (one big + small ones)
+    const rock = kit.palette({ stone: 5, andesite: 3, tuff: 2, cobblestone: 1 }, { scale: 2, seed: 4 })
+    const rocks = [[14, 47, 2.6], [17, 48, 1.6], [50, 46, 2.4], [53, 47, 1.5], [60, 41, 2.8], [62, 37, 1.7], [60, 25, 2.2], [61, 13, 2.6], [63, 16, 1.5], [33, 48, 1.4], [42, 49, 1.8]]
+    for (const [x, z, r] of rocks) b.boulder([x, SEA - 0.5, z], [r * 1.3, r, r], rock, { seed: x * 7 + z, mossTop: 'moss_block' })
+    for (const [x, z, r] of [[54, 32, 1.6], [55, 12, 1.8], [8, 31, 1.4], [3, 30, 1.8]]) b.boulder([x, hAt(x, z), z], [r * 1.3, r * 0.8, r], rock, { seed: x + z, mossTop: 'moss_block' })
+
+    // trees: a birch grove on the upper lawn, stone-pine (acacia form, spruce foliage) on the
+    // ledges, a cherry as the one specimen tree, a small azalea in the roof garden
+    const T = (x, z, sp, o = {}) => b.tree([x, g(x, z) + 1, z], sp, o)
+    T(4, 18, 'birch', { seed: 1, height: 12 }); T(8, 23, 'birch', { seed: 2, height: 10 }); T(3, 25, 'birch', { seed: 4, height: 9 })
+    T(9, 16, 'azalea', { seed: 3 })
+    T(55, 6, 'cherry', { seed: 2, height: 8 })
+    T(6, 38, 'acacia', { seed: 5, height: 8, log: 'spruce_log', wood: 'spruce_wood', leaves: ['spruce_leaves', 'spruce_leaves', 'oak_leaves'] })
+    T(54, 35, 'acacia', { seed: 9, height: 7, log: 'spruce_log', wood: 'spruce_wood', leaves: ['spruce_leaves', 'spruce_leaves', 'oak_leaves'] })
+    b.tree([22, Y2 + 2, 25], 'azalea', { seed: 6, height: 6 })
+    for (const [x, z] of [[38, 14], [42, 14], [47, 14], [52, 14], [12, 3], [26, 3]]) b.bush([x, UP + 1, z], { radius: 1.3, leaves: ['azalea_leaves', 'flowering_azalea_leaves'], seed: x })
+    for (const [x, y, z] of [[20, Y2 + 2, 22], [25, Y2 + 2, 22], [20, Y2 + 2, 29]]) b.bush([x, y, z], { radius: 1.2, leaves: ['azalea_leaves', 'oak_leaves'], seed: z })
+
+    // ground cover: ornamental grasses with a few white/blue drifts; never on paving
+    b.scatter({ density: 0.22, clump: 6, seed: 2, paints: [[10, 'short_grass'], [3, 'tall_grass'], [3, 'fern'], [1, 'large_fern']] })
+    b.scatter({ x0: 0, z0: 14, x1: 12, z1: 28, density: 0.12, clump: 4, seed: 7, paints: [[2, 'white_tulip'], [1, 'oxeye_daisy'], [1, 'lily_of_the_valley']] })
+    b.scatter({ x0: 0, z0: 30, x1: 12, z1: 44, density: 0.1, clump: 4, seed: 8, paints: [[2, 'cornflower'], [1, 'allium']] })
+    b.scatter({ x0: 19, z0: 21, x1: 27, z1: 31, density: 0.35, clump: 3, seed: 9, paints: [[4, 'short_grass'], [2, 'fern'], [1, 'allium'], [1, 'white_tulip']] })
+
+    // ============================================================== exterior lights (last: nothing repaints them)
+    const bollard = (x, z) => { const y = g(x, z) + 1; set(x, y, z, 'polished_blackstone_wall'); set(x, y + 1, z, 'end_rod[facing=up]') }
+    for (const x of [2, 8]) { bollard(x, 6); bollard(x + 3, 12) }
+    for (const x of [29, 32, 35]) bollard(x, 11)
+    bollard(13, 18); bollard(16, 24)
+    for (const [x, z] of [[17, 9], [23, 9]]) set(x, Y3 - 1, z, 'end_rod[facing=down]')     // carport downlights
+    set(13, Y1 + 2, 32, LIGHT); set(13, Y1 + 4, 30, LIGHT)                              // stair wall lights (flush)
+    for (const [x, z] of [[5, 21], [55, 9]]) { set(x, g(x, z), z, LIGHT); set(x, g(x, z) + 1, z, 'fern') } // tree uplights under ferns
+  }
+
+  // tidy: remove isolated strays (tree tips, plant bits) so nothing floats
+  for (const [x, y, z] of [...b.entries()]) {
+    let alone = true
+    for (let dx = -1; dx <= 1 && alone; dx++) for (let dy = -1; dy <= 1 && alone; dy++) for (let dz = -1; dz <= 1 && alone; dz++)
+      if ((dx || dy || dz) && b.has(x + dx, y + dy, z + dz)) alone = false
+    if (alone && y > 0) b.remove(x, y, z)
+  }
+
   return b.finish({ name: 'modern-villa' })
 }
