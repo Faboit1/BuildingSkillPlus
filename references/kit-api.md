@@ -147,6 +147,7 @@ b.roof({
                         // stair: clean 45° ceiling inside; rake and inner overhang rows get the same soffit
                         // stair, the outermost eave row stays bare. 'block' uses full blocks inside.
   rises: 'north',       // shed only: direction the roof climbs toward
+  overwrite: true,      // false = only fill empty cells: lean-tos against a wall, roofs meeting existing walls
 })
 // → { topY, base, axis, cells }
 ```
@@ -185,11 +186,11 @@ correct geometry, but it reads oddly. Set the wing back by 1–2 blocks or make 
 | --- | --- |
 | `b.dormer([cx, y0, cz], facing, { width: 3, height: 3, depth?, material, wall, window: { width, height } })` | gable dormer on a sloped roof (build after the main roof); front wall bottom-centre on the slope 0–2 rows in from the wall line, `y0` = roof level there; depth auto-extends until the main roof covers its ridge; warns if it is too tall |
 | `b.coneRoof([cx, y, cz], radius, { material, pitch = 2, overhang = 1, flare = true, finial })` | round tower roofs; `flare` starts with shallow rows for a bell-shaped eave |
-| `b.window(pos, facing, { width, height, glass, frame, sill, lintel, shutters, flowerBox, recess, arch, mullion, material })` | `pos` = bottom-left opening cell seen from outside; `shutters: true` uses the material's trapdoor |
+| `b.window(pos, facing, { width, height, glass, frame, sill, lintel, shutters, flowerBox, recess, arch, mullion, material })` | `pos` = bottom-left opening cell seen from outside; `shutters: true` uses the material's trapdoor; `arch: true` gives 2-wide windows a pointed head |
 | `b.door(pos, facing, { material, width: 1\|2, hinge, frame, awning, steps })` | places both halves (and both doors) |
-| `b.arch(a, c, paint, { type: 'round'\|'pointed'\|'segmental'\|'flat', thickness, depth, fill, spandrel, top, rise })` | `a`/`c` = springer cells (same y, axis-aligned); opening is cleared with `fill` |
+| `b.arch(a, c, paint, { type: 'round'\|'pointed'\|'segmental'\|'flat', thickness, depth, fill, spandrel, top, rise })` | `a`/`c` = springer cells (same y, axis-aligned); opening is cleared with `fill` (`fill: null` draws only the arch ring, e.g. a relieving arch on a wall) |
 | `b.column(base, height, { shaft, plinth, capital, flare })` | `flare: 'quartz'` adds stair base/capital |
-| `b.battlements([x0, z0], [x1, z1], y, paint, { period, height, cap })` | crenellated perimeter |
+| `b.battlements([x0, z0], [x1, z1], y, paint, { period, height, cap })` | crenellated rectangle; for walls along any polygon (round towers, corbelled parapets, walkways, gatehouses) use `kit.plan.curtainWall` |
 | `b.spiralStairs(c, rInner, rOuter, y0, y1, material, { stepsPerTurn, core, clockwise })` | tower stairs |
 | `b.timberWall(a, c, { frame, infill, postEvery, beams, braces: true\|'all' })` | posts, beams, end-bay braces on a 1-thick plane |
 | `b.stairway(from, facing, rise, material, { width, fill, base, sides, landing })` | straight flight of stairs climbing toward `facing`, filled underneath, optional side walls |
@@ -215,7 +216,7 @@ correct geometry, but it reads oddly. Set the wing back by 1–2 blocks or make 
 | `b.pond([cx, level, cz], r, { depth, rim, bed })` | |
 | `b.overgrow(a, c, { amount, maxLength, moss })` | vines on exposed walls + moss carpet |
 | `b.island([cx, topY, cz], r, { depth, top, soil, rock })` | floating island |
-| `b.weather(a, c, { share, mossBias, scale })` | swaps blocks for cracked/mossy/oxidized variants in patches; `share` is the exact fraction aged (0.1–0.3 typical). The older `amount` is a raw threshold (0.22 ≈ 10%, 0.38 ≈ 30%, 0.62 ≈ 70%) |
+| `b.weather(a, c, { share, mossBias, scale, variants })` | swaps blocks for cracked/mossy/oxidized variants in organic patches; `share` is the exact fraction aged (0.1–0.3 typical), moss and cracks form their own clumps (`mossBias` = moss share). `variants: { 'minecraft:deepslate_tiles': ['minecraft:cracked_deepslate_tiles', 'minecraft:cobbled_deepslate'] }` turns it into a general patchy material swap (mottled roofs, worn floors). The older `amount` is a raw threshold on blocky noise (0.22 ≈ 10%, 0.38 ≈ 30%) |
 
 ### `b.texture(a, c, ramp, opts)` — gradient retexturing (the pro workflow)
 

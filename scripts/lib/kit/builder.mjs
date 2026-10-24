@@ -530,25 +530,36 @@ export class Builder {
 
   // Swap a share of blocks for aged variants (cracked/mossy/oxidized) using coherent noise,
   // so wear appears in patches. amount ≈ share of eligible blocks replaced.
-  // `share` = fraction of eligible blocks to age (0..1, exact). `amount` is the older raw noise
-  // threshold kept for existing recipes (0.22 ≈ 10%, 0.38 ≈ 30%, 0.5 ≈ 50%, 0.62 ≈ 70%).
+  // `share` = fraction of eligible blocks to age (0..1, exact), in organic patches (coherent
+  // noise, ranked) with moss and cracks in their own clumps. `amount` is the older raw threshold
+  // on blocky noise, kept for existing recipes (0.22 ≈ 10%, 0.38 ≈ 30%, 0.5 ≈ 50%, 0.62 ≈ 70%).
   weather(a, b, { amount = 0.25, share, mossBias = 0.5, scale = 4, seed = 0, variants = AGED_VARIANTS } = {}) {
-    if (share !== undefined) {
-      // invert the CDF of 0.6·U + 0.4·U (the noise mix below)
-      const p = Math.min(1, Math.max(0, share))
-      amount = p <= 1 / 3 ? Math.sqrt(0.48 * p) : p <= 2 / 3 ? (1.2 * p + 0.4) / 2 : 1 - Math.sqrt(0.48 * (1 - p))
-    }
     const [min, max] = minMax(a, b)
+    const eligible = []
     for (const [x, y, z, block] of this.entries()) {
       if (x < min[0] || y < min[1] || z < min[2] || x > max[0] || y > max[1] || z > max[2]) continue
+      if (variants[block.name]) eligible.push([x, y, z, block])
+    }
+    const age = ([x, y, z, block], useMoss) => {
       const options = variants[block.name]
-      if (!options) continue
+      const target = (useMoss ? options[1] : options[0]) ?? options[0] ?? options[1]
+      if (target) this.put(x, y, z, { name: target, props: block.props })
+    }
+    if (share !== undefined) {
+      const s = this.seed + seed
+      const ranked = eligible.map(e => [coherent01(e[0], e[1], e[2], { scale: scale * 1.5, grain: 0.2, seed: s }), e]).sort((p, q) => p[0] - q[0])
+      const count = Math.round(Math.min(1, Math.max(0, share)) * ranked.length)
+      for (let i = 0; i < count; i += 1) {
+        const [x, y, z] = ranked[i][1]
+        age(ranked[i][1], coherent01(x, y, z, { scale: scale * 2, grain: 0.1, seed: s + 9 }) < mossBias)
+      }
+      return this
+    }
+    for (const e of eligible) {
+      const [x, y, z] = e
       const n = hash01(Math.floor(x / scale), Math.floor(y / scale), Math.floor(z / scale), seed + this.seed) * 0.6 + hash01(x, y, z, seed + 5) * 0.4
       if (n >= amount) continue
-      const useMoss = hash01(x, y, z, seed + 9) < mossBias
-      const target = (useMoss ? options[1] : options[0]) ?? options[0] ?? options[1]
-      if (!target) continue
-      this.put(x, y, z, { name: target, props: block.props })
+      age(e, hash01(x, y, z, seed + 9) < mossBias)
     }
     return this
   }
