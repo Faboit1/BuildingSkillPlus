@@ -95,9 +95,27 @@ Search before guessing: `rg -n "keyword" references/`.
 ## Examples
 
 Start new recipes from `assets/templates/recipe-template.mjs` (staged: brief → site → massing →
-structure → material → detail → landscape → light). `assets/examples/` holds complete, commented showcase recipes built with the kit (medieval
-house, castle, gothic cathedral, Japanese shrine, wizard tower, coastal village, celestial forge).
-Read the one closest to your task before starting; reuse its structure, not its exact numbers.
+structure → material → detail → landscape → light). `assets/examples/` holds complete showcase
+recipes, each commented as teaching material (design brief, palette roles with L*, proportions, why
+each technique is used). Read the one closest to your task first; reuse its structure, not its
+exact numbers.
+
+| Example | Shows |
+| --- | --- |
+| `medieval-house.mjs` | Wealden hall + jettied cross-wing, clay-tile roofs, porch, bay window, furnished rooms, cottage garden |
+| `tavern.mjs` | coaching inn whose interior is the star: taproom, kitchen, guest rooms; cutaway renders |
+| `castle.mjs` | moated hilltop castle: curtain walls, varied tower tops, gatehouse, furnished keep, courtyard |
+| `gothic-cathedral.mjs` | Latin-cross cathedral: flying-buttress modules, rose windows, spires, groin vaults, graveyard |
+| `wizard-tower.mjs` | leaning fantasy tower on an eroded crag, witch-hat roof, spiral stairs, night magic |
+| `japanese-shrine.mjs` | torii approach, irimoya hall, five-storey pagoda, koi pond, bamboo and cherry garden |
+| `nordic-longhouse.mjs` | Viking longhouse with turf roof on a fjord, longship, pine forest |
+| `desert-palace.mjs` | Moorish palace: onion dome, iwan, minarets, arcaded court, oasis, market |
+| `coastal-village.mjs` | Cycladic cliff village: generated houses, blue-domed chapel, harbour, windmill |
+| `modern-villa.mjs` | cantilevered cliff villa, infinity pool, glazing with furnished interiors |
+| `elven-treehouse.mjs` | colossal buttressed tree with platforms, pavilions, bridges, glowing night |
+| `pirate-cove.mjs` | sculpted cove with a three-masted galleon (`b.hull`), stilted shanty town, docks |
+| `walled-village.mjs` | settlement planning with `kit.plan`: roads, lots, curtain wall, plaza, skyline |
+| `celestial-forge.mjs` | the original raw-API example (no kit) |
 
 ## Facts that prevent most mistakes
 

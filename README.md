@@ -12,31 +12,42 @@ palettes, roofs, styles, landscaping, interiors, lighting and composition.
 
 ## What's inside
 
+- **Builder's handbook** (`references/building/`, about 15k lines): 25 laws and a staged workflow,
+  then chapters on principles, components (every roof type, windows, doors, arches, towers...),
+  20 architectural styles, palettes and value structure, detailing with 32 tested micro-modules,
+  nature (trees, forests, terrain, water), interiors and lighting, composition (villages, castles,
+  megabuilds), sculpting (statues, creatures, ships), procedural generation, Mojang's own building
+  language, and a self-review rubric. Two chapters are measured rather than written:
+  - `benchmarks.md`: per-style norms from 1,212 human-made builds (palette breadth, partial-block
+    mix, upside-down stairs, lighting density, contrast...).
+  - `community-lessons.md`: 71 skilled community builds analysed block by block against Mojang's
+    village houses.
 - **Building kit** (`api.builder`, `api.kit`; reference in `references/kit-api.md`):
-  - Painting with clumped palettes, gradients and `b.texture` (gradient retexturing in the
-    WesterosCraft style).
-  - Shapes: spheres, tubes, curves, SDFs and lathe.
-  - Roofs driven by a pitch profile: gable, hip, pyramid, mansard, gambrel, shed, curved East-Asian
-    and cone.
-  - Architecture pieces: windows, doors, arches, columns, battlements, spiral stairs, timber
-    framing, lamps and chimneys.
-  - Nature: trees for 14 species, terrain, paths, ponds, overgrowth and floating islands.
-  - Modules you can stamp with rotation and mirroring.
-- **Exports match the game.**
-  - Every block state is checked against Minecraft's own 1.21.1 block report.
-  - Missing properties are filled with vanilla defaults, and paired blocks are completed (both
-    halves of doors and tall plants, both parts of beds).
-  - Stair corners, wall posts, and fence and pane connections are computed the way the game does
-    when the structure is placed.
+  - Painting with clumped palettes, ordered gradients and `b.texture` (WesterosCraft-style
+    gradient retexturing), organic `b.weather` and measured block colours (`kit.colors`).
+  - Shapes: spheres, tubes, splines, SDFs (smooth union, displacement), lathe.
+  - Roofs from pitch profiles (gable, hip, pyramid, mansard, gambrel, shed, curved, flat rings),
+    `b.compoundRoof` for L/T/U/courtyard plans, cones, domes, onion domes and dormers, finished
+    the way Mojang finishes them (soffits, rakes, solid gables).
+  - Architecture: windows, doors, supersampled arches, columns, battlements, spiral stairs,
+    stairways, bridges, timber framing, chimneys, lamps.
+  - Nature: 14 tree presets, space-colonization and Forester trees, whole forests, terrain,
+    paths, ponds, boulders, overgrowth, floating islands.
+  - Sculpting: tapered spline tubes, surface shading, erosion, ship hulls, figures, crystals,
+    mushrooms, clouds, rock arches.
+  - Settlements: terrain-aware roads, lots, curtain walls, plazas and a skyline report.
+  - Modules stamped with rotation/mirroring, and `b.importStructure` for existing schematics.
+- **Exports match the game.** Every block state is checked against Minecraft's own 1.21.1 block
+  report; missing properties get vanilla defaults; doors, beds and tall plants get their other half;
+  stair corners, wall posts, and fence and pane connections are computed the way the game does.
 - **Headless renders** (`scripts/render.mjs`): multi-angle PNGs and contact sheets, close-ups,
-  cutaways and night lighting. Daylight is colour-neutral, so block colours read true.
-- **Inspector** (`scripts/inspect.mjs`): palette and category stats, ASCII slices, and lint
-  checks for flat walls, floating blocks, bad states and dark spots.
-- **Converter** (`scripts/convert.mjs`): `.nbt` ⇄ `.schem` ⇄ `.litematic`, plus import of legacy
-  `.schematic`, so community builds can be studied and remixed.
-- **Data:** material families, measured block colours with gradient ladders, and the official
-  state table.
-- **Examples** (`assets/examples/`): fully commented showcase recipes in several styles.
+  cutaways and night lighting with colour-neutral daylight.
+- **Inspector** (`scripts/inspect.mjs`): palette stats, ASCII slices, lint checks, and a 0–100
+  scorecard against the human-build norms with a fix for every out-of-band metric.
+- **Converter** (`scripts/convert.mjs`): `.nbt` ⇄ `.schem` ⇄ `.litematic`, plus legacy `.schematic`.
+- **Examples** (`assets/examples/`): thirteen commented showcase recipes, from a Tudor house and
+  a furnished tavern to a gothic cathedral, Japanese shrine, desert palace, modern villa, elven
+  treehouse and pirate cove.
 
 ## Requirements
 
