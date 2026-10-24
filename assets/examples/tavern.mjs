@@ -285,25 +285,23 @@ export default function build(api) {
     const isGrass = (x, z) => b.nameAt(x, top(x, z), z) === 'minecraft:grass_block' && !b.has(x, top(x, z) + 1, z)
     const pave = (x, z, paint) => { if (isGrass(x, z) || /dirt|gravel|cobble/.test(b.nameAt(x, top(x, z), z) ?? '')) b.set(x, top(x, z), z, paint) }
     // the crossroads: two cart roads, slightly wandering, worn to gravel and cobble in the ruts
-    const road = kit.palette({ dirt_path: 6, coarse_dirt: 2, gravel: 2, cobblestone: 1 }, { scale: 2, seed: 31 })
+    const road = kit.palette({ dirt_path: 8, coarse_dirt: 2, gravel: 1 }, { scale: 4, seed: 31 })
     b.path([[3, -1], [2.6, 12], [3.4, 26], [3, 40], [2.6, 46]], { width: 5, paint: road, jitter: 0.5, seed: 1 })
     b.path([[-1, 40], [12, 39.6], [26, 40.4], [40, 40], [52, 39.6]], { width: 5, paint: road, jitter: 0.5, seed: 2 })
     // cobbled forecourt between the inn and the road; flags near the door, cobble further out
-    const court = kit.gradient([
-      kit.palette({ stone_bricks: 3, polished_andesite: 2, andesite: 1 }, { scale: 1.5, seed: 4 }),
-      kit.palette({ cobblestone: 4, andesite: 2, gravel: 1, stone_bricks: 1 }, { scale: 2, seed: 5 }),
-      kit.palette({ cobblestone: 2, gravel: 2, coarse_dirt: 2, dirt_path: 1 }, { scale: 2, seed: 6 }),
-    ], { axis: 'z', from: 32, to: 38, dither: 0.7 })
-    for (let x = 7; x <= 41; x += 1) for (let z = 31; z <= 38; z += 1) {
-      const edge = Math.abs(x - 24) > 15 + 2 * kit.noise.fbm2(x, z, { scale: 4, seed: 9 })
-      if (!edge) pave(x, z, court)
+    const cobbles = kit.palette({ cobblestone: 7, andesite: 2, gravel: 1 }, { scale: 3, seed: 5 })
+    const flags = kit.palette({ stone_bricks: 5, polished_andesite: 2, cracked_stone_bricks: 1 }, { scale: 2, seed: 4 })
+    for (let x = 8; x <= 36; x += 1) for (let z = 31; z <= 38; z += 1) {
+      const ragged = Math.abs(x - 22) > 13 + 2.5 * kit.noise.fbm2(x, z, { scale: 4, seed: 9 }) || z > 36 + kit.noise.hash01(x, 0, z, 9) * 2
+      if (ragged) continue
+      pave(x, z, x >= 18 && x <= 24 && z <= 37 ? flags : cobbles)            // flagged walk to the porch
     }
-    // stable yard: hard-standing of cobble and gravel, a dirt track in from the road
-    const yard = kit.palette({ gravel: 3, coarse_dirt: 3, cobblestone: 2, dirt_path: 2 }, { scale: 2.5, seed: 8 })
-    for (let x = 36; x <= 51; x += 1) for (let z = 10; z <= 38; z += 1) {
-      const d = Math.min(x - 36, 51 - x, z - 10, 38 - z)
-      if (d < 2 && kit.noise.hash01(x, 0, z, 3) < 0.5) continue
-      if (!inR(STABLE, x, z)) pave(x, z, yard)
+    // stable yard: an oval of hard-standing in front of the stable and a cart track to the road
+    const yard = kit.palette({ coarse_dirt: 6, gravel: 3, cobblestone: 1 }, { scale: 3.5, seed: 8 })
+    for (let x = 36; x <= 51; x += 1) for (let z = 12; z <= 38; z += 1) {
+      const oval = ((x - 45) / 6.5) ** 2 + ((z - 23) / 11) ** 2 + 0.25 * kit.noise.fbm2(x, z, { scale: 3, seed: 7 })
+      const track = Math.abs(x - 44.5 - 0.6 * Math.sin(z / 3)) < 2 && z > 30
+      if ((oval < 1 || track) && !inR(STABLE, x, z)) pave(x, z, yard)
     }
     // transition ring at the wall base: a 1-wide strip of gravel and coarse dirt
     for (let x = 6; x <= 34; x += 1) for (let z = 8; z <= 20; z += 1) {
@@ -344,15 +342,14 @@ export default function build(api) {
     for (const x of [7, 8]) { b.set(x, top(x, 15) + 1, 15, 'spruce_slab[type=top]'); b.set(x, top(x, 15) + 2, 15, 'beehive[facing=east,honey_level=3]') }
     b.set(21, top(21, 3) + 1, 3, 'composter[level=6]')
     b.set(23, top(23, 14) + 1, 14, 'barrel[facing=up]')
-    b.tree([19, top(19, 15) + 1, 15], 'oak', { height: 5, seed: 8, trunk: 0.6, leaves: ['oak_leaves', 'flowering_azalea_leaves', 'azalea_leaves'] })
+    b.tree([20, top(20, 15) + 1, 15], 'oak', { height: 4, seed: 8, trunk: 0.5, leaves: ['oak_leaves', 'flowering_azalea_leaves', 'azalea_leaves'] })
     // woodpile against the chimney, sheltered by its weathering
     for (let z = 22; z <= 26; z += 1) for (let y = top(7, z) + 1; y <= top(7, z) + (z === 22 || z === 26 ? 1 : 2); y += 1) b.set(7, y, z, (y + z) % 3 ? 'oak_log[axis=x]' : 'spruce_log[axis=x]')
 
     // trees in three sizes, kept off the street front so the inn stays the focus
-    b.tree([45, top(45, 5) + 1, 5], 'big_oak', { seed: 3, height: 13 })
-    b.tree([16, top(16, 0) + 1, 0], 'oak', { seed: 5, height: 9 })
-    b.tree([49, top(49, 31) + 1, 31], 'birch', { seed: 2, height: 9 })
-    for (const [x, z, r] of [[35, 8, 1.7], [6, 19, 1.6], [37, 33, 1.5], [10, 36, 1.4], [50, 15, 1.8], [33, 4, 1.6]]) b.bush([x, top(x, z) + 1, z], { radius: r, seed: x * 3 + z })
+    b.tree([44, top(44, 6) + 1, 6], 'oak', { seed: 3, height: 11, roots: 2 })
+    b.tree([3, top(3, 4) + 1, 4], 'birch', { seed: 2, height: 8 })
+    for (const [x, z, r] of [[35, 8, 1.7], [6, 19, 1.4], [36, 33, 1.2], [50, 34, 1.6], [50, 15, 1.6], [33, 4, 1.5]]) b.bush([x, top(x, z) + 1, z], { radius: r, seed: x * 3 + z })
     // grass and flowers last among the landscape: clumped, thin near paths
     b.scatter({ density: 0.28, seed: 4, paints: [[12, 'short_grass'], [4, 'tall_grass'], [2, 'fern'], [1, 'dandelion'], [1, 'poppy'], [1, 'oxeye_daisy'], [1, 'cornflower']] })
   }

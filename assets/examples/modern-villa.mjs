@@ -57,10 +57,10 @@ export default function build(api) {
   const HM = Array.from({ length: W }, (_, x) => Array.from({ length: D }, (_, z) => Math.round(raw(x, z))))
   const hAt = (x, z) => HM[Math.max(0, Math.min(W - 1, x))][Math.max(0, Math.min(D - 1, z))]
   const slope = (x, z) => Math.max(...[[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dz]) => Math.abs(hAt(x + dx, z + dz) - hAt(x, z))))
-  const ROCK = ['tuff', 'andesite', 'tuff', 'cobbled_deepslate', 'stone', 'tuff', 'deepslate', 'andesite', 'tuff', 'stone']  // a darker volcanic coast: the white villa pops against it
+  const ROCK = ['tuff', 'tuff', 'andesite', 'tuff', 'deepslate', 'tuff', 'stone', 'tuff', 'deepslate']  // a darker volcanic coast: the white villa pops against it
   const strata = (x, y, z) => {
     if (y <= SEA + 1 && hash(x, y, z, 3) < 0.6) return hash(x, y, z, 4) < 0.5 ? 'deepslate' : 'tuff'
-    const band = Math.floor((y + 2.2 * n2(x, z, 8, 7, 2)) / 2)
+    const band = Math.floor((y + 3 * n2(x, z, 10, 7, 2)) / 2.5)
     return ROCK[((band % ROCK.length) + ROCK.length) % ROCK.length]
   }
   const grassMix = kit.palette({ grass_block: 30, coarse_dirt: 2, podzol: 1 }, { scale: 5, seed: 3 })
@@ -182,17 +182,24 @@ export default function build(api) {
 
   // cliff stair from the pool deck down to the cove: 9 steps along the rock face, cut into the
   // cliff (rock cleared above the treads), dark parapet on the sea side, then a timber jetty
-  b.stairway([3, SEA + 2, 41], 'east', 9, 'polished_deepslate', { width: 2, base: 1 })
+  b.stairway([3, SEA + 2, 41], 'east', 9, 'polished_deepslate', { width: 2, fill: false })
   for (let i = 0; i < 9; i++) {
     const x = 3 + i, y = SEA + 2 + i
-    for (const z of [40, 41]) for (let yy = y + 1; yy <= Y1 + 3; yy++) if (!inR(TER, x, z)) b.remove(x, yy, z)
-    for (let yy = 1; yy <= y + 1; yy++) set(x, yy, 42, 'polished_deepslate')        // parapet, one above the tread
+    for (const z of [40, 41]) {
+      for (let yy = y + 1; yy <= Y1 + 3; yy++) if (!inR(TER, x, z)) b.remove(x, yy, z)
+      for (let yy = 1; yy < y; yy++) set(x, yy, z, strata(x, yy, z))            // treads sit on the rock
+    }
+    for (let yy = 1; yy <= y; yy++) set(x, yy, 42, strata(x, yy, 42))
+    set(x, y + 1, 42, 'polished_blackstone_wall')                                 // thin stepped rail
   }
   for (let x = 0; x <= 2; x++) for (const z of [40, 41]) for (let y = SEA + 2; y <= Y1; y++) b.remove(x, y, z)
-  for (let z = 43; z <= 54; z++) for (const x of [3, 4]) {
-    set(x, SEA + 1, z, 'stripped_spruce_wood')
-    if (z % 3 === 0 || z === 54) for (let y = 0; y <= SEA; y++) if (!b.has(x, y, z) || b.nameAt(x, y, z) === 'minecraft:water') set(x, y, z, 'stripped_spruce_log[axis=y]')
+  // jetty: plank deck between two log stringers, posts every 3, mooring posts at the end
+  for (let z = 43; z <= 55; z++) {
+    set(2, SEA + 1, z, 'stripped_spruce_log[axis=z]'); set(5, SEA + 1, z, 'stripped_spruce_log[axis=z]')
+    set(3, SEA + 1, z, 'spruce_planks'); set(4, SEA + 1, z, 'spruce_planks')
+    if (z % 3 === 1) for (const x of [2, 5]) for (let y = 0; y <= SEA; y++) set(x, y, z, 'stripped_spruce_log[axis=y]')
   }
+  for (const x of [2, 5]) { set(x, SEA + 2, 55, 'stripped_spruce_log[axis=y]'); set(x, SEA + 3, 55, 'spruce_slab[type=bottom]') }
 
   if (at('detail')) {
     // ============================================================== roofs
@@ -260,6 +267,13 @@ export default function build(api) {
     // lounge chairs at the glass corner
     set(47, F1, 31, 'deepslate_tile_stairs[facing=north]'); set(45, F1, 31, 'deepslate_tile_stairs[facing=north]')
     set(46, F1, 31, 'spruce_slab[type=bottom]')
+    // shade lamps (fence stem + froglight head wrapped in open trapdoors): visible warm points at night
+    const lamp = (x, y, z, h = 1) => {
+      for (let i = 0; i < h; i++) set(x, y + i, z, 'dark_oak_fence')
+      set(x, y + h, z, LIGHT)
+      for (const [dx, dz, f] of [[1, 0, 'east'], [-1, 0, 'west'], [0, 1, 'south'], [0, -1, 'north']]) if (!b.has(x + dx, y + h, z + dz)) set(x + dx, y + h, z + dz, `birch_trapdoor[facing=${f},open=true,half=bottom]`)
+    }
+    lamp(48, F1, 27); lamp(43, F1, 31); lamp(20, F1, 31)
     // ceiling lights: in the slab under the terrace deck (hidden from above by the boards)
     for (let x = 21; x <= 49; x += 4) set(x, Y2, 30, LIGHT)
     for (let x = 22; x <= 50; x += 6) set(x, Y2, L1.z1 + 1, LIGHT)              // soffit downlights over the terrace
@@ -360,8 +374,9 @@ export default function build(api) {
       }
     }
     // sea rocks: bare (salt spray, no moss), only at the cliff foot where they break the waterline
-    for (const [x, z, r] of [[15, 46, 2.4], [18, 47, 1.4], [51, 45, 2.2], [59, 40, 2.6], [61, 36, 1.5], [59, 24, 2], [60, 12, 2.4], [62, 15, 1.3]])
-      b.boulder([x, SEA - 1, z], [r * 1.3, r, r], rock, { seed: x * 7 + z })
+    const seaRock = kit.palette({ tuff: 4, deepslate: 2, andesite: 1 }, { scale: 2, seed: 6 })
+    for (const [x, z, r] of [[16, 46, 2.2], [19, 47, 1.3], [51, 45, 2.2], [59, 40, 2.6], [61, 36, 1.5], [59, 24, 2], [60, 12, 2.4], [62, 15, 1.3]])
+      b.boulder([x, SEA - 1, z], [r * 1.3, r, r], seaRock, { seed: x * 7 + z })
     for (const [x, z, r] of [[54, 32, 1.6], [55, 12, 1.8], [8, 31, 1.4], [3, 30, 1.8]]) boulder([x, hAt(x, z), z], [r * 1.3, r * 0.8, r], x + z)
 
     // trees: a birch grove on the upper lawn, stone-pine (acacia form, spruce foliage) on the
@@ -370,7 +385,7 @@ export default function build(api) {
     T(6, 18, 'birch', { seed: 1, height: 12 }); T(9, 23, 'birch', { seed: 2, height: 10 }); T(5, 26, 'birch', { seed: 4, height: 9 })
     T(10, 17, 'azalea', { seed: 3 })
     T(56, 9, 'cherry', { seed: 2, height: 8 })
-    T(8, 37, 'acacia', { seed: 5, height: 8, log: 'spruce_log', wood: 'spruce_wood', leaves: ['spruce_leaves', 'spruce_leaves', 'oak_leaves'] })
+    T(7, 36, 'azalea', { seed: 5, height: 7 })
     b.tree([22, Y2 + 2, 25], 'azalea', { seed: 6, height: 6 })
     for (const [x, z] of [[38, 14], [42, 14], [47, 14], [52, 14], [12, 3], [26, 3]]) b.bush([x, UP + 1, z], { radius: 1.3, leaves: ['azalea_leaves', 'flowering_azalea_leaves'], seed: x })
     for (const [x, y, z] of [[20, Y2 + 2, 22], [25, Y2 + 2, 22], [20, Y2 + 2, 29]]) b.bush([x, y, z], { radius: 1.2, leaves: ['azalea_leaves', 'oak_leaves'], seed: z })
