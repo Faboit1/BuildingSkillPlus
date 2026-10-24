@@ -48,7 +48,7 @@ b.walls([8, 1, 10], [22, 8, 20], WALL)
 b.box([22, 0, 13], [30, 0, 19], BASE); b.walls([22, 1, 13], [30, 4, 19], WALL)
 b.walls([4, 0, 17], [8, 15, 21], TOWER)
 b.roof({ x0: 8, z0: 10, x1: 22, z1: 20, y: 9, axis: 'x', material: 'deepslate_tile', gable: WALL, eaveTrim: true })
-b.roof({ x0: 23, z0: 13, x1: 30, z1: 19, y: 5, type: 'hip', material: 'deepslate_tile', eaveTrim: true })
+b.roof({ x0: 23, z0: 13, x1: 30, z1: 19, y: 5, type: 'hip', material: 'deepslate_tile', eaveTrim: true, overwrite: false })  // dies into the main wall
 b.roof({ x0: 4, z0: 17, x1: 8, z1: 21, y: 16, type: 'pyramid', pitch: 2, material: 'deepslate_tile' })
 // later, pass 4: texture each role with its own ramp (light -> dark)
 b.texture([0, 0, 0], [40, 16, 30], ['calcite', 'mushroom_stem', 'white_terracotta'], { only: WALL, base: 0.3, edge: 0.1 })
@@ -190,12 +190,14 @@ function bays(x0, x1, pitch = 4) {
 }
 const { centres } = bays(H.x0, H.x1, 4)                     // 13 wide: posts 10,14,18,22 -> centres 12,16,20
 b.walls([H.x0, H.F, H.z0], [H.x1, H.F + 3, H.z1], 'stone_bricks')
+b.walls([H.x0, H.F + 4, H.z0], [H.x1, H.F + 7, H.z1], 'calcite')
 b.timberWall([H.x0, H.F + 4, H.z1], [H.x1, H.F + 7, H.z1], { frame: 'stripped_dark_oak_log', infill: 'calcite', postEvery: 4 })
 for (const x of centres) {
   if (x === 16) b.door([x, H.F, H.z1], 'south', { material: 'spruce', frame: 'stripped_spruce_log' })
   else b.window([x, H.F + 1, H.z1], 'south', { width: 1, height: 2, shutters: true })
   b.window([x, H.F + 5, H.z1], 'south', { width: 1, height: 2 })            // stacked over the bay below
 }
+b.roof({ x0: H.x0, z0: H.z0, x1: H.x1, z1: H.z1, y: H.F + 8, axis: 'x', material: 'dark_oak', gable: 'calcite', eaveTrim: true })
 ```
 
 Rules (convention unless marked):
@@ -308,7 +310,7 @@ b.walls([H.x0 + 1, y0, H.z0 + 1], [H.x1 - 1, y1, H.z1 - 1], 'calcite')          
 for (const [a, c] of [[[H.x0, y0, H.z0], [H.x1, y1, H.z0]], [[H.x0, y0, H.z1], [H.x1, y1, H.z1]],
                       [[H.x0, y0, H.z0], [H.x0, y1, H.z1]], [[H.x1, y0, H.z0], [H.x1, y1, H.z1]]])
   b.timberWall(a, c, { frame: 'stripped_dark_oak_log', infill: 'air', postEvery: 4 })   // frame only, on plane 0
-for (const x of [12, 16, 20]) b.window([x, y0 + 1, H.z1 - 1], 'south', { width: 1, height: 2 })  // sill lands in the recess
+for (const x of [12, 16, 20]) b.window([x, y0 + 2, H.z1 - 1], 'south', { width: 1, height: 2 })  // sill sits in the recess, above the beam
 b.roof({ x0: H.x0, z0: H.z0, x1: H.x1, z1: H.z1, y: y1 + 1, axis: 'x', material: 'dark_oak', gable: 'calcite', eaveTrim: true })
 ```
 
@@ -657,7 +659,7 @@ export default function build(api) {
   const { kit } = api
   const b = api.builder([48, 32, 44], { seed: 21 })
   const ground = b.terrain({ height: (x, z) => 3 + 1.5 * kit.noise.fbm2(x, z, { scale: 18, seed: 2 }) + (z - 20) * 0.08 })
-  const M = { x0: 10, z0: 14, x1: 22, z1: 22 }, W = { x0: 22, z0: 10, x1: 28, z1: 18 }   // main 13x9, wing 7x9
+  const M = { x0: 10, z0: 14, x1: 22, z1: 22 }, W = { x0: 23, z0: 9, x1: 29, z1: 17 }    // main 13x9, wing 7x9 set 5 back
   let F = 0
   for (const R of [M, W]) for (let x = R.x0; x <= R.x1; x++) for (let z = R.z0; z <= R.z1; z++) F = Math.max(F, ground(x, z) + 1)
   // foundation to ground; plinth ring +1 one course lower
@@ -677,11 +679,11 @@ export default function build(api) {
     b.window([x, F + 6, M.z1 - 1], 'south', { width: 1, height: 2 })
   }
   b.window([16, F + 6, M.z1 - 1], 'south', { width: 1, height: 2 })
-  b.window([25, F + 2, W.z0], 'north', { width: 1, height: 2 })
+  b.window([26, F + 2, W.z1], 'south', { width: 1, height: 2, shutters: true })
   b.door([16, F + 1, M.z1], 'south', { material: 'spruce', frame: 'stripped_dark_oak_log', awning: true, steps: true })
   // roofs: main gable, lower hip on the wing, chimney off centre on the back slope
   b.roof({ x0: M.x0, z0: M.z0, x1: M.x1, z1: M.z1, y: F + 9, axis: 'x', material: 'deepslate_tile', gable: 'calcite', eaveTrim: true })
-  b.roof({ x0: W.x0 + 1, z0: W.z0, x1: W.x1, z1: W.z1, y: F + 5, type: 'hip', material: 'deepslate_tile', eaveTrim: true })
+  b.roof({ x0: W.x0, z0: W.z0, x1: W.x1, z1: W.z1, y: F + 5, type: 'hip', material: 'deepslate_tile', eaveTrim: true, overwrite: false })
   b.chimney([13, F + 1, M.z0 + 1], 15, { paint: kit.palette({ bricks: 4, granite: 1 }) })
   // material: stone ramp on the placeholders (dark base and corners, light at the door)
   b.texture([0, 0, 0], [47, F + 5, 43], ['polished_andesite', 'andesite', 'stone_bricks', 'cobblestone', 'mossy_cobblestone', 'cobbled_deepslate'],

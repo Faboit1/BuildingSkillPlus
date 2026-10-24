@@ -130,7 +130,8 @@ one-block spike on top of spheres, domes and towers. Measured with integer centr
 - **Even width → centre between blocks (x.5), integer `r = w / 2`** (10 → centre 4.5 offset,
   r 5; 4×4 cap).
 - Never mix an integer centre with an integer radius (or .5 with .5) unless you want the spike,
-  for example as a finial seat.
+  for example as a finial seat. Apply the rule per axis. An x.5 centre with an integer y centre
+  gives a 10-wide sphere only 9 tall, with a flat 32-block top.
 - Domes follow the same rule vertically: odd width → dome centre on the first dome layer.
 - 3-wide arches are the exception. The single crown block *is* the classic arch. From span 5 up,
   avoid it (strict `<` or `r + 0.25`).
@@ -138,7 +139,7 @@ one-block spike on top of spheres, domes and towers. Measured with integer centr
 ```js
 b.dome([30, 20, 30], 4.5, 'deepslate_tiles', { hollow: true })   // 9 wide, sits on y = 20
 b.tube([30, 6, 30], 3.5, 14, 'stone_bricks')                      // 7-wide tower wall, gap-free ring
-b.sphere([40.5, 12, 40.5], 5, 'stone')                            // 10 wide: x.5 centre, integer r
+b.sphere([40.5, 12.5, 40.5], 5, 'stone')                          // 10 wide: x.5 centre on ALL axes, integer r
 ```
 
 `hollow: true` keeps blocks with an outside face-neighbour. This is the thinnest watertight shell.
