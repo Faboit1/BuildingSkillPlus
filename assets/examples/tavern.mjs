@@ -473,10 +473,12 @@ export default function build(api) {
     b.set(28, FL0 - 1, 14, 'lantern[hanging=true]')
 
     // ---- first floor: corridor, three guest rooms, landing ----------------------------------
+    // timber partitions: posts every 4, plank wainscot, plaster panel, beam under the ceiling
     const partition = (along, w, u0, u1) => {
       for (let u = u0; u <= u1; u += 1) for (let y = U; y <= FL2 - 1; y += 1) {
-        const end = u === u0 || u === u1
-        b.set(...(along === 'x' ? [u, y, w] : [w, y, u]), end ? POST : plaster)
+        const post = u === u0 || u === u1 || (u - u0) % 4 === 0
+        const paint = y === FL2 - 1 ? beam(along) : post ? POST : y === U ? 'spruce_planks' : plaster
+        b.set(...(along === 'x' ? [u, y, w] : [w, y, u]), paint)
       }
     }
     partition('x', 22, 12, 30)
@@ -488,7 +490,6 @@ export default function build(api) {
     // ceiling joists in the attic floor (visible from both sides)
     for (const x of [15, 19, 23, 27, 31]) b.box([x, FL2, 20], [x, FL2, 30], beam('z'))
     // corridor: red runner, lanterns, a bench under the window
-    b.box([13, FL1, 21], [30, FL1, 21], 'red_carpet', { keep: false })
     for (let x = 13; x <= 30; x += 1) b.set(x, U, 21, 'red_carpet')
     b.set(16, FL2 - 1, 20, 'lantern[hanging=true]')
     b.set(24, FL2 - 1, 20, 'lantern[hanging=true]')
@@ -503,22 +504,22 @@ export default function build(api) {
     b.set(33, U, 30, 'barrel[facing=up]')
     b.set(33, U + 1, 30, 'candle[candles=1,lit=true]')
     // S1 (west): single bed, nightstand, desk under the window, wardrobe, chest, rug
-    b.stamp(M.bed('red'), [13, U, 25], { rotate: 1 })
+    b.stamp(M.bed('red'), [13, U, 25], { rotate: 3 })
     b.stamp(M.nightstand, [13, U, 24])
     b.stamp(M.desk, [14, U, 29], { rotate: 2 })
-    b.stamp(M.wardrobe, [16, U, 27], { rotate: 3 })
+    b.stamp(M.wardrobe, [16, U, 27], { rotate: 1 })
     b.set(15, U, 25, 'chest[facing=west]')
     b.box([14, FL1, 26], [15, FL1, 28], 'brown_wool')
     // S2 (the best room, with the bay): canopy bed, window seat in the bay, wardrobe, rug
-    b.stamp(M.bed('blue'), [18, U, 25], { rotate: 1 })
-    b.stamp(M.bed('blue'), [18, U, 26], { rotate: 1 })
+    b.stamp(M.bed('blue'), [18, U, 25], { rotate: 3 })
+    b.stamp(M.bed('blue'), [18, U, 26], { rotate: 3 })
     for (const [x, z] of [[18, 24], [18, 27], [20, 24], [20, 27]]) b.box([x, U, z], [x, U + 1, z], 'dark_oak_fence')
     b.box([18, U + 2, 24], [20, U + 2, 27], 'dark_oak_slab[type=bottom]')
     b.box([18, U + 2, 25], [19, U + 2, 26], 'blue_carpet')
     b.stamp(M.nightstand, [18, U, 23])
     b.stamp(M.nightstand, [18, U, 28])
     b.set(21, U, 25, 'chest[facing=east]')
-    b.box([21, FL1, 27], [23, FL1, 30], (x, y, z) => (x === 21 || x === 23 || z === 27 || z === 30 ? 'blue_wool' : 'cyan_wool'))
+    b.box([21, FL1, 27], [23, FL1, 30], (x, y, z) => (x === 21 || x === 23 || z === 27 || z === 30 ? 'blue_terracotta' : 'cyan_terracotta'))
     b.stamp(M.wardrobe, [24, U, 23], { rotate: 1 })
     for (let x = 19; x <= 23; x += 1) b.set(x, U, 33, 'spruce_stairs[facing=south,half=bottom]')
     b.set(21, U, 32, 'dark_oak_fence')
@@ -529,13 +530,13 @@ export default function build(api) {
     b.set(24, U + 1, 29, 'candle[candles=3,lit=true]')
     b.set(21, FL2 - 1, 29, 'lantern[hanging=true]')
     // S3 (east): twin beds with a shared nightstand, desk, wardrobe
-    b.stamp(M.bed('green'), [28, U, 24], { rotate: 3 })
-    b.stamp(M.bed('green'), [28, U, 27], { rotate: 3 })
+    b.stamp(M.bed('green'), [28, U, 24], { rotate: 1 })
+    b.stamp(M.bed('green'), [28, U, 27], { rotate: 1 })
     b.stamp(M.nightstand, [29, U, 25])
     b.set(29, U, 26, 'chest[facing=west]')
     b.stamp(M.desk, [26, U, 29], { rotate: 2 })
-    b.stamp(M.wardrobe, [26, U, 23], { rotate: 1 })
-    b.box([27, FL1, 25], [27, FL1, 28], 'green_wool')
+    b.stamp(M.wardrobe, [26, U, 23], { rotate: 3 })
+    b.box([27, FL1, 25], [27, FL1, 28], 'green_terracotta')
 
     // ---- innkeeper's room over the kitchen ------------------------------------------------
     b.box([25, FL1, 11], [31, FL1, 18], 'spruce_planks')
@@ -551,7 +552,7 @@ export default function build(api) {
     b.box([25, U, 11], [25, U + 2, 11], 'bookshelf')
     b.set(25, U + 2, 12, 'bookshelf')
     b.stamp(M.wardrobe, [31, U, 15], { rotate: 1 })
-    b.box([27, FL1, 14], [29, FL1, 16], (x, y, z) => (x === 28 && z === 15 ? 'yellow_wool' : 'orange_wool'))
+    b.box([27, FL1, 14], [29, FL1, 16], (x, y, z) => (x === 28 && z === 15 ? 'red_wool' : 'brown_wool'))
     b.set(25, U, 18, 'chest[facing=east]')
     b.set(28, FL2 - 1, 15, 'lantern[hanging=true]')
 

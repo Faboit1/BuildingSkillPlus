@@ -700,7 +700,7 @@ export default function build(api) {
     return true
   }
   for (let i = 0; i < 900; i += 1) {
-    const x = rng.int(3, W - 4), z = rng.int(3, D - 4)
+    const x = rng.int(4, W - 5), z = rng.int(4, D - 5)
     const g = ground(x, z)
     if (g <= WATER + 1) continue
     const outsideN = z < 6 + 1.5 * n2(x, 0, 8, 2)

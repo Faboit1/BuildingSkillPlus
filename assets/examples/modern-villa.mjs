@@ -21,6 +21,7 @@ export default function build(api) {
   const PLATE = 'smooth_quartz'
   const STONE = kit.palette({ polished_deepslate: 5, deepslate_tiles: 1 }, { scale: 4, seed: 2 })
   const FRAME = 'black_concrete'
+  const MULL = 'polished_blackstone_wall'  // thin mullion: a wall post between panes reads ~half a block wide
   const GLASS = 'light_gray_stained_glass_pane'
   const RAIL = 'glass_pane'
   const WOOD = 'stripped_spruce_log[axis=y]'
@@ -34,7 +35,7 @@ export default function build(api) {
   const UP = 20, LOW = 15, LEDGE = 14
   const coastS = x => 43.2 + 1.8 * n2(x, 0, 6, 5) + (x < 12 ? (12 - x) * 0.35 : 0)
   const coastE = z => 56.8 + 1.5 * n2(0, z, 6, 6)
-  const landD = (x, z) => smin(coastS(x) - z, coastE(z) - x, 6) + 0.6 * n2(x, z, 4, 9)
+  const landD = (x, z) => smin(coastS(x) - z, coastE(z) - x, 6) + 0.9 * n2(x, z, 4, 9) + 0.6 * n2(x, z, 2.5, 19)  // ragged coast: in/out 2-3 blocks
   const hLand = (x, z) => {
     let h = UP - (UP - LOW) * smooth((z - 29.5 - 1.6 * n2(x, 0, 7, 1)) / 2.5)
     h -= (h - LEDGE) * smooth((x - 49.5 - 1.5 * n2(0, z, 7, 2)) / 2.5)
@@ -46,7 +47,7 @@ export default function build(api) {
     const d = landD(x, z)
     const land = hLand(x, z)
     const seabed = SEA - 2.2 - Math.min(2.2, -d * 0.4) + 0.6 * n2(x, z, 7, 4)
-    let h = d < 0 ? seabed : SEA - 2 + (land - SEA + 2) * smooth(d / 2.6 + 0.25 * n2(x, z, 3, 8))
+    let h = d < 0 ? seabed : SEA - 2 + (land - SEA + 2) * smooth(d / 3 + 0.35 * n2(x, z, 3, 8))       // noisy profile = ledges + buttresses
     const bch = BEACH(x, z)
     if (bch > 0) h = h * (1 - bch) + Math.max(seabed, SEA + 1.2 + 0.45 * d) * bch
     return h
@@ -90,8 +91,11 @@ export default function build(api) {
   // foundations
   for (let x = 11; x <= 53; x++) for (let z = 21; z <= 42; z++) {
     if (!inR(L1, x, z) && !inR(TER, x, z)) continue
-    const edge = (!inR(TER, x, z + 1) && !inR(L1, x, z + 1)) || x === TER.x0 || x === TER.x1
-    for (let y = ground(x, z) + 1; y < Y1; y++) if (!edge || y < Y1 - 1) set(x, y, z, strata(x, y, z))
+    // distance to the open deck edge: the outer row is a 1-thick cantilevered slab, the next row a
+    // 3-deep beam; only the core is filled down to the rock. The natural cliff shows below.
+    const e = inR(L1, x, z) ? 9 : Math.min(TER.z1 - z, x - TER.x0, TER.x1 - x)
+    const bottom = e === 0 ? Y1 : e === 1 ? Y1 - 3 : -1
+    for (let y = Math.max(ground(x, z) + 1, bottom); y < Y1; y++) set(x, y, z, strata(x, y, z))
     for (let y = Y1 + 1; y <= Y2 + 3; y++) if (!inR(L1, x, z) || y <= Y2) b.remove(x, y, z)
     set(x, Y1, z, DECK)
   }
@@ -104,8 +108,8 @@ export default function build(api) {
   b.box([L1.x0 - 1, Y1 + 1, L1.z0 - 1], [L1.x0, Y2 + 1, TER.z0 + 2], STONE)
   b.box([L1.x1, Y1 + 1, L1.z0], [L1.x1, Y2 - 1, 26], STONE)
   for (let y = Y1 + 1; y < Y2; y++) {
-    for (let x = L1.x0 + 1; x <= L1.x1; x++) set(x, y, L1.z1, (x - L1.x0) % 4 === 0 && x !== L1.x1 ? FRAME : GLASS)
-    for (let z = 27; z < L1.z1; z++) set(L1.x1, y, z, z === 30 ? FRAME : GLASS)
+    for (let x = L1.x0 + 1; x <= L1.x1; x++) set(x, y, L1.z1, (x - L1.x0) % 4 === 0 && x !== L1.x1 ? MULL : GLASS)
+    for (let z = 27; z < L1.z1; z++) set(L1.x1, y, z, z === 30 ? MULL : GLASS)
   }
   b.box([L1.x0 + 1, Y2, L1.z0 - 1], [L1.x1 + 1, Y2, L1.z1 + 2], PLATE)
 
@@ -117,15 +121,15 @@ export default function build(api) {
   b.box([L2.x0 - 1, Y3, L2.z0 - 1], [L2.x1 + 1, Y3, L2.z1 + 1], PLATE)
   b.box([L1.x1 + 2, Y2 - 1, L2.z0 + 1], [L2.x1 - 1, Y2 - 1, L2.z1 - 1], SOFFIT)
   b.box([L2.x1, Y2 + 1, L2.z0 + 1], [L2.x1, Y3 - 1, L2.z1 - 1], 'air')
-  for (let y = Y2 + 1; y < Y3; y++) for (let z = L2.z0 + 1; z < L2.z1; z++) set(L2.x1 - 3, y, z, (z - L2.z0) % 4 === 0 ? FRAME : GLASS)
+  for (let y = Y2 + 1; y < Y3; y++) for (let z = L2.z0 + 1; z < L2.z1; z++) set(L2.x1 - 3, y, z, (z - L2.z0) % 4 === 0 ? MULL : GLASS)
   for (let z = L2.z0 + 1; z < L2.z1; z++) { set(L2.x1, Y2 + 1, z, RAIL); set(L2.x1 - 1, Y2 + 1, z, BOARD); set(L2.x1 - 2, Y2 + 1, z, BOARD) }
   // south: ribbon window (bedrooms) + full-height glass for the master suite onto the terrace
   const MULL2 = [33, 36, 39, 43, 46, 49, 52]
   for (let x = L2.x0 + 3; x <= 48; x++) for (const y of [Y2 + 2, Y2 + 3]) {
     set(x, y, L2.z1, 'air')
-    set(x, y, L2.z1 - 1, MULL2.includes(x) ? FRAME : 'gray_stained_glass_pane')
+    set(x, y, L2.z1 - 1, MULL2.includes(x) ? MULL : 'gray_stained_glass_pane')
   }
-  for (let x = 50; x <= 54; x++) for (let y = Y2 + 1; y < Y3; y++) { set(x, y, L2.z1, 'air'); set(x, y, L2.z1 - 1, x === 52 ? FRAME : GLASS) }
+  for (let x = 50; x <= 54; x++) for (let y = Y2 + 1; y < Y3; y++) { set(x, y, L2.z1, 'air'); set(x, y, L2.z1 - 1, x === 52 ? MULL : GLASS) }
   // north: entry niche + clerestory
   b.box([32, Y2 + 1, L2.z0], [35, Y3 - 1, L2.z0], 'air')
   for (let y = Y2 + 1; y < Y3; y++) { set(32, y, L2.z0 + 1, WOOD); set(35, y, L2.z0 + 1, WOOD) }
@@ -133,17 +137,17 @@ export default function build(api) {
   b.door([33, Y2 + 1, L2.z0 + 1], 'north', { material: 'dark_oak', width: 2 })
   for (let x = 39; x <= 56; x++) set(x, Y3 - 1, L2.z0, x % 6 === 0 ? WHITE : 'gray_stained_glass_pane')
   // west: glass door to the roof garden
-  for (let z = 23; z <= 26; z++) for (let y = Y2 + 1; y < Y3 - 1; y++) set(L2.x0, y, z, z === 23 ? FRAME : GLASS)
+  for (let z = 23; z <= 26; z++) for (let y = Y2 + 1; y < Y3 - 1; y++) set(L2.x0, y, z, z === 23 ? MULL : GLASS)
 
   // ---------------------------------------------------------------- L3
   b.box([L3.x0, Y3, L3.z0], [L3.x1, Y3, L3.z1], PLATE)
   b.walls([L3.x0, Y3 + 1, L3.z0], [L3.x1, YR - 1, L3.z1], WOOD)
   b.box([L3.x0 + 1, Y3 + 1, L3.z0 + 1], [L3.x1 - 1, YR - 1, L3.z1 - 1], 'air')
   for (let y = Y3 + 1; y < YR; y++) {
-    for (let x = L3.x0 + 1; x < L3.x1; x++) set(x, y, L3.z1, (x - L3.x0) % 4 === 0 ? FRAME : GLASS)
-    for (let z = L3.z0 + 1; z < L3.z1; z++) set(L3.x1, y, z, (z - L3.z0) % 4 === 0 ? FRAME : GLASS)
+    for (let x = L3.x0 + 1; x < L3.x1; x++) set(x, y, L3.z1, (x - L3.x0) % 4 === 0 ? MULL : GLASS)
+    for (let z = L3.z0 + 1; z < L3.z1; z++) set(L3.x1, y, z, (z - L3.z0) % 4 === 0 ? MULL : GLASS)
   }
-  for (let x = 34; x <= 40; x++) for (const y of [Y3 + 2, Y3 + 3]) set(x, y, L3.z0, x === 37 ? FRAME : GLASS)
+  for (let x = 34; x <= 40; x++) for (const y of [Y3 + 2, Y3 + 3]) set(x, y, L3.z0, x === 37 ? MULL : GLASS)
   b.box([L3.x0 - 2, YR, L3.z0 - 2], [L3.x1 + 6, YR, L3.z1 + 2], PLATE)
   b.box([L3.x1 + 5, Y3 + 1, L3.z1 + 1], [L3.x1 + 5, YR - 1, L3.z1 + 1], 'polished_blackstone_wall')
 
@@ -339,8 +343,9 @@ export default function build(api) {
         if (y >= c[1] && /stone|andesite|tuff|cobblestone/.test(b.nameAt(x, y, z) ?? '') && kit.noise.coherent01(x, y, z, { scale: 3, seed }) > 0.5) set(x, y, z, 'moss_block')
       }
     }
-    const rocks = [[14, 47, 2.6], [17, 48, 1.6], [50, 46, 2.4], [53, 47, 1.5], [60, 41, 2.8], [62, 37, 1.7], [60, 25, 2.2], [61, 13, 2.6], [63, 16, 1.5], [33, 48, 1.4], [42, 49, 1.8]]
-    for (const [x, z, r] of rocks) boulder([x, SEA - 0.5, z], [r * 1.3, r, r], x * 7 + z)
+    // sea rocks: bare (salt spray, no moss), only at the cliff foot where they break the waterline
+    for (const [x, z, r] of [[15, 46, 2.4], [18, 47, 1.4], [51, 45, 2.2], [59, 40, 2.6], [61, 36, 1.5], [59, 24, 2], [60, 12, 2.4], [62, 15, 1.3]])
+      b.boulder([x, SEA - 1, z], [r * 1.3, r, r], rock, { seed: x * 7 + z })
     for (const [x, z, r] of [[54, 32, 1.6], [55, 12, 1.8], [8, 31, 1.4], [3, 30, 1.8]]) boulder([x, hAt(x, z), z], [r * 1.3, r * 0.8, r], x + z)
 
     // trees: a birch grove on the upper lawn, stone-pine (acacia form, spruce foliage) on the
@@ -349,7 +354,7 @@ export default function build(api) {
     T(6, 18, 'birch', { seed: 1, height: 12 }); T(9, 23, 'birch', { seed: 2, height: 10 }); T(5, 26, 'birch', { seed: 4, height: 9 })
     T(10, 17, 'azalea', { seed: 3 })
     T(56, 9, 'cherry', { seed: 2, height: 8 })
-    T(6, 38, 'acacia', { seed: 5, height: 8, log: 'spruce_log', wood: 'spruce_wood', leaves: ['spruce_leaves', 'spruce_leaves', 'oak_leaves'] })
+    T(8, 37, 'acacia', { seed: 5, height: 8, log: 'spruce_log', wood: 'spruce_wood', leaves: ['spruce_leaves', 'spruce_leaves', 'oak_leaves'] })
     b.tree([22, Y2 + 2, 25], 'azalea', { seed: 6, height: 6 })
     for (const [x, z] of [[38, 14], [42, 14], [47, 14], [52, 14], [12, 3], [26, 3]]) b.bush([x, UP + 1, z], { radius: 1.3, leaves: ['azalea_leaves', 'flowering_azalea_leaves'], seed: x })
     for (const [x, y, z] of [[20, Y2 + 2, 22], [25, Y2 + 2, 22], [20, Y2 + 2, 29]]) b.bush([x, y, z], { radius: 1.2, leaves: ['azalea_leaves', 'oak_leaves'], seed: z })

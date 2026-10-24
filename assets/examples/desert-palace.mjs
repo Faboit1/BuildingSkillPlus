@@ -135,7 +135,9 @@ export default function build(api) {
     return { radius: dy => r(dy + 0.5), height: Math.round(y1 + L) }
   }
 
-  const disc = (cx, y, cz, r, paint, opts) => b.disc([cx, y, cz], r, paint, opts)
+  // Horizontal disc. (b.disc skips the centre cells when no `inner` is given: its default
+  // inner radius of -1 squares to 1, see notes, so this recipe rasterizes its own.)
+  const disc = (cx, y, cz, r, paint) => b.fillWhere([cx - r, y, cz - r], [cx + r, y, cz + r], (x, yy, z) => (x - cx) ** 2 + (z - cz) ** 2 <= r * r, paint)
 
   // ------------------------------------------------------------------ 1 site
   // Sculpted dunes: a few big asymmetric mounds (long gentle windward back, short steep lee face)
@@ -507,8 +509,8 @@ export default function build(api) {
   // fountain: octagonal basin, column, bowl
   const FX = CX
   const FZ = CROSS_Z
-  b.disc([FX, FLOOR + 1, FZ], 2.6, 'smooth_sandstone')
-  b.disc([FX, FLOOR + 1, FZ], 1.6, 'water')
+  disc(FX, FLOOR + 1, FZ, 2.6, 'smooth_sandstone')
+  disc(FX, FLOOR + 1, FZ, 1.6, 'water')
   b.set(FX, FLOOR + 1, FZ, 'chiseled_sandstone')
   b.set(FX, FLOOR + 2, FZ, 'sandstone_wall')
   b.set(FX, FLOOR + 3, FZ, 'chiseled_sandstone')
@@ -645,10 +647,10 @@ export default function build(api) {
     return (x + z) % 2 === 0 ? 'minecraft:smooth_sandstone' : 'minecraft:cut_sandstone'
   }
   b.box([HX0 + 2, FLOOR, Z0 + 2], [HX1 - 2, FLOOR, HZ1 - 2], HFLOOR)
-  b.disc([CX, F, HCZ], 2.6, 'smooth_sandstone')
-  b.disc([CX, F, HCZ], 1.6, 'water')
+  disc(CX, F, HCZ, 2.6, 'smooth_sandstone')
+  disc(CX, F, HCZ, 1.6, 'water')
   b.set(CX, F, HCZ, 'chiseled_sandstone')
-  b.set(CX, F + 1, HCZ, 'water')
+  b.set(CX, F + 1, HCZ, 'sandstone_wall') // spout (open water here would spill over the low rim)
   for (let z = HCZ + 3; z <= HZ1 - 2; z += 1) b.set(CX, F, z, 'cyan_carpet')
   for (let z = Z0 + 6; z <= HCZ - 3; z += 1) b.set(CX, F, z, 'cyan_carpet')
   b.box([CX - 4, F, Z0 + 2], [CX + 4, F, Z0 + 4], 'smooth_sandstone') // dais
