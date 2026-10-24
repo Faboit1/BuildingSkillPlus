@@ -1,27 +1,5 @@
 [
   {
-    "name": "medieval-house",
-    "size": [
-      44,
-      36,
-      44
-    ],
-    "blocks": 16440,
-    "problems": 0,
-    "seconds": 13
-  },
-  {
-    "name": "tavern",
-    "size": [
-      52,
-      38,
-      46
-    ],
-    "blocks": 16271,
-    "problems": 0,
-    "seconds": 20
-  },
-  {
     "name": "castle",
     "size": [
       114,
@@ -30,62 +8,18 @@
     ],
     "blocks": 155248,
     "problems": 0,
-    "seconds": 35
-  },
-  {
-    "name": "gothic-cathedral",
-    "size": [
-      75,
-      92,
-      128
-    ],
-    "blocks": 105932,
-    "problems": 0,
-    "seconds": 46
-  },
-  {
-    "name": "wizard-tower",
-    "size": [
-      56,
-      88,
-      56
-    ],
-    "blocks": 25237,
-    "problems": 0,
-    "seconds": 39
-  },
-  {
-    "name": "japanese-shrine",
-    "size": [
-      72,
-      54,
-      72
-    ],
-    "blocks": 37188,
-    "problems": 0,
     "seconds": 19
   },
   {
-    "name": "nordic-longhouse",
+    "name": "celestial-forge",
     "size": [
-      88,
-      46,
-      72
+      200,
+      190,
+      200
     ],
-    "blocks": 93333,
+    "blocks": 111769,
     "problems": 0,
-    "seconds": 25
-  },
-  {
-    "name": "desert-palace",
-    "size": [
-      92,
-      60,
-      96
-    ],
-    "blocks": 91895,
-    "problems": 0,
-    "seconds": 18
+    "seconds": 23
   },
   {
     "name": "coastal-village",
@@ -99,6 +33,61 @@
     "seconds": 18
   },
   {
+    "name": "desert-palace",
+    "size": [
+      92,
+      60,
+      96
+    ],
+    "blocks": 91895,
+    "problems": 0,
+    "seconds": 18
+  },
+  {
+    "name": "elven-treehouse",
+    "size": [
+      80,
+      92,
+      80
+    ],
+    "blocks": 67829,
+    "problems": 0,
+    "seconds": 41
+  },
+  {
+    "name": "gothic-cathedral",
+    "size": [
+      75,
+      92,
+      128
+    ],
+    "blocks": 105932,
+    "problems": 0,
+    "seconds": 22
+  },
+  {
+    "name": "japanese-shrine",
+    "size": [
+      72,
+      54,
+      72
+    ],
+    "blocks": 37188,
+    "problems": 0,
+    "seconds": 11
+  },
+  {
+    "name": "medieval-house",
+    "size": [
+      44,
+      36,
+      44
+    ],
+    "blocks": 16440,
+    "problems": 0,
+    "seconds": 7
+  },
+  {
     "name": "modern-villa",
     "size": [
       70,
@@ -107,7 +96,40 @@
     ],
     "blocks": 61643,
     "problems": 0,
-    "seconds": 18
+    "seconds": 12
+  },
+  {
+    "name": "nordic-longhouse",
+    "size": [
+      88,
+      46,
+      72
+    ],
+    "blocks": 93333,
+    "problems": 0,
+    "seconds": 13
+  },
+  {
+    "name": "pirate-cove",
+    "size": [
+      120,
+      64,
+      104
+    ],
+    "blocks": 261207,
+    "problems": 0,
+    "seconds": 25
+  },
+  {
+    "name": "tavern",
+    "size": [
+      52,
+      38,
+      46
+    ],
+    "blocks": 16271,
+    "problems": 0,
+    "seconds": 9
   },
   {
     "name": "walled-village",
@@ -118,6 +140,17 @@
     ],
     "blocks": 290725,
     "problems": 0,
-    "seconds": 30
+    "seconds": 20
+  },
+  {
+    "name": "wizard-tower",
+    "size": [
+      56,
+      88,
+      56
+    ],
+    "blocks": 25237,
+    "problems": 0,
+    "seconds": 14
   }
 ]
