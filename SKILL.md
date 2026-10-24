@@ -74,6 +74,7 @@ paths, ponds, modules with rotation, palettes, gradients, `b.texture`, noise, SD
 | Any build | `references/building/README.md` (laws, workflow, scale tiers, cheat sheets) |
 | Judging and fixing your renders | `references/building/quality-and-critique.md` |
 | Numeric targets (distinct ids, partial-block %, lights, contrast) per style and size | `references/building/benchmarks.md` |
+| What skilled community builders do differently (measured idioms, cross-sections) | `references/building/community-lessons.md` |
 | A specific style (medieval, gothic, Japanese, nordic, desert, fantasy, modern...) | `references/building/styles.md` |
 | Roofs, windows, doors, towers, arches, walls, balconies, bridges | `references/building/components.md` |
 | Massing, proportion, depth, framing, foundations | `references/building/principles.md` |

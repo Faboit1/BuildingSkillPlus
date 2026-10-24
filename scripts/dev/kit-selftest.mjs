@@ -176,6 +176,43 @@ const stateAt = (b, x, y, z) => {
   check('dormer keeps rooms clear', !d.get(13, 3, 12) && !d.get(11, 3, 12), stateAt(d, 13, 3, 12))
 }
 
+// --- arches, paths, timber, texture fallback, weather -------------------------------------------
+{
+  // a 5-wide pointed arch keeps a point: the top open row is a single centre cell, with stairs
+  const a = kit.builder([12, 12, 3])
+  a.box([0, 0, 1], [8, 10, 1], 'stone_bricks')
+  a.arch([2, 1, 1], [6, 1, 1], 'stone_bricks', { type: 'pointed' })
+  let apex = -1
+  for (let y = 1; y < 10; y += 1) if (!a.get(4, y, 1)) apex = y
+  const apexRow = [2, 3, 5, 6].filter(x => !a.get(x, apex, 1)).length
+  check('pointed arch has a point', apex >= 3 && apexRow === 0, `apex ${apex}, open beside ${apexRow}`)
+  check('arch shoulders are stairs', a.count('stone_brick_stairs') >= 2)
+  // b.path reaches the ground under an overhang
+  const p = kit.builder([16, 8, 9])
+  p.terrain({ height: () => 2 })
+  p.box([6, 4, 2], [9, 4, 6], 'oak_slab')
+  p.path([[0, 4], [15, 4]], { width: 3, paint: 'cobblestone', jitter: 0 })
+  check('path under overhang', p.nameAt(7, 2, 4) === 'minecraft:cobblestone' && p.groundY(7, 2) === 2)
+  // timberWall inset: frame on the outer plane, infill one block inside
+  const t = kit.builder([12, 8, 4])
+  t.timberWall([0, 0, 1], [10, 5, 1], { inset: 1, facing: 'north', posts: [0, 5, 10] })
+  check('timber inset', t.nameAt(2, 2, 1) === null && t.nameAt(2, 2, 2) === 'minecraft:white_terracotta' && t.nameAt(5, 2, 1) === 'minecraft:stripped_spruce_log')
+  // texture: a ramp step without walls borrows the nearest step's wall
+  const w = kit.builder([10, 4, 3])
+  w.box([0, 0, 1], [9, 0, 1], 'mud_brick_wall')
+  w.texture([0, 0, 0], [9, 3, 2], ['polished_andesite', 'stone_bricks'], { only: 'mud_brick_wall' })
+  check('texture shape fallback', w.count('mud_brick_wall') === 0 && w.count('stone_brick_wall') === 10)
+  // weather share is exact
+  const e = kit.builder([20, 20, 20])
+  e.box([0, 0, 0], [19, 19, 19], 'stone_bricks')
+  e.weather([0, 0, 0], [19, 19, 19], { share: 0.25 })
+  check('weather share exact', Math.abs((8000 - e.count('stone_bricks')) / 8000 - 0.25) < 0.005)
+  // flared cones use stairs above the slab brim (no all-slab cone)
+  const c = kit.builder([20, 20, 20])
+  c.coneRoof([10, 5, 10], 4, { material: 'deepslate_tile', pitch: 2 })
+  check('flared cone has stairs', c.count('deepslate_tile_stairs') > c.count('deepslate_tile_slab'))
+}
+
 // --- texture ----------------------------------------------------------------------------
 {
   const b = kit.builder([20, 12, 6], { seed: 2 })

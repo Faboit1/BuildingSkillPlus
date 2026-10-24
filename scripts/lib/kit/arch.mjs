@@ -497,7 +497,7 @@ export function arch(b, a, bEnd, paint, { type = 'round', thickness = 1, depth =
       let p = null
       const c = coverage(u, vi)
       const centre = Math.abs(u) < 0.25
-      if (c >= 0.6 || (c >= 0.2 && centre)) p = fill
+      if (c >= 0.7 || (c >= 0.2 && centre)) p = fill
       else if (c >= 0.2 && ringStairs) p = `${ringStairs}[facing=${outward(u)},half=top]`
       else if (ring(u, v + 0.5) && Math.abs(u) <= s / 2 + thickness) p = paint
       else if (c > 0 && Math.abs(u) <= s / 2 + thickness) p = paint

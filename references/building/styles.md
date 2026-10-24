@@ -155,6 +155,11 @@ A spruce roof (38) over stone bricks (51) is only 13 apart — too close; use da
 | Roof | spruce stairs 80 / dark_oak 20 (streaks) | 38 | 30% |
 | Trim / accent | oak_trapdoor shutters, white wool awning, flower pots | – | 5% |
 
+> **White plaster is not white terracotta.** `white_terracotta` measures #d2b2a1 (L\* 75, warm
+> pinkish beige) and renders salmon-pink in large clumps. Use it for warm, aged daub; for white
+> limewash use `calcite` (#dfe0dd, L\* 89), `white_concrete_powder` (L\* 90, flat), `smooth_quartz`
+> (L\* 92) or `mushroom_stem` (L\* 80, slightly grey), and keep `white_terracotta` at ≤ 30% of the mix.
+
 *Brick & plaster*
 
 | Role | Blocks | L\* | Share |

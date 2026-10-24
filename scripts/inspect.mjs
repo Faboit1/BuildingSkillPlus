@@ -314,6 +314,8 @@ function readData(name) {
   }
 }
 const OFFICIAL_STATES = readData('block-states.json')?.blocks ?? null
+// The benchmark study's terrain list (ground, raw stone, sand, water...): excluded from ratios
+const NORM_TERRAIN = new Set((readData('build-norms.json')?.definitions?.terrain ?? []).map(n => n.replace(/^minecraft:/, '')))
 const FULL_CUBES = (() => {
   const data = readData('block-colors.json')
   const entries = data?.blocks ?? data
@@ -845,8 +847,11 @@ function buildSummary(model, info, counts, options) {
 
   const categories = Object.fromEntries(Object.keys(CATEGORY_LABELS).map(c => [c, 0]))
   info.forEach((s, index) => { categories[s.cat] += counts[index] })
-  const solid = total - categories.fluid
-  const partial = solid - categories.full
+  // detail ratio over built blocks: terrain (ground, raw stone, sand, water...) would drown it
+  let terrainCount = 0
+  info.forEach((s, index) => { if (NORM_TERRAIN.has(s.short) && s.cat === 'full') terrainCount += counts[index] })
+  const solid = total - categories.fluid - terrainCount
+  const partial = solid - (categories.full - terrainCount)
   const b = model.bounds
   return {
     size: model.size,
@@ -939,7 +944,8 @@ function computeLighting(model, info, counts) {
   const top = new Int32Array(grid.w * grid.d).fill(-1)
   for (let k = 0; k < occ.length; k += 1) {
     const i = occ[k]
-    if (info[grid.get(i)].passable) continue
+    // tree canopies do not make a spot "roofed": mobs under trees are not an interior problem
+    if (info[grid.get(i)].passable || info[grid.get(i)].isLeaves) continue
     const col = i % grid.layer
     const y = Math.floor(i / grid.layer)
     if (y > top[col]) top[col] = y
@@ -2637,7 +2643,7 @@ function formatSummary(summary, lighting, options) {
     if (!count) continue
     out.push(`  ${CATEGORY_LABELS[cat].padEnd(18)} ${num(count).padStart(countWidth)}  ${pct(count, total).toFixed(1).padStart(5)}%`)
   }
-  out.push(`Detail ratio: ${summary.detailRatio} (non-cube solid blocks / all solid blocks; fluids excluded)`)
+  out.push(`Detail ratio: ${summary.detailRatio} (non-cube solid blocks / all solid built blocks; fluids and terrain excluded)`)
   out.push('')
 
   out.push('Lighting (approximate: block-light BFS from emitters, sky light ignored):')
