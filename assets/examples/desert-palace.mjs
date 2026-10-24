@@ -335,6 +335,17 @@ export default function build(api) {
   turret(CX + PW, PZF, F, PISH_TOP + 2)
   crenel([CX - PW + 1, PZF], [CX + PW - 1, PZF], PISH_TOP + 1)
 
+  // the pishtaq's back rises 11 blocks above the hall roof: pilasters with sloped caps and a
+  // tile band keep that face from reading as a blank slab when seen from the north
+  for (let x = CX - PW + 1; x <= CX + PW - 1; x += 1) {
+    for (const y of [HALL_TOP + 2, HALL_TOP + 3]) if (b.nameAt(x, y, HZ1) !== 'minecraft:air') b.remove(x, y, HZ1)
+    b.set(x, HALL_TOP + 1, HZ1, WALL)
+  }
+  for (const x of [CX - PW, CX - 5, CX, CX + 5, CX + PW]) {
+    for (let y = HALL_TOP + 1; y <= PISH_TOP - 3; y += 1) b.set(x, y, HZ1, WALL)
+    b.set(x, PISH_TOP - 2, HZ1, st(TRIM, 'south'))
+  }
+
   // ------------------------------------------------------------------ 6 gatehouse
   const GX0 = CX - 5
   const GX1 = CX + 5
@@ -666,10 +677,34 @@ export default function build(api) {
   }
   // low divans along the side walls: stairs as benches facing the fountain
   for (let z = Z0 + 6; z <= HZ1 - 4; z += 1) {
-    if (Math.abs(z - HCZ) <= 1) continue
-    b.set(HX0 + 2, F, z, st('dark_oak', 'west'))
-    b.set(HX1 - 2, F, z, st('dark_oak', 'east'))
+    if (Math.abs(z - HCZ) <= 1 || (z - Z0 - 2) % 4 === 0) continue // between the engaged columns
+    b.set(HX0 + 3, F, z, st('dark_oak', 'west'))
+    b.set(HX1 - 3, F, z, st('dark_oak', 'east'))
   }
+  // An applied arcade round the hall's inner walls: engaged columns every 4 blocks, pointed
+  // heads of upside-down stairs, a frieze course above. It gives the 23-wide walls the bay
+  // rhythm of the courtyard (and stops the inspector's flat-wall warnings on the interior).
+  const innerArcade = (axis, fixed, a, c, wallDir, skip = () => false) => {
+    for (let u = a; u <= c; u += 1) {
+      if (skip(u)) continue
+      const at = (y, paint) => (axis === 'x' ? b.set(u, y, fixed, paint) : b.set(fixed, y, u, paint))
+      const k = (u - a) % 4
+      const along = axis === 'x' ? ['west', 'east'] : ['north', 'south']
+      if (k === 0) {
+        at(F, 'cut_sandstone')
+        for (let y = F + 1; y <= F + 4; y += 1) at(y, 'sandstone_wall')
+        at(F + 5, 'chiseled_sandstone')
+        at(F + 6, 'smooth_sandstone')
+      } else if (k === 1) at(F + 5, st(TRIM, along[0], 'top')), at(F + 6, 'smooth_sandstone')
+      else if (k === 3) at(F + 5, st(TRIM, along[1], 'top')), at(F + 6, 'smooth_sandstone')
+      else at(F + 6, sl(TRIM, 'top'))
+      at(F + 7, st(TRIM, wallDir, 'top'))
+    }
+  }
+  innerArcade('x', Z0 + 2, HX0 + 2, HX1 - 2, 'north', u => Math.abs(u - CX) <= 5)
+  innerArcade('x', HZ1 - 2, HX0 + 2, HX1 - 2, 'south', u => Math.abs(u - CX) <= 3)
+  innerArcade('z', HX0 + 2, Z0 + 2, HZ1 - 2, 'west', u => Math.abs(u - HCZ) <= 1)
+  innerArcade('z', HX1 - 2, Z0 + 2, HZ1 - 2, 'east', u => Math.abs(u - HCZ) <= 1)
   // doors between the hall and the wings
   cutArch([HX0, F, HCZ + 1], 'west', { w: 3, spring: 3, depth: 2, k: 1, mat: TRIM })
   cutArch([HX1, F, HCZ - 1], 'east', { w: 3, spring: 3, depth: 2, k: 1, mat: TRIM })

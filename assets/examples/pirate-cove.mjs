@@ -24,10 +24,10 @@ export default function build(api) {
 
   // ------------------------------------------------------------------ site: signed distance to the shore
   const COVE = { cx: 62, cz: 50, rx: 44, rz: 31 }
-  const sCove = (x, z) => (Math.hypot((x - COVE.cx) / COVE.rx, (z - COVE.cz) / COVE.rz) - 1) * 34 + 3.5 * n2(x, z, 15, 3)
+  const sCove = (x, z) => (Math.hypot((x - COVE.cx) / COVE.rx, (z - COVE.cz) / COVE.rz) - 1) * 34 + 3.5 * n2(x, z, 13, 3) + 7 * n2(x, z, 30, 31, 2)
   const sMouth = (x, z) => (z < COVE.cz ? 99 : Math.abs(x - (68 + 3 * Math.sin(z / 8))) - (14 + (z - COVE.cz) * 0.2))
   const sSea = (x, z) => 91 + 3 * n2(x, 0, 12, 4) - z - Math.max(0, x - 104) * 1.3 - Math.max(0, 12 - x) * 1.2
-  const beachMask = (x, z) => clamp(Math.max(1.25 - Math.hypot((x - 32) / 24, (z - 23) / 12), 1.1 - Math.hypot((x - 72) / 10, (z - 20) / 6)), 0, 1)
+  const beachMask = (x, z) => clamp(Math.max(1.3 - Math.hypot((x - 31) / 22, (z - 25) / 13), 1.1 - Math.hypot((x - 72) / 10, (z - 20) / 6)), 0, 1)
   const plateau = (x, z) => 21 + 19 * clamp((90 - z) / 66, 0, 1) ** 0.8 + (x < 34 ? 2 : 0) + 2.5 * n2(x, z, 20, 6)
 
   // per-column fields, computed once (noise is the expensive part)
@@ -37,6 +37,7 @@ export default function build(api) {
   const LH = new Float32Array(W * D)
   const LW = new Float32Array(W * D)
   const FL = new Int16Array(W * D)
+  const BW = new Float32Array(W * D) // warp of the bedding planes
   for (let x = 0; x < W; x += 1)
     for (let z = 0; z < D; z += 1) {
       const i = idx(x, z)
@@ -45,6 +46,7 @@ export default function build(api) {
       PL[i] = plateau(x, z)
       LH[i] = 0.42 + 0.14 * n2(x, z, 14, 8)
       LW[i] = 0.22 + 0.2 * (n2(x, z, 11, 9) + 0.5)
+      BW[i] = n2(x, z, 22, 5)
       const d = -Math.min(S2[i], -0.01)
       FL[i] = clamp(Math.round(SEA - 1 - Math.min(6.5, (BM[i] > 0.3 ? 0.32 : 0.75) * d + 0.3) + 1.2 * n2(x, z, 9, 12)), 1, SEA - 1)
     }
@@ -59,7 +61,7 @@ export default function build(api) {
     return lh + 0.05 + (1 - lh - 0.05) * smooth(clamp((t - 0.35 - lw) / 0.4, 0, 1))
   }
   const landHeight = (s, i) => {
-    const wb = 13 * BM[i]
+    const wb = 15 * BM[i]
     if (s < wb) return SEA + 1 + 2.5 * (s / Math.max(wb, 1)) ** 1.6
     const hb = SEA + 1 + (BM[i] > 0.05 ? 2.5 : 0)
     const t = (s - wb) / CLIFF_W
@@ -88,8 +90,11 @@ export default function build(api) {
         if (!solid && s > -4) {
           // 3D displacement of the shore distance: undulating, overhanging faces and a wave-cut
           // notch at the waterline. Beaches stay smooth.
+          // vertical jointing (noise stretched along y → buttresses and gullies) + horizontal
+          // bedding (squashed along y) + a hard 2-block bed every 6 blocks that juts out as a ledge
           const amp = 2.6 * (1 - bm) * clamp((y - SEA) / 4, 0.35, 1)
-          let s3 = s + amp * n3(x, y * 1.25, z, 9, 21)
+          const bed = ((y + Math.round(2 * BW[i])) % 6 + 6) % 6 < 2 ? 0.9 : 0
+          let s3 = s + amp * (0.75 * n3(x, y * 0.35, z, 6, 21) + 0.5 * n3(x, y * 1.4, z, 10, 22)) + bed * (1 - bm)
           if (y >= SEA - 1 && y <= SEA + 2) s3 -= 1.4 * (1 - bm)
           solid = s3 >= 0 && y <= landHeight(s3, i)
         }

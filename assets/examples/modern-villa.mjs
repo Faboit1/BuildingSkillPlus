@@ -33,7 +33,7 @@ export default function build(api) {
 
   // ---------------------------------------------------------------- site
   const UP = 20, LOW = 15, LEDGE = 14
-  const coastS = x => 43.2 + 1.8 * n2(x, 0, 6, 5) + (x < 12 ? (12 - x) * 0.35 : 0)
+  const coastS = x => 43.2 + 1.8 * n2(x, 0, 6, 5) + (x < 14 ? (14 - x) * 0.5 : 0)
   const coastE = z => 56.8 + 1.5 * n2(0, z, 6, 6)
   const landD = (x, z) => smin(coastS(x) - z, coastE(z) - x, 6) + 0.9 * n2(x, z, 4, 9) + 0.6 * n2(x, z, 2.5, 19)  // ragged coast: in/out 2-3 blocks
   const hLand = (x, z) => {
@@ -42,20 +42,22 @@ export default function build(api) {
     h -= 6 * smooth((14 - x) / 10) * smooth((z - 40) / 8)
     return h + 0.35 * n2(x, z, 14, 3)
   }
-  const BEACH = (x, z) => smooth((16 - x) / 8) * smooth((z - 41) / 6)
+  const BEACH = (x, z) => smooth((17 - x) / 7) * smooth((z - 38) / 5)               // 0..1, the SW cove
   const raw = (x, z) => {
     const d = landD(x, z)
     const land = hLand(x, z)
-    const seabed = SEA - 2.2 - Math.min(2.2, -d * 0.4) + 0.6 * n2(x, z, 7, 4)
-    let h = d < 0 ? seabed : SEA - 2 + (land - SEA + 2) * smooth(d / 3 + 0.35 * n2(x, z, 3, 8))       // noisy profile = ledges + buttresses
     const bch = BEACH(x, z)
-    if (bch > 0) h = h * (1 - bch) + Math.max(seabed, SEA + 1.2 + 0.45 * d) * bch
-    return h
+    const seabed = SEA - 2.2 - Math.min(2.2, -d * 0.4) + 0.6 * n2(x, z, 7, 4)
+    if (d < 0) return seabed
+    // in the cove the cliff foot is pushed 5 blocks inland and a flat sand/shingle shelf fills the gap
+    const dc = d - 6 * bch
+    const cliff = SEA - 2 + (land - SEA + 2) * smooth(dc / 3 + 0.35 * n2(x, z, 3, 8))  // noisy profile = ledges + buttresses
+    return bch > 0.15 ? Math.max(SEA + (d > 1.2 ? 1 : 0), cliff) : cliff
   }
   const HM = Array.from({ length: W }, (_, x) => Array.from({ length: D }, (_, z) => Math.round(raw(x, z))))
   const hAt = (x, z) => HM[Math.max(0, Math.min(W - 1, x))][Math.max(0, Math.min(D - 1, z))]
   const slope = (x, z) => Math.max(...[[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dz]) => Math.abs(hAt(x + dx, z + dz) - hAt(x, z))))
-  const ROCK = ['stone', 'andesite', 'stone', 'tuff', 'stone', 'andesite', 'stone', 'cobblestone']
+  const ROCK = ['tuff', 'andesite', 'tuff', 'cobbled_deepslate', 'stone', 'tuff', 'deepslate', 'andesite', 'tuff', 'stone']  // a darker volcanic coast: the white villa pops against it
   const strata = (x, y, z) => {
     if (y <= SEA + 1 && hash(x, y, z, 3) < 0.6) return hash(x, y, z, 4) < 0.5 ? 'deepslate' : 'tuff'
     const band = Math.floor((y + 2.2 * n2(x, z, 8, 7, 2)) / 2)
@@ -65,7 +67,7 @@ export default function build(api) {
   const surface = (x, y, z) => {
     const s = slope(x, z)
     if (y < SEA) return kit.palette({ sand: 3, gravel: 2, clay: 1 }, { scale: 2, seed: 9 })
-    if (BEACH(x, z) > 0.3 && y <= SEA + 3) return y <= SEA ? 'sand' : kit.palette({ sand: 6, gravel: 1 }, { scale: 2, seed: 10 })
+    if (BEACH(x, z) > 0.15 && y <= SEA + 1) return kit.palette({ sand: 6, gravel: 1 }, { scale: 2, seed: 10 })
     if (s >= 2) return kit.noise.coherent01(x, y, z, { scale: 3, seed: 21 }) > 0.72 ? 'moss_block' : strata(x, y, z)  // moss in clumps
     if (y <= SEA + 1) return kit.palette({ gravel: 2, sand: 1 }, { scale: 2, seed: 11 })
     return grassMix

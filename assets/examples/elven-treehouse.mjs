@@ -518,7 +518,8 @@ export default function build(api) {
   // and the shell is as thick as the local slope so it never shows a gap.
   const ROOF = kit.material('oxidized_cut_copper')
   const bellRoof = ([cx, y0, cz], R, H, { p = 1.7, lip = 0.7, wallR = 0, finial } = {}) => {
-    const hAt = d => H * Math.pow(clamp(1 - d / R, 0, 1), p) + lip * clamp((d - (R - 2)) / 2, 0, 1) ** 2
+    const h0 = d => H * Math.pow(clamp(1 - d / R, 0, 1), p) + lip * clamp((d - (R - 2)) / 2, 0, 1) ** 2
+    const hAt = d => (d < 1.5 ? h0(1.5) + (1.5 - d) * 1.2 : h0(d)) // no needle: the apex rises at 45 degrees
     const slopeAt = d => (hAt(Math.max(0, d - 0.5)) - hAt(d + 0.5))
     // steep rows: whole-block heights, every top cell a stair facing the apex (smooth 45-degree
     // courses, like vanilla roofs); gentle eave flare: half-block heights with slabs
@@ -611,7 +612,7 @@ export default function build(api) {
       else if (isPost) b.set(x, y, z, 'minecraft:stripped_birch_log[axis=y]')
     }
   }
-  bellRoof([C[0], YC + 4, C[1]], CR + 2.6, 7, { p: 1.6, wallR: CR })
+  bellRoof([C[0], YC + 4, C[1]], CR + 2.6, 8, { p: 2.1, wallR: CR })
   b.tubeAlong(cTrunk, cR, BARK, { mask: (x, y, z) => y > YC + 4 })
 
   // ------------------------------------------------------------------ spiral stair
@@ -671,6 +672,110 @@ export default function build(api) {
     if (c.edge) {
       b.set(c.x, y + 1, c.z, 'minecraft:birch_fence')
       if (Math.abs(c.t - 0.33) < 0.02 || Math.abs(c.t - 0.66) < 0.02) b.set(c.x, y + 2, c.z, lantern)
+    }
+  }
+
+
+  // ------------------------------------------------------------------ landscape
+  // Ground work uses the heightmap (ground(x, z)), never b.topY: under a canopy the top block
+  // of a column is a leaf, so topY-based helpers (b.path, b.scatter) would paint the crown.
+  const RIVER = (x, z) => streamD(x, z)
+  const surfaceMix = {
+    bank: kit.palette({ gravel: 4, mud: 2, clay: 1, coarse_dirt: 2 }, { scale: 2.5, seed: 31 }),
+    roots: kit.palette({ moss_block: 5, rooted_dirt: 3, podzol: 3, coarse_dirt: 2 }, { scale: 3, seed: 32 }),
+    floor: kit.palette({ grass_block: 9, podzol: 4, moss_block: 3, coarse_dirt: 2 }, { scale: 4, seed: 33 }),
+    meadow: kit.palette({ grass_block: 20, coarse_dirt: 1, podzol: 1 }, { scale: 5, seed: 34 }),
+  }
+  for (let x = 0; x < W; x += 1)
+    for (let z = 0; z < D; z += 1) {
+      if (!inIsland(x, z)) continue
+      const y = ground(x, z)
+      if (b.nameAt(x, y, z) !== 'minecraft:grass_block') continue
+      const dT = Math.hypot(x - T[0], z - T[1]) + 3 * noise.fbm2(x, z, { scale: 6, seed: 35 })
+      if (RIVER(x, z) < 4.2 && y <= WATER + 1) b.set(x, y, z, surfaceMix.bank)
+      else if (dT < 15) b.set(x, y, z, surfaceMix.roots)
+      else if (dT < 26) b.set(x, y, z, surfaceMix.floor)
+      else b.set(x, y, z, surfaceMix.meadow)
+    }
+
+  // Footpath: from the south rim, between the prop root and the pool, to the stair foot.
+  // Pale stepping stones (calcite / polished diorite) down the middle, worn earth at the edges.
+  const PATH = [[40, 79], [39, 71], [40.5, 62], [42.5, 53], [43, 47], [foot[0] + 0.5, foot[2] + 1.5]]
+  const pathS = kit.catmullRom(PATH.map(([x, z]) => [x, 0, z]), { samplesPerBlock: 3 })
+  const onPath = new Set()
+  for (const p of pathS) {
+    const w = 1.3 + 0.4 * noise.fbm2(p[0], p[2], { scale: 6, seed: 36 })
+    for (let x = Math.floor(p[0] - 2); x <= Math.ceil(p[0] + 2); x += 1)
+      for (let z = Math.floor(p[2] - 2); z <= Math.ceil(p[2] + 2); z += 1) {
+        const d = Math.hypot(x - p[0], z - p[2])
+        if (d > w || onPath.has(x * 1000 + z) || !inIsland(x, z)) continue
+        const y = ground(x, z)
+        if (!/grass_block|podzol|moss_block|coarse_dirt|rooted_dirt|gravel/.test(b.nameAt(x, y, z) ?? '')) continue
+        onPath.add(x * 1000 + z)
+        const stone = d < 0.75 && kit.hash01(Math.round(p[0] / 2), 0, Math.round(p[2] / 2), 37) < 0.8
+        b.set(x, y, z, stone ? (kit.hash01(x, y, z, 38) < 0.5 ? 'minecraft:calcite' : 'minecraft:polished_diorite') : kit.palette({ dirt_path: 5, coarse_dirt: 2, moss_block: 1 }, { scale: 2, seed: 39 }))
+      }
+  }
+  const nearPath = (x, z, r = 2) => {
+    for (let dx = -r; dx <= r; dx += 1) for (let dz = -r; dz <= r; dz += 1) if (onPath.has((x + dx) * 1000 + z + dz)) return true
+    return false
+  }
+
+  // Spring: a mossy rock outcrop on the north rim with a little fall feeding the stream.
+  const gS = ground(54, 4)
+  const rockSdf = kit.sdf.displace(kit.sdf.smoothUnion(2.5,
+    kit.sdf.ellipsoid([55, gS + 2, 3], [5.5, 6, 4]),
+    kit.sdf.ellipsoid([49.5, gS + 1, 2.5], [4, 4, 3.5]),
+    kit.sdf.ellipsoid([60, gS, 6], [3.5, 3.5, 3.5])), 0.8, 4, 71)
+  const ROCK = 'minecraft:light_gray_wool'
+  b.sdf([42, gS - 3, 0], [66, gS + 10, 12], rockSdf, ROCK, { mask: (x, y, z) => inIsland(x, z) && y > ground(x, z) - 3 })
+  {
+    let top = gS + 1
+    for (let y = gS + 10; y > gS; y -= 1) if (b.get(53, y, 5)) { top = y; break }
+    b.set(53, top, 5, 'minecraft:water') // source in a notch at the lip
+    for (let y = top; y > WATER; y -= 1) b.set(53, y, 6, 'minecraft:water[level=8]')
+    for (let y = top; y > WATER; y -= 1) if (y < top - 1) b.set(53, y, 7, b.get(53, y, 7) ? 'minecraft:water[level=8]' : null)
+    for (let x = 52; x <= 54; x += 1) for (let z = 6; z <= 8; z += 1) {
+      if (ground(x, z) < WATER) for (let y = ground(x, z) + 1; y <= WATER; y += 1) b.set(x, y, z, 'minecraft:water')
+    }
+  }
+
+  // ------------------------------------------------------------------ texture
+  if (at('texture')) {
+    // Bark: one shading pass over everything still in the placeholder. The ramp (dark -> light)
+    // mixes four barks of close value: spruce 17, dark oak 20, mangrove 29, oak 38. Occluded
+    // creases, root junctions and undersides go dark, sunlit ridges and limb tops go light; the
+    // vertical furrow noise baked into the SDF gives the shading something to grip.
+    b.shadeSurface([0, 0, 0], [W - 1, H - 1, D - 1], ['spruce_wood', 'dark_oak_wood', 'mangrove_wood', 'oak_wood'], { only: BARK, base: 0.25, noise: 0.16, scale: 4, interior: 'darkest', seed: 5 })
+    b.shadeSurface([0, 0, 0], [W - 1, H - 1, D - 1], ['tuff', 'stone', 'andesite', 'mossy_cobblestone'], { only: ROCK, noise: 0.2, scale: 3, interior: 'darkest', seed: 6 })
+    b.shadeSurface([0, 0, 0], [W - 1, H - 1, D - 1], ['tuff', 'stone', 'andesite'], { only: 'minecraft:light_gray_wool', interior: 'darkest', seed: 7 })
+
+    // Moss where water and leaf litter collect: on upward faces, heavier near the ground and in
+    // clumps; never an even green coat.
+    const BARKS = /^minecraft:(spruce|dark_oak|mangrove|oak)_wood$|^minecraft:(tuff|stone|andesite)$/
+    for (const [x, y, z, blk] of b.entries()) {
+      if (!BARKS.test(blk.name) || b.get(x, y + 1, z)) continue
+      const low = y < g0 + 7
+      const m = noise.coherent01(x, y, z, { scale: 4, seed: 31 })
+      if (m < (low ? 0.5 : 0.3)) {
+        b.set(x, y, z, 'minecraft:moss_block')
+        if (low && m < 0.22 && free(x, y + 1, z)) b.set(x, y + 1, z, 'minecraft:moss_carpet')
+      }
+    }
+
+    // Leaves: underside in shadow (spruce leaves, dark blue-green), sunlit top in azalea
+    // (yellow-green) with a few flowering clumps, body oak / dark oak (same green, different
+    // texture). Coherent noise keeps every accent in clumps.
+    const LEAVES = 'minecraft:oak_leaves'
+    for (const [x, y, z, blk] of b.entries()) {
+      if (blk.name !== LEAVES) continue
+      const n = noise.coherent01(x, y, z, { scale: 3, grain: 0.1, seed: 41 })
+      const up = b.get(x, y + 1, z)
+      const down = b.get(x, y - 1, z)
+      let id = n < 0.55 ? 'oak_leaves' : 'dark_oak_leaves'
+      if (!down || !/_leaves$/.test(down.name)) id = n < 0.62 ? 'spruce_leaves' : 'dark_oak_leaves'
+      else if (!up) id = n < 0.38 ? 'azalea_leaves' : n < 0.47 ? 'flowering_azalea_leaves' : n < 0.8 ? 'oak_leaves' : 'dark_oak_leaves'
+      if (id !== 'oak_leaves') b.set(x, y, z, `minecraft:${id}`)
     }
   }
 
