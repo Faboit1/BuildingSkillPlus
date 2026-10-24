@@ -4,6 +4,7 @@
 import * as blocks from './blocks.mjs'
 import { ARCH_METHODS, onionProfile } from './arch.mjs'
 import { Builder } from './builder.mjs'
+import { EASTROOF_METHODS } from './eastroof.mjs'
 import { FOREST_METHODS } from './forest.mjs'
 import { IMPORT_METHODS } from './importer.mjs'
 import * as colors from './colors.mjs'
@@ -15,7 +16,7 @@ import * as plan from './plan.mjs'
 import { ROOFPLAN_METHODS } from './roofplan.mjs'
 import { EROSION_PRESETS, SCULPT_METHODS, centripetalCatmullRom, sdEllipsoid, sdTaper } from './sculpt.mjs'
 
-for (const [name, fn] of Object.entries({ ...ARCH_METHODS, ...ROOFPLAN_METHODS, ...NATURE_METHODS, ...FOREST_METHODS, ...plan.PLAN_METHODS, ...SCULPT_METHODS, ...IMPORT_METHODS })) {
+for (const [name, fn] of Object.entries({ ...ARCH_METHODS, ...ROOFPLAN_METHODS, ...EASTROOF_METHODS, ...NATURE_METHODS, ...FOREST_METHODS, ...plan.PLAN_METHODS, ...SCULPT_METHODS, ...IMPORT_METHODS })) {
   Builder.prototype[name] = function method(...args) {
     return fn(this, ...args)
   }

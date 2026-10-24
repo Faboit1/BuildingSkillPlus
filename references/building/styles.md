@@ -32,9 +32,9 @@ How to read an entry:
 | Wizard tower | tall thin, flared upper floors, witch-hat cone | `coneRoof` pitch 3, overhang 2 | tuff_bricks 43 · deepslate_tiles 23 · amethyst | `assets/examples/wizard-tower.mjs` |
 | Cottagecore / fairy | small, round, oversized thatch/moss roof, flowers | `gable` `[0.5, 1, 2, 2]` | white_terracotta 75 · bamboo_mosaic 70 | — |
 | Gothic | vertical, pointed arches, buttresses, spires | `gable` pitch 2; spires `pyramid` pitch 3 | stone_bricks 51 · deepslate_tiles 23 | `assets/examples/gothic-cathedral.mjs` |
-| Japanese temple / shrine | deep curved eaves, raised floor, visible posts | `hip` `[0.5, 0.5, 1, 1]` overhang 2 (+ gable top = irimoya) | calcite 89 · deepslate_tiles 23 · mangrove red 31 | `assets/examples/japanese-shrine.mjs` |
-| Pagoda | odd tiers stepping in, eave skirts, spire | per tier `hip` `[0.5, 0.5, 1]` overhang 2 | deepslate_tiles 23 · white 90 · red posts | `japanese-shrine.mjs` |
-| Chinese palace | axial symmetry, white terrace, red columns, coloured brackets | `hip` `[0.5, 0.5, 1, 1]`, double eaves | red_terracotta 37 · smooth_quartz 92 | — |
+| Japanese temple / shrine | deep curved eaves, raised floor, visible posts | `b.eastRoof` `type: 'irimoya'`, `[0.5, 0.5, 0.5, 0.5, 1 …]`, overhang 3, `lift: 2` (pavilions `hip`/`gable`, lift 1) | calcite 89 · deepslate_tiles 23 · mangrove red 31 | `assets/examples/japanese-shrine.mjs` |
+| Pagoda | odd tiers stepping in, eave skirts, spire | `b.pagoda({ tiers: 5 })` (skirts `[0.5, 0.5, 1, 1, 1]`, lift 1.5) | deepslate_tiles 23 · white 90 · red posts | `japanese-shrine.mjs` |
+| Chinese palace | axial symmetry, white terrace, red columns, coloured brackets | double eave: `b.eastRoof` skirt (`stopAt`) + upper `hip` `[0.5 ×4, 1, 1, 1]`, `rafter: 'warped'` | red_terracotta 37 · smooth_quartz 92 | — |
 | Cycladic / Santorini | white stacked cubes, flat roofs, one blue dome | flat + `b.dome` | white_concrete_powder 90 · blue_concrete 25 | `assets/examples/coastal-village.mjs` |
 | Tuscan / Spanish | stucco, low red-tile roofs, arcades | `hip` pitch `0.5`, material `brick` | smooth_sandstone 86 · bricks 47 | — |
 | Desert / Moorish | thick walls, flat roofs, domes, horseshoe arches | flat; `b.lathe(kit.onionProfile)` domes | sandstone 82 · cyan/blue tile accents | `assets/examples/desert-palace.mjs` |
@@ -66,11 +66,12 @@ section repeats the relevant line.
 | Bell-cast / thatch | `pitch: [0.5, 1, 2, 2]` | soft flared eave, steep top |
 | Gambrel barn | `type: 'gable', pitch: [2, 2, 0.5, 0.5]` | barn profile, rounded shoulder from the gable end |
 | Low Mediterranean | `type: 'hip', pitch: 0.5, material: 'brick'` | low tiled hip |
-| East-Asian hip | `type: 'hip', pitch: [0.5, 0.5, 1, 1], overhang: 2` | deep flat brim then gentle rise; reads Asian |
-| (avoid) | `type: 'hip', pitch: [0.5, 0.5, 1, 1, 2]` | trailing steep rows on a **hip** stack into a narrow ziggurat spike; keep `2` rows for gables only |
-| Irimoya (hip-and-gable) | East-Asian hip as above, then `b.roof({ x0+3…x1-3, y: hip.base + 4, type: 'gable', pitch: [1, 1, 2], gable: 'stripped_dark_oak_log[axis=y]', overwrite: false })` | reads as a temple roof |
-| Double eave (Chinese) | lower `hip` `[0.5, 0.5, 1]` overhang 2 at the colonnade top, then `b.box(inner, 'air')` above it, upper walls, then the main `hip` overhang 3 | two distinct roof tiers with a wall band between |
-| Pagoda tier | each tier `hip`, `pitch: [0.5, 0.5, 1]`, `overhang: 2`; tiers 1 smaller per side; next tier starts 2 above the previous roof's wall line; top `pyramid` `[0.5, 0.5, 1, 1, 2]` | convincing 3-tier pagoda |
+| East-Asian hip | `b.eastRoof({ …, type: 'hip', pitch: [0.5, 0.5, 1, 1, 1], overhang: 2, lift: 1 })` | flat slab brim, 1:1 body, corner tips flick up; hip lines in `ridge` material |
+| (avoid) | any **hip** pitch ending in `2` that repeats (`[0.5, 0.5, 1, 1, 2]` on a big hip) | the steep rows stack into a ziggurat spike (eastRoof warns); end hip lists in `1` |
+| Irimoya (hip-and-gable) | `b.eastRoof({ …, type: 'irimoya', overhang: 3, lift: 2, pitch: [0.5, 0.5, 0.5, 0.5, 1, 1, 1, 1, 1, 1], gable: 'calcite', barge: true })` | temple roof: gable triangle set back behind a bargeboarded rake, ridge horns; needs ~13+ across the eave |
+| Kohai / porch canopy | second `b.eastRoof({ type: 'gable', axis: <toward the front>, …, above: hallRoof })` starting inside the hall walls | clean valleys into the main slope, no overlap clutter |
+| Double eave (Chinese) | lower `b.eastRoof` hip `[0.5, 0.5, 1]` overhang 2 at the colonnade top with `stopAt: <upper wall rect>`, upper walls 7–8 rows above it, then the main hip overhang 3, lift 2 | two eaves with a red wall band and teal bracket rows between (snippet in §5.5) |
+| Pagoda tier | `b.pagoda(…)`; by hand: each tier `type: 'hip', eaveY: top - 1, overhang: 3, lift: 1.5, thickness: 1.5, rim: top + 1, stopAt: <next storey walls>` | dense stack of upturned skirts, lanterns under the tips |
 | Mansard | `type: 'mansard'` (default profile `[2, 2, 3, 0.5]`) | steep sides, flat crown |
 | Pediment | `type: 'gable', axis: <toward the front>, pitch: 0.5, material: 'smooth_quartz', gable: 'smooth_quartz'` | low classical pediment |
 | Hut / lighthouse cone | `b.coneRoof(c, r, { pitch: 1, flare: false })` | low cone |
@@ -655,15 +656,20 @@ too short; all-black dark gothic with no lighter trim; rainbow glass everywhere.
 ### 5.1 Roof grammar (all East-Asian styles)
 
 - **Deep curved eaves are the style.** Profile from the eave inward: shallow slabs first, steepening to
-  the ridge; overhang 2 (3–4 on temples); corners lifted half a block. In the kit: `type: 'hip'`,
-  `pitch: [0.5, 0.5, 1, 1]`, `overhang: 2` ✓. A trailing `2` on a hip makes a ziggurat spike — steep rows
-  only on gables or the top gable of an irimoya.
+  the ridge; overhang 2 (3–4 on temples); corners lifted. Use `b.eastRoof` (kit-api.md): `pitch`
+  `[0.5, 0.5, 1, 1, 1]` on small roofs, `[0.5, 0.5, 0.5, 0.5, 1, 1, 1 …]` on halls (keep an even number
+  of leading 0.5s or the stairs land on half levels), `lift` 1 (pavilion) / 1.5 (pagoda) / 2 (hall),
+  `rafter: 'spruce'` for the warm soffit band under dark tiles, `ridge: 'polished_blackstone'` for hip
+  and ridge lines one value darker than `deepslate_tile`. End hip pitch lists in `1`; a trailing `2`
+  repeats into a spike.
+- **Joins:** porches, kohai and wings are second roofs built with `above: mainRoof`; they appear only
+  where they rise above the main roof, which makes the valleys.
+- **Small roofs** (under ~12 across): use `ridge` = the roof material or a near value; a high-contrast
+  ridge clusters at the lifted corners.
 - **Irimoya (hip-and-gable)** = hip skirt + small gable on the inner core (✓, verified recipe above);
   **kirizuma** = plain gable with the same profile (✓ `[0.5, 0.5, 1, 1, 2]`); **yosemune** = hip.
 - Make the top wall course a dark beam (`stripped_dark_oak_log[axis=x|z]`) — it hides the soffit gap and
   is authentic.
-- Corner lift beyond the kit profile: `assets/examples/japanese-shrine.mjs` builds its own roof
-  heightfield with lifted corners and a hip bead — copy it for hero roofs.
 - Posts always visible; walls are screens between posts; floor raised 1–3 on posts or a stone plinth.
 
 ```
@@ -692,22 +698,16 @@ mast finial ¼–⅓ of the height (`chain` + `lightning_rod`, gold rings); ston
 **Kit** (✓)
 
 ```js
-const tiers = [{ r: 4, h: 5 }, { r: 3, h: 4 }, { r: 2, h: 4 }]
-let y = g + 1
-b.box([cx - 6, g - 1, cz - 6], [cx + 6, g, cz + 6], 'stone_bricks')
-tiers.forEach((t, i) => {
-  const [x0, x1, z0, z1] = [cx - t.r, cx + t.r, cz - t.r, cz + t.r]
-  b.walls([x0, y, z0], [x1, y + t.h - 1, z1], 'white_concrete_powder')
-  for (const [px, pz] of [[x0, z0], [x0, z1], [x1, z0], [x1, z1]]) b.box([px, y, pz], [px, y + t.h - 1, pz], 'stripped_mangrove_log[axis=y]')
-  b.walls([x0, y + t.h - 1, z0], [x1, y + t.h - 1, z1], 'stripped_mangrove_log[axis=x]')       // eave beam
-  const top = i === tiers.length - 1
-  const r = b.roof({ x0, z0, x1, z1, y: y + t.h, type: top ? 'pyramid' : 'hip', material: 'deepslate_tile', pitch: top ? [0.5, 0.5, 1, 1, 2] : [0.5, 0.5, 1], overhang: 2, eaveTrim: true })
-  if (top) for (let k = 1; k <= 4; k += 1) b.set(cx, r.topY + k, cz, k === 4 ? 'lightning_rod' : 'chain[axis=y]')
-  y += t.h + 2
-})
+// platform (2 courses) under a 5-tier pagoda: bodies W = 5,4,4,3,3, skirts E = 9..5, sorin on top
+b.box([cx - 8, g + 1, cz - 8], [cx + 8, g + 1, cz + 8], 'stone_bricks')
+b.box([cx - 7, g + 2, cz - 7], [cx + 7, g + 2, cz + 7], 'polished_andesite')
+b.pagoda({ center: [cx, g + 3, cz], tiers: 5, width: 11, overhang: 4, storey: 6,
+  material: 'deepslate_tile', ribs: 'deepslate_brick', ridge: 'polished_blackstone', rafter: 'spruce' })
+// 3 tiers: { tiers: 3, width: 9, overhang: 3 }; Chinese/red: wall 'white_terracotta', post 'stripped_mangrove_log'
 ```
 
-(The beam ring uses `axis=x` on all four sides for brevity; use `axis=z` on the east/west walls.)
+Keep `storey` at 6 (5 or less hides the upper bodies behind the skirts).
+
 
 **Mistakes:** even tier count; equal tiers; straight 45° roofs without brim; no finial; tall gaps between
 tiers (a pagoda is a dense stack of roofs).
@@ -789,25 +789,26 @@ imperial yellow or grey/green tile roofs; lattice doors; moon gates; stone lions
 | Ridge / accent | gold_block, honeycomb_block ornaments; lapis / blue_terracotta frieze panels | – | 4% |
 | Light | lantern; red paper lanterns (`shroomlight` in a `mangrove_fence` cage) | – | – |
 
-**Kit** (✓ double-eave hall; build order matters — the skirt is a full hip, so clear its middle)
+**Kit** (✓ double-eave hall with `b.eastRoof`: the lower skirt stops at the upper walls via `stopAt`)
 
 ```js
 b.box([x0 - 3, g, z0 - 3], [x1 + 3, g + 2, z1 + 3], kit.palette({ smooth_quartz: 4, quartz_bricks: 2, calcite: 2, polished_diorite: 2 }))
-b.walls([x0 - 3, g + 3, z0 - 3], [x1 + 3, g + 3, z1 + 3], 'diorite_wall')                                   // balustrade
-for (let x = x0; x <= x1; x += 4) for (const z of [z0, z1]) b.box([x, g + 3, z], [x, g + 7, z], 'stripped_mangrove_log[axis=y]') // colonnade (same on x0/x1)
-b.roof({ x0, z0, x1, z1, y: g + 8, type: 'hip', material: 'deepslate_tile', pitch: [0.5, 0.5, 1], overhang: 2, eaveTrim: true }) // lower eave
-b.box([x0 + 2, g + 8, z0 + 2], [x1 - 2, g + 40, z1 - 2], 'air')                                            // keep only the skirt
-const top = g + 12
-b.walls([x0 + 2, g + 3, z0 + 2], [x1 - 2, top, z1 - 2], 'red_terracotta')
-for (let x = x0 + 2; x <= x1 - 2; x += 1) for (const [z, f] of [[z0 + 1, 'south'], [z1 - 1, 'north']])
-  b.set(x, top, z, `oxidized_cut_copper_stairs[facing=${f},half=top]`)                                       // bracket row (same on x sides)
-b.walls([x0 + 2, top, z0 + 2], [x1 - 2, top, z1 - 2], 'stripped_dark_oak_log[axis=x]')
-b.roof({ x0: x0 + 2, z0: z0 + 2, x1: x1 - 2, z1: z1 - 2, y: top + 1, type: 'hip', material: 'deepslate_tile', pitch: [0.5, 0.5, 1, 1], overhang: 3, eaveTrim: true })
+b.walls([x0 - 3, g + 3, z0 - 3], [x1 + 3, g + 3, z1 + 3], 'diorite_wall')                                     // balustrade
+for (let x = x0; x <= x1; x += 2) for (const z of [z0, z1]) b.box([x, g + 3, z], [x, g + 7, z], 'stripped_mangrove_log[axis=y]')
+for (let z = z0; z <= z1; z += 2) for (const x of [x0, x1]) b.box([x, g + 3, z], [x, g + 7, z], 'stripped_mangrove_log[axis=y]')
+const inner = [x0 + 3, z0 + 3, x1 - 3, z1 - 3]
+const top = g + 15                                                       // 2-3 rows of wall show between the eaves
+b.walls([inner[0], g + 3, inner[1]], [inner[2], top, inner[3]], 'red_terracotta')
+b.walls([inner[0], top, inner[1]], [inner[2], top, inner[3]], 'stripped_dark_oak_log[axis=x]')
+const eave = { material: 'deepslate_tile', ridge: 'polished_blackstone', rafter: 'warped' } // teal soffit = painted brackets
+b.eastRoof({ x0, z0, x1, z1, y: g + 8, type: 'hip', ...eave, overhang: 2, lift: 1, pitch: [0.5, 0.5, 1], stopAt: inner, brackets: true })
+b.eastRoof({ x0: inner[0], z0: inner[1], x1: inner[2], z1: inner[3], y: top + 1, type: 'hip', ...eave,
+  overhang: 3, lift: 2, pitch: [0.5, 0.5, 0.5, 0.5, 1, 1, 1], brackets: { every: 2 }, lanterns: true })
 ```
 
-`bamboo_mosaic` gives an imperial-yellow roof (✓ reads, but it is bright straw yellow, C\* 49 — keep it to
-the one hero hall); `pitch: [0.5, 0.5, 0.5, 1]` makes a gentler, more Chinese curve than the Japanese
-`[0.5, 0.5, 1, 1]`.
+`material: 'bamboo_mosaic'` gives the imperial-yellow roof (keep it to the one hero hall);
+`'oxidized_cut_copper'` a green-glazed one. `rafter: 'warped'` turns the soffit and bracket rows
+teal, which reads as painted dougong under the eaves.
 
 **Mistakes:** asymmetry; plain dark Japanese wood (Chinese palaces are colourful); saturated concrete
 everywhere (red on columns/walls, blue-green on brackets only); flat or straight roofs; no terrace.

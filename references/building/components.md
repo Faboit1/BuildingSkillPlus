@@ -484,6 +484,11 @@ Concave roofs are the hardest shape to model (wiki); approximate the curve with 
 lift the corners. Profile: flat slabs at the eave, 1:1 over the walls, 2:1 near the ridge;
 overhang 2–4 with bracket sets under it.
 
+**Use `b.eastRoof` for these** (kit-api.md): hip, gable, irimoya and pyramid with corner lift, warm
+rafter soffit, hip and ridge lines, horns, brackets and tip lanterns; `stopAt` makes pagoda skirts and
+Chinese double eaves, `above` joins a canopy to the main roof; `b.pagoda` stacks whole pagodas. The
+hand-built recipe below shows what those calls produce, for when you need something they do not.
+
 ```text
 y11                          #
 y10                       /  #  \

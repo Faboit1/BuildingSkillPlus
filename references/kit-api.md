@@ -199,6 +199,179 @@ For a gable plan, outer corners where two wings are flush get a valley running t
 correct geometry, but it reads oddly. Set the wing back by 1–2 blocks or make the main block a hip
 (`type: 'mixed'`). `references/building/procedural.md` covers the algorithm.
 
+### `b.eastRoof(opts)` — East-Asian roofs (swept eaves, upturned corners, irimoya, skirts)
+
+Hip, gable (kirizuma), hip-and-gable (irimoya) and pyramid roofs with a concave sweep, deep eaves,
+corner lift (sori), a warm rafter soffit, hip and ridge lines, ridge-end horns, brackets and tip
+lanterns. Skirts that stop at the storey above give pagoda tiers, mokoshi and Chinese double eaves,
+and `above` joins a canopy or wing to a main roof with real valleys.
+
+```js
+const hall = b.eastRoof({
+  x0, z0, x1, z1,          // outer wall lines (inclusive), same as b.roof
+  y,                       // level of the roof row directly above the wall line (wall top + 1)
+                           //   or eaveY: block level of the outermost eave element (pagoda tiers)
+  type: 'hip',             // 'hip' | 'gable' | 'irimoya' | 'pyramid' (= hip, for square plans)
+  axis: 'x',               // ridge direction for gable / irimoya (default: the longer side)
+  material: 'deepslate_tile', // family with stairs + slab ('dark_oak', 'cherry', 'oxidized_cut_copper',
+                           //   'bamboo_mosaic'...); copper_block-style blocks use their substitutes;
+                           //   or { stairs, slab, block }
+  ribs: 'deepslate_brick', // optional: alternate tile courses (rows running down the slope)
+  ridge: 'polished_blackstone', // ridge line, hip lines, ridge-end horns (default: material)
+  rafter: 'spruce',        // soffit and eave fascia: everything under the top surface (alias underside)
+  pitch: [0.5, 0.5, 1, 1, 1], // rise per ring from the eave inward (b.roof semantics, see below)
+  overhang: 2,             // eave depth beyond the wall lines (3-4 on temples and pagodas)
+  gableOverhang,           // gable rake overhang (default overhang - 1, min 1; irimoya uses overhang)
+  lift: 1,                 // corner upturn in blocks: 0, 1 small roofs, 1.5 pagoda tiers, 2 big halls
+  liftReach: 2 * lift,     // blocks (Manhattan, from the corner) over which the lift fades out
+  liftCurve: 1,            // >1 concentrates the lift at the tip
+  thickness: 1,            // shell depth under the surface (1.5 = heavy pagoda eaves)
+  stopRing, stopAt,        // skirts: build rings < stopRing (ring 0 = eave row), or leave out the
+                           //   wall-line rect stopAt: [x0, z0, x1, z1] of the storey above
+  inset,                   // irimoya: hip rings at each gable end (default max(overhang + 1, span / 4))
+  gable, gableBeam,        // gable triangle paint (+ its bottom course), set back 1 (gableSetback) on irimoya
+  barge: true,             // bargeboards: rafter trapdoors on the gable rakes (or a trapdoor id)
+  ridgeEnds: true,         // onigawara horns at both ridge ends ('small' | 'large'; auto large at 13+ across)
+  brackets: true,          // upside-down rafter stairs under the soffit along the walls, 2 deep at
+                           //   the corners; { every: 3, depth: 2 } adds the 2-deep step every 3 (posts)
+  lanterns: true,          // a hanging lantern under each corner tip (or a lantern id)
+  finial: ['gold_block', 'lightning_rod'], // stacked on the apex (hip / pyramid)
+  above: mainRoof,         // only build where this roof rises above another roof (joins, valleys)
+  only: cell => true,      // custom subset; cell has x, z, top (surface y), y (top block), ring, sec, hip, ridge
+  rim, overwrite: true,    // rim: lowest level of the wall-line columns (default y); overwrite: false = fill air only
+})
+// → { topY, base, y, axis, inset, levels, outline, apex, field,
+//     heights: Map "x,z" → top block y, cells: Map "x,z" → { top, y, bottom, ring, sec, kind, facing ... },
+//     surface(x, z) → surface height (may be x.5; -Infinity off the roof), bottom(x, z) → lowest block or null }
+```
+
+How it reads: the roof is a heightfield in half blocks over the eave outline. Each column is a shell
+from the surface down to half a block below its lowest neighbour (at least `thickness`), so
+neighbouring columns always overlap: upturned corners and steep steps have no see-through gaps.
+Top pieces are tile, ridge material on hips and ridges; pieces that stand above the lowest
+neighbour are visible risers (tile); everything else is rafter, and a column whose lowest piece
+would be tile gets half a block of rafter under it, so the whole soffit reads warm from below.
+Stairs face uphill; finish() computes their corner shapes.
+
+- **Pitch** works like `b.roof`: entry i is the rise from ring i-1 to ring i, entry 0 only picks slab
+  (≤ 0.5) or stair, and the **last value repeats** up to the ridge. On hips and pyramids a trailing
+  steep value stacks into a spike (`[0.5, 0.5, 1, 1, 2]` on a 19-wide hip ends in six 2-rises; the
+  builder warns), so end hip lists in `1`. A single trailing 2 that is used once is fine: the
+  pagoda top uses it to lift the apex for the finial. Keep an **even number of leading 0.5s**
+  (counting entry 0): `[0.5, 0.5, 1, …]` and `[0.5, 0.5, 0.5, 0.5, 1, …]` put the stair rings on
+  whole levels; an odd count puts every later ring on x.5 levels (slab-on-block steps, no stairs).
+- **Profiles** (verified): small roofs `[0.5, 0.5, 1, 1, 1]`; temple halls `[0.5, 0.5, 0.5, 0.5, 1, 1, 1, 1, 1, 1]`
+  (long flat brim, then 1:1); pagoda skirts `[0.5, 0.5, 1, 1, 1]`; Chinese upper eave `[0.5, 0.5, 0.5, 0.5, 1, 1, 1]`,
+  lower skirt `[0.5, 0.5, 1]`.
+- **Lift** fades by half a block per block from each corner (Manhattan). Inside the lift zone the hip
+  line has no bead and runs in ridge material out to the tip, so it dips and flicks up like a real
+  sori hip. `lift: 2` on a 23-long hall, 1.5 on pagoda tiers, 1 on pavilions and canopies.
+- **y / walls:** inside the wall lines, pieces below `y` only fill empty space (wall tops and plates
+  survive); wall-line columns reach down to `rim` (default `y`), so the roof always closes onto the
+  wall. Build walls first, then the roof, then posts that should cut through it.
+- **Irimoya** = hip field + gable field on the same outline: the gable rises `inset` rings in from the
+  hip ends, its rake is a thin shell, the triangle (`gable`) sits one block behind the rake, and
+  `barge` adds bargeboards. The triangle needs about 13+ blocks across the eave outline; on smaller
+  roofs the gable rises only a ring or two above the hip (a pavilion look).
+- **Joins:** build the main roof first, then the canopy or wing with `above: main`. Only cells that
+  rise above the main surface are drawn, so the union of the two surfaces is the valley. Start the
+  canopy's footprint inside the main walls and keep its eave at or below the main eave.
+
+```js
+// Temple hall: irimoya, deep eaves, brackets, lanterns (17 x 13 walls, wall top 8)
+const hall = b.eastRoof({ x0: 12, z0: 10, x1: 28, z1: 22, y: 9, type: 'irimoya',
+  material: 'deepslate_tile', ribs: 'deepslate_brick', ridge: 'polished_blackstone', rafter: 'spruce',
+  overhang: 3, lift: 2, pitch: [0.5, 0.5, 0.5, 0.5, 1, 1, 1, 1, 1, 1],
+  gable: 'calcite', gableBeam: 'stripped_dark_oak_log[axis=z]', barge: true, brackets: { every: 4 }, lanterns: true })
+// Kohai: a gabled canopy over the steps, joined to the hall slope (valleys come from `above`)
+b.eastRoof({ x0: 16, z0: 20, x1: 24, z1: 27, y: 8, type: 'gable', axis: 'z', material: 'deepslate_tile',
+  ridge: 'polished_blackstone', rafter: 'spruce', overhang: 1, gableOverhang: 1, lift: 1, pitch: [0.5, 0.5, 1, 1, 1, 1],
+  gable: (x, y, z) => (x === 20 ? 'dark_oak_log[axis=y]' : 'calcite'), above: hall })
+// Pagoda tier by hand: a skirt that stops at the next storey's walls (W = half-widths)
+b.eastRoof({ x0: cx - W, z0: cz - W, x1: cx + W, z1: cz + W, eaveY: top - 1, type: 'hip', overhang: 3, lift: 1.5,
+  thickness: 1.5, rim: top + 1, stopAt: [cx - Wn, cz - Wn, cx + Wn, cz + Wn], brackets: true, lanterns: true })
+```
+
+### `b.pagoda(opts)` — stacked storeys under swept skirts
+
+```js
+b.pagoda({ center: [cx, y, cz], tiers: 5, width: 11, overhang: 4, storey: 6,
+  material: 'deepslate_tile', ridge: 'polished_blackstone', ribs: 'deepslate_brick', rafter: 'spruce',
+  wall: 'calcite', post: 'dark_oak_log', beam: 'stripped_dark_oak_log', lift: 1.5, thickness: 1.5 })
+// → { tiers: [{ W, E, floor, top, roof }], apex: [x, y, z], topY }
+```
+
+`y` is the first storey's bottom row (build the platform below it). Body half-widths shrink by one
+every second storey (`taper: 0.5`: W = 5, 4, 4, 3, 3), roof half-widths by one per storey
+(E = 9, 8, 7, 6, 5), so the eaves stay 2-4 deep and the tower tapers; each skirt stops at the next
+body, the top is a pyramid whose apex ring rises 2 (`topPitch`), and a sorin (`finial` list, default
+about 22 % of the height; `false` for none) stands on it. Bodies get corner and bay posts, a top
+beam, lattice doors over a lit panel (`door`) on the ground storey, lattice panels above, a lantern
+on every storey floor and a central pillar. `storey` may be a list; 5 rows or fewer hide the upper
+bodies behind the skirts.
+
+### `b.roofField(opts)` — any roof from a height function
+
+The same shell, stair, soffit and watertightness rules as `eastRoof`, for surfaces that no
+rectangle-based roof can make: hogback (sagging) ridges, bowed walls, bell-cast and ogee profiles,
+round bell roofs, arched decks.
+
+```js
+const roof = b.roofField({
+  x0, z0, x1, z1,          // box to sample (inclusive)
+  y: 0,                    // level where height 0 sits
+  height: (x, z) => h,     // surface in blocks above y (rounded to half blocks); null = no roof there
+  material, ribs, ridge, rafter, thickness: 1, only,
+  capRidge: 1,             // a column above all its neighbours stands at most 1 above the highest (no fins)
+  ridgeAt: (x, z) => bool, // ridge-material cells (default: both opposite neighbours on one axis lower,
+                           //   which follows a sagging ridge)
+  section: (x, z) => label,// neighbours in other sections are ignored (thin rakes over a lower roof)
+  edge: (x, z) => bool,    // which missing neighbours are eave edges (default all: whole-level eave cells become stairs)
+  rim: { test(x, z), level }, keepBelow: { test(x, z), level }, // close onto walls / spare walls below a level
+})
+// → { topY, base, heights, cells, field, surface(x, z), bottom(x, z) }
+```
+
+```js
+// Viking longhouse: bowed long walls (half-width 5 at the gables, 6.6 mid-length) and a hogback
+// ridge 2.5 lower in the middle; bell-cast profile (shallow eave, steep ridge). From the plan:
+// X0..X1 gable walls, CX/CZ centre, HL = half length, inFoot(x, z), isLongWall(x, z) (wall cells
+// except the gable ends), wallTop, EAVE = wallTop + 2.
+const u = x => (x - CX) / HL
+const wReal = x => 5 + 1.6 * (1 - Math.min(1, u(x) ** 2))
+const Wd = x => Math.round(wReal(Math.max(X0, Math.min(X1, x))))
+const rise = x => 10 + 2.5 * Math.min(1, u(x) ** 2)
+const prof = r => 0.65 * r + 0.35 * r * r
+const roof = b.roofField({ x0: X0 - 1, z0: CZ - 9, x1: X1 + 1, z1: CZ + 9,
+  height: (x, z) => (Math.abs(z - CZ) <= Wd(x) + 1
+    ? EAVE + rise(x) * prof(Math.max(0, Math.min(1, 1 - Math.abs(z - CZ) / (wReal(x) + 1.25)))) : null),
+  material: 'dark_oak', ridge: 'spruce', rafter: 'spruce',
+  rim: { test: (x, z) => isLongWall(x, z), level: wallTop + 1 }, keepBelow: { test: inFoot, level: wallTop + 1 } })
+for (const x of [X0, X1]) for (let z = CZ - 9; z <= CZ + 9; z += 1) {   // gable boards up to the roof
+  const bot = roof.bottom(x, z)
+  if (inFoot(x, z) && bot !== null) for (let yy = wallTop + 1; yy < bot; yy += 1) b.set(x, yy, z, 'stripped_spruce_log[axis=y]')
+}
+// Bell roof on a round tower: height from the distance to the centre
+b.roofField({ x0: tx - 6, z0: tz - 6, x1: tx + 6, z1: tz + 6, y: towerTop + 1, material: 'oxidized_cut_copper', rafter: 'spruce',
+  height: (x, z) => { const d = Math.hypot(x - tx, z - tz); return d > 6 ? null : 0.5 + 7 * (1 - d / 6) ** 1.8 } })
+```
+
+`b.rasterRoof(field, { base, material, ribs, ridge, rafter, thickness, only, rim, keepBelow, overwrite })`
+is the low-level rasteriser underneath. Field format: a `Map` `"x,z"` → `{ x, z, t, sec?, hip?, ridge?, along? }`,
+`t` = surface height in blocks above `base` (multiples of 0.5: x.5 → bottom slab, whole → stair or
+block), `sec` labels sections that ignore each other, `hip`/`ridge` cells use the ridge material and
+`along` (integer) alternates `ribs`; optional `field.outside(x, z)` marks eave edges. A hand-made Map
+works for arched bridge decks. `eastField(opts)` (exported, not a Builder method) builds the
+East-Asian field on its own.
+
+**Caveats.** Hip lines are a 4-connected two-cell staircase, so they read bold. On small roofs
+(under about 12 across) a high-contrast ridge material clusters at the corners; use the roof
+material or a near value there. Even spans give a 2-wide ridge, doubled ridge-end horns and a 2×2
+pyramid top (the finial goes on the north-west centre column), so use odd spans for pagodas and
+pyramids. `above` cuts a canopy where it dips under the main roof, so a canopy meant to slide
+*under* a main eave loses that part. The irimoya keeps the hip shell hidden under its gable,
+which shows as a second layer in cutaways.
+
 ### Other components
 
 | Method | Notes |
