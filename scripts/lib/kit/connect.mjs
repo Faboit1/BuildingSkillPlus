@@ -23,7 +23,7 @@ import {
 
 const CONNECTION_EXCEPTIONS = /(_leaves|^minecraft:barrier|carved_pumpkin|jack_o_lantern|^minecraft:melon|^minecraft:pumpkin|shulker_box)$/
 
-const NON_COLLIDING = /(^minecraft:(short_grass|grass|tall_grass|fern|large_fern|dead_bush|vine|glow_lichen|snow|sculk_vein|light|water|lava|air|cave_air|structure_void|redstone_wire|tripwire|moss_carpet|seagrass|tall_seagrass|kelp|kelp_plant|sugar_cane|cobweb|pink_petals|sweet_berry_bush|bubble_column))$|_carpet$|_sapling$|(dandelion|poppy|orchid|allium|bluet|tulip|daisy|cornflower|lily_of_the_valley|wither_rose|torchflower|sunflower|lilac|rose_bush|peony)$/
+const NON_COLLIDING = /(^minecraft:(short_grass|grass|tall_grass|fern|large_fern|dead_bush|vine|glow_lichen|snow|sculk_vein|light|water|lava|air|cave_air|structure_void|redstone_wire|tripwire|moss_carpet|seagrass|tall_seagrass|kelp|kelp_plant|sugar_cane|cobweb|pink_petals|sweet_berry_bush|bubble_column))$|_sapling$|(dandelion|poppy|orchid|allium|bluet|tulip|daisy|cornflower|lily_of_the_valley|wither_rose|torchflower|sunflower|lilac|rose_bush|peony)$/
 
 const WALL_POST_OVERRIDE = /(torch|_sign|_banner|_pressure_plate|^minecraft:tripwire)$/
 
@@ -161,6 +161,7 @@ export function updateConnections(store, { stairs = true, walls = true, fences =
       } else {
         const tall = above && (
           sturdyFace(above, 'down') ||
+          /_carpet$/.test(above.name) ||
           (isWall(above.name) && (above.props?.[dir] ?? 'none') !== 'none') ||
           isFullSolid(above.name)
         )

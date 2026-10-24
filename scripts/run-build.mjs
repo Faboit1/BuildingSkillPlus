@@ -5,7 +5,8 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import * as lodestone from '@mattzh72/lodestone'
 import { withDefaults } from './lib/kit/blocks.mjs'
-import { updateConnections } from './lib/kit/connect.mjs'
+import { persistLeaves, updateConnections } from './lib/kit/connect.mjs'
+import { completeBlocks } from './lib/kit/fixups.mjs'
 import { createKit } from './lib/kit/index.mjs'
 
 const {
@@ -328,7 +329,8 @@ function fillDefaultStates(structure) {
   return updates.length
 }
 
-// Runs the kit's vanilla-accurate connection pass over a Lodestone structure.
+// Runs the kit's fix-up passes over a Lodestone structure: completes door/bed/tall-plant
+// partners and vine faces, makes leaves persistent, then computes vanilla neighbour states.
 function updateStructureConnections(structure) {
   const [sx, , sz] = structure.getSize()
   const key = (x, y, z) => x + sx * (z + sz * y)
@@ -353,7 +355,7 @@ function updateStructureConnections(structure) {
       return [x, (rest - z) / sz, z, block]
     }),
   }
-  const count = updateConnections(store)
+  const count = completeBlocks(store) + persistLeaves(store) + updateConnections(store)
   const seen = new Set()
   for (const [x, y, z] of changed) {
     const k = key(x, y, z)

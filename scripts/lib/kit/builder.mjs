@@ -9,6 +9,7 @@
 import { Structure } from '@mattzh72/lodestone'
 import { isAir, mirrorBlock, parseBlock, rotateBlock, stateString, validateBlock, withDefaults, withProps } from './blocks.mjs'
 import { persistLeaves, updateConnections } from './connect.mjs'
+import { completeBlocks } from './fixups.mjs'
 import { coherent01, createRng, hash01 } from './noise.mjs'
 import { material as materialFamily } from './materials.mjs'
 import { AGED_VARIANTS } from './paint.mjs'
@@ -388,8 +389,35 @@ export class Builder {
     return this.fillWhere([Math.min(...xs) - 1, y0, Math.min(...zs) - 1], [Math.max(...xs) + 1, y1, Math.max(...zs) + 1], inside, paint, opts)
   }
 
-  // Straight line. radius 0 → one-block 26-connected line; radius > 0 → round capsule.
-  line(a, b, paint, { radius = 0, ...opts } = {}) {
+  // Straight line. radius 0 → one-block line (26-connected by default, `connect: 6` for a
+  // face-connected walk that reads as solid); radius > 0 → round capsule (≥ 0.87 stays watertight).
+  line(a, b, paint, { radius = 0, connect = 26, ...opts } = {}) {
+    if (radius <= 0 && connect === 6) {
+      const setOpts = Object.keys(opts).length > 0 ? opts : undefined
+      let p = [toInt(a[0]), toInt(a[1]), toInt(a[2])]
+      const end = [toInt(b[0]), toInt(b[1]), toInt(b[2])]
+      this.set(p[0], p[1], p[2], paint, setOpts)
+      let guard = 0
+      while ((p[0] !== end[0] || p[1] !== end[1] || p[2] !== end[2]) && guard < 100000) {
+        guard += 1
+        // step along the axis that keeps the walk closest to the ideal segment
+        let best = null
+        let bestD = Infinity
+        for (let k = 0; k < 3; k += 1) {
+          if (p[k] === end[k]) continue
+          const q = [...p]
+          q[k] += Math.sign(end[k] - p[k])
+          const d = distToSegment(q, a, b)
+          if (d < bestD) {
+            bestD = d
+            best = q
+          }
+        }
+        p = best
+        this.set(p[0], p[1], p[2], paint, setOpts)
+      }
+      return this
+    }
     if (radius <= 0) {
       const steps = Math.max(1, Math.ceil(Math.max(Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1]), Math.abs(b[2] - a[2]))))
       const seen = new Set()
@@ -411,7 +439,8 @@ export class Builder {
 
   // Smooth Catmull-Rom curve through points with a constant or varying radius:
   //   b.curve([[0,0,0],[5,8,2],[9,12,9]], 'oak_log', { radius: t => 2.5 - 2 * t })
-  // radius < 0.6 draws a thin connected line. Returns the sampled centerline points.
+  // radius < 0.6 draws a thin face-connected line; tube radii are clamped to ≥ 0.87 so the
+  // tube never breaks into diagonal-only contacts. Returns the sampled centreline points.
   curve(points, paint, { radius = 0, samplesPerBlock = 3, ...opts } = {}) {
     if (points.length < 2) throw new Error('curve needs at least two points')
     let length = 0
@@ -424,13 +453,13 @@ export class Builder {
     const radiusAt = typeof radius === 'function' ? radius : () => radius
     const setOpts = Object.keys(opts).length > 0 ? opts : undefined
     if (typeof radius !== 'function' && radius < 0.6) {
-      for (let i = 1; i < centers.length; i += 1) this.line(centers[i - 1], centers[i], paint, opts)
+      for (let i = 1; i < centers.length; i += 1) this.line(centers[i - 1], centers[i], paint, { connect: opts.connect ?? 6, ...opts })
       return centers
     }
     const done = new Set()
     for (let i = 0; i < centers.length; i += 1) {
       const c = centers[i]
-      const r = Math.max(0.5, radiusAt(i / samples, c))
+      const r = Math.max(0.87, radiusAt(i / samples, c))
       const ri = Math.ceil(r)
       for (let y = Math.floor(c[1] - ri); y <= Math.ceil(c[1] + ri); y += 1)
         for (let z = Math.floor(c[2] - ri); z <= Math.ceil(c[2] + ri); z += 1)
@@ -647,6 +676,7 @@ export class Builder {
       const full = withDefaults(block)
       if (full !== block && full.props !== block.props) this.blocks.set(k, block.nbt ? { ...full, nbt: block.nbt } : full)
     }
+    report.completed = completeBlocks(this)
     if (connections) report.connectionsUpdated = updateConnections(this)
     if (persistentLeaves) report.leavesPersisted = persistLeaves(this)
     let offset = [0, 0, 0]

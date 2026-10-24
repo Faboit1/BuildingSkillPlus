@@ -57,7 +57,7 @@ function rowLevels(pitch, rows) {
 // the column down to the previous row so the surface never has diagonal-only contact, plus
 // `thickness` blocks below. Inside the walls a half-step "top slab" becomes a full block so
 // no half-block void shows under it. Returns { tb, kind } (top block level, element kind).
-function roofCell(b, x, z, base, top, prevTop, facing, mat, { thickness = 0, ridge = false, overwrite = true, inside = false } = {}) {
+function roofCell(b, x, z, base, top, prevTop, facing, mat, { thickness = 0, ridge = false, overwrite = true, inside = false, underside = 'stairs' } = {}) {
   const opts = overwrite ? undefined : { keep: true }
   const half = top % 1 !== 0
   const rise = prevTop === null ? null : top - prevTop
@@ -83,7 +83,12 @@ function roofCell(b, x, z, base, top, prevTop, facing, mat, { thickness = 0, rid
   let fillFrom = tb
   if (prevTop !== null) fillFrom = rise >= 2 ? Math.ceil(prevTop) - 1 : Math.floor(prevTop)
   for (let y = tb - 1; y >= fillFrom; y -= 1) b.set(x, base + y, z, mat.block, opts)
-  for (let k = 1; k <= thickness; k += 1) b.set(x, base + Math.min(tb, fillFrom) - k, z, mat.block, { keep: true })
+  for (let k = 1; k <= thickness; k += 1) {
+    // Under a 1:1 stair, an upside-down stair with the same facing gives a clean 45° ceiling
+    // (rafters from inside) and a double-thick rake edge from outside.
+    const stairUnder = underside === 'stairs' && k === 1 && kind === 'stairs' && fillFrom === tb
+    b.set(x, base + Math.min(tb, fillFrom) - k, z, stairUnder ? `${mat.stairs}[facing=${facing},half=top]` : mat.block, { keep: true })
+  }
   return { tb, kind }
 }
 
@@ -114,7 +119,7 @@ function fillUnderRoof(b, cells, base, y, footprint, paint) {
 //   b.roof({ x0, z0, x1, z1, y, type: 'gable'|'hip'|'pyramid'|'mansard'|'shed', axis: 'x'|'z',
 //            material: 'spruce', pitch: 1 | 0.5 | 2 | 'steep' | [0.5, 0.5, 1, 1, 2] | (row, rows) => rise,
 //            overhang: 1, gableOverhang: 1, gable: paint, ridgeCap: paint, eaveTrim: true,
-//            thickness: 1, rises: 'north' (shed only) })
+//            thickness: 1, underside: 'stairs' | 'block', rises: 'north' (shed only) })
 // x0..x1 / z0..z1 are the outer wall lines; y is the level of the roof row directly above the
 // wall line (wall top + 1). `gable` fills every wall-line cell up to the roof (gable
 // triangles, the tall side of a shed). Returns { topY, axis, base, cells }.
@@ -129,6 +134,7 @@ export function roof(b, opts) {
     ridgeCap,
     eaveTrim = false,
     thickness = 1,
+    underside = 'stairs',
     overwrite = true,
   } = opts
   const mat = roofMaterial(opts.material)
@@ -147,7 +153,7 @@ export function roof(b, opts) {
 
   const place = (x, z, top, prevTop, facing, extra = {}) => {
     const inside = inFootprint(x, z)
-    const cell = roofCell(b, x, z, base, top, prevTop, facing, mat, { thickness: inside ? thickness : 0, overwrite, inside, ...extra })
+    const cell = roofCell(b, x, z, base, top, prevTop, facing, mat, { thickness: inside ? thickness : 0, overwrite, inside, underside, ...extra })
     cells.set(`${x},${z}`, cell)
     topY = Math.max(topY, base + cell.tb)
     if (extra.ridge && ridgeCap) b.set(x, base + cell.tb + 1, z, ridgeCap)

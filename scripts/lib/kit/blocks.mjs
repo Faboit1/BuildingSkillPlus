@@ -185,6 +185,7 @@ export function mirrorBlock(block, axis = 'x') {
     }
   }
   if (p.hinge) out.hinge = p.hinge === 'left' ? 'right' : 'left'
+  if (/chest$/.test(parsed.name) && (p.type === 'left' || p.type === 'right')) out.type = p.type === 'left' ? 'right' : 'left'
   return { name: parsed.name, props: out }
 }
 

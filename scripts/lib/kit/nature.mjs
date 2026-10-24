@@ -58,6 +58,7 @@ function limb(b, points, r0, r1, spec, { keep = false } = {}) {
   for (let i = 1; i < points.length; i += 1) length += Math.hypot(...[0, 1, 2].map(k => points[i][k] - points[i - 1][k]))
   const samples = Math.max(2, Math.ceil(length * 3))
   let prev = points[0]
+  let lastCell = null
   for (let i = 0; i <= samples; i += 1) {
     const t = i / samples
     const c = catmull(points, t)
@@ -67,9 +68,13 @@ function limb(b, points, r0, r1, spec, { keep = false } = {}) {
     const r = r0 + (r1 - r0) * t
     const paint = woodPaint(spec, dir)
     if (r < 0.75) {
-      b.set(c[0], c[1], c[2], paint, keep ? { keep: true } : undefined)
+      // thin limb: face-connected walk from the previous sample so twigs never break apart
+      const from = lastCell ?? [Math.round(c[0]), Math.round(c[1]), Math.round(c[2])]
+      b.line(from, c, paint, { connect: 6, ...(keep ? { keep: true } : {}) })
+      lastCell = [Math.round(c[0]), Math.round(c[1]), Math.round(c[2])]
       continue
     }
+    lastCell = [Math.round(c[0]), Math.round(c[1]), Math.round(c[2])]
     const ri = Math.ceil(r)
     for (let x = Math.floor(c[0] - ri); x <= Math.ceil(c[0] + ri); x += 1)
       for (let y = Math.floor(c[1] - ri); y <= Math.ceil(c[1] + ri); y += 1)

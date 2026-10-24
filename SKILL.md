@@ -1,96 +1,126 @@
 ---
 name: minecraft-builder-skill
-description: Programmatically generate Minecraft builds as vanilla structure NBT files and open Lodestone-powered previews. Use when an agent needs to create, export, inspect, or iterate on Minecraft structures, schematics, block palettes, or build recipes using JavaScript and .nbt output.
+description: Design and generate high-quality Minecraft builds — houses, castles, cathedrals, towers, villages, temples, ships, statues, trees, terrain and whole scenes — as vanilla structure .nbt (or .schem/.litematic) using a JavaScript building kit, then render them headlessly to critique and iterate. Use for any request to build, design, generate, export, preview, import or improve a Minecraft build, schematic or structure.
 ---
 
 # Minecraft Builder Skill
 
-## Overview
+You write a JavaScript **recipe** with the building kit, export a vanilla structure `.nbt`, then
+**render it and look at the PNGs**. Quality comes from that loop. The building craft itself —
+proportions, depth, palettes, roofs, styles, landscaping, lighting — lives in
+`references/building/`. Read `references/building/README.md` (the handbook) before every build.
 
-Create Minecraft builds by writing small JavaScript recipes that use Lodestone-backed helper functions. Export vanilla `.nbt` structure files, then open the included viewer so the user can inspect and iterate on the build.
+## Setup (once)
 
-## Workflow
-
-1. Work from the installed skill directory. Do not rerun the Skills CLI after installation; use this skill's local `scripts/` and `assets/`.
-2. Before running any build or preview scripts, ensure dependencies are installed. If `node_modules/@mattzh72/lodestone` is missing, run this from the installed skill directory:
-
-```bash
-npm install --omit=dev
-```
-
-3. Write an ESM recipe file. Use `assets/examples/celestial-forge.mjs` as the canonical example for ambitious floating megastructures.
-4. Generate NBT:
+Work from the installed skill directory.
 
 ```bash
-node scripts/run-build.mjs path/to/recipe.mjs --out-dir minecraft-builds/my-build
+npm install --omit=dev          # if node_modules/@mattzh72/lodestone is missing
 ```
 
-5. Open the preview:
+`scripts/render.mjs` needs Playwright + Chromium (it finds a global install too). If it is missing:
+`npm install --no-save playwright && npx playwright install chromium`.
+
+## The loop
 
 ```bash
-node scripts/preview.mjs --nbt minecraft-builds/my-build/my-build.nbt
+node scripts/run-build.mjs path/to/recipe.mjs --out-dir minecraft-builds/NAME --json
+node scripts/render.mjs --nbt minecraft-builds/NAME/NAME.nbt          # → renders/sheet.png (se, nw, south, top)
+# read sheet.png, critique, edit the recipe, repeat
 ```
 
-6. Iterate by editing the recipe, regenerating the `.nbt`, and reopening or refreshing the preview.
+- `--json` must report `builder.problems: []` and `builder.clipped: 0`.
+- More views: `--views se,sw,ne,nw,south,north,east,west,top,hero,low`; close-up:
+  `--yaw 30 --pitch 20 --target X,Y,Z --distance 14 --fov 40 --view-name door`; interiors: `--clip-y Y`;
+  `--lighting night` (or `both`).
+- Text checks: `node scripts/inspect.mjs FILE --checks` (flat walls, floating blocks, bad states,
+  dark spots) and `--slice y=N` (ASCII plan).
+- Interactive viewer for the user: `node scripts/preview.mjs --nbt FILE` (`--no-open` when headless).
 
-## Dependencies
+Iterate at least: massing → structure → material → detail → landscape → night. Fix the biggest
+problem first (silhouette, proportions, roof, depth, texture, detail — in that order).
 
-Skills CLI installs copy the skill files but may not install Node packages. This skill intentionally keeps dependencies in `package.json` and `npm-shrinkwrap.json` instead of vendoring `node_modules`.
-
-Before using `scripts/run-build.mjs` or `scripts/preview.mjs`, check for `node_modules/@mattzh72/lodestone`. If it is absent, run `npm install --omit=dev` from the installed skill directory. Do not install dependencies globally, and do not guess alternate Lodestone versions.
-
-## Recipe Contract
-
-Export a default function that receives `api` and returns either a Lodestone `Structure` or an object with `{ structure, metadata }`.
+## Recipe skeleton
 
 ```js
 export default function build(api) {
-  const structure = api.createStructure([16, 12, 16])
-  api.fill(structure, [0, 0, 0], [15, 0, 15], 'minecraft:stone_bricks')
-  api.hollowBox(structure, [4, 1, 4], [11, 7, 11], 'minecraft:spruce_planks')
-  return { structure, metadata: { name: 'example-build' } }
+  const { kit } = api
+  const b = api.builder([48, 40, 48], { seed: 7 })
+  const ground = b.terrain({ height: (x, z) => 4 + 2 * kit.noise.fbm2(x, z, { scale: 24 }) })
+  b.box([14, 4, 16], [30, 8, 26], 'white_wool')                       // massing placeholder
+  b.box([15, 5, 17], [29, 8, 25], 'air')
+  b.texture([14, 3, 16], [30, 8, 26], ['polished_andesite', 'stone_bricks', 'cracked_stone_bricks', 'tuff_bricks', 'deepslate_bricks'], { only: 'white_wool' })
+  b.window([17, 5, 26], 'south', { width: 2, height: 2, recess: 1, shutters: true })
+  b.door([22, 5, 26], 'south', { material: 'spruce', awning: true })
+  b.roof({ x0: 14, z0: 16, x1: 30, z1: 26, y: 9, material: 'dark_oak', gable: 'spruce_planks', eaveTrim: true })
+  b.tree([8, ground(8, 8) + 1, 8], 'oak', { seed: 1 })
+  return b.finish({ name: 'my-build' })
 }
 ```
 
-Available helpers include `createStructure`, `setBlock`, `fill`, `hollowBox`, `line`, `sphere`, `cylinder`, `normalizeBlock`, `createBlockNbt`, and Lodestone classes under `api.lodestone`.
+The full API (shapes, roofs, windows, doors, arches, stairs, timber framing, trees, terrain,
+paths, ponds, modules with rotation, palettes, gradients, `b.texture`, noise, SDFs, materials):
+**`references/kit-api.md`**. The raw API (`api.setBlock`, `api.fill`, Lodestone classes) is in
+`references/recipe-api.md` and still works.
 
-## References
+## What to read
 
-- For exact recipe helper signatures, supported option fields, defaults, and unsupported behavior, search `references/recipe-api.md`.
-- For Lodestone classes, structure NBT, block states, renderer APIs, resource pack APIs, supported fields, and unsupported behavior, search `references/lodestone/`.
-- For exact default-pack block ids, rendered block-state value enums, special renderer state values, and generic renderer properties like `waterlogged`, search `references/lodestone/default-pack-block-states.md`.
-- Prefer these local references over guessing. Use `rg` for class names, method names, block-state properties, NBT tag names, and option fields before using advanced APIs.
+| Task | Read |
+| --- | --- |
+| Any build | `references/building/README.md` (laws, workflow, scale tiers, cheat sheets) |
+| Judging and fixing your renders | `references/building/quality-and-critique.md` |
+| A specific style (medieval, gothic, Japanese, nordic, desert, fantasy, modern...) | `references/building/styles.md` |
+| Roofs, windows, doors, towers, arches, walls, balconies, bridges | `references/building/components.md` |
+| Massing, proportion, depth, framing, foundations | `references/building/principles.md` |
+| Choosing blocks and colours | `references/building/palettes.md`, `block-colors.md`, `materials.md` |
+| Small detail blocks and furniture-like modules | `references/building/detailing.md` |
+| Getting a block's orientation right | `references/building/block-states.md` |
+| Trees, terrain, rocks, water, gardens | `references/building/nature.md` |
+| Interiors and lighting | `references/building/interiors-and-lighting.md` |
+| Villages, cities, castles, megabuilds | `references/building/composition.md` |
+| Statues, creatures, ships, crystals, clouds | `references/building/sculpting.md` |
+| Generative algorithms (SDFs, grammars, L-systems, roof solvers) | `references/building/procedural.md` |
+| Mojang's own building language | `references/building/vanilla-lessons.md` |
+| Importing/exporting .schem/.litematic/.schematic, getting builds into the game | `references/formats.md` |
+| Lodestone internals (renderer, NBT, structure) | `references/lodestone/` |
 
-## Reference Lookup
+Search before guessing: `rg -n "keyword" references/`.
 
-- Before choosing nontrivial block-state values, search `references/lodestone/default-pack-block-states.md`.
-- For one block, print its exact section, for example ``rg -n -A 80 '### `minecraft:oak_stairs`' references/lodestone/default-pack-block-states.md``.
-- For global property enums, search property-index lines, for example ``rg -n '^- `shape`|^- `waterlogged`' references/lodestone/default-pack-block-states.md``.
-- Before relying on automatic connection behavior, search `references/lodestone/structure.md` for `updateBlockStates()` and check the supported and unsupported coverage.
-- When writing block entities or custom NBT, search `references/lodestone/nbt.md` and `references/recipe-api.md` before constructing tags.
+## Examples
 
-## Build Guidance
+`assets/examples/` holds complete, commented showcase recipes built with the kit (medieval
+house, castle, gothic cathedral, Japanese shrine, wizard tower, coastal village, celestial forge).
+Read the one closest to your task before starting; reuse its structure, not its exact numbers.
 
-- Keep all coordinates inside the structure size. The runner validates bounds and fails fast.
-- Use vanilla block IDs with the `minecraft:` namespace. Block-state strings like `minecraft:oak_stairs[facing=east,half=bottom,shape=straight]` are supported.
-- The runner enables Lodestone's Minecraft-like block state updates by default. Panes, iron bars, and fences get `north/east/south/west` states from neighboring compatible or solid blocks. Use `--no-block-state-updates` only when a recipe intentionally sets those states by hand.
-- Prefer clear block palettes and readable geometry. The viewer uses Lodestone's bundled default resource pack, so highly unusual or custom blocks may not preview well.
-- Include `metadata.name` to control the output filename. Names are slugified.
-- Default output is gzip-compressed vanilla structure NBT with `DataVersion` set by the runner unless overridden.
-- For block entities, pass a Lodestone `NbtCompound` as the last argument to `setBlock` or use `api.createBlockNbt({ id: 'minecraft:chest' })`.
+## Facts that prevent most mistakes
 
-## Preview
+- Coordinates: `x` east, `y` up, `z` south. Everything must fit inside the builder size; out-of-range
+  placements are skipped and counted.
+- Stairs `facing` = side of the tall back (you walk up toward it). Wall features (windows, doors,
+  shutters) take the wall's **outward** facing. See `block-states.md` for every other block.
+- Block set is **Minecraft Java 1.21.1** (tuff bricks, copper bulbs, trial blocks: yes; pale oak,
+  resin, 1.21.9 copper chains/lanterns: no). The chain block is `minecraft:chain`.
+- `finish()` and `run-build` validate every state against the official 1.21.1 block table, fill
+  missing properties with vanilla defaults (the previewer renders a block with missing properties
+  as nothing), add door/bed/tall-plant partners and vine faces, make leaves persistent, and compute
+  stair corners, wall posts/heights, fence/pane links and gates like the game does on placement.
+  Hand-set stair `shape` values are recomputed.
+- Output DataVersion defaults to 3955 (1.21.1); newer games upgrade it automatically. Use
+  `--data-version` for older targets.
+- Entities (item frames, armor stands, paintings) are not exported. Sign text and banner patterns
+  render unreliably — build detail from blocks. The previewer does not propagate light; night mode
+  shows emissive blocks glowing.
+- Standing sign/banner/head `rotation` previews mirrored east↔west; write the vanilla value anyway.
+- Vanilla structure blocks load at most 48×48×48; `/place template` and WorldEdit/Litematica have no
+  such limit (`references/formats.md`).
 
-The preview script starts a minimal Vite server and opens the build automatically. It serves the target `.nbt` and Lodestone's default resource pack through local middleware, so recipes do not need to copy assets.
-
-Use `--no-open` when running in a non-interactive environment:
+## Export to other formats
 
 ```bash
-node scripts/preview.mjs --nbt path/to/build.nbt --no-open
+node scripts/convert.mjs minecraft-builds/NAME/NAME.nbt --out NAME.schem       # WorldEdit
+node scripts/convert.mjs minecraft-builds/NAME/NAME.nbt --out NAME.litematic   # Litematica
+node scripts/convert.mjs some-download.litematic --out study.nbt               # import to study/render/remix
 ```
 
-Open directly in night lighting when helpful for review:
-
-```bash
-node scripts/preview.mjs --nbt path/to/build.nbt --lighting night
-```
+Imported builds can be stamped into a recipe: read them with `scripts/lib/formats.mjs`
+(`readAnyStructure`) and copy blocks into the builder.
