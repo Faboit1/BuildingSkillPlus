@@ -12,6 +12,7 @@ cannot see while you build, so the loop *build → render → critique → fix* 
 | Chapter | Use it for |
 | --- | --- |
 | [quality-and-critique.md](quality-and-critique.md) | The staged workflow, texturing doctrine, detail budgets, self-review rubric, anti-patterns |
+| [benchmarks.md](benchmarks.md) | Numbers from 1,212 human builds: palette breadth, partial-block %, lights, contrast, signature palettes per style |
 | [principles.md](principles.md) | Massing, proportion, scale tiers, depth layers, framing, foundations, focal points |
 | [components.md](components.md) | Roofs (every type), walls, windows, doors, towers, arches, stairs, balconies, bridges, chimneys |
 | [styles.md](styles.md) | Style catalogue: silhouettes, signature elements, palettes, mistakes per style |
