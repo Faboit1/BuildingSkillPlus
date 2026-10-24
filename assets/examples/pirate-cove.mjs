@@ -125,7 +125,20 @@ export default function build(api) {
   // b.rockArch erodes and shades itself; b.erode scans every block in the builder, so building the
   // arch while the canvas is still empty keeps it fast. The terrain below is written with keep: true.
   const ROCK_RAMP = ['deepslate', 'tuff', 'stone', 'andesite']
-  b.rockArch([95, 1, 99], [108, 3, 86], { height: 22, thickness: 6, lintel: 5, ramp: ROCK_RAMP, bands: { height: 3, amount: 0.16 }, seed: 5, roughness: 1.2 })
+  const AR = { a: [93, 1, 101], c: [106, 2, 90], height: 24, lintel: 5 }
+  b.rockArch(AR.a, AR.c, { height: AR.height, thickness: 6, lintel: AR.lintel, ramp: ROCK_RAMP, bands: { height: 3, amount: 0.16 }, seed: 5, roughness: 1.2 })
+  // the arch's opening as an elliptic tunnel (same Hu/Hv as rockArch): the terrain grid must not
+  // refill it where the arch's foot stands on the headland
+  const arSpan = Math.hypot(AR.c[0] - AR.a[0], AR.c[2] - AR.a[2])
+  const arU = [(AR.c[0] - AR.a[0]) / arSpan, (AR.c[2] - AR.a[2]) / arSpan]
+  const arM = [(AR.a[0] + AR.c[0]) / 2, Math.min(AR.a[1], AR.c[1]), (AR.a[2] + AR.c[2]) / 2]
+  const arHu = arSpan / 2 - Math.max(2.5, arSpan * 0.17)
+  const arHv = AR.height - AR.lintel
+  const inArchOpening = (x, y, z) => {
+    const u = (x - arM[0]) * arU[0] + (z - arM[2]) * arU[1]
+    const w = -(x - arM[0]) * arU[1] + (z - arM[2]) * arU[0]
+    return Math.abs(w) < 7 && Math.hypot(u / arHu, (y - arM[1]) / arHv) < 1
+  }
 
   // ------------------------------------------------------------------ 2. terrain mass in a voxel grid
   // The rock is decided in a typed array first, smoothed there (the same cellular automaton as
@@ -151,6 +164,7 @@ export default function build(api) {
           if (y >= SEA - 1 && y <= SEA + 2) s3 -= 1.4 * (1 - bm)
           solid = s3 >= 0 && y <= landHeight(s3, i)
         }
+        if (solid && y > FL[i] && inArchOpening(x, y, z)) solid = false
         if (solid) G[gi(x, y, z)] = 1
       }
     }

@@ -80,6 +80,11 @@ export default function build(api) {
   const inB = (x, y, z) => x >= 0 && y >= 0 && z >= 0 && x < W && y < H && z < D
 
   // ------------------------------------------------------------------ site
+  // A round diorama (noisy radius, bevelled rim) with ONE designed landform: a low knoll under
+  // the great tree, so it stands on the high ground. A stream runs north -> south between the
+  // two trees, from a spring to a lily pool, both inside the rim. Relief is kept low (amplitude
+  // 1.3 + 0.45, blurred twice): every 1-block step shows a grass-block side, and too many steps
+  // read as contour stripes.
   const T = [31, 38] // great trunk axis (x, z)
   const C = [66, 26] // companion tree
   const WATER = 5
@@ -159,6 +164,12 @@ export default function build(api) {
   const g0 = ground(T[0], T[1])
 
   // ------------------------------------------------------------------ great trunk (analytic)
+  // The trunk is a distance function around a gently curving spine. Its radius combines:
+  //   coreR  taper, 6.8 at the ground -> 4.5 at the fork (pow 1.2: thick for longer, then thins)
+  //   flare  an exponential root flare (+3.2 at the ground, gone within ~8 blocks)
+  //   flutes five ridges that twist slowly round the trunk (cos(5 theta + 0.07 y + ...)), +-10 %
+  // so no horizontal slice is a circle and the silhouette changes as the camera moves. It ends
+  // at TOPY: four fork limbs rise out of the crotch, blended in with smin.
   const TOPY = 44
   const spine = [[31, g0 - 4, 38], [31.4, g0 + 8, 37.6], [32, 24, 37.2], [31.6, 34, 36.8], [31, TOPY + 2, 36.5]]
   const spineS = kit.catmullRom(spine, { samplesPerBlock: 2 })
@@ -200,9 +211,13 @@ export default function build(api) {
         if (Math.hypot(x - cx, z - cz) <= r) for (let y = y0; y <= y1; y += 1) reserve(x, y, z)
   }
 
-  // Spiral stair: helix of birch stairs hugging the trunk. Segment A climbs from the ground
-  // (east) to the hall platform, segment B continues round the north side to the music
-  // platform (west). theta decreases as it climbs.
+  // Spiral stair: a helix of birch stairs hugging the trunk. Segment A climbs from the ground
+  // (east) to the hall platform; segment B continues round the north side to the music
+  // platform (west). Theta decreases as it climbs. The kit's b.spiralStairs assumes a fixed
+  // radius round an empty core; here the inner edge follows the trunk surface trunkR(y, theta)
+  // + 0.45, so the stair hugs the flutes and the flare. One step = 1 rise over ~1.15 blocks of
+  // arc. The arrival angles were chosen so no limb junction lies in the stair's path (limbs
+  // attach below or beside it), and the bark is masked out of the stair corridor.
   const Y1 = 24 // hall platform deck (blocks); floor surface Y1 + 1
   const Y2 = 38 // music platform deck
   const STAIR_W = 2.6
@@ -241,7 +256,9 @@ export default function build(api) {
   helix(thA1, thB1, Y1 + 1, Y2)
   for (const s of stairCells.values()) for (let k = 0; k <= 3; k += 1) reserve(s.x, s.y + k, s.z)
 
-  // Platforms
+  // Platforms. The hall platform is a ring round the trunk plus a south lobe (~19 across) for
+  // the hall; limb L1 runs under the lobe and the lobe's ribs spring from it, so the long
+  // cantilever has a visible support. The deck outlines are wobbled with noise: no straight runs.
   const HALL = [30, 55] // hall pavilion centre on the south lobe of the lower platform
   const HALL_R = 6
   const MUSIC = [18.7, 40.4] // music pavilion on the west limb
@@ -281,6 +298,10 @@ export default function build(api) {
         if (Math.hypot(dx, dz) <= 2.6) for (let k = -1; k <= 4; k += 1) reserve(Math.round(p[0] + dx), Math.round(p[1]) + k, Math.round(p[2] + dz))
 
   // ------------------------------------------------------------------ tubes (roots and limbs)
+  // Roots and limbs are chains of tapered capsules along Catmull-Rom splines. Each tube keeps
+  // a bounding box per segment so the SDF only evaluates nearby segments (the whole tree is
+  // ~170k cells x 15 tubes). They join the trunk with a smooth minimum (k = fillet size), which
+  // makes the flared, grown-together crotches that a plain union of cylinders cannot.
   const tubes = []
   const tube = (points, r0, r1, { k = 2, ys = 1, yRef = g0, rf } = {}) => {
     const S = kit.catmullRom(points, { samplesPerBlock: 1 })
@@ -358,6 +379,8 @@ export default function build(api) {
   }
 
   const BARK = 'minecraft:brown_wool' // placeholder: shaded into a mixed bark ramp later
+  // Bark furrows: fbm noise squashed in y (y * 0.3), so the bumps run vertically like ridged
+  // bark; 0.55 blocks of displacement is enough for the shading pass to find creases.
   const barkNoise = (x, y, z) => 0.55 * noise.fbm3(x, y * 0.3, z, { scale: 2.4, octaves: 2, seed: 61 })
   const treeSdf = (x, y, z) => {
     let d = trunkD(x, y, z)
@@ -520,8 +543,10 @@ export default function build(api) {
   const isStair = (x, y, z) => inB(x, y, z) && stairCells.has(b.key(x, y, z))
   const isHead = (x, y, z) => inB(x, y, z) && stairHead.has(b.key(x, y, z))
 
-  // Platform decks: birch planks, a stripped-birch rim beam (log axis along the edge), an
-  // upside-down stair corbel under the rim, a birch fence railing with lantern posts.
+  // Platform decks: birch planks, a stripped birch WOOD rim (logs would show end grain where
+  // the curved rim turns), an upside-down stair corbel under the rim (a crisp shadow line that
+  // reads from afar), and a birch fence railing with a lantern every 5th rim cell. Openings are
+  // left where the stair joins the deck and where the bridge leaves.
   const platform = (inside, Y, { center, postEvery = 5, open = () => false, light = lantern }) => {
     const cells = []
     for (let x = 0; x < W; x += 1)
@@ -595,8 +620,9 @@ export default function build(api) {
   const p2 = platform(deck2, Y2, { center: MUSIC, postEvery: 6, light: soulLantern })
   const pC = platform((x, z) => Math.hypot(x - C[0], z - C[1]) <= 6.6 + 0.4 * noise.fbm2(x, z, { scale: 4, seed: 12 }), YC, { center: C, postEvery: 5, open: (x, z) => Math.hypot(x - BRIDGE_B[0], z - BRIDGE_B[1]) < 2.2 })
 
-  // ribs under the ring of the hall platform, under the lobe (springing from limb L1), under the
-  // music platform and round the companion trunk
+  // Ribs under the ring of the hall platform (every 30 degrees), under the lobe (springing from
+  // limb L1), under the music platform and round the companion trunk. Every other rib carries a
+  // shroomlight in its tip.
   for (let a = -180; a < 180; a += 30) {
     const th = deg(a)
     const c = centerAt(Y1)
@@ -716,7 +742,8 @@ export default function build(api) {
   const music = pavilion({ c: MUSIC, r: MUSIC_R, F: Y2 + 1, wallH: 4, cols: 6, door: musicDoor, open: true, roof: { H: 9, p: 1.9, finial: ['minecraft:end_rod[facing=up]'] } })
 
   // Companion "collar" pavilion: posts in a ring round the trunk and a bell-cast roof that the
-  // trunk grows straight through.
+  // trunk grows straight through (roof first, then the trunk tube is redrawn above the beam).
+  // Its posts carry froglight capitals like the hall's columns: one lighting language.
   const CR = 4.6
   for (const [x, z, a] of ringCells(C[0], C[1], CR)) {
     const post = Math.round((a + Math.PI) / (TAU / 8)) * (TAU / 8) - Math.PI
@@ -731,7 +758,8 @@ export default function build(api) {
 
   // ------------------------------------------------------------------ spiral stair
   // Birch stairs with a top-slab soffit (the ribbon reads 1.5 blocks thick from afar), a fence
-  // railing on the outer edge, soul-lantern posts every 4 steps and a small corbel every 3.
+  // railing on the outer edge, soul-lantern posts every 3 steps and a small corbel every 3. The pale ribbon
+  // spiralling round the dark bark is the second-strongest graphic line after the silhouette.
   const steps = new Map()
   for (const s of stairCells.values()) {
     b.set(s.x, s.y, s.z, `minecraft:birch_stairs[facing=${s.facing},half=bottom]`)
@@ -757,7 +785,8 @@ export default function build(api) {
 
   // ------------------------------------------------------------------ rope bridge
   // Catenary sag in elevation, gentle S in plan; birch slab deck quantized to half blocks so the
-  // walking surface is smooth, fence rails, lantern posts at the thirds.
+  // walking surface is smooth, fence rails, a lantern every sixth of the span, and a soul
+  // lantern hung under mid-span. (b.bridge only arches upward along a straight line.)
   const bridgeCells = new Map()
   for (let i = 0; i < bridgeS.length; i += 1) {
     const p = bridgeS[i]
