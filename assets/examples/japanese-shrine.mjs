@@ -40,7 +40,7 @@
 //
 // PROPORTIONS
 //   Pagoda: roof spans 19, 17, 15, 13, 11 (one block less per side per storey), bodies 11-9-9-7-7,
-//     an eave every 6-7 blocks, sorin (finial) about 1/4 of the total height.
+//     an eave every 5-7 blocks, sorin (finial) about 1/4 of the total height.
 //   Hall: 17 x 13 post grid, 5 bays (centre bay widest), raised 3 blocks (stone kidan + wooden
 //     deck), eave overhang 3, roof about 60 % of the visible height.
 //   Torii: posts 7 and 9 tall, inner gap 5 and 7, kasagi overhanging 2 + upturned ends.
@@ -236,7 +236,7 @@ export default function build(api) {
   // Five storeys, each a white body framed in dark posts under its own swept roof. Roofs shrink by
   // one block per side per storey (E), bodies step in more slowly (W), so eaves stay deep (3-4
   // blocks) and the tower tapers like Horyu-ji. `eave` = block level of each eave's slab ring;
-  // the 6-7 block rhythm keeps the roofs stacked tightly, with 2-3 rows of body between them.
+  // the 5-7 block rhythm keeps the roofs stacked tightly, with 2-3 rows of body between them.
   const PX = 54
   const PZ = 21
   const tiers = [

@@ -435,7 +435,7 @@ export function door(b, pos, facing, { material: matName = 'spruce', width = 1, 
 // Arch between two springer cells a and b (inclusive opening width, same y, axis-aligned).
 //   b.arch([10, 5, 4], [16, 5, 4], 'stone_bricks', { type: 'pointed', thickness: 1, depth: 2, fill: 'air', spandrel: 'stone_bricks', top: 14 })
 // type: 'round' | 'pointed' (equilateral gothic) | 'segmental' (opts.rise) | 'flat'
-export function arch(b, a, bEnd, paint, { type = 'round', thickness = 1, depth = 1, fill = 'minecraft:air', spandrel, top, rise, direction } = {}) {
+export function arch(b, a, bEnd, paint, { type = 'round', thickness = 1, depth = 1, fill = 'minecraft:air', spandrel, top, rise, direction, stairs: useStairs = true } = {}) {
   const alongX = a[2] === bEnd[2]
   const u0 = alongX ? Math.min(a[0], bEnd[0]) : Math.min(a[2], bEnd[2])
   const u1 = alongX ? Math.max(a[0], bEnd[0]) : Math.max(a[2], bEnd[2])
@@ -447,7 +447,9 @@ export function arch(b, a, bEnd, paint, { type = 'round', thickness = 1, depth =
   let opening
   let ring
   if (type === 'pointed') {
-    const R = s * 0.85
+    // two-centred arch: R = s is equilateral gothic, smaller R a drop arch; spans <= 5 use the
+    // full equilateral radius so the point survives rasterisation
+    const R = s <= 5 ? s : s * 0.85
     const cL = -s / 2 + (s - R)
     const cR = s / 2 - (s - R)
     opening = (u, v) => v >= 0 && (u - cL) ** 2 + v * v <= R * R && (u - cR) ** 2 + v * v <= R * R
@@ -468,13 +470,34 @@ export function arch(b, a, bEnd, paint, { type = 'round', thickness = 1, depth =
   }
   const halfSpan = s / 2 + thickness + 1
   const maxV = top !== undefined ? top - y0 : Math.ceil(s + thickness + 1)
+  // Coverage of the opening per cell (4x4 supersampling): mostly open → fill; partly open → an
+  // upside-down stair of the ring material whose low quarter sits on the outer side, so small
+  // arches keep their curve or point instead of collapsing into a rectangle.
+  const coverage = (u, v) => {
+    let c = 0
+    for (let i = 0; i < 4; i += 1) for (let j = 0; j < 4; j += 1) if (opening(u - 0.5 + (i + 0.5) / 4, v + (j + 0.5) / 4)) c += 1
+    return c / 16
+  }
+  let ringStairs
+  if (useStairs && typeof paint === 'string') {
+    try {
+      ringStairs = material(parseBlock(paint).name).stairs
+    } catch {
+      ringStairs = undefined
+    }
+  }
+  const outward = u => (alongX ? (u < 0 ? 'west' : 'east') : (u < 0 ? 'north' : 'south'))
   for (let vi = 0; vi <= maxV; vi += 1) {
     for (let ui = Math.floor(mid - halfSpan); ui <= Math.ceil(mid + halfSpan); ui += 1) {
       const u = ui - mid
       const v = vi + 0.5 - 0.5
       let p = null
-      if (opening(u, v + 0.5)) p = fill
+      const c = coverage(u, vi)
+      const centre = Math.abs(u) < 0.25
+      if (c >= 0.6 || (c >= 0.2 && centre)) p = fill
+      else if (c >= 0.2 && ringStairs) p = `${ringStairs}[facing=${outward(u)},half=top]`
       else if (ring(u, v + 0.5) && Math.abs(u) <= s / 2 + thickness) p = paint
+      else if (c > 0 && Math.abs(u) <= s / 2 + thickness) p = paint
       else if (spandrel && Math.abs(u) <= s / 2 + thickness && vi <= maxV) p = spandrel
       if (p === null) continue
       for (let d = 0; d < depth; d += 1) {
