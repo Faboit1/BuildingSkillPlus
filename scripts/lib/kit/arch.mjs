@@ -18,16 +18,19 @@ function roofMaterial(spec) {
   if (!spec) spec = 'spruce'
   if (typeof spec === 'string') {
     const m = material(spec)
-    if (!m.stairs || !m.slab) throw new Error(`Roof material "${spec}" needs stairs and slab variants (got ${JSON.stringify(m)})`)
-    return { stairs: m.stairs, slab: m.slab, block: m.block ?? m.planks }
+    // materials without their own stairs/slabs (copper_block, calcite...) use the closest family's
+    const stairs = m.stairs ?? m.substitutes?.stairs?.[0]
+    const slab = m.slab ?? m.substitutes?.slab?.[0]
+    if (!stairs || !slab) throw new Error(`Roof material "${spec}" needs stairs and slab variants (got ${JSON.stringify(m)})`)
+    return { stairs, slab, block: m.block ?? m.planks }
   }
   if (!spec.stairs || !spec.slab || !spec.block) throw new Error('roof material object needs { stairs, slab, block }')
   return spec
 }
 
-// Allowed rises per row: 0.5 (slab step), 1 (stair step), 2 or 3 (steep: stair + full blocks).
+// Allowed rises per row: 0 (flat field), 0.5 (slab step), 1 (stair step), 2 or 3 (steep: stair + full blocks).
 function riseList(pitch, rows) {
-  const named = { shallow: 0.5, low: 0.5, normal: 1, medium: 1, steep: 2, 'very-steep': 3 }
+  const named = { flat: 0, shallow: 0.5, low: 0.5, normal: 1, medium: 1, steep: 2, 'very-steep': 3 }
   const at = i => {
     let r
     if (typeof pitch === 'function') r = pitch(i, rows)
@@ -35,7 +38,7 @@ function riseList(pitch, rows) {
     else if (typeof pitch === 'string') r = named[pitch]
     else r = pitch
     if (r === undefined || !Number.isFinite(r)) r = 1
-    return Math.max(0.5, Math.round(r * 2) / 2)
+    return Math.max(i === 0 ? 0.5 : 0, Math.round(r * 2) / 2)
   }
   return Array.from({ length: rows }, (_, i) => at(i))
 }
@@ -55,9 +58,11 @@ function rowLevels(pitch, rows) {
 
 // Places one roof cell: element whose top surface is at `top` (relative to base), closing
 // the column down to the previous row so the surface never has diagonal-only contact, plus
-// `thickness` blocks below. Inside the walls a half-step "top slab" becomes a full block so
-// no half-block void shows under it. Returns { tb, kind } (top block level, element kind).
-function roofCell(b, x, z, base, top, prevTop, facing, mat, { thickness = 0, ridge = false, overwrite = true, inside = false, underside = 'stairs' } = {}) {
+// `thickness` blocks below. A half-step on a whole level becomes a full block (never a top
+// slab, which would leave a see-through half-block gap under it). `soffit` (overhang cells that
+// are not the outermost eave row) adds only the down-slope upside-down stair under a 1:1 stair,
+// the way vanilla finishes rakes. Returns { tb, kind } (top block level, element kind).
+function roofCell(b, x, z, base, top, prevTop, facing, mat, { thickness = 0, ridge = false, overwrite = true, underside = 'stairs', soffit = false } = {}) {
   const opts = overwrite ? undefined : { keep: true }
   const half = top % 1 !== 0
   const rise = prevTop === null ? null : top - prevTop
@@ -73,8 +78,8 @@ function roofCell(b, x, z, base, top, prevTop, facing, mat, { thickness = 0, rid
       kind = 'block'
       b.set(x, base + tb, z, mat.block, opts)
     } else if (rise !== null && rise < 1) {
-      kind = inside ? 'block' : 'topslab'
-      b.set(x, base + tb, z, inside ? mat.block : `${mat.slab}[type=top]`, opts)
+      kind = 'block'
+      b.set(x, base + tb, z, mat.block, opts)
     } else {
       kind = 'stairs'
       b.set(x, base + tb, z, `${mat.stairs}[facing=${facing},half=bottom]`, opts)
@@ -83,6 +88,9 @@ function roofCell(b, x, z, base, top, prevTop, facing, mat, { thickness = 0, rid
   let fillFrom = tb
   if (prevTop !== null) fillFrom = rise >= 2 ? Math.ceil(prevTop) - 1 : Math.floor(prevTop)
   for (let y = tb - 1; y >= fillFrom; y -= 1) b.set(x, base + y, z, mat.block, opts)
+  if (soffit && kind === 'stairs' && fillFrom === tb) {
+    b.set(x, base + tb - 1, z, `${mat.stairs}[facing=${opposite(facing)},half=top]`, { keep: true })
+  }
   for (let k = 1; k <= thickness; k += 1) {
     // Under a 1:1 stair, an upside-down stair facing DOWN-slope gives a smooth stepped soffit
     // (clean 45° ceiling inside, double-thick rake outside). Facing up-slope would leave a
@@ -104,14 +112,20 @@ function eaveTrimCell(b, x, z, base, cell, facing, mat) {
 
 // Fills wall-line cells from the wall top (y) up to just under the roof surface: gable
 // triangles, shed high walls. cells: Map "x,z" → { tb }.
-function fillUnderRoof(b, cells, base, y, footprint, paint) {
+function fillUnderRoof(b, cells, base, y, footprint, paint, mat) {
   const { minX, maxX, minZ, maxZ } = footprint
+  const stairs = parseBlock(mat.stairs).name
   for (let x = minX; x <= maxX; x += 1) {
     for (let z = minZ; z <= maxZ; z += 1) {
       if (x !== minX && x !== maxX && z !== minZ && z !== maxZ) continue
       const cell = cells.get(`${x},${z}`)
       if (!cell) continue
-      for (let yy = y; yy < base + cell.tb; yy += 1) b.set(x, yy, z, paint, { keep: true })
+      for (let yy = y; yy < base + cell.tb; yy += 1) {
+        // the roof's upside-down underside stair would leave a notch in the gable wall
+        const here = b.get(x, yy, z)
+        const notch = here && here.name === stairs && here.props.half === 'top'
+        b.set(x, yy, z, paint, notch ? undefined : { keep: true })
+      }
     }
   }
 }
@@ -154,7 +168,8 @@ export function roof(b, opts) {
 
   const place = (x, z, top, prevTop, facing, extra = {}) => {
     const inside = inFootprint(x, z)
-    const cell = roofCell(b, x, z, base, top, prevTop, facing, mat, { thickness: inside ? thickness : 0, overwrite, inside, underside, ...extra })
+    const soffit = !inside && prevTop !== null && thickness > 0
+    const cell = roofCell(b, x, z, base, top, prevTop, facing, mat, { thickness: inside ? thickness : 0, overwrite, underside, soffit, ...extra })
     cells.set(`${x},${z}`, cell)
     topY = Math.max(topY, base + cell.tb)
     if (extra.ridge && ridgeCap) b.set(x, base + cell.tb + 1, z, ridgeCap)
@@ -192,7 +207,7 @@ export function roof(b, opts) {
         }
       }
     }
-    if (gable) fillUnderRoof(b, cells, base, y, footprint, gable)
+    if (gable) fillUnderRoof(b, cells, base, y, footprint, gable, mat)
     return { topY, axis, base, cells }
   }
 
@@ -217,7 +232,7 @@ export function roof(b, opts) {
         if (eaveTrim && i === 0) eaveTrimCell(b, x, z, base, c, risesToward, mat)
       }
     }
-    if (gable) fillUnderRoof(b, cells, base, y, footprint, gable)
+    if (gable) fillUnderRoof(b, cells, base, y, footprint, gable, mat)
     return { topY, axis, base, cells }
   }
 
@@ -240,7 +255,7 @@ export function roof(b, opts) {
     }
   }
   if (!Number.isFinite(topY)) topY = y
-  if (gable) fillUnderRoof(b, cells, base, y, footprint, gable)
+  if (gable) fillUnderRoof(b, cells, base, y, footprint, gable, mat)
   return { topY, axis, base, cells }
 }
 
@@ -687,7 +702,9 @@ export function dormer(b, front, facing, { width = 3, height = 3, depth, materia
     const [x, z] = key.split(',').map(Number)
     const top = Math.max(...list.map(([y]) => y))
     if (top <= mainTop.get(key)) continue // main roof is higher here: the dormer tucks under it
-    for (let y = y0; y <= top; y += 1) b.remove(x, y, z)
+    // clear only the dormer roof's own volume: the main slope below its eave stays closed
+    const low = Math.min(...list.map(([y]) => y))
+    for (let y = low; y <= top; y += 1) b.remove(x, y, z)
     for (const [y, block] of list) b.set(x, y, z, block)
   }
   // Walls: front and cheeks from the roof surface up; air inside behind the window.
@@ -698,9 +715,11 @@ export function dormer(b, front, facing, { width = 3, height = 3, depth, materia
       if (isWall) b.set(p[0], y0 + j, p[2], wall)
       else b.remove(p[0], y0 + j, p[2])
     }
-    if (isWall) {
+    // Only the front wall continues down to the slope (a dormer set on a steep roof); cheeks
+    // further in sit above the attic and must not grow down into the rooms below.
+    if (isWall && k === 0) {
       let y = y0 - 1
-      while (y > 0 && !b.get(p[0], y, p[2]) && y > y0 - 6) b.set(p[0], y--, p[2], wall)
+      while (y > 0 && !b.get(p[0], y, p[2]) && y > y0 - 4) b.set(p[0], y--, p[2], wall)
     }
     void key
   }

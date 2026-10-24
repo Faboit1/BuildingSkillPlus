@@ -521,7 +521,14 @@ export class Builder {
 
   // Swap a share of blocks for aged variants (cracked/mossy/oxidized) using coherent noise,
   // so wear appears in patches. amount ≈ share of eligible blocks replaced.
-  weather(a, b, { amount = 0.25, mossBias = 0.5, scale = 4, seed = 0, variants = AGED_VARIANTS } = {}) {
+  // `share` = fraction of eligible blocks to age (0..1, exact). `amount` is the older raw noise
+  // threshold kept for existing recipes (0.22 ≈ 10%, 0.38 ≈ 30%, 0.5 ≈ 50%, 0.62 ≈ 70%).
+  weather(a, b, { amount = 0.25, share, mossBias = 0.5, scale = 4, seed = 0, variants = AGED_VARIANTS } = {}) {
+    if (share !== undefined) {
+      // invert the CDF of 0.6·U + 0.4·U (the noise mix below)
+      const p = Math.min(1, Math.max(0, share))
+      amount = p <= 1 / 3 ? Math.sqrt(0.48 * p) : p <= 2 / 3 ? (1.2 * p + 0.4) / 2 : 1 - Math.sqrt(0.48 * (1 - p))
+    }
     const [min, max] = minMax(a, b)
     for (const [x, y, z, block] of this.entries()) {
       if (x < min[0] || y < min[1] || z < min[2] || x > max[0] || y > max[1] || z > max[2]) continue

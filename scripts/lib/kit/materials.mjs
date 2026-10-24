@@ -41,7 +41,6 @@ const STEM_OF = {
   tuff_bricks: 'tuff_brick',
   end_stone_bricks: 'end_stone_brick',
   polished_blackstone_bricks: 'polished_blackstone_brick',
-  copper_block: 'cut_copper',
   resin_bricks: 'resin_brick',
 }
 
@@ -141,14 +140,18 @@ export function material(name) {
 
 // A material's variant with a fallback chain, e.g. variant('terracotta', 'stairs', 'granite').
 export function variant(name, kind, ...fallbacks) {
+  let substitute
   for (const candidate of [name, ...fallbacks]) {
     try {
       const family = material(candidate)
       if (family[kind]) return family[kind]
+      substitute ??= family.substitutes?.[kind]?.[0]
     } catch {
       // try next
     }
   }
+  // e.g. copper_block has no stairs of its own: use the listed closest family's
+  if (substitute) return substitute
   throw new Error(`No ${kind} variant for ${[name, ...fallbacks].join(' / ')}`)
 }
 

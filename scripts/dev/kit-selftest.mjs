@@ -146,6 +146,36 @@ const stateAt = (b, x, y, z) => {
   check('6-connected line', disconnected === 0)
 }
 
+// --- roof finishing ---------------------------------------------------------------------
+{
+  // gable fill leaves no upside-down roof stair (see-through notch) on the gable wall line
+  const g = kit.builder([24, 16, 18])
+  g.roof({ x0: 4, z0: 4, x1: 16, z1: 12, y: 5, material: 'spruce', axis: 'x', gable: 'oak_planks' })
+  let notches = 0
+  for (const [x, y, z, blk] of g.entries()) if ((x === 4 || x === 16) && y >= 5 && blk.name === 'minecraft:spruce_stairs' && blk.props.half === 'top' && y < g.topY(x, z)) notches += 1
+  check('gable has no stair notches', notches === 0, `${notches}`)
+  // rake (gable overhang) rows get a down-slope soffit stair, the eave-most row does not
+  const rake = g.get(3, 6, 6)
+  check('rake soffit stair', rake?.name === 'minecraft:spruce_stairs' && rake.props.half === 'top' && rake.props.facing === 'north', stateAt(g, 3, 6, 6))
+  check('eave row bare', !g.get(3, 3, 3) || g.get(3, 3, 3).props.half !== 'top', stateAt(g, 3, 3, 3))
+  // half-step pitches never leave top slabs (half-block gaps) in the overhang
+  const a = kit.builder([24, 16, 20])
+  a.roof({ x0: 5, z0: 5, x1: 17, z1: 13, y: 5, type: 'hip', material: 'deepslate_tile', pitch: [0.5, 0.5, 1, 1, 2], overhang: 2 })
+  let topSlabs = 0
+  for (const [, , , blk] of a.entries()) if (blk.name.endsWith('_slab') && blk.props.type === 'top') topSlabs += 1
+  check('no top-slab eave gaps', topSlabs === 0, `${topSlabs}`)
+  // pitch 0 rows make a flat field (Mojang ring roofs)
+  const f = kit.builder([24, 16, 20])
+  f.roof({ x0: 5, z0: 5, x1: 15, z1: 13, y: 5, type: 'hip', material: 'acacia', pitch: [1, 1, 0] })
+  check('flat roof field', f.topY(10, 9) === f.topY(9, 9) && f.topY(10, 9) <= 6, `${f.topY(10, 9)}`)
+  // dormer cheeks never grow down into the rooms
+  const d = kit.builder([26, 18, 20])
+  d.walls([4, 1, 4], [20, 5, 14], 'white_terracotta')
+  d.roof({ x0: 4, z0: 4, x1: 20, z1: 14, y: 6, material: 'dark_oak', gable: 'spruce_planks' })
+  d.dormer([12, 6, 14], 'south', { height: 3, material: 'dark_oak' })
+  check('dormer keeps rooms clear', !d.get(13, 3, 12) && !d.get(11, 3, 12), stateAt(d, 13, 3, 12))
+}
+
 // --- texture ----------------------------------------------------------------------------
 {
   const b = kit.builder([20, 12, 6], { seed: 2 })

@@ -114,16 +114,18 @@ b.roof({
   axis: 'x',            // ridge direction for gable/shed (default: longer side)
   material: 'spruce',   // any family with stairs + slab: 'dark_oak', 'deepslate_tile', 'brick', 'cut_copper', 'mud_brick', ...
                         // or { stairs, slab, block } ids
-  pitch: 1,             // rise per row: 0.5 (slabs), 1 (stairs), 2/3 (steep) — or a list per row
-                        // from the eave inward, e.g. [0.5, 0.5, 1, 1, 2] (curved/Asian), [2, 2, 0.5, 0.5] (gambrel)
+  pitch: 1,             // rise per row: 0.5 (slabs), 1 (stairs), 2/3 (steep), 0 (flat, after row 0) — or a
+                        // list per row from the eave inward, e.g. [0.5, 0.5, 1, 1, 2] (curved/Asian),
+                        // [2, 2, 0.5, 0.5] (gambrel), [1, 1, 0] (Mojang low hip: two stair rings + flat field)
   overhang: 1,          // eave overhang beyond the side walls
   gableOverhang: 1,     // overhang beyond the gable end walls
   gable: 'spruce_planks', // fills every wall-line cell up to the roof (gable triangles, shed walls)
   eaveTrim: true,       // upside-down stairs / top slabs under the outermost row (thick eaves)
   ridgeCap: 'stone_brick_wall', // extra block on the ridge line
   thickness: 1,         // solid layers under the roof surface inside the walls
-  underside: 'stairs',  // 'stairs' puts an upside-down stair (facing down-slope) under each 1:1 stair: clean 45° ceiling
-                        // inside, double-thick rake outside. 'block' uses full blocks.
+  underside: 'stairs',  // 'stairs' puts an upside-down stair (facing down-slope, like vanilla) under each 1:1
+                        // stair: clean 45° ceiling inside; rake and inner overhang rows get the same soffit
+                        // stair, the outermost eave row stays bare. 'block' uses full blocks inside.
   rises: 'north',       // shed only: direction the roof climbs toward
 })
 // → { topY, base, axis, cells }
@@ -131,7 +133,9 @@ b.roof({
 
 The pitch profile is the key to roof character: `1` classic, `0.5` low Mediterranean,
 `2` steep Nordic/Gothic, `[0.5, 0.5, 1, 1, 2, 2]` East-Asian curve, `[2, 2, 3, 0.5]` mansard.
-For L/T/cross plans build the larger roof first, then the wing roofs; stair corners where the
+Half-steps on whole levels are full blocks (never top slabs), so slab-pitch eaves have no
+see-through gaps; a `gable` fill replaces the soffit stairs on the gable wall line so the
+triangle is solid. For L/T/cross plans build the larger roof first, then the wing roofs; stair corners where the
 slopes meet are resolved automatically.
 
 ### Other components
@@ -167,7 +171,7 @@ slopes meet are resolved automatically.
 | `b.pond([cx, level, cz], r, { depth, rim, bed })` | |
 | `b.overgrow(a, c, { amount, maxLength, moss })` | vines on exposed walls + moss carpet |
 | `b.island([cx, topY, cz], r, { depth, top, soil, rock })` | floating island |
-| `b.weather(a, c, { amount, mossBias, scale })` | swaps blocks for cracked/mossy/oxidized variants in patches |
+| `b.weather(a, c, { share, mossBias, scale })` | swaps blocks for cracked/mossy/oxidized variants in patches; `share` is the exact fraction aged (0.1–0.3 typical). The older `amount` is a raw threshold (0.22 ≈ 10%, 0.38 ≈ 30%, 0.62 ≈ 70%) |
 
 ### `b.texture(a, c, ramp, opts)` — gradient retexturing (the pro workflow)
 
