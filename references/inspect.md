@@ -8,6 +8,7 @@ to check geometry, palettes, block states and common mistakes before you look at
 ```bash
 node scripts/inspect.mjs minecraft-builds/my-build/my-build.nbt            # summary
 node scripts/inspect.mjs minecraft-builds/my-build/my-build.nbt --checks   # lint
+node scripts/inspect.mjs minecraft-builds/my-build/my-build.nbt --style medieval   # scorecard vs human norms
 node scripts/inspect.mjs minecraft-builds/my-build/my-build.nbt --layers 0-6 --range 0,0,20,20
 ```
 
@@ -20,9 +21,11 @@ It reads gzip, zlib or uncompressed files of 500k+ blocks in about a second.
 1. `node scripts/run-build.mjs recipe.mjs --out-dir minecraft-builds/x`
 2. `node scripts/inspect.mjs minecraft-builds/x/x.nbt --checks`: fix every `WARN` that is not
    intentional.
-3. `--slice` / `--layers` the areas you changed to confirm the exact geometry (window spacing,
+3. `node scripts/inspect.mjs minecraft-builds/x/x.nbt --style <style>`: fix the worst
+   out-of-band metrics first and track the 0-100 score between iterations.
+4. `--slice` / `--layers` the areas you changed to confirm the exact geometry (window spacing,
    roof stair facing, door placement, symmetry).
-4. Render with `scripts/render.mjs` for the overall look.
+5. Render with `scripts/render.mjs` for the overall look.
 
 ## Input
 
@@ -47,6 +50,8 @@ It reads gzip, zlib or uncompressed files of 500k+ blocks in about a second.
 | `--find <query>` | Positions of matching blocks. Repeatable |
 | `--limit <n>` | Max positions per `--find` (default 200) |
 | `--checks` | Quality lint |
+| `--score` | Scorecard: composition vs human norms, plus geometry metrics, with a 0-100 total |
+| `--style <name>` | Norm set for `--score` (implies `--score`): `medieval`, `house`, `castle`, `fantasy`, `japanese`, `gothic`, `modern`, `ship`, `statue`, `organic`, `terrain`, `other`, `curated`, `all` (default `all`) |
 | `--examples <n>` | Examples shown per check (default 6) |
 | `--all` | Every palette row (default top 40) |
 | `--states` | Palette by full block state instead of block id |
@@ -260,6 +265,168 @@ Validation against all 1,180 vanilla 1.21 structure files:
 - Shipwreck files store `outer_right` on nearly every stair (2,828 of 2,850), and the check flags
   them correctly.
 
+## Score
+
+```bash
+node scripts/inspect.mjs build.nbt --score                 # composition vs all builds of the same size class
+node scripts/inspect.mjs build.nbt --style medieval        # composition vs medieval builds (of that size if N >= 8)
+node scripts/inspect.mjs build.nbt --style japanese --json # everything as JSON (result.score)
+```
+
+The scorecard lists out-of-band metrics first, worst first, each with its value, band and a one-line
+fix. After that comes a compact list of in-band metrics. The 0-100 total is the mean of per-metric
+scores. A metric in band scores 1, and the score falls off with distance outside the band (to 0
+at 1.5 IQR-widths for composition, or at the metric's `soft` distance for geometry). Use the total
+to track iterations, and fix the lowest lines first.
+
+```text
+Scorecard: 86/100, 14 of 24 metrics in band (composition vs medieval x S (<=32), N=62 human builds; ...)
+Outside band (worst first):
+  HIGH  distinct block ids         80  above band 25-46        broader than most builds of this style: ...
+  LOW   top-1 block share       11.4%  below band 16.4-28.6%   no dominant material: give the main wall or roof block more weight
+  LOW   partial blocks          25.7%  below band 33.7-48.3%   add stair/slab/trapdoor/fence/wall detail (roof edges, sills, frames, railings)
+        detail mix: stairs 4.9% (band 10.1-19.5%)
+  LOW   glass                      0%  below band 0.1-2.8%     few windows: add glass panes set one block into the wall
+In band:
+  horizontal logs 37.4% (21.5-55.9%); L* mean (lightness) 44 (40.2-45.9); roof vs wall contrast 51.9 L* (>= 15 L*); ...
+```
+
+(That is GeminiTay's Hermitcraft S8 cottage shop against medieval norms. Showcase builds often sit
+above the band on palette breadth and upside-down stairs. Those hints are worded as checks, not
+faults.)
+
+### Composition Metrics (Human-Build Norms)
+
+The composition metrics use the definitions of the 2026-10-24 corpus study of 1,212 human builds.
+Its bands live in `scripts/lib/data/build-norms.json`, as `[P25, median, P75]` per style and per
+size class. The band is the interquartile range: below P25 usually reads as plain, above P75 as busy.
+
+- **Built blocks**: non-air minus terrain and technical blocks. Terrain covers grass_block, the
+  dirt variants, raw stone, deepslate, tuff, granite, diorite, andesite, sand, gravel, water, lava,
+  snow, ice, clay, mud, netherrack, end_stone, short and tall grass, ferns and seagrass (full list
+  in the norms file). Technical blocks are structure_void, jigsaw, barrier, light, structure_block
+  and moving_piston. All ratios below are over built blocks.
+- **distinct block ids** (states ignored). **Top-1 / top-5 share**: the most-used block, and the
+  five most-used.
+- **Partial blocks**: stairs + slabs + walls + fences/gates + trapdoors + panes/bars +
+  buttons/plates + carpets. When the total is out of band, a **detail mix** line shows which type
+  is out of its own band, e.g. `stairs 4.9% (band 10.1-19.5%)`.
+- **Upside-down stairs**: the share of stairs with half=top (needs at least 10 stairs).
+  **Horizontal logs**: the share of logs, wood, stems and hyphae with axis x or z (needs at least 10).
+- **Lights per 1k blocks**: blocks flagged emissive in `block-colors.json`, copper torches and
+  lanterns, end rods, and lit lamps, candles, campfires, bulbs and furnaces. Lava, fire and magma
+  are not counted.
+- **Glass** is any id containing `glass`. **Leaves** is any id ending in `_leaves`.
+- **L\* mean / L\* std** (value contrast) and **chroma**: CIELAB from `block-colors.json`, weighted
+  by block count. The P10-P90 L\* spread is shown as detail.
+- **Terrain share** is terrain as a share of all non-air blocks, i.e. the ground plug.
+
+Band selection:
+
+- With `--style S`, the band comes from the style x size-class bucket when that bucket has N >= 8.
+  Otherwise the style's all-size band is used.
+- Without `--style`, the band comes from all 1,212 builds in the same size class.
+- Size classes use the longest side of the structure: S <= 32, M 33-64, L 65-128, XL > 128.
+- Style aliases: `asian`/`chinese` mean `japanese`, `church`/`cathedral` mean `gothic`, `tree`
+  means `organic`, `tudor`/`viking`/`nordic` mean `medieval`, `rustic`/`survival` mean `house`.
+
+The implementation was checked against the study. Run over the 60 curated corpus files (converted
+to `.nbt`), it reproduces the study's "CURATED 60" row:
+
+| Metric | inspect.mjs median [P25-P75] | study |
+|---|---|---|
+| distinct ids | 74.5 [45-106] | 74 [45-106] |
+| top-1 % | 22.7 [16.6-35.6] | 23 [17-36] |
+| top-5 % | 63 [47-74] | 63 [47-74] |
+| partial % | 27.9 [17.6-38.0] | 28 [18-38] |
+| upside-down stairs % | 48.2 [36.7-59.0] | 48 [37-59] |
+| horizontal logs % | 37.4 [20-60.7] | 37 [20-61] |
+| lights /1k | 12.1 [5.7-18.6] | 12.0 [5.7-18.6] |
+| glass % | 0.75 [0.1-2.4] | 0.7 [0.1-2.4] |
+| L\* mean | 46.6 [41.3-54.5] | 47 [41-55] |
+| L\* std | 14.8 [11.9-21.5] | 14.8 [11.9-21.5] |
+| chroma | 17.6 [12.2-21.8] | 17.6 [12.2-21.8] |
+| terrain % | 26.4 [12.4-45.4] | 26 [12-45] |
+
+The small differences come from rounding, and from `inspect.mjs` replacing jigsaws with their
+`final_state` where the study skips them.
+
+### Geometry Metrics
+
+These measure what block counts cannot. They use exposed faces: faces whose neighbor is outside
+air, found by a flood fill from beyond the build, so interiors are ignored.
+
+| Metric | What it measures | Target |
+|---|---|---|
+| roof vs wall contrast | \|L\*\| between the dominant roof material and the dominant wall-field material. Roof = column-top stairs/slabs at least 3 above the base and not on terrain. Wall field = full opaque non-terrain cubes on vertical surfaces at least 2 tall (drops stepped-roof risers) | >= 15 L\* (guide: >= 20) |
+| trim vs wall-field contrast | Largest \|L\*\| between the dominant wall block and any other wall block covering >= 5% of wall faces | >= 15 L\* (guide: >= 30) |
+| speckle | Share of wall faces whose block differs from all of its 3-4 in-plane neighbors (salt-and-pepper) | <= 12% |
+| splatter | Share of wall faces that jump more than 2 value steps from at least half of their in-plane neighbors. Steps are the wall palette sorted by L\*, with ids within 4 L\* sharing a step | <= 8% |
+| stripes | Share of wall faces in repeated 1-high bands: block B between two rows of A, 4 or more wide, on 3 or more rows of the same plane | <= 3% |
+| facade relief | Share of wall faces with a depth change within 3 blocks along the plane: an opening or edge, a non-cube block, or something in front | >= 90% |
+| wall faces in flat runs > 8 | Share of wall faces in horizontal runs of more than 8 flat full cubes, whatever the material. The longest run is shown as detail | <= 25% |
+| roof edges that overhang | Of the roof's lower-edge cells (the downslope side of stairs, any open side of slabs), the share with open outside air below. Up to 3 partial blocks (soffit stairs, brackets) are looked through | >= 40% |
+| dark roofed floor spots | Roofed walkable spots with block light 0 (the summary's estimate) | <= 25% |
+| blocks connected to the base | Share of blocks in parts (26-connected) that touch the lowest layer | >= 97% |
+| base columns over air | Share of columns whose lowest block sits 1-3 above the base layer with air below | <= 10% |
+
+Metrics without enough data are `n/a`: fewer than 30 wall faces, fewer than 8 roof cells or 6 roof
+edges, fewer than 10 roofed floor spots, or fewer than 10 stairs or logs.
+
+### Calibration
+
+Geometry targets were set from the 60 curated community builds (the visually vetted showcase set,
+converted with `scripts/convert.mjs`). The 152 vanilla village houses and the celestial forge
+example are shown for reference. Cells are P10 / median / P90, then the share of builds that pass
+the target.
+
+| Metric | Target | Curated 60 | Village houses | Forge |
+|---|---|---|---|---|
+| roof vs wall contrast | >= 15 | 1.5 / 15.7 / 52.5 (53%) | 0.1 / 2.8 / 18.3 (20%) | n/a |
+| trim contrast | >= 15 | 5.1 / 31.3 / 73.8 (71%) | 1.6 / 15.5 / 37.5 (58%) | 70.9 |
+| speckle % | <= 12 | 0 / 4.0 / 22.2 (71%) | 0 / 0 / 3.5 (97%) | 12.0 |
+| splatter % | <= 8 | 0 / 2.3 / 13.4 (73%) | 0 / 0 / 0 (100%) | 5.7 |
+| stripes % | <= 3 | 0 / 0 / 0 (100%) | 0 / 0 / 0 (100%) | 0 |
+| facade relief % | >= 90 | 89.7 / 99.9 / 100 (88%) | 100 / 100 / 100 (100%) | 99.9 |
+| flat runs > 8 % | <= 25 | 0 / 10.1 / 40.8 (68%) | 0 / 0 / 21.5 (94%) | 1.4 |
+| roof overhang % | >= 40 | 15.7 / 53.8 / 91 (66%) | 0 / 90.6 / 100 (65%) | n/a |
+| dark roofed spots % | <= 25 | 0 / 11.6 / 61.1 (73%) | 0 / 0 / 0 (98%) | 40.2 |
+| connected to base % | >= 97 | 99.9 / 100 / 100 (98%) | 100 / 100 / 100 (100%) | 88.2 |
+| base columns over air % | <= 10 | 0 / 0 / 20.6 (83%) | 0 / 0 / 26.8 (78%) | 82.1 |
+| **overall score** | | 79 / 87 / 94 | 72 / 85 / 93 | 82 (73 with `--style fantasy`) |
+
+Synthetic agent-style failures, built with grass, a 20x14 hollow box and a flat roof, score
+62-73:
+
+| Build | Score | Worst lines |
+|---|---|---|
+| plain stone-brick box | 63 | top-1 100%, flat runs 100%, dark spots 100%, L\* std 0 |
+| per-block random stone mix | 65 | speckle 42%, flat runs 100%, partial 0% |
+| alternating plank rows | 73 | stripes 70%, flat runs 100%, relief 74% |
+| gable roof on the wall line, same material | 62 | roof overhang 0%, roof contrast 0.1 L\* |
+
+Notes:
+
+- Village houses are tiny, and many are n/a on the wall metrics. Vanilla houses often roof with the
+  same wood as their walls, which is why roof contrast passes only 20%.
+- The forge is a floating, glass-heavy build, which explains the grounding and glass flags.
+- Buried pieces (trial chambers) and builds with large stone terrain fail flat-run and relief
+  checks harmlessly.
+
+### Norms File
+
+`scripts/lib/data/build-norms.json` has these top-level keys: `version`, `description`,
+`sizeClasses`, `metrics` (label and unit per key), `styleAliases`, `definitions` (terrain,
+technical and light id lists), and `groups`.
+
+- **Groups:** `medieval`, `house`, `castle`, `fantasy`, `japanese`, `gothic`, `modern`, `ship`,
+  `statue`, `organic`, `terrain`, `other`, `curated` and `all`.
+- **Each group** holds `{label, n, metrics, sizes}`. `metrics` maps a key to
+  `[P25, median, P75]`, with shares in percent. `sizes` holds the same shape per size class, for
+  buckets with N >= 5.
+- **Source:** the corpus study's per-build `metrics.json`, summarised with linear-interpolated
+  quantiles. Every number matches the study's tables.
+
 ## JSON
 
 `--json` prints one object with these keys:
@@ -274,6 +441,9 @@ Validation against all 1,180 vanilla 1.21 structure files:
 - `profile[]`: `{y, blocks, coveragePercent, distinct, detailPercent, dense, top[]}`
 - `find[]`: `{query, mode, total, bounds, states[], positions[]}`
 - `checks[]`: `{id, level, message, count?, examples?, hint?}`
+- `score`: `{overall, inBand, scored, norms: {name, style, size, n, builtBlocks, maxDim}, metrics[],
+  detailMix[], raw}`. Each metric is `{id, group: composition|geometry, label, value, unit?, band,
+  median?, position?, status: ok|low|high|n/a, score, hint?, detail?}`.
 
 ## Limits
 

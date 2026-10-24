@@ -28,6 +28,10 @@ Commands (combine freely):
   --find <id|substring>   List positions of matching blocks (exact id with namespace, or substring
                           of the full state such as "lantern" or "facing=north"); repeatable
   --checks                Quality lint with warnings and fix hints
+  --score                 Quality scorecard: metric, value, target band, fix hint, 0-100 total
+  --style <name>          Compare --score composition against a style's norms (implies --score):
+                          medieval, house, castle, fantasy, japanese, gothic, modern, ship, statue,
+                          organic, terrain, other, curated, all (default: all, by size class)
   --json                  Print everything computed as JSON instead of text
 
 Options:
@@ -49,6 +53,7 @@ function parseArgs(argv) {
     profile: false,
     find: [],
     checks: false,
+    score: false,
     json: false,
     range: undefined,
     all: false,
@@ -56,6 +61,7 @@ function parseArgs(argv) {
     limit: DEFAULT_FIND_LIMIT,
     examples: DEFAULT_EXAMPLES,
     palette: 0,
+    style: undefined,
     help: false,
   }
 
@@ -80,6 +86,7 @@ function parseArgs(argv) {
     '--limit': v => { options.limit = positiveInt('--limit', v) },
     '--examples': v => { options.examples = positiveInt('--examples', v) },
     '--palette': v => { options.palette = positiveInt('--palette', v) },
+    '--style': v => { options.style = v; options.score = true },
   }
   const boolFlags = {
     '-h': () => { options.help = true },
@@ -87,6 +94,7 @@ function parseArgs(argv) {
     '--summary': () => { options.summary = true },
     '--profile': () => { options.profile = true },
     '--checks': () => { options.checks = true },
+    '--score': () => { options.score = true },
     '--json': () => { options.json = true },
     '--all': () => { options.all = true },
     '--states': () => { options.states = true },
@@ -1946,6 +1954,608 @@ function runChecks(model, info, counts, summary, lighting, options) {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Scorecard: quality metrics with target bands (calibrated on human builds; see references/inspect.md).
+
+const TERRAIN = new Set([
+  'grass_block', 'dirt', 'coarse_dirt', 'podzol', 'rooted_dirt', 'mycelium', 'mud', 'sand', 'red_sand', 'gravel',
+  'clay', 'dirt_path', 'farmland', 'moss_block', 'pale_moss_block', 'snow', 'powder_snow', 'suspicious_sand',
+  'suspicious_gravel',
+])
+
+async function loadColors() {
+  try {
+    const file = fileURLToPath(new URL('./lib/data/block-colors.json', import.meta.url))
+    return JSON.parse(await fs.readFile(file, 'utf8'))
+  } catch {
+    return null
+  }
+}
+
+// CIE L* (D65) of an sRGB hex colour.
+function hexLightness(hex) {
+  const n = Number.parseInt(String(hex).replace('#', ''), 16)
+  if (!Number.isFinite(n)) return Number.NaN
+  const lin = c => {
+    const v = c / 255
+    return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+  }
+  const y = 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255)
+  return y > 0.008856 ? 116 * Math.cbrt(y) - 16 : 903.3 * y
+}
+
+// Target bands. kind: 'range' (lo..hi), 'min' (>= lo), 'max' (<= hi). soft = distance outside the
+// band at which the metric's score reaches 0. Values come from the calibration in references/inspect.md.
+const SCORE_BANDS = {
+  roofWallContrast: { label: 'roof vs wall contrast', kind: 'min', lo: 15, soft: 15, unit: ' L*', hintLow: 'roof reads like the walls: use a roof >= 20 L* darker (or lighter) and a different material' },
+  trimContrast: { label: 'trim vs wall-field contrast', kind: 'min', lo: 15, soft: 15, unit: ' L*', hintLow: 'frame/trim blends into the wall field: pick posts/trim >= 30 L* from the infill' },
+  speckle: { label: 'speckle (isolated wall blocks)', kind: 'max', hi: 12, soft: 15, unit: '%', hintHigh: 'salt-and-pepper texture: mix in clusters 2-6 blocks across, not per-block random' },
+  splatter: { label: 'splatter (> 2 value steps)', kind: 'max', hi: 8, soft: 10, unit: '%', hintHigh: 'neighbouring wall blocks jump > 2 value steps: only let adjacent ramp steps touch' },
+  stripes: { label: 'stripes (repeated 1-high bands)', kind: 'max', hi: 3, soft: 10, unit: '%', hintHigh: 'horizontal stripes: replace repeated 1-block bands with ragged gradient bands 2-4 tall' },
+  relief: { label: 'facade relief (depth within 3)', kind: 'min', lo: 90, soft: 30, unit: '%', hintLow: 'flat facades: add posts/pilasters every 3-5, recessed windows, sills, beams, buttresses' },
+  flatRun: { label: 'wall faces in flat runs > 8', kind: 'max', hi: 25, soft: 25, unit: '%', hintHigh: 'long flat wall runs: break planes wider than ~5-8 blocks with a 1-block offset, post or pilaster' },
+  roofOverhang: { label: 'roof edges that overhang', kind: 'min', lo: 40, soft: 40, unit: '%', hintLow: 'roof looks stuck on: extend eaves 1 block (2 on big roofs) past the walls' },
+  darkSpots: { label: 'dark roofed floor spots', kind: 'max', hi: 25, soft: 40, unit: '%', hintHigh: 'dark interiors: a lantern every 8-12 blocks, a light at every door (approximate estimate)' },
+  grounded: { label: 'blocks connected to the base', kind: 'min', lo: 97, soft: 15, unit: '%', hintLow: 'parts float apart from the base: connect or support them (unless a floating build)' },
+  baseGaps: { label: 'base columns over air', kind: 'max', hi: 10, soft: 20, unit: '%', hintHigh: 'walls/corners hover over air at the base: extend foundations down to the ground' },
+}
+
+function bandText(band) {
+  const u = band.unit === '%' ? '%' : band.unit
+  if (band.kind === 'min') return `>= ${band.lo}${u}`
+  if (band.kind === 'max') return `<= ${band.hi}${u}`
+  return `${band.lo}-${band.hi}${u}`
+}
+
+function scoreMetric(id, value, extra = {}) {
+  const band = SCORE_BANDS[id]
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return { id, label: band.label, value: null, band: bandText(band), status: 'n/a', score: null, ...extra }
+  }
+  let status = 'ok'
+  let dist = 0
+  if ((band.kind === 'range' || band.kind === 'min') && value < band.lo) { status = 'low'; dist = band.lo - value }
+  if ((band.kind === 'range' || band.kind === 'max') && value > band.hi) { status = 'high'; dist = value - band.hi }
+  const score = status === 'ok' ? 1 : Math.max(0, 1 - dist / band.soft)
+  const hint = status === 'low' ? band.hintLow : status === 'high' ? band.hintHigh : undefined
+  return { id, label: band.label, value, band: bandText(band), status, score: round(score, 2), ...(hint ? { hint } : {}), ...extra }
+}
+
+function computeScore(model, info, lighting, colors) {
+  const { grid, occ } = model
+  const total = occ.length
+  const isExterior = exteriorAir(model)
+  const n = info.length
+  const sideL = new Float64Array(n).fill(Number.NaN)
+  const topL = new Float64Array(n).fill(Number.NaN)
+  const terrain = new Uint8Array(n)
+  const wallish = new Uint8Array(n) // full, opaque, architectural cubes (not terrain/foliage)
+  info.forEach((s, k) => {
+    const c = colors?.[s.name]
+    if (c) {
+      sideL[k] = Array.isArray(c.lab) ? c.lab[0] : hexLightness(c.side)
+      topL[k] = c.top ? hexLightness(c.top) : sideL[k]
+    }
+    terrain[k] = TERRAIN.has(s.short) ? 1 : 0
+    const glassy = NON_OPAQUE_FULL.test(s.short)
+    wallish[k] = s.fullCube && !glassy && !terrain[k] && s.emit < 10 ? 1 : 0
+  })
+
+  const off = grid.off
+  const layer = grid.layer
+  // in-plane axes for a face looking in horizontal direction d: u is the horizontal axis along it
+  const uDir = d => (d === 0 || d === 2 ? 1 : 2) // north/south faces run east-west; east/west faces run north-south
+  const exposedWall = (i, d) => {
+    const s = grid.get(i)
+    if (s < 0 || !wallish[s]) return false
+    const f = i + off[d]
+    return grid.get(f) < 0 && isExterior(f, d)
+  }
+  // part of a vertical surface at least 2 tall (drops the 1-high risers of stepped roofs)
+  const wallFace = (i, d) => exposedWall(i, d) && (exposedWall(i + layer, d) || exposedWall(i - layer, d))
+
+  const wallById = new Map()
+  let wallFaces = 0
+  let relieved = 0
+  let longestRun = 0
+  let longRunFaces = 0
+  let speckle = 0
+  let speckleBase = 0
+  let splatter = 0
+  const bandCells = new Map()
+  const faceList = [] // [i, d] for the second pass (splatter needs value steps)
+
+  for (let k = 0; k < occ.length; k += 1) {
+    const i = occ[k]
+    const s = grid.get(i)
+    if (!wallish[s]) continue
+    for (let d = 0; d < 4; d += 1) {
+      if (!wallFace(i, d)) continue
+      wallFaces += 1
+      faceList.push(i, d)
+      const name = info[s].name
+      const row = wallById.get(name) ?? { count: 0, L: sideL[s] }
+      row.count += 1
+      wallById.set(name, row)
+      // relief: a depth change or sub-block element within 3 blocks along the plane
+      const u = uDir(d)
+      const dirs = [u, opposite(u), UP, DOWN]
+      let hasRelief = false
+      for (const t of dirs) {
+        let p = i
+        for (let step = 1; step <= 3 && !hasRelief; step += 1) {
+          p = grid.step(p, t)
+          if (p < 0) { hasRelief = true; break }
+          const ps = grid.get(p)
+          if (ps < 0 || !info[ps].fullCube || grid.get(p + off[d]) >= 0) hasRelief = true
+        }
+        if (hasRelief) break
+      }
+      if (hasRelief) relieved += 1
+      // flat runs: count from the start of each run along +u
+      const back = grid.step(i, opposite(u))
+      if (back < 0 || !wallFace(back, d)) {
+        let len = 0
+        let p = i
+        while (p >= 0 && wallFace(p, d)) {
+          len += 1
+          p = grid.step(p, u)
+        }
+        if (len > longestRun) longestRun = len
+        if (len > 8) longRunFaces += len
+      }
+      // stripes: 1-high band of B between two rows of the same A
+      const above = i + layer
+      const below = i - layer
+      if (wallFace(above, d) && wallFace(below, d)) {
+        const a = info[grid.get(above)].name
+        if (a === info[grid.get(below)].name && a !== name) {
+          const [x, y, z] = grid.pos(i)
+          const key = `${d}|${d === 0 || d === 2 ? z : x}|${a}|${name}`
+          let rows = bandCells.get(key)
+          if (!rows) { rows = new Map(); bandCells.set(key, rows) }
+          let us = rows.get(y)
+          if (!us) { us = []; rows.set(y, us) }
+          us.push(d === 0 || d === 2 ? x : z)
+        }
+      }
+    }
+  }
+
+  // Value steps for the wall palette: ids sorted by L*, ids within 4 L* share a step.
+  const wallIds = [...wallById.entries()].filter(([, r]) => !Number.isNaN(r.L)).sort((a, b) => a[1].L - b[1].L)
+  const stepOf = new Map()
+  let step = -1
+  let stepStart = -Infinity
+  for (const [name, r] of wallIds) {
+    if (r.L - stepStart > 4) { step += 1; stepStart = r.L }
+    stepOf.set(name, step)
+  }
+  for (let q = 0; q < faceList.length; q += 2) {
+    const i = faceList[q]
+    const d = faceList[q + 1]
+    const u = uDir(d)
+    const name = info[grid.get(i)].name
+    const mine = stepOf.get(name)
+    let present = 0
+    let different = 0
+    let jumps = 0
+    for (const t of [u, opposite(u), UP, DOWN]) {
+      const p = grid.step(i, t)
+      if (p < 0 || !wallFace(p, d)) continue
+      present += 1
+      const other = info[grid.get(p)].name
+      if (other !== name) different += 1
+      const os = stepOf.get(other)
+      if (mine !== undefined && os !== undefined && Math.abs(os - mine) > 2) jumps += 1
+    }
+    if (present >= 3) {
+      speckleBase += 1
+      if (different === present) speckle += 1
+    }
+    if (present && jumps * 2 >= present) splatter += 1
+  }
+  let stripeFaces = 0
+  for (const rows of bandCells.values()) {
+    const bandRows = []
+    for (const [, us] of rows) {
+      us.sort((a, b) => a - b)
+      let run = 1
+      let cells = 0
+      for (let k = 1; k <= us.length; k += 1) {
+        if (k < us.length && us[k] === us[k - 1] + 1) { run += 1; continue }
+        if (run >= 4) cells += run
+        run = 1
+      }
+      if (cells) bandRows.push(cells)
+    }
+    if (bandRows.length >= 3) stripeFaces += bandRows.reduce((a, b) => a + b, 0)
+  }
+
+  // Roof: column-top stairs/slabs at least 3 above the base and not resting on terrain.
+  const minGy = model.bounds ? model.bounds.min[1] - grid.oy : 0
+  const top = new Int32Array(grid.w * grid.d).fill(-1)
+  const bottom = new Int32Array(grid.w * grid.d).fill(-1)
+  for (let k = 0; k < occ.length; k += 1) {
+    const i = occ[k]
+    const s = grid.get(i)
+    if (info[s].passable) continue
+    const col = i % layer
+    const y = Math.floor(i / layer)
+    if (y > top[col]) top[col] = y
+    if (bottom[col] < 0 || y < bottom[col]) bottom[col] = y
+  }
+  const roofById = new Map()
+  let roofCells = 0
+  let roofEdges = 0
+  let overhangs = 0
+  for (let k = 0; k < occ.length; k += 1) {
+    const i = occ[k]
+    const s = grid.get(i)
+    const b = info[s]
+    if (!b.stairs && b.cat !== 'slab') continue
+    const col = i % layer
+    const y = Math.floor(i / layer)
+    if (top[col] !== y || y - minGy < 3) continue
+    const under = grid.get(i - layer)
+    if (under >= 0 && terrain[under]) continue // paving on the ground, not a roof
+    roofCells += 1
+    const rr = roofById.get(b.name) ?? { count: 0, L: topL[s] }
+    rr.count += 1
+    roofById.set(b.name, rr)
+    // overhang: below the edge (through up to 3 partial blocks: eave undersides, brackets) is open air
+    let belowOpen = false
+    for (let p = i - layer, steps = 0; p >= 0 && steps < 4; p -= layer, steps += 1) {
+      const ps = grid.get(p)
+      if (ps < 0) { belowOpen = isExterior(p, DOWN); break }
+      if (info[ps].fullCube) break
+    }
+    const dirs = b.stairs && b.half === 0 ? [opposite(b.facing)] : [0, 1, 2, 3]
+    const isEdge = dirs.some(d => {
+      const nb = i + off[d]
+      return grid.get(nb) < 0 && isExterior(nb, d) && grid.get(nb - layer) < 0
+    })
+    if (isEdge) {
+      roofEdges += 1
+      if (belowOpen) overhangs += 1
+    }
+  }
+
+  // Grounding: 26-connected parts touching the lowest layer; base columns hovering over air.
+  let grounded = 0
+  {
+    const around = []
+    for (let dy = -1; dy <= 1; dy += 1) for (let dz = -1; dz <= 1; dz += 1) for (let dx = -1; dx <= 1; dx += 1) if (dx || dy || dz) around.push(dx + dz * grid.w + dy * layer)
+    const visited = grid.dense ? new Uint8Array(grid.vol) : new Set()
+    const seen = grid.dense ? i => visited[i] === 1 : i => visited.has(i)
+    const mark = grid.dense ? i => { visited[i] = 1 } : i => { visited.add(i) }
+    const stack = []
+    for (let k = 0; k < occ.length; k += 1) {
+      const start = occ[k]
+      if (seen(start)) continue
+      mark(start)
+      stack.push(start)
+      let size = 0
+      let touches = false
+      while (stack.length) {
+        const i = stack.pop()
+        size += 1
+        if (Math.floor(i / layer) === minGy) touches = true
+        for (let a = 0; a < 26; a += 1) {
+          const nb = i + around[a]
+          if (grid.get(nb) >= 0 && !seen(nb)) { mark(nb); stack.push(nb) }
+        }
+      }
+      if (touches) grounded += size
+    }
+  }
+  let baseColumns = 0
+  let gapColumns = 0
+  for (let col = 0; col < bottom.length; col += 1) {
+    if (bottom[col] < 0 || bottom[col] > minGy + 3) continue
+    baseColumns += 1
+    if (bottom[col] > minGy) {
+      const s = grid.get(bottom[col] * layer + col)
+      if (s >= 0 && info[s].cat !== 'plant') gapColumns += 1
+    }
+  }
+
+  const wallRows = [...wallById.entries()].filter(([, r]) => !Number.isNaN(r.L)).sort((a, b) => b[1].count - a[1].count)
+  const roofRows = [...roofById.entries()].filter(([, r]) => !Number.isNaN(r.L)).sort((a, b) => b[1].count - a[1].count)
+  let roofContrast = null
+  let roofPair = null
+  if (roofCells >= 8 && wallRows.length && roofRows.length && wallFaces >= 30) {
+    const [roofId, roof] = roofRows[0]
+    const [wallId, wall] = wallRows[0]
+    roofContrast = Math.abs(roof.L - wall.L)
+    roofPair = `roof ${strip(roofId)} ${Math.round(roof.L)} vs wall ${strip(wallId)} ${Math.round(wall.L)}`
+  }
+  let trim = null
+  let trimPair = null
+  if (wallRows.length >= 2 && wallFaces >= 30) {
+    const [mainId, main] = wallRows[0]
+    trim = 0
+    for (const [id, r] of wallRows.slice(1)) {
+      if (r.count < 0.05 * wallFaces) continue
+      const delta = Math.abs(r.L - main.L)
+      if (delta > trim) { trim = delta; trimPair = `${strip(mainId)} ${Math.round(main.L)} vs ${strip(id)} ${Math.round(r.L)}` }
+    }
+    if (!trimPair) trim = null
+  }
+
+  const enough = wallFaces >= 30
+  const metrics = [
+    scoreMetric('roofWallContrast', roofContrast === null ? null : round(roofContrast, 1), roofPair ? { detail: roofPair } : {}),
+    scoreMetric('trimContrast', trim === null ? null : round(trim, 1), trimPair ? { detail: trimPair } : {}),
+    scoreMetric('speckle', speckleBase >= 30 ? pct(speckle, speckleBase) : null),
+    scoreMetric('splatter', enough ? pct(splatter, wallFaces) : null),
+    scoreMetric('stripes', enough ? pct(stripeFaces, wallFaces) : null),
+    scoreMetric('relief', enough ? pct(relieved, wallFaces) : null),
+    scoreMetric('flatRun', enough ? pct(longRunFaces, wallFaces) : null, enough ? { detail: `longest flat run ${longestRun} blocks` } : {}),
+    scoreMetric('roofOverhang', roofEdges >= 6 ? pct(overhangs, roofEdges) : null, roofEdges >= 6 ? { detail: `${overhangs} of ${roofEdges} roof edge cells` } : {}),
+    scoreMetric('darkSpots', lighting && lighting.walkable.covered >= 10 ? lighting.dark.coveredPercent : null),
+    scoreMetric('grounded', total ? pct(grounded, total) : null),
+    scoreMetric('baseGaps', baseColumns >= 10 ? pct(gapColumns, baseColumns) : null),
+  ]
+  const scored = metrics.filter(m => m.score !== null)
+  const overall = scored.length ? Math.round((scored.reduce((a, m) => a + m.score, 0) / scored.length) * 100) : null
+  return {
+    overall,
+    inBand: scored.filter(m => m.status === 'ok').length,
+    scored: scored.length,
+    metrics,
+    raw: { wallFaces, roofCells, roofEdges, colorsAvailable: Boolean(colors) },
+  }
+}
+
+// Composition norms: the same block-composition metrics as the 2026-10-24 corpus study of 1,212 human
+// builds (scripts/lib/data/build-norms.json), compared against the P25-P75 band of a style and size class.
+
+async function loadNorms() {
+  try {
+    const file = fileURLToPath(new URL('./lib/data/build-norms.json', import.meta.url))
+    return JSON.parse(await fs.readFile(file, 'utf8'))
+  } catch {
+    return null
+  }
+}
+
+const NORM_ALIAS = { grass: 'short_grass', grass_path: 'dirt_path' }
+const NORM_KEYS = ['distinct', 'top1', 'top5', 'partial', 'stairs_top', 'log_horizontal', 'light_per_1k', 'glass', 'leaves', 'L_mean', 'L_std', 'chroma_mean', 'terrain_share']
+const PARTIAL_KEYS = ['p_stairs', 'p_slabs', 'p_trapdoors', 'p_fences', 'p_walls', 'p_panes_bars', 'p_buttons_plates', 'p_carpets']
+const NORM_HINTS = {
+  distinct: ['thin palette: add trims, accents and stair/slab/wall variants of the main blocks', 'broader than most builds of this style: fine for showcase detail if ids group into a few material families'],
+  top1: ['no dominant material: give the main wall or roof block more weight', 'one block dominates: break it up with close-value variants and a second texture'],
+  top5: ['many equal-weight materials: let about 5 blocks carry two thirds of the build', 'too concentrated: add accent and detail ids around the main five'],
+  partial: ['add stair/slab/trapdoor/fence/wall detail (roof edges, sills, frames, railings)', 'mostly partial blocks: keep walls and roofs reading as solid surfaces'],
+  stairs_top: ['use upside-down stairs for eaves, sills, corbels and overhang soffits', 'many upside-down stairs: fine for soffits and corbels; check that roof slopes face up'],
+  log_horizontal: ['lay some logs along x/z as beams, sills, lintels and frame bands', 'mostly horizontal logs: add vertical posts at corners and bay lines'],
+  light_per_1k: ['too few lights: lanterns at doors, along paths every 8-12 blocks, inside rooms', 'dense lighting: keep it purposeful (lanterns at doors and paths, no torch spam)'],
+  glass: ['few windows: add glass panes set one block into the wall', 'glass-heavy for this style: more solid wall between openings'],
+  leaves: ['add foliage: bushes at corners, planters, vines or a tree', 'more foliage than most builds of this style: fine for gardens, keep it from hiding the facade'],
+  L_mean: ['reads dark: lighten the wall field or the roof', 'reads pale: darken the base, frame or roof'],
+  L_std: ['flat values: put a darker base/frame/roof against a lighter wall field', 'harsh value jumps: tighten the light-dark range of the main surfaces'],
+  chroma_mean: ['colourless: add warm wood or a coloured roof or accent', 'more saturated than most: keep strong colour for roofs and accents, calm the wall fields'],
+  terrain_share: ['no ground: add a terrain plug, a path and planting around the base', 'terrain-heavy: fine for scenes; make sure the build still reads as the focus'],
+}
+const NORM_LABELS = {
+  distinct: 'distinct block ids', top1: 'top-1 block share', top5: 'top-5 block share', partial: 'partial blocks',
+  stairs_top: 'upside-down stairs', log_horizontal: 'horizontal logs', light_per_1k: 'lights per 1k blocks', glass: 'glass',
+  leaves: 'leaves', L_mean: 'L* mean (lightness)', L_std: 'L* std (value contrast)', chroma_mean: 'chroma (saturation)',
+  terrain_share: 'terrain share', p_stairs: 'stairs', p_slabs: 'slabs', p_trapdoors: 'trapdoors', p_fences: 'fences',
+  p_walls: 'walls', p_panes_bars: 'panes/bars', p_buttons_plates: 'buttons/plates', p_carpets: 'carpets',
+}
+const NORM_UNITS = { distinct: '', light_per_1k: '/1k', L_mean: '', L_std: '', chroma_mean: '' } // others are %
+
+function computeComposition(model, info, counts, colors, norms) {
+  const def = norms?.definitions ?? {}
+  const terrainIds = new Set(def.terrain ?? [])
+  const technical = new Set(def.technical ?? [])
+  const extraLights = new Set(def.extraLights ?? [])
+  const litLights = new Set(def.litLights ?? [])
+  const notLights = new Set(def.notLights ?? [])
+  const built = new Map()
+  let nonair = 0
+  let nonvanilla = 0
+  let total = 0
+  let stairsAll = 0
+  let stairsTop = 0
+  let logAll = 0
+  let logH = 0
+  let lights = 0
+  const partial = Object.fromEntries(PARTIAL_KEYS.map(k => [k, 0]))
+  info.forEach((s, k) => {
+    const c = counts[k]
+    if (!c) return
+    const n = NORM_ALIAS[s.short] ?? s.short
+    if (technical.has(n)) return
+    nonair += c
+    if (!s.name.startsWith('minecraft:')) { nonvanilla += c; return }
+    if (terrainIds.has(n)) return
+    total += c
+    built.set(n, (built.get(n) ?? 0) + c)
+    if (n.endsWith('_stairs')) {
+      stairsAll += c
+      if (s.props.half === 'top') stairsTop += c
+    }
+    if (/(_log|_wood|_stem|_hyphae)$/.test(n)) {
+      logAll += c
+      if (s.props.axis === 'x' || s.props.axis === 'z') logH += c
+    }
+    const bc = colors?.[`minecraft:${n}`]
+    const always = ((bc?.emissive && !bc.emissiveWhen) || extraLights.has(n)) && !notLights.has(n)
+    const lit = (bc?.emissiveWhen === 'lit' || litLights.has(n)) && s.props.lit === 'true'
+    if (always || lit) lights += c
+    const type = n.endsWith('_stairs') ? 'p_stairs' : n.endsWith('_slab') ? 'p_slabs' : n.endsWith('_wall') ? 'p_walls'
+      : n.endsWith('_fence') || n.endsWith('_fence_gate') ? 'p_fences' : n.endsWith('_trapdoor') ? 'p_trapdoors'
+        : n.endsWith('_pane') || n === 'iron_bars' || n.endsWith('_bars') ? 'p_panes_bars'
+          : n.endsWith('_button') || n.endsWith('_pressure_plate') ? 'p_buttons_plates' : n.endsWith('_carpet') ? 'p_carpets' : null
+    if (type) partial[type] += c
+  })
+  const m = { built: total, max_dim: Math.max(...model.size) }
+  m.terrain_share = nonair ? 100 * (1 - (total + nonvanilla) / nonair) : null
+  if (!total) return m
+  const sorted = [...built.entries()].sort((a, b) => b[1] - a[1])
+  m.distinct = built.size
+  m.top1 = (100 * sorted[0][1]) / total
+  m.top1_id = sorted[0][0]
+  m.top5 = (100 * sorted.slice(0, 5).reduce((a, [, c]) => a + c, 0)) / total
+  for (const k of PARTIAL_KEYS) m[k] = (100 * partial[k]) / total
+  m.partial = PARTIAL_KEYS.reduce((a, k) => a + m[k], 0)
+  m.stairs_top = stairsAll >= 10 ? (100 * stairsTop) / stairsAll : null
+  m.log_horizontal = logAll >= 10 ? (100 * logH) / logAll : null
+  m.light_per_1k = (1000 * lights) / total
+  m.glass = (100 * sorted.filter(([n]) => n.includes('glass')).reduce((a, [, c]) => a + c, 0)) / total
+  m.leaves = (100 * sorted.filter(([n]) => n.endsWith('_leaves')).reduce((a, [, c]) => a + c, 0)) / total
+  if (colors) {
+    const samples = []
+    let weight = 0
+    for (const [n, c] of built) {
+      const lab = colors[`minecraft:${n}`]?.lab
+      if (!lab) continue
+      samples.push([lab[0], c, Math.hypot(lab[1], lab[2])])
+      weight += c
+    }
+    if (weight) {
+      const mean = samples.reduce((a, [L, w]) => a + L * w, 0) / weight
+      m.L_mean = mean
+      m.L_std = Math.sqrt(samples.reduce((a, [L, w]) => a + w * (L - mean) ** 2, 0) / weight)
+      m.chroma_mean = samples.reduce((a, [, w, ch]) => a + w * ch, 0) / weight
+      samples.sort((a, b) => a[0] - b[0])
+      const wq = q => {
+        let acc = 0
+        for (const [L, w] of samples) {
+          acc += w
+          if (acc >= q * weight) return L
+        }
+        return samples.at(-1)[0]
+      }
+      m.L_p10_p90 = wq(0.9) - wq(0.1)
+    }
+  }
+  return m
+}
+
+function resolveStyle(norms, style) {
+  if (!style) return 'all'
+  const key = style.toLowerCase()
+  if (norms.groups[key]) return key
+  for (const [name, aliases] of Object.entries(norms.styleAliases ?? {})) if (aliases.includes(key)) return name
+  throw new Error(`Unknown --style "${style}". Styles: ${Object.keys(norms.groups).join(', ')}`)
+}
+
+function selectNorms(norms, styleKey, maxDim) {
+  const size = maxDim <= 32 ? 'S' : maxDim <= 64 ? 'M' : maxDim <= 128 ? 'L' : 'XL'
+  const sizeText = { S: '<=32', M: '33-64', L: '65-128', XL: '>128' }[size]
+  const group = norms.groups[styleKey]
+  const bucket = group.sizes?.[size]
+  if (bucket && bucket.n >= 8) {
+    return { name: `${styleKey} x ${size} (${sizeText})`, style: styleKey, size, n: bucket.n, metrics: { ...group.metrics, ...bucket.metrics } }
+  }
+  return { name: `${styleKey} (all sizes; ${size} ${sizeText} bucket too small)`, style: styleKey, size, n: group.n, metrics: group.metrics }
+}
+
+function normMetric(key, value, band, extra = {}) {
+  const unit = NORM_UNITS[key] ?? '%'
+  const label = NORM_LABELS[key]
+  if (!band) return null
+  const [lo, med, hi] = band
+  const bandText = `${lo}-${hi}${unit === '%' ? '%' : unit}`
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return { id: key, group: 'composition', label, value: null, unit, band: bandText, median: med, status: 'n/a', score: null, ...extra }
+  }
+  const v = round(value, key === 'distinct' ? 0 : 1)
+  let status = 'ok'
+  let dist = 0
+  if (v < lo) { status = 'low'; dist = lo - v }
+  if (v > hi) { status = 'high'; dist = v - hi }
+  const soft = 1.5 * Math.max(hi - lo, Math.abs(med) * 0.5, 1)
+  const score = status === 'ok' ? 1 : Math.max(0, 1 - dist / soft)
+  const hint = status === 'low' ? NORM_HINTS[key]?.[0] : status === 'high' ? NORM_HINTS[key]?.[1] : undefined
+  return {
+    id: key, group: 'composition', label, value: v, unit, band: bandText, median: med,
+    position: status === 'low' ? 'below P25' : status === 'high' ? 'above P75' : 'in band',
+    status, score: round(score, 2), ...(hint ? { hint } : {}), ...extra,
+  }
+}
+
+function buildScorecard(model, info, counts, summary, lighting, colors, norms, options) {
+  const geometry = computeScore(model, info, lighting, colors)
+  const metrics = []
+  let normInfo = null
+  let mix = []
+  if (norms) {
+    const comp = computeComposition(model, info, counts, colors, norms)
+    const sel = selectNorms(norms, resolveStyle(norms, options.style), comp.max_dim)
+    normInfo = { name: sel.name, style: sel.style, size: sel.size, n: sel.n, builtBlocks: comp.built, maxDim: comp.max_dim }
+    for (const key of NORM_KEYS) {
+      const extra = key === 'top1' && comp.top1_id ? { detail: comp.top1_id } : key === 'L_std' && comp.L_p10_p90 !== undefined ? { detail: `P10-P90 spread ${round(comp.L_p10_p90, 1)}, band ${sel.metrics.L_p10_p90?.[0]}-${sel.metrics.L_p10_p90?.[2]}` } : {}
+      const metric = normMetric(key, comp[key] ?? null, sel.metrics[key], extra)
+      if (metric) metrics.push(metric)
+    }
+    // detail mix: partial-block types outside their band (not scored separately)
+    mix = PARTIAL_KEYS.map(key => normMetric(key, comp[key] ?? null, sel.metrics[key]))
+      .filter(m => m && m.status !== 'ok' && m.status !== 'n/a' && !(m.status === 'low' && sel.metrics[m.id][0] < 0.5))
+      .map(m => ({ id: m.id, label: m.label, value: m.value, band: m.band, status: m.status }))
+  }
+  for (const m of geometry.metrics) metrics.push({ ...m, group: 'geometry' })
+  const scored = metrics.filter(m => m.score !== null)
+  const overall = scored.length ? Math.round((scored.reduce((a, m) => a + m.score, 0) / scored.length) * 100) : null
+  return {
+    overall,
+    inBand: scored.filter(m => m.status === 'ok').length,
+    scored: scored.length,
+    norms: normInfo,
+    metrics,
+    detailMix: mix,
+    raw: geometry.raw,
+  }
+}
+
+function formatScore(result) {
+  const valueText = m => {
+    if (m.value === null) return 'n/a'
+    const unit = m.group === 'composition' ? m.unit : SCORE_BANDS[m.id].unit
+    return `${m.value}${unit === '%' ? '%' : unit}`
+  }
+  const bandText = m => (m.group === 'composition' ? `band ${m.band}` : `target ${m.band}`)
+  const out = []
+  const ref = result.norms ? `composition vs ${result.norms.name}, N=${result.norms.n} human builds` : 'composition norms unavailable (scripts/lib/data/build-norms.json missing)'
+  out.push(`Scorecard: ${result.overall === null ? 'n/a' : `${result.overall}/100`}, ${result.inBand} of ${result.scored} metrics in band (${ref}; geometry targets from 60 curated builds + 152 village houses)`)
+  const outside = result.metrics.filter(m => m.status === 'low' || m.status === 'high').sort((a, b) => a.score - b.score)
+  if (outside.length) {
+    out.push('Outside band (worst first):')
+    const lw = Math.max(...outside.map(m => m.label.length))
+    const vw = Math.max(...outside.map(m => valueText(m).length))
+    const bw = Math.max(...outside.map(m => bandText(m).length))
+    for (const m of outside) {
+      const where = m.group === 'composition' ? (m.status === 'low' ? 'below' : 'above') : m.status === 'low' ? 'low  ' : 'high '
+      out.push(`  ${m.status.toUpperCase().padEnd(4)}  ${m.label.padEnd(lw)}  ${valueText(m).padStart(vw)}  ${where.padEnd(5)} ${bandText(m).padEnd(bw)}  ${m.hint ?? ''}`.trimEnd())
+      if (m.id === 'partial' && result.detailMix.length) {
+        out.push(`        detail mix: ${result.detailMix.map(d => `${d.label} ${d.value}% (band ${d.band})`).join(', ')}`)
+      }
+    }
+  }
+  if (!outside.some(m => m.id === 'partial') && result.detailMix.length) {
+    out.push(`  note  detail mix outside band: ${result.detailMix.map(d => `${d.label} ${d.value}% (band ${d.band})`).join(', ')}`)
+  }
+  const inside = result.metrics.filter(m => m.status === 'ok')
+  if (inside.length) {
+    out.push('In band:')
+    const items = inside.map(m => `${m.label} ${valueText(m)} (${m.band})`)
+    let line = ' '
+    for (const item of items) {
+      if (line.length + item.length + 2 > 110) { out.push(line); line = ' ' }
+      line += ` ${item};`
+    }
+    if (line.trim()) out.push(line)
+  }
+  const na = result.metrics.filter(m => m.status === 'n/a')
+  if (na.length) out.push(`n/a (not enough walls, roof edges, stairs, logs or roofed floor): ${na.map(m => m.label).join(', ')}`)
+  if (!result.raw.colorsAvailable) out.push('(scripts/lib/data/block-colors.json not found: value and colour metrics are n/a)')
+  return out.join('\n')
+}
+
+// ---------------------------------------------------------------------------------------------
 // Formatting helpers
 
 function pct(part, whole) {
@@ -2085,15 +2695,16 @@ async function main() {
   const info = analyzeStates(model.states, pack)
   const counts = countStates(model)
 
-  const hasCommand = options.slices.length || options.profile || options.find.length || options.checks
+  const hasCommand = options.slices.length || options.profile || options.find.length || options.checks || options.score
   const wantSummary = options.summary || !hasCommand
   const summary = buildSummary(model, info, counts, options)
-  const needLighting = wantSummary || options.checks
+  const needLighting = wantSummary || options.checks || options.score
   const lighting = needLighting ? computeLighting(model, info, counts) : null
   const sliceData = buildSlices(model, info, options)
   const profile = options.profile ? buildProfile(model, info) : null
   const finds = options.find.map(q => buildFind(model, info, q, options.limit))
   const checks = options.checks ? runChecks(model, info, counts, summary, lighting, options) : null
+  const score = options.score ? buildScorecard(model, info, counts, summary, lighting, await loadColors(), await loadNorms(), options) : null
 
   if (options.json) {
     const result = {
@@ -2111,6 +2722,7 @@ async function main() {
     if (profile) result.profile = profile
     if (finds.length) result.find = finds
     if (checks) result.checks = checks
+    if (score) result.score = score
     console.log(JSON.stringify(result, null, 2))
     return
   }
@@ -2133,6 +2745,7 @@ async function main() {
   if (profile) sections.push(formatProfile(profile))
   for (const result of finds) sections.push(formatFind(result))
   if (checks) sections.push(formatChecks(checks))
+  if (score) sections.push(formatScore(score))
   console.log(sections.join('\n\n'))
 }
 

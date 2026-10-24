@@ -34,7 +34,9 @@ node scripts/render.mjs --nbt minecraft-builds/NAME/NAME.nbt          # → rend
   `--yaw 30 --pitch 20 --target X,Y,Z --distance 14 --fov 40 --view-name door`; interiors: `--clip-y Y`;
   `--lighting night` (or `both`).
 - Text checks: `node scripts/inspect.mjs FILE --checks` (flat walls, floating blocks, bad states,
-  dark spots) and `--slice y=N` (ASCII plan).
+  dark spots), `--slice y=N` (ASCII plan) and `--score --style medieval` (a 0–100 scorecard against
+  1,212 human builds: palette breadth, partial blocks, upside-down stairs, lights, contrast, relief,
+  overhangs — each out-of-band metric comes with a fix). Aim for 85+ with nothing far out of band.
 - Interactive viewer for the user: `node scripts/preview.mjs --nbt FILE` (`--no-open` when headless).
 
 Iterate at least: massing → structure → material → detail → landscape → night. Fix the biggest
