@@ -65,7 +65,7 @@ export default function build(api) {
     const s = slope(x, z)
     if (y < SEA) return kit.palette({ sand: 3, gravel: 2, clay: 1 }, { scale: 2, seed: 9 })
     if (BEACH(x, z) > 0.3 && y <= SEA + 3) return y <= SEA ? 'sand' : kit.palette({ sand: 6, gravel: 1 }, { scale: 2, seed: 10 })
-    if (s >= 2) return hash(x, y, z, 21) < 0.18 ? 'moss_block' : strata(x, y, z)
+    if (s >= 2) return kit.noise.coherent01(x, y, z, { scale: 3, seed: 21 }) > 0.72 ? 'moss_block' : strata(x, y, z)  // moss in clumps
     if (y <= SEA + 1) return kit.palette({ gravel: 2, sand: 1 }, { scale: 2, seed: 11 })
     return grassMix
   }
@@ -148,10 +148,15 @@ export default function build(api) {
   b.box([L3.x1 + 5, Y3 + 1, L3.z1 + 1], [L3.x1 + 5, YR - 1, L3.z1 + 1], 'polished_blackstone_wall')
 
   // ---------------------------------------------------------------- pool
-  const PZ = POOL.z1 + 2
+  const PZ = POOL.z1 + 2                                                    // outer face of the shell
   b.box([POOL.x0 - 2, 11, POOL.z0 - 1], [POOL.x1 + 2, Y1 - 1, PZ], 'polished_deepslate')
   b.box([POOL.x0 - 1, 12, POOL.z0 - 1], [POOL.x1 + 1, Y1 - 1, POOL.z1 + 1], 'prismarine_bricks')
   b.box([POOL.x0, 13, POOL.z0], [POOL.x1, Y1, POOL.z1], 'water')
+  // the part beyond the cliff is a shallow ledge: floor one higher, no y=11 course -> 3-block face
+  for (let x = POOL.x0 - 2; x <= POOL.x1 + 2; x++) for (let z = 42; z <= PZ; z++) {
+    b.remove(x, 11, z)
+    if (z <= POOL.z1 && x >= POOL.x0 && x <= POOL.x1) set(x, 13, z, 'prismarine_bricks')
+  }
   for (let x = POOL.x0 - 2; x <= POOL.x1 + 2; x++) {
     set(x, Y1 - 1, PZ, PLATE)
     if (x >= POOL.x0 - 1 && x <= POOL.x1 + 1) { set(x, Y1, POOL.z1 + 1, 'smooth_quartz_slab[type=bottom,waterlogged=true]'); set(x, Y1, PZ, 'smooth_quartz_slab[type=bottom,waterlogged=true]') }
