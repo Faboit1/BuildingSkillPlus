@@ -138,6 +138,7 @@ slopes meet are resolved automatically.
 
 | Method | Notes |
 | --- | --- |
+| `b.dormer([cx, y0, cz], facing, { width: 3, height: 3, depth?, material, wall, window: { width, height } })` | gable dormer on a sloped roof (build after the main roof); front wall bottom-centre on the slope 0–2 rows in from the wall line, `y0` = roof level there; depth auto-extends until the main roof covers its ridge; warns if it is too tall |
 | `b.coneRoof([cx, y, cz], radius, { material, pitch = 2, overhang = 1, flare = true, finial })` | round tower roofs; `flare` starts with shallow rows for a bell-shaped eave |
 | `b.window(pos, facing, { width, height, glass, frame, sill, lintel, shutters, flowerBox, recess, arch, mullion, material })` | `pos` = bottom-left opening cell seen from outside; `shutters: true` uses the material's trapdoor |
 | `b.door(pos, facing, { material, width: 1\|2, hinge, frame, awning, steps })` | places both halves (and both doors) |

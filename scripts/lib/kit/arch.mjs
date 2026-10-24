@@ -628,6 +628,89 @@ export function timberWall(b, a, c, { frame = 'minecraft:stripped_spruce_log', i
   return b
 }
 
+// Gable dormer projecting from a sloped roof. Build it AFTER the main roof.
+//   b.dormer([cx, y0, cz], 'south', { width: 3, height: 3, material: 'dark_oak', wall: 'spruce_planks' })
+// [cx, y0, cz] = bottom-centre of the dormer's front wall: put it on the main roof's slope
+// 0-2 rows in from the wall line, with y0 = the main roof level there. `facing` = outward
+// direction of that slope. The dormer runs back into the roof until the main roof rises
+// above its ridge (or `depth`), clears the attic behind its window, extends its walls down
+// to the roof surface, and only keeps dormer-roof cells that sit above the main roof.
+export function dormer(b, front, facing, { width = 3, height = 3, depth, material: matName = 'spruce', wall = 'minecraft:spruce_planks', window: win = { width: 1, height: 2 }, pitch = 1, overhang = 1 } = {}) {
+  const half = Math.floor(width / 2)
+  const right = DIR[ccw(facing)]
+  const inward = DIR[opposite(facing)]
+  const [cx, y0, cz] = front
+  const rows = Math.ceil((width + 2 * overhang) / 2)
+  // dormer ridge block ≈ y0 + height + rows - 2 (pitch 1); the main roof must reach one above it
+  const ridgeTop = y0 + height + rows - 1
+  let d = depth
+  if (d === undefined) {
+    // walk up the slope until the main roof is above the dormer ridge, or until the slope
+    // stops rising (we reached the main ridge: the dormer is too tall for this roof)
+    d = 2
+    let last = -1
+    while (d < 32) {
+      const p = add([cx, y0, cz], inward, d)
+      if (!b.inBounds(p[0], y0, p[2])) break
+      const t = b.topY(p[0], p[2])
+      if (t >= ridgeTop) break
+      if (t < last) {
+        b.warnings.push(`dormer at ${front.join(',')}: its ridge (${ridgeTop}) is above the main roof; lower height/width`)
+        d -= 1
+        break
+      }
+      last = t
+      d += 1
+    }
+  }
+  const cells = []
+  for (let k = 0; k < d; k += 1) for (let u = -half; u <= half; u += 1) cells.push([u, k, add(add([cx, y0, cz], right, u), inward, k)])
+  const xs = cells.map(c => c[2][0])
+  const zs = cells.map(c => c[2][2])
+  const axis = facing === 'east' || facing === 'west' ? 'x' : 'z'
+  // Dormer roof on a scratch canvas, then merged column by column.
+  const tmp = b.module(b.size)
+  roof(tmp, { x0: Math.min(...xs), z0: Math.min(...zs), x1: Math.max(...xs), z1: Math.max(...zs), y: y0 + height, type: 'gable', axis, material: matName, pitch, overhang, gableOverhang: 1, gable: wall, eaveTrim: true })
+  const columns = new Map()
+  for (const [x, y, z, block] of tmp.entries()) {
+    const key = `${x},${z}`
+    if (!columns.has(key)) columns.set(key, [])
+    columns.get(key).push([y, block])
+  }
+  const mainTop = new Map()
+  for (const key of columns.keys()) {
+    const [x, z] = key.split(',').map(Number)
+    mainTop.set(key, b.topY(x, z))
+  }
+  for (const [key, list] of columns) {
+    const [x, z] = key.split(',').map(Number)
+    const top = Math.max(...list.map(([y]) => y))
+    if (top <= mainTop.get(key)) continue // main roof is higher here: the dormer tucks under it
+    for (let y = y0; y <= top; y += 1) b.remove(x, y, z)
+    for (const [y, block] of list) b.set(x, y, z, block)
+  }
+  // Walls: front and cheeks from the roof surface up; air inside behind the window.
+  for (const [u, k, p] of cells) {
+    const key = `${p[0]},${p[2]}`
+    const isWall = k === 0 || Math.abs(u) === half
+    for (let j = 0; j < height; j += 1) {
+      if (isWall) b.set(p[0], y0 + j, p[2], wall)
+      else b.remove(p[0], y0 + j, p[2])
+    }
+    if (isWall) {
+      let y = y0 - 1
+      while (y > 0 && !b.get(p[0], y, p[2]) && y > y0 - 6) b.set(p[0], y--, p[2], wall)
+    }
+    void key
+  }
+  if (win) {
+    const ww = win.width ?? 1
+    const start = add([cx, y0, cz], right, -Math.floor((ww - 1) / 2))
+    window(b, start, facing, { height: win.height ?? 2, material: matName, sill: false, ...win, width: ww })
+  }
+  return { depth: d }
+}
+
 export const ARCH_METHODS = {
   roof,
   coneRoof,
@@ -642,4 +725,5 @@ export const ARCH_METHODS = {
   hangingLantern,
   chimney,
   timberWall,
+  dormer,
 }

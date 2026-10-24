@@ -701,6 +701,8 @@ export class Builder {
       if (strict) throw new Error(message)
       console.warn(message)
     }
+    for (const warning of this.warnings) console.warn(`builder: ${warning}`)
+    report.warnings = this.warnings
     if (this.clipped > 0) console.warn(`builder: ${this.clipped} placement(s) fell outside the ${this.size.join('x')} canvas and were skipped`)
     return {
       structure,
