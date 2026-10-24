@@ -167,7 +167,7 @@ export default function build(api) {
   // The bay's street gable is jettied once more: its triangle stands one block forward of the
   // wall below on a sill beam and corbels, so it casts its own shadow line and leads the roof.
   const GZ = BAY.z1 + 1
-  mergeRoof({ x0: BAY.x0, z0: 25, x1: BAY.x1, z1: GZ, y: ROOF_Y, axis: 'z', material: ROOF, pitch: BAY_PITCH, eaveTrim: true,
+  mergeRoof({ x0: BAY.x0, z0: 26, x1: BAY.x1, z1: GZ, y: ROOF_Y, axis: 'z', material: ROOF, pitch: BAY_PITCH, eaveTrim: true,
     gable: (x, y, z) => (z !== GZ ? null : y === ROOF_Y || y === 22 ? beam('x') : (y < 22 ? studGable(x - 1, 2) : x === 21 ? POST : DAUB)) }, { floorY: FL2 + 1 })
   for (let x = BAY.x0; x <= BAY.x1; x += 2) b.set(x, PLATE, GZ, 'dark_oak_stairs[facing=north,half=top]')
   mergeRoof({ x0: WING.x0, z0: WING.z0, x1: WING.x1, z1: 22, y: ROOF_Y, axis: 'z', material: ROOF, pitch: MAIN_PITCH, eaveTrim: true,

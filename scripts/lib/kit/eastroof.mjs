@@ -66,6 +66,7 @@ const K = (x, z) => `${x},${z}`
 const N4 = [['east', 1, 0], ['west', -1, 0], ['south', 0, 1], ['north', 0, -1]]
 const OPP = { east: 'west', west: 'east', north: 'south', south: 'north' }
 const mod2 = v => ((v % 2) + 2) % 2
+const RANK = { under: 1, riser: 2, top: 3 }
 
 function roofMaterial(spec, fallback) {
   if (spec === undefined || spec === null) spec = fallback
@@ -241,8 +242,22 @@ export function rasterRoof(b, field, opts = {}) {
       }
       const keep = !overwrite || (keepBelow && yy < keepBelow.level && keepBelow.test(c.x, c.z))
       if (keep && b.has(c.x, yy, c.z)) continue
+      const role = isTop ? 'top' : m === under ? 'under' : 'riser'
+      let cover = hi - lo === 1 ? 'full' : lo === yy ? 'bottom' : 'top'
+      const pk = `${c.x},${yy},${c.z}`
+      const prior = placed?.get(pk)
+      if (prior && cover !== 'full' && prior.cover !== cover) {
+        // Overlapping passes of one roof (irimoya hip + gable) merge: a slab never replaces a
+        // fuller piece, and two opposite half slabs become one block of the more visible material.
+        if (prior.cover === 'full') { lowest = Math.min(lowest, yy); continue }
+        const win = RANK[role] >= RANK[prior.role] ? { m, role } : prior
+        b.set(c.x, yy, c.z, win.m.block)
+        placed.set(pk, { tag, role: win.role, m: win.m, cover: 'full' })
+        lowest = Math.min(lowest, yy)
+        continue
+      }
       b.set(c.x, yy, c.z, block)
-      if (placed) placed.set(`${c.x},${yy},${c.z}`, `${tag}:${isTop ? 'top' : m === under ? 'under' : 'riser'}`)
+      if (placed) placed.set(pk, { tag, role, m, cover })
       lowest = Math.min(lowest, yy)
     }
     const key = K(c.x, c.z)
@@ -324,7 +339,7 @@ export function eastRoof(b, opts = {}) {
   const others = above ? (Array.isArray(above) ? above : [above]) : []
   const otherTop = (x, z) => Math.max(-Infinity, ...others.map(o => (o.surface ? o.surface(x, z) : -Infinity)))
   const userOnly = c => (!only || only(c)) && (!others.length || c.top > otherTop(c.x, c.z))
-  const placed = new Map() // "x,y,z" → "<field>:<top|riser|under>": what a later fill may replace
+  const placed = new Map() // "x,y,z" → { tag: field, role: top|riser|under, m, cover }: merges and fills
   const cols = new Map()
   const rOpts = {
     base, material: mat, ribs, ridge: ridgeMat, rafter, thickness, overwrite, placed, cols,
@@ -352,8 +367,8 @@ export function eastRoof(b, opts = {}) {
   // A gable fill replaces only empty cells, soffit pieces, and (irimoya) hip pieces hidden under
   // the gable: never the tile surface or visible risers (the ridge riser shows from both slopes).
   const fillCell = (x, yy, z, paint) => {
-    const role = placed.get(`${x},${yy},${z}`)
-    if (!b.has(x, yy, z) || (role && (role.endsWith(':under') || role.startsWith('hip:')))) {
+    const p = placed.get(`${x},${yy},${z}`)
+    if (!b.has(x, yy, z) || (p && (p.role === 'under' || p.tag === 'hip'))) {
       b.set(x, yy, z, paint)
       placed.delete(`${x},${yy},${z}`)
     }
