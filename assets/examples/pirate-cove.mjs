@@ -1,4 +1,47 @@
-// PIRATE COVE — work in progress
+// PIRATE COVE — a hidden pirate anchorage: a three-masted galleon riding at anchor inside a horseshoe
+// of sea cliffs, a shanty town of stilted shacks clinging to the west cliff, a tavern on the beach,
+// a lookout tower on the headland, a natural sea arch at the mouth and a treasure cave.
+//
+// REFERENCES  Caribbean pirate havens (Tortuga / "Shipwreck Cove" in films), cliff-ringed beaches
+//   (Navagio, Zakynthos), Durdle Door for the arch, the Vasa (1628) for galleon proportions.
+//
+// SCALE  1 block ≈ 0.75 m. Canvas 120 x 64 x 104, sea surface at y = 8, cliffs to y ≈ 45.
+//
+// HERO: THE GALLEON (b.hull + castles + rig, see galleon() at the bottom)
+//   hull 44 long, beam 12 (3.7 : 1), keel → main deck 10, quarterdeck +4, poop +7, forecastle +4
+//   main mast 48 above the keel (1.09 × hull), fore 43 (0.9 ×), mizzen 35 (0.73 ×), bowsprit ~0.36 L
+//   lowest yard 22 long (1.8 × beam), every higher yard ~0.7 × the one below; lateen mizzen.
+//   Sails are SET and the yards BRACED 30°: square sails stand across the ship, so a broadside or
+//   3/4 camera sees them edge-on. Braced, their bellies face the south-east hero camera.
+//
+// PALETTE (role → blocks, L*)
+//   cliff rock (shaded dark → light by surface normal): deepslate 34, tuff 46, stone 53, andesite 57
+//     accents: thin calcite beds 89, tuff/mossy cobble wet band at the waterline, moss on ledges
+//   plateau: grass (+ coarse dirt, moss patches) over a dirt soil lip; beach: sand 83 over sandstone
+//   sea bed, by depth: sand → sand/clay → clay/gravel → gravel/tuff → mud/tuff (the water reads
+//     lighter over the shallows; the renderer's water colour is fixed, so depth = bed colour)
+//   ship: dark oak 20 (bottom, castle frames) · spruce 38 (topsides) · stripped dark oak 25 (wales)
+//     · stripped oak 62 (gunport stripe, the warm accent) · white wool 93 sails (the lightest mass
+//     in the scene, so the hero wins the value contrast) · gold ≤ 3 blocks
+//   town: mismatched planks (one main wood per shack + clumped patches of others), log posts, roofs
+//     in dark oak / spruce / mangrove / jungle stairs, cobblestone tavern base
+//   light: lanterns (docks, porches, deck), shroomlight behind window panes (lit rooms), campfires
+//     (beacon, beach bonfire), candles + glow lichen in the cave
+//
+// COMPOSITION  The horseshoe opens south. From the SSE hero camera: town on the left cliff, the
+//   galleon in the centre, the arch as a right-hand foreground frame, beach and cave behind. The
+//   lookout tower is the secondary vertical on the west headland.
+//
+// PIPELINE (order matters)
+//   1 arch (built while the builder is empty — b.erode inside it scans every block)
+//   2 terrain decided in a typed-array voxel grid (signed shore distance + 3D noise), smoothed
+//     there, written once in a placeholder → 3 surface dressing (sand, grass, sea bed)
+//   4 b.shadeSurface on the placeholder (+ geology accents) → vines (b.overgrow)
+//   5 galleon → 6 buildings dug into the rock (tavern, boardwalk + pier, shacks, tower, cave)
+//   7 vegetation (palms, bushes, scatter, seagrass) → 8 props and lights last
+//   STAGE=massing|structure|texture|detail|final renders each stage (default final).
+//
+// RUNTIME  ~10 s recipe on an idle machine; ~260k blocks (most of them terrain and water).
 
 const W = 120
 const H = 64
@@ -22,15 +65,21 @@ export default function build(api) {
   const n3 = (x, y, z, scale, seed, octaves = 3) => kit.noise.fbm3(x, y, z, { scale, seed, octaves })
   const idx = (x, z) => clamp(x, 0, W - 1) + W * clamp(z, 0, D - 1)
 
-  // ------------------------------------------------------------------ site: signed distance to the shore
+  // ------------------------------------------------------------------ site: a signed distance to the shore
+  // s(x, z) > 0 on land (blocks inland from the waterline), < 0 at sea. The water is the union of
+  // three shapes — the cove basin (a noisy ellipse), the mouth channel and the open sea south of a
+  // coastline — so the land distance is their smooth minimum (rounded corners for free). Every later
+  // decision (beach, cliff profile, sea-bed depth) is a function of s, which keeps them consistent.
   const COVE = { cx: 62, cz: 50, rx: 44, rz: 31 }
   const sCove = (x, z) => (Math.hypot((x - COVE.cx) / COVE.rx, (z - COVE.cz) / COVE.rz) - 1) * 34 + 3.5 * n2(x, z, 13, 3) + 7 * n2(x, z, 30, 31, 2) + 6 * beachMask(x, z)
   const sMouth = (x, z) => (z < COVE.cz ? 99 : Math.abs(x - (68 + 3 * Math.sin(z / 8))) - (14 + (z - COVE.cz) * 0.2))
   const sSea = (x, z) => 91 + 3 * n2(x, 0, 12, 4) - z - Math.max(0, x - 104) * 1.3 - Math.max(0, 12 - x) * 1.2
   const beachMask = (x, z) => clamp(Math.max(1.3 - Math.hypot((x - 31) / 22, (z - 25) / 13), 1.1 - Math.hypot((x - 75) / 14, (z - 21) / 7)), 0, 1)
+  // plateau height: highest at the back (north) of the cove, falling toward the headlands
   const plateau = (x, z) => 21 + 19 * clamp((90 - z) / 66, 0, 1) ** 0.8 + (x < 34 ? 2 : 0) + 2.5 * n2(x, z, 20, 6)
 
-  // per-column fields, computed once (noise is the expensive part)
+  // per-column fields, computed once (noise is the expensive part): shore distance, beach mask,
+  // plateau height, ledge height/width, sea-floor height, warp of the bedding planes
   const S2 = new Float32Array(W * D)
   const BM = new Float32Array(W * D)
   const PL = new Float32Array(W * D)
@@ -50,7 +99,9 @@ export default function build(api) {
       const d = -Math.min(S2[i], -0.01)
       FL[i] = clamp(Math.round(SEA - 1 - Math.min(6.5, (BM[i] > 0.3 ? 0.32 : 0.75) * d + 0.3) + 1.2 * n2(x, z, 9, 12)), 1, SEA - 1)
     }
-  // cliff profile: near-vertical lower face, a narrow ledge at 40-60 % height, upper face
+  // cliff profile across the shore distance t (0 → 1 over CLIFF_W blocks): a near-vertical lower face,
+  // a ledge at 40-60 % height (varies along the coast), the upper face, then a gently rising plateau.
+  // Beaches (beach mask > 0) get a sand slope of up to 15 blocks before the cliff starts.
   const CLIFF_W = 5
   const cliffProfile = (t, i) => {
     const lh = LH[i]
@@ -69,6 +120,8 @@ export default function build(api) {
   }
 
   // ------------------------------------------------------------------ 1. the sea arch (built first)
+  // From the headland tip out into the sea, diagonal so the hero camera sees it face-on; east of the
+  // ship's sight line so it frames the scene instead of hiding the bow.
   // b.rockArch erodes and shades itself; b.erode scans every block in the builder, so building the
   // arch while the canvas is still empty keeps it fast. The terrain below is written with keep: true.
   const ROCK_RAMP = ['deepslate', 'tuff', 'stone', 'andesite']
@@ -101,7 +154,8 @@ export default function build(api) {
         if (solid) G[gi(x, y, z)] = 1
       }
     }
-  // the treasure cave: a tunnel from a mouth on the north beach into a domed hall, noise-roughened
+  // the treasure cave: a tunnel from a mouth on the north beach into a domed hall (SDF capsules +
+  // ellipsoid, smooth-unioned and noise-displaced), carved from the grid before smoothing
   const CAVE = { mouth: [73, SEA + 3, 22], bend: [70, SEA + 4, 13], hall: [65, SEA + 4, 8] }
   const caveSdf = kit.sdf.displace(kit.sdf.smoothUnion(2,
     kit.sdf.capsule(CAVE.mouth, CAVE.bend, 3.2),
@@ -141,6 +195,7 @@ export default function build(api) {
   if (!at('structure')) return b.finish({ name: 'pirate-cove' })
 
   // ------------------------------------------------------------------ 3. dress the surface
+  // Only the topmost cells change material; everything that stays placeholder becomes shaded rock.
   const topRock = new Int16Array(W * D).fill(-1)
   for (let x = 0; x < W; x += 1)
     for (let z = 0; z < D; z += 1)
@@ -188,9 +243,12 @@ export default function build(api) {
       if (y >= 0 && y < SEA && b.nameAt(x, y + 1, z) === 'minecraft:water' && b.nameAt(x, y, z) === 'minecraft:white_wool') b.set(x, y, z, bedOf(x, y, z))
     }
 
-  // ------------------------------------------------------------------ 5. shade the cliffs
-  // Surface normal · light + occlusion, rank-normalized over the ramp; strata bands every ~3 blocks;
-  // darker toward the waterline (base). Hidden cells become the darkest step.
+  // ------------------------------------------------------------------ 4. shade the cliffs
+  // b.shadeSurface, not b.texture: rock is a sculpted form, so value follows the surface normal ·
+  // light plus occlusion (overhang undersides, gullies and the wave notch come out darkest), rank-
+  // normalized so all 4 steps are used; `bands` adds horizontal strata, `base` darkens toward the
+  // water. Hidden cells become the darkest step. diorite as a 5th, light step made the cliffs
+  // snowy and competed with the sails — so the ramp stops at andesite.
   if (at('texture')) {
     b.shadeSurface([0, 0, 0], [W - 1, H - 1, D - 1], ROCK_RAMP, {
       only: ROCK, light: [0.3, 0.85, 0.45], bands: { height: 3, amount: 0.16, warp: 2 }, base: 0.18, noise: 0.1, scale: 7, interior: 'darkest', seed: 3,
@@ -215,11 +273,15 @@ export default function build(api) {
   // `only`), so it runs now, before the wool sails and the plank shacks exist.
   if (at('detail')) b.overgrow([1, SEA + 3, 1], [W - 2, H - 1, D - 2], { amount: 0.3, maxLength: 6, moss: false, seed: 5 })
 
-  // ------------------------------------------------------------------ 6. the galleon (the hero)
+  // ------------------------------------------------------------------ 5. the galleon (the hero)
+  // bow at x 79 pointing east, centreline z 60: 6+ blocks of water around the stern gallery and the
+  // jib-boom, mid-cove so the sails stand against the cliff's mid-grey (value contrast).
   const ship = galleon(b, kit, { bow: [79, 3, 60], L: 44 })
   if (!at('detail')) return b.finish({ name: 'pirate-cove' })
 
-  // ------------------------------------------------------------------ helpers for everything built on the land
+  // ------------------------------------------------------------------ 6. buildings — helpers
+  // Buildings are placed against the real rock: faceWest() reads the voxel grid, structures clear
+  // (dig out) any rock inside their volume, and posts run down until they hit something solid.
   const TERR = new Set(['white_wool', 'deepslate', 'tuff', 'stone', 'andesite', 'calcite', 'sand', 'sandstone', 'dirt', 'coarse_dirt', 'grass_block', 'rooted_dirt', 'moss_block', 'mossy_cobblestone', 'gravel', 'clay', 'mud'].map(n => `minecraft:${n}`))
   const isTerr = (x, y, z) => TERR.has(b.nameAt(x, y, z))
   const ground = (x, z) => b.topY(x, z, blk => TERR.has(blk.name))
@@ -241,7 +303,7 @@ export default function build(api) {
   const lantern = (x, y, z) => b.set(x, y, z, 'lantern')
   const DECK = SEA + 3 // boardwalk / pier level
 
-  // ------------------------------------------------------------------ 7. palms on the beach (trees before scatter)
+  // palm: a thin trunk on a curve that leans more with height (offset ∝ t²), fronds as thin arcs
   const palm = ([x, y, z], { h = 11, bend = 4, seed = 2, az } = {}) => {
     const r = kit.rng(seed)
     const a = az ?? r() * Math.PI * 2
@@ -252,18 +314,18 @@ export default function build(api) {
     b.set(T[0], T[1], T[2], 'jungle_wood')
     b.set(T[0], T[1] - 1, T[2], 'jungle_wood')
     b.set(T[0], T[1] + 1, T[2], 'jungle_leaves')
-    // 7 fronds: thin 1-block arcs that rise, then droop well below the crown
-    for (let i = 0; i < 7; i += 1) {
-      const fa = (i * Math.PI * 2) / 7 + r.range(-0.25, 0.25)
-      const Lf = r.range(4.5, 6.5)
-      const mid = [T[0] + Math.cos(fa) * Lf * 0.45, T[1] + 1.6, T[2] + Math.sin(fa) * Lf * 0.45]
-      const end = [T[0] + Math.cos(fa) * Lf, T[1] - 2.5, T[2] + Math.sin(fa) * Lf]
+    // 6 fronds: long, thin 1-block arcs that rise, then droop just below the crown (gaps between them)
+    for (let i = 0; i < 6; i += 1) {
+      const fa = (i * Math.PI * 2) / 6 + r.range(-0.3, 0.3)
+      const Lf = r.range(5.5, 7.5)
+      const mid = [T[0] + Math.cos(fa) * Lf * 0.5, T[1] + 1.8, T[2] + Math.sin(fa) * Lf * 0.5]
+      const end = [T[0] + Math.cos(fa) * Lf, T[1] - 1.2, T[2] + Math.sin(fa) * Lf]
       b.curve([[T[0], T[1] + 1, T[2]], mid, end], i % 4 ? 'jungle_leaves' : 'oak_leaves', { radius: 0.5 })
     }
     for (const [dx, dz, f] of [[1, 0, 'west'], [-1, 0, 'east'], [0, 1, 'north']]) b.set(T[0] + dx, T[1] - 1, T[2] + dz, `cocoa[age=2,facing=${f}]`, { keep: true })
   }
 
-  // ------------------------------------------------------------------ 8. the tavern on the beach
+  // ------------------------------------------------------------------ 6a. the tavern on the beach
   // 11 x 8, two storeys: a stone ground floor (wet beach) under a plank upper floor, a steep dark roof,
   // and a lean-to porch facing the pier — the social centre and the brightest building at night.
   const TV = { x0: 21, x1: 31, z0: 20, z1: 27 }
@@ -331,7 +393,7 @@ export default function build(api) {
     for (const [x, z] of [[x0 + 3, z0 + 3], [x1 - 2, z0 + 3]]) lantern(x, F + 5, z)
   }
 
-  // ------------------------------------------------------------------ 9. the waterfront: boardwalk, pier, longboat
+  // ------------------------------------------------------------------ 6b. the waterfront: boardwalk, pier, longboat
   // A boardwalk hugs the foot of the west cliff from the beach southward, 3 wide, on log piles
   // driven into the sea bed every 3 blocks; the pier leaves it at a right angle toward the ship.
   // "Rickety" = mismatched planks, a few slab dips and missing boards, railing only in places.
@@ -356,7 +418,7 @@ export default function build(api) {
   // pier: from the beach in front of the tavern straight out toward the galleon's stern
   const PX = 37
   let pierStart = TV.z1 + 3
-  while (pierStart < 50 && b.nameAt(PX, DECK - 2, pierStart) !== 'minecraft:water') pierStart += 1
+  while (pierStart < 40 && b.nameAt(PX, SEA, pierStart) !== 'minecraft:water') pierStart += 1 // first water cell
   const PZ1 = 47
   for (let z = pierStart - 3; z <= PZ1; z += 1) {
     for (let x = PX - 1; x <= PX + 1; x += 1) {
@@ -399,7 +461,7 @@ export default function build(api) {
   b.hull({ bow: [PX + 5, SEA - 1, pierStart + 3], heading: 'north', length: 9, beam: 4, depth: 3, bulwark: 0, rail: null, keel: null, sheerFwd: 1, sheerAft: 0.6,
     paint: { bottom: 'spruce_planks', wale: 'dark_oak_planks', side: 'spruce_planks', deck: 'spruce_slab[type=bottom]', trim: 'dark_oak_log' } })
 
-  // ------------------------------------------------------------------ 10. shanties clinging to the west cliff
+  // ------------------------------------------------------------------ 6c. shanties clinging to the west cliff
   // Each shack: back wall against the most protruding rock (dug in where the cliff bulges), floor on
   // log stilts that run down to the boardwalk or the sea bed, plank walls of mismatched wood with log
   // corner posts, a shed roof rising toward the cliff (water runs off to the cove), a railed porch.
@@ -471,7 +533,9 @@ export default function build(api) {
   b.bridge([sD.xp - 1, sD.F, sD.z1 + 1], [sE.xp - 1, sE.F, sE.z0 - 1], { width: 2, deck: 'spruce_planks', arch: -1.2, railing: 'spruce_fence' })
   b.bridge([sE.xp - 1, sE.F, sE.z1 + 1], [sF.xp - 1, sF.F, sF.z0 - 1], { width: 2, deck: 'spruce_planks', arch: -1.2, railing: 'spruce_fence' })
 
-  // ------------------------------------------------------------------ 11. lookout tower on the west headland
+  // ------------------------------------------------------------------ 6d. lookout tower on the west headland
+  // a 5 x 5 log frame 13 tall with fence ring-beams every 4, a railed platform, pyramid roof, a
+  // campfire beacon and a bell: the only vertical on the skyline besides the masts
   {
     const tx = 14
     const tz = 81
@@ -493,7 +557,9 @@ export default function build(api) {
     lantern(tx - 2, top + 1, tz + 2)
   }
 
-  // ------------------------------------------------------------------ 12. the treasure cave
+  // ------------------------------------------------------------------ 6e. the treasure cave
+  // sand floor raised above the tide line, the hoard as a stepped mound of gold / raw gold, chests,
+  // skulls, candles and a scatter of gold pressure plates (coins); glow lichen on the walls
   {
     for (let x = 54; x <= 82; x += 1)
       for (let z = 0; z <= 26; z += 1)
@@ -539,7 +605,8 @@ export default function build(api) {
         }
   }
 
-  // ------------------------------------------------------------------ 13. vegetation
+  // ------------------------------------------------------------------ 7. vegetation (after the buildings,
+  // so nothing grows inside a shack; scatter after trees and bushes so no grass is cut in half)
   // palms: a grove on the beach (leaning out over the sand) and a few on the cliff tops
   const palmSpots = [[34, 26, 9, 3, 0.9], [42, 21, 12, 4, 1.3], [50, 28, 10, 4, 1.9], [82, 22, 11, 4, 1.4], [89, 25, 8, 3, 2.3]]
   for (const [i, [x, z, h, bend, az]] of palmSpots.entries()) {
@@ -552,12 +619,10 @@ export default function build(api) {
     const z = rng.int(9, D - 10)
     const g = ground(x, z)
     if (g < SEA + 6 || b.nameAt(x, g, z) !== 'minecraft:grass_block' || b.has(x, g + 1, z)) continue
-    const k = rng()
-    if (k < 0.18) palm([x, g + 1, z], { h: rng.int(8, 12), bend: 3, seed: 200 + i })
-    else if (k < 0.25) b.tree([x, g + 1, z], 'jungle', { height: rng.int(9, 11), seed: 300 + i })
+    if (x < 32 && z > 22 && z < 76) continue // keep the cliff top above the shanties clear (they read against the sky)
+    if (rng() < 0.2) palm([x, g + 1, z], { h: rng.int(8, 12), bend: 3, seed: 200 + i })
     else b.bush([x, g + 1, z], { radius: rng.range(1.4, 2.4), leaves: ['jungle_leaves', 'jungle_leaves', 'azalea_leaves', 'oak_leaves'], log: 'jungle_log', seed: 400 + i })
   }
-  // vines curtain the cliff faces below the lip; moss carpet is added separately (not everywhere)
   b.scatter({ on: ['minecraft:grass_block'], density: 0.3, clump: 6, seed: 9, paints: [[10, 'short_grass'], [4, 'fern'], [3, 'tall_grass'], [2, 'large_fern'], [1, 'dandelion'], [1, 'poppy']] })
   b.scatter({ on: ['minecraft:sand'], density: 0.03, clump: 4, seed: 10, paints: [[1, 'dead_bush']] })
   // seagrass meadows in the shallows (placed into the water column)
@@ -568,6 +633,7 @@ export default function build(api) {
       const c = kit.noise.coherent01(x, 0, z, { scale: 5, seed: 12 })
       if (c < 0.3 && kit.noise.hash01(x, y, z, 13) < 0.5) b.set(x, y + 1, z, 'seagrass')
     }
+  // ------------------------------------------------------------------ 8. props and lights last
   // a bonfire on the beach between the palms: campfire ringed by log seats
   {
     const fx = 44
@@ -584,6 +650,20 @@ export default function build(api) {
 }
 
 // ===================================================================== galleon
+// A galleon on b.hull, built in ship-local coordinates: u from the bow (0) to the stern (L), w to
+// starboard, y above the keel; ship.at(u, w, y) converts to world. Everything that depends on the
+// hull shape (bands, castles, channels, gunport lids) scans the real hull with outerW() instead of
+// re-deriving the loft. Order: hull → bands → smoothing → castles → rig → rigging → flags →
+// deck furniture → gunports → lights.
+//   hull:   b.hull, heading east, depth 10 (keel → main deck), waterline 0.45, tumblehome 0.16,
+//           transom 0.74 × beam, sheer 3 fore and aft, a gun deck at y 6 with ports at y 7 every 3
+//   bands:  dark oak below the waterline, black wales at y 5 and 9, ochre stripe through the ports
+//   castles: quarterdeck (u ≥ 0.62 L) +4, poop (u ≥ 0.82 L) +7, forecastle (u ≤ 0.18 L) +4; walls
+//           lean in 1 per 4 up, framed by dark posts every 3, glazed between them, deck edges on
+//           upside-down-stair cornices, quarter galleries at the stern corners, gilded taffrail
+//   rig:    masts at 0.2 / 0.47 / 0.76 L, 3 square sails each on fore and main (course, topsail,
+//           topgallant; wider at the foot), lateen mizzen, bowsprit with a furled spritsail,
+//           shrouds fanned to channels, stays along the centreline, tops and a crow's nest
 function galleon(b, kit, { bow, L = 46, beam = 12, depth = 10, sea = 8, brace = 30 }) {
   const ship = b.hull({
     bow, heading: 'east', length: L, beam, depth,

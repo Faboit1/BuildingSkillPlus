@@ -338,6 +338,7 @@ export default function build(api) {
 
   const LEAF = 'minecraft:oak_leaves'
   const rng = kit.rng(77)
+  const twigs = [] // [start, end] of every secondary branch (for the bark-grain pass)
   // One branch: a bowed tapered tube (or a 1-wide connected line when thin); recurses into
   // 2 children that fan out round the vertical. Final tips are pulled into the nearest mass.
   const branch = (p, head, el, len, r, depth) => {
@@ -348,6 +349,7 @@ export default function build(api) {
     }
     if (e[0] < 3 || e[0] > W - 4 || e[2] < 3 || e[2] > D - 4 || e[1] > H - 4) return
     const m = [(p[0] + e[0]) / 2, (p[1] + e[1]) / 2 + len * 0.08, (p[2] + e[2]) / 2]
+    twigs.push([p, e])
     if (r >= 0.8) b.tubeAlong([p, m, e], q => r * (1 - 0.35 * q), BARK, { mask: free })
     else b.curve([p, m, e], BARK, { radius: 0, mask: free })
     if (depth === 0) return
@@ -411,6 +413,7 @@ export default function build(api) {
           }
           const wob = 1 + 0.26 * noise.fbm3(x, y, z, { scale: 6, octaves: 2, seed: seed + 3 }) + 0.12 * noise.fbm3(x, y, z, { scale: 2.4, octaves: 1, seed: seed + 4 })
           if (d > wob) continue
+          if ((wob - d) * Math.min(rx, ry) > 2.6) continue // hollow: only a shell ~2.5 thick is ever seen
           if (d > 0.45 && noise.coherent01(x, y * 1.6, z, { scale: 5, grain: 0, seed: seed + 8 }) < 0.12) continue // gaps
           if (b.get(x, y, z)) continue
           b.set(x, y, z, paint(x, y, z, clamp((y - bottom) / (top - bottom), 0, 1)))
@@ -696,7 +699,7 @@ export default function build(api) {
   }
   for (const s of steps.values()) {
     if (s.y === Y1 || s.y === Y2 || s.y === footY) continue
-    if (s.step % 4 === 2 && b.nameAt(s.x, s.y + 1, s.z) === 'minecraft:birch_fence') b.set(s.x, s.y + 2, s.z, soulLantern)
+    if (s.step % 3 === 1 && b.nameAt(s.x, s.y + 1, s.z) === 'minecraft:birch_fence') b.set(s.x, s.y + 2, s.z, soulLantern)
   }
 
   // ------------------------------------------------------------------ rope bridge
@@ -807,6 +810,33 @@ export default function build(api) {
     b.shadeSurface([0, 0, 0], [W - 1, H - 1, D - 1], ['spruce_wood', 'dark_oak_wood', 'mangrove_wood', 'oak_wood'], { only: BARK, base: 0.25, noise: 0.16, scale: 4, interior: 'darkest', seed: 5 })
     b.shadeSurface([0, 0, 0], [W - 1, H - 1, D - 1], ['tuff', 'stone', 'andesite', 'mossy_cobblestone'], { only: ROCK, noise: 0.2, scale: 3, interior: 'darkest', seed: 6 })
     b.shadeSurface([0, 0, 0], [W - 1, H - 1, D - 1], ['tuff', 'stone', 'andesite'], { only: 'minecraft:light_gray_wool', interior: 'darkest', seed: 7 })
+
+    // Bark grain: shadeSurface writes plain *_wood (axis y). Re-orient every bark block along
+    // the limb it belongs to (nearest limb or branch axis), so horizontal limbs show their grain
+    // running along them instead of vertical stripes.
+    const segs = []
+    for (const t of tubes) for (const s of t.segs) segs.push([[s.a[0], t.yRef + (s.a[1] - t.yRef) / t.ys, s.a[2]], [s.c[0], t.yRef + (s.c[1] - t.yRef) / t.ys, s.c[2]]])
+    for (const tw of twigs) segs.push(tw)
+    const axisAt = (x, y, z) => {
+      let best = trunkD(x, y, z) + 0.5 // the trunk itself (vertical) wins ties
+      let dir = [0, 1, 0]
+      for (const [a, c] of segs) {
+        const ba = [c[0] - a[0], c[1] - a[1], c[2] - a[2]]
+        if (Math.abs(x - a[0]) > 12 && Math.abs(x - c[0]) > 12) continue
+        const L2 = ba[0] ** 2 + ba[1] ** 2 + ba[2] ** 2 || 1
+        const h = clamp(((x - a[0]) * ba[0] + (y - a[1]) * ba[1] + (z - a[2]) * ba[2]) / L2, 0, 1)
+        const d = Math.hypot(x - a[0] - ba[0] * h, y - a[1] - ba[1] * h, z - a[2] - ba[2] * h) - 1.5
+        if (d < best) { best = d; dir = ba }
+      }
+      const [ax, ay, az] = dir.map(Math.abs)
+      return ay >= ax && ay >= az ? 'y' : ax >= az ? 'x' : 'z'
+    }
+    for (const [x, y, z, blk] of b.entries()) {
+      if (!/^minecraft:(spruce|dark_oak|mangrove|oak)_wood$/.test(blk.name) || y < g0 - 2) continue
+      if (Math.hypot(x - C[0], z - C[1]) < 14 && y > gC) continue // companion keeps its own
+      const axis = axisAt(x, y, z)
+      if (axis !== 'y') b.set(x, y, z, `${blk.name}[axis=${axis}]`)
+    }
 
     // Moss where water and leaf litter collect: on upward faces, heavier near the ground and in
     // clumps; never an even green coat.
@@ -956,8 +986,11 @@ export default function build(api) {
       if (y <= ground(x, z) + 1) continue
       const u = kit.hash01(x, y, z, 84)
       const clump = noise.coherent01(x, y, z, { scale: 4, grain: 0, seed: 85 })
-      // underside: glow berries in clumps, shroomlight hearts showing through the leaves
-      if (air(x, y - 1, z)) {
+      // underside: glow berries in clumps, shroomlight hearts showing through the leaves (the
+      // masses are hollow, so "underside" means no leaves anywhere in the 10 blocks below)
+      let under = air(x, y - 1, z)
+      for (let k = 2; under && k <= 10; k += 1) if (/_leaves$/.test(b.nameAt(x, y - k, z) ?? '')) under = false
+      if (under) {
         if (clump < 0.3 && u < (leaf ? 0.09 : 0.05)) glowBerries(x, y, z, 2 + Math.floor(kit.hash01(x, 0, z, 86) * 5))
         else if (leaf && blk.name !== 'minecraft:cherry_leaves' && u > 0.988) b.set(x, y, z, 'minecraft:shroomlight')
       }
@@ -989,7 +1022,7 @@ export default function build(api) {
       return true
     }
     let hung = 0
-    for (const [p, Y, n] of [[p1, Y1, 9], [p2, Y2, 4], [pC, YC, 3]]) {
+    for (const [p, Y, n] of [[p1, Y1, 14], [p2, Y2, 6], [pC, YC, 4]]) {
       const cells = [...p.cells].sort((a, c) => kit.hash01(a[0], 0, a[1], 89) - kit.hash01(c[0], 0, c[1], 89))
       let k = 0
       for (const [x, z] of cells) {
@@ -1093,8 +1126,8 @@ export default function build(api) {
     lamp(Math.round(foot[0]) + 3, Math.round(foot[2]) + 3)
     lamp(Math.round(foot[0]) - 3, Math.round(foot[2]) + 4)
     pathS.forEach((p, i) => {
-      if (i % 34 !== 17) return
-      const side = (i / 34) % 2 < 1 ? 2.6 : -2.6
+      if (i % 26 !== 13) return
+      const side = Math.floor(i / 26) % 2 ? 2.6 : -2.6
       lamp(Math.round(p[0] + side), Math.round(p[2]))
     })
     {

@@ -118,7 +118,7 @@ const topBlock = t => (t % 1 !== 0 ? Math.floor(t) : t - 1)
 //                (sec 'gable'); inset 0 = plain gable, inset k = the gable part of an irimoya.
 //   stopRing / hole [x0, z0, x1, z1]: leave out rings >= stopRing / cells inside the rect.
 //   bead: hip lines (a 4-connected staircase along the diagonals) and the ridge rise half a block.
-export function roofField({ x0, z0, x1, z1, pitch = [0.5, 0.5, 1, 1, 1], type = 'hip', axis, inset = 0, stopRing = Infinity, hole = null, lift = 0, liftReach, liftCurve = 1, bead = true }) {
+export function eastField({ x0, z0, x1, z1, pitch = [0.5, 0.5, 1, 1, 1], type = 'hip', axis, inset = 0, stopRing = Infinity, hole = null, lift = 0, liftReach, liftCurve = 1, bead = true }) {
   const minX = Math.min(x0, x1)
   const maxX = Math.max(x0, x1)
   const minZ = Math.min(z0, z1)
@@ -142,8 +142,9 @@ export function roofField({ x0, z0, x1, z1, pitch = [0.5, 0.5, 1, 1, 1], type = 
       }
       if (ring >= stopRing || inHole(x, z)) continue
       const lifted = liftAt(ex + ez)
-      // a 4-connected staircase along the diagonal: diagonal-only cells read as a dotted line
-      const hip = sec === 'hip' && Math.min(ex, ez) >= 1 && (ex === ez || ex === ez + 1)
+      // a 4-connected staircase along the diagonal (diagonal-only cells read as a dotted line);
+      // with a lift it runs out to the corner tip
+      const hip = sec === 'hip' && (ex === ez || ex === ez + 1) && (Math.min(ex, ez) >= 1 || lifted > 0)
       // `along` runs parallel to the eave: alternating materials on it draws tile courses
       const along = sec === 'gable' ? (ax === 'x' ? x : z) : ez <= ex ? x : z
       field.set(K(x, z), { x, z, ex, ez, ring, sec, hip, ridge: false, along, lift: lifted, t: levels[ring] + lifted })
@@ -153,18 +154,27 @@ export function roofField({ x0, z0, x1, z1, pitch = [0.5, 0.5, 1, 1, 1], type = 
   const closed = stopRing === Infinity && !hole
   for (const c of field.values()) {
     c.ridge = c.sec === 'gable' ? c.ring === maxRing.gable : type === 'hip' && closed && c.ring === maxRing.hip
-    if (bead && (c.hip || c.ridge)) c.t += 0.5
+    // no bead inside the lift zone: there the hip already dips and flicks up to the tip
+    if (bead && ((c.hip && c.lift === 0) || c.ridge)) c.t += 0.5
   }
   field.levels = levels
   field.outline = { x0: minX, z0: minZ, x1: maxX, z1: maxZ }
+  // eave edges are outside the outline; a stopRing/hole opening is not an edge (no eave stairs there)
+  field.outside = (x, z) => x < minX || x > maxX || z < minZ || z > maxZ
   field.axis = ax
   field.type = type
   field.maxRing = maxRing
   return field
 }
 
-// Rasterises a heightfield (from roofField, or any Map "x,z" → { x, z, t, sec?, hip?, ridge?, along? },
-// e.g. an arched bridge deck) at `base` (the level of t = 0). Returns per-column records.
+// Rasterises a heightfield at `base` (opts.base or opts.y: the level of t = 0). Returns per-column
+// records (Map "x,z" → { x, z, t, top, y, bottom, ring, sec, hip, ridge, kind, facing }).
+// FIELD FORMAT: a Map "x,z" → { x, z, t, sec?, hip?, ridge?, along? } where t = top-surface height
+// in blocks above base, a multiple of 0.5 (x.5 → bottom slab, whole → stair/block); `sec` labels
+// sections that ignore each other's heights (thin rakes over a lower roof); `hip`/`ridge` cells get
+// the ridge material; `along` (an integer) alternates `ribs`. Optional field.outside(x, z) says
+// which missing neighbours are eave edges (default: all of them). eastField() and roofField() build
+// such fields; a hand-made Map works too (e.g. an arched bridge deck).
 //   material / ribs / ridge / rafter as in eastRoof; thickness; only(cell);
 //   rim { test(x, z), level }: matching columns reach down to `level` (closes onto a wall top);
 //   keepBelow { test(x, z), level }: pieces below `level` in matching columns only fill empty space;
@@ -176,8 +186,8 @@ export function rasterRoof(b, field, opts = {}) {
   const ridgeMat = roofMaterial(opts.ridge, mat)
   const under = roofMaterial(opts.rafter ?? opts.underside, mat)
   const { thickness = 1, only = null, rim = null, keepBelow = null, overwrite = true, placed = null, tag = 'roof', cols = new Map() } = opts
-  const ol = field.outline
-  const outsideOutline = ol ? (x, z) => x < ol.x0 || x > ol.x1 || z < ol.z0 || z > ol.z1 : () => false
+  // missing neighbours on the eave edge (field.outside, default: any missing neighbour)
+  const outsideOutline = field.outside ?? (() => true)
   for (const c of field.values()) {
     c.top = base + c.t
     c.y = base + topBlock(c.t)
@@ -202,7 +212,7 @@ export function rasterRoof(b, field, opts = {}) {
     // Warm soffit: when the lowest piece would be tile (the top piece itself, or a visible riser),
     // its underside shows from below as a tile stripe across the soffit. Hang half a block of
     // rafter under it.
-    if (under !== mat) {
+    if (under.block !== mat.block || under.slab !== mat.slab) {
       const hi = Math.min(c.t, Math.floor(bottom) + 1)
       if (hi === c.t || hi > minN) bottom -= 0.5
     }
@@ -268,6 +278,86 @@ export function rasterRoof(b, field, opts = {}) {
     else prev.bottom = Math.min(prev.bottom, lowest)
   }
   return cols
+}
+
+// General heightfield roof: any surface you can write as a function. Sagging (hogback) ridges,
+// bowed walls, bell-cast and ogee profiles, domes of stairs, arched decks.
+//   b.roofField({
+//     x0, z0, x1, z1,            // box to sample (inclusive)
+//     y,                         // level where height 0 sits (default 0)
+//     height: (x, z) => h,       // top surface in blocks above y, rounded to half blocks;
+//                                //   null / undefined / NaN = no roof in that column (any footprint)
+//     material, ribs, ridge, rafter (alias under / underside), thickness: 1, only(cell),
+//     capRidge: 1,               // a column higher than all its neighbours stands at most this many
+//                                //   blocks above the highest of them (no thin fins on steep ridges);
+//                                //   false = off
+//     ridgeAt: (x, z) => bool,   // which cells get the ridge material (default: cells whose two
+//                                //   opposite neighbours on one axis are both lower: the ridge line,
+//                                //   even where it sags)
+//     section: (x, z) => label,  // optional: neighbours in other sections are ignored (thin rakes)
+//     edge: (x, z) => bool,      // which missing neighbours are eave edges (default: all)
+//     rim: { test(x, z), level },       // matching columns reach down to `level` (wall tops)
+//     keepBelow: { test(x, z), level }, // pieces below `level` in matching columns only fill air
+//     overwrite: true,
+//   })  // → { topY, base, heights: Map "x,z" → top block y, cells, field, surface(x, z), bottom(x, z) }
+// Same shell, stair, soffit and watertightness rules as eastRoof.
+export function roofField(b, opts = {}) {
+  const { x0, z0, x1, z1, height, y = 0, capRidge = 1, ridgeAt, section, edge } = opts
+  if (typeof height !== 'function') throw new Error('roofField: height(x, z) is required')
+  const minX = Math.min(x0, x1)
+  const maxX = Math.max(x0, x1)
+  const minZ = Math.min(z0, z1)
+  const maxZ = Math.max(z0, z1)
+  const field = new Map()
+  for (let x = minX; x <= maxX; x += 1) {
+    for (let z = minZ; z <= maxZ; z += 1) {
+      const h = height(x, z)
+      if (h === null || h === undefined || !Number.isFinite(h)) continue
+      field.set(K(x, z), { x, z, t: Math.round(h * 2) / 2, sec: section ? section(x, z) : 'roof', hip: false, ridge: false })
+    }
+  }
+  const nb = (c, dx, dz) => {
+    const n = field.get(K(c.x + dx, c.z + dz))
+    return n && n.sec === c.sec ? n : null
+  }
+  // fins: cap local maxima one block (capRidge) above their highest neighbour
+  if (capRidge !== false) {
+    const caps = []
+    for (const c of field.values()) {
+      const ns = N4.map(([, dx, dz]) => nb(c, dx, dz)).filter(Boolean)
+      if (!ns.length || ns.some(n => n.t > c.t)) continue
+      const hi = Math.max(...ns.map(n => n.t))
+      if (c.t > Math.ceil(hi) + capRidge) caps.push([c, Math.ceil(hi) + capRidge])
+    }
+    for (const [c, t] of caps) c.t = t
+  }
+  for (const c of field.values()) {
+    const tn = (dx, dz) => nb(c, dx, dz)?.t ?? -Infinity
+    if (ridgeAt) c.ridge = Boolean(ridgeAt(c.x, c.z))
+    else c.ridge = (tn(1, 0) < c.t && tn(-1, 0) < c.t) || (tn(0, 1) < c.t && tn(0, -1) < c.t)
+    // ribs run down the slope: alternate on the coordinate across the steepest gradient
+    const gx = Math.abs((nb(c, 1, 0)?.t ?? c.t) - (nb(c, -1, 0)?.t ?? c.t))
+    const gz = Math.abs((nb(c, 0, 1)?.t ?? c.t) - (nb(c, 0, -1)?.t ?? c.t))
+    c.along = gx > gz ? c.z : c.x
+  }
+  field.outline = { x0: minX, z0: minZ, x1: maxX, z1: maxZ }
+  field.outside = edge ?? (() => true)
+  const cols = rasterRoof(b, field, { ...opts, base: y, rafter: opts.rafter ?? opts.under ?? opts.underside ?? opts.material })
+  const heights = new Map()
+  let topY = -Infinity
+  for (const [key, col] of cols) {
+    heights.set(key, col.y)
+    topY = Math.max(topY, col.y)
+  }
+  return {
+    topY: Number.isFinite(topY) ? topY : y,
+    base: y,
+    heights,
+    cells: cols,
+    field,
+    surface: (x, z) => cols.get(K(x, z))?.top ?? -Infinity,
+    bottom: (x, z) => cols.get(K(x, z))?.bottom ?? null,
+  }
 }
 
 // East-Asian roof over a rectangle of wall lines. See the header for options.
@@ -354,13 +444,13 @@ export function eastRoof(b, opts = {}) {
     // coincide and the gable rises out of the hip ends. Hip cells that would poke through the gable
     // (raised hip beads near the ridge) are skipped; the hip ring at the gable end is the shelf the
     // gable triangle stands on.
-    field = roofField({ ...fieldOpts, type: 'hip' })
-    gabF = roofField({ ...fieldOpts, type: 'gable', axis, inset })
+    field = eastField({ ...fieldOpts, type: 'hip' })
+    gabF = eastField({ ...fieldOpts, type: 'gable', axis, inset })
     for (const c of gabF.values()) c.top = base + c.t
     rasterRoof(b, field, { ...rOpts, tag: 'hip', only: c => { const g = gabF.get(K(c.x, c.z)); return (!g || g.sec === 'hip' || c.t <= g.t) && userOnly(c) } })
     rasterRoof(b, gabF, { ...rOpts, tag: 'gable', rim: null, only: c => c.sec === 'gable' && userOnly(c) })
   } else {
-    field = roofField({ ...fieldOpts, type: type === 'gable' ? 'gable' : 'hip', axis, inset: 0 })
+    field = eastField({ ...fieldOpts, type: type === 'gable' ? 'gable' : 'hip', axis, inset: 0 })
     rasterRoof(b, field, { ...rOpts, only: userOnly })
   }
   const gField = type === 'irimoya' ? gabF : type === 'gable' ? field : null
@@ -602,7 +692,8 @@ export function pagoda(b, opts = {}) {
       eaveY,
       type: last ? 'pyramid' : 'hip',
       overhang: t.E - t.W,
-      pitch: last ? topPitch ?? [...pitch, 2] : pitch,
+      // top roof: the skirt profile up to the apex ring, which rises 2 to carry the finial
+      pitch: last ? topPitch ?? Array.from({ length: t.E + 1 }, (_, k) => (k === t.E ? 2 : pitch[Math.min(k, pitch.length - 1)])) : pitch,
       stopRing: last ? Infinity : t.E - next.W,
       lift, thickness, material: mat, ribs, ridge, rafter,
       rim: t.top + 1,
@@ -626,9 +717,13 @@ export function pagoda(b, opts = {}) {
     const arr = Array.isArray(list) ? list : [list]
     arr.forEach((paint, k) => b.set(cx, apexY + 1 + k, cz, paint))
   }
-  // The shinbashira (central pillar) runs up through the storeys.
+  // A lantern on every storey floor (lights the dark storeys, no mob spawns), then the shinbashira
+  // (central pillar) up through the storeys.
+  tiers.forEach(t => {
+    if (t.W >= 2) for (const s of [1, -1]) b.set(cx + s * (t.W - 1), t.floor, cz + s * (t.W - 1), 'minecraft:lantern[hanging=false]', { keep: true })
+  })
   b.box([cx, y0, cz], [cx, tiers[n - 1].top, cz], `${postName}[axis=y]`, { keep: true })
   return { tiers, apex: [cx, apexY, cz], topY: Math.max(top.topY, apexY + (Array.isArray(list) ? list.length : list ? 1 : 0)) }
 }
 
-export const EASTROOF_METHODS = { eastRoof, pagoda, rasterRoof }
+export const EASTROOF_METHODS = { eastRoof, pagoda, roofField, rasterRoof }
