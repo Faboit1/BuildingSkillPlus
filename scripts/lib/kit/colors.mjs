@@ -247,6 +247,8 @@ function hasShapes(entry, shapes) {
 
 // Candidate list for nearest/ramp. `kinds` restricts to blocks carrying any of those tags and
 // also opts those tags back in when they are excluded by default; `include` only opts in.
+const FLAT_NOISE = 0.015 // below this a texture reads flat (concrete, terracotta)
+
 function candidates({ full = true, kinds, include, exclude, require: shapes, excludedTags = DEFAULT_EXCLUDED } = {}) {
   const kindList = kinds ? (Array.isArray(kinds) ? kinds : [kinds]) : null
   const includeList = include ? (Array.isArray(include) ? include : [include]) : []
@@ -319,6 +321,8 @@ export function nearest(target, { full = true, face = 'side', kinds, include, ex
 //     steps more evenly; lower allows detours through other hues for more even value steps
 //   via: ['moss_block'] waypoints the ladder must pass through
 //   face: 'side' (default) | 'top' | 'avg'
+//   matchTexture (default true): a step between a flat block (concrete, terracotta) and a
+//     textured one counts 4 ΔE00 extra, keeping ladders in one texture world unless a gap forces it
 //   details: true returns { ids, steps: [ΔE00...], L: [...] } instead of the id list
 // steps omitted (or 'auto') picks the most even count between 4 and 10. When fewer distinct
 // blocks exist between the endpoints, the result can be shorter than `steps`.
@@ -335,7 +339,7 @@ export function ramp(fromId, toId, steps = 'auto', opts = {}) {
 }
 
 function rampUncached(fromId, toId, steps, opts) {
-  const { full = true, kinds, include, exclude, require: shapes, smoothness = 0.5, via = [], face = 'side', details = false } = opts
+  const { full = true, kinds, include, exclude, require: shapes, smoothness = 0.5, via = [], face = 'side', details = false, matchTexture = true } = opts
   const from = colorOf(fromId)
   const to = colorOf(toId)
   if (!from) throw new Error(`ramp: unknown block ${fromId}`)
@@ -367,7 +371,7 @@ function rampUncached(fromId, toId, steps, opts) {
       }
       edges = alloc[i]
     }
-    const seg = solveSegment(A, B, pool, { edges, s, face, autoRange: [Math.max(1, Math.ceil(3 / segs)), Math.ceil(9 / segs)] })
+    const seg = solveSegment(A, B, pool, { edges, s, face, texturePenalty: matchTexture ? 4 : 0, autoRange: [Math.max(1, Math.ceil(3 / segs)), Math.ceil(9 / segs)] })
     chain = chain.concat(seg.slice(1))
   }
   const ids = chain.map((e) => e.id)
@@ -413,7 +417,7 @@ function dedupeUncached(pool, face) {
   return out
 }
 
-function solveSegment(A, B, pool, { edges, s, face, autoRange }) {
+function solveSegment(A, B, pool, { edges, s, face, autoRange, texturePenalty = 0 }) {
   const la = faceLab(A, face)
   const lb = faceLab(B, face)
   const ab = la.map((v, i) => lb[i] - v)
@@ -438,7 +442,10 @@ function solveSegment(A, B, pool, { edges, s, face, autoRange }) {
   const lambda = 0.1 + 0.8 * s
   const dir = Math.sign(lb[0] - la[0])
   const monotonic = Math.abs(lb[0] - la[0]) >= 10
-  const dist = (i, j) => entryDE(nodes[i].e, nodes[j].e, face)
+  // Stepping between a flat block (concrete, terracotta) and a textured one costs extra, so a
+  // ladder stays in one texture world unless that leaves a large colour gap.
+  const flat = nodes.map((nd) => nd.e.noise < FLAT_NOISE)
+  const dist = (i, j) => entryDE(nodes[i].e, nodes[j].e, face) + (flat[i] !== flat[j] ? texturePenalty : 0)
   const [lo, hi] = edges ? [edges, edges] : autoRange
   let prev = new Array(N).fill(Infinity)
   prev[0] = 0
@@ -506,10 +513,11 @@ export function contrast(a, b, { face = 'side', faceB } = {}) {
   return { dL: Math.round(dL * 10) / 10, absL: Math.round(absL * 10) / 10, dE: Math.round(dE * 10) / 10, reads }
 }
 
-// Role targets (|ΔL*| minimum) used by paletteReport when roles are given.
+// Role targets used by paletteReport when roles are given (minimums; the guide's targets are
+// higher: roof 25+, frame 30+). Matches references/building/README.md law 11.
 export const ROLE_TARGETS = [
-  { a: 'wall', b: 'roof', minL: 15, why: 'roof and wall should separate by value' },
-  { a: 'wall', b: 'frame', minL: 12, why: 'frame/trim should read against the wall' },
+  { a: 'wall', b: 'roof', minL: 20, why: 'roof and wall should separate by value' },
+  { a: 'wall', b: 'frame', minL: 20, why: 'frame should read against the wall field' },
   { a: 'wall', b: 'trim', minL: 12, why: 'trim should read against the wall' },
   { a: 'wall', b: 'foundation', minL: 8, why: 'foundation should read as a separate base' },
   { a: 'wall', b: 'accent', minE: 15, why: 'accent should stand out from the wall' },
@@ -521,7 +529,7 @@ export const ROLE_TARGETS = [
 // { blocks: [...], value: { min, max, spread }, hue: { spread, families, chromatic }, busy: [...],
 //   pairs: [{ a, b, dE, dL }], warnings: [...], notes: [...], ok } (ok = no warnings; notes are
 //   informational: light sources, gravity blocks, glazed patterns).
-export function paletteReport(ids, { minPairDE = 5, busyAt = 0.08 } = {}) {
+export function paletteReport(ids, { minPairDE = 5, busyAt = 0.1 } = {}) {
   const roles = Array.isArray(ids) ? null : ids
   const items = []
   const warnings = []
@@ -584,7 +592,9 @@ export function paletteReport(ids, { minPairDE = 5, busyAt = 0.08 } = {}) {
     }
     const wall = byRole.get('wall')
     const base = byRole.get('foundation') ?? byRole.get('base')
-    if (wall && base && base.L > wall.L + 3) warnings.push(`foundation (L*${base.L}) is lighter than the wall (L*${wall.L}): a darker base usually anchors a build (convention)`)
+    // Under light or mid walls a darker base anchors the build; under dark timber/brick walls a
+    // lighter stone base is normal.
+    if (wall && base && wall.L >= 45 && base.L > wall.L + 3) warnings.push(`foundation (L*${base.L}) is lighter than the wall (L*${wall.L}): a darker base usually anchors a light or mid-value wall (convention)`)
   }
   // Hue structure.
   const chromatic = items.filter((i) => i.C >= 20)
@@ -611,8 +621,20 @@ export function paletteReport(ids, { minPairDE = 5, busyAt = 0.08 } = {}) {
   }
   // Texture busyness.
   const busy = items.filter((i) => i.noise >= busyAt)
-  if (busy.length >= 2) warnings.push(`${busy.length} busy textures (${busy.map((b) => b.id).join(', ')}): keep one busy surface and make the rest calm`)
+  if (busy.length >= 2) warnings.push(`${busy.length} strongly textured blocks (${busy.map((b) => b.id).join(', ')}): keep one busy surface and make the rest calm`)
   const notes = []
+  if (roles) {
+    for (const i of items) {
+      if (i.role === 'roof' && i.ids.length === 1) {
+        const e = colorOf(i.ids[0])
+        if (!hasShapes(e, ['stairs', 'slab'])) {
+          const alt = nearest(e.id, { require: ['stairs', 'slab'] })
+          notes.push(`roof ${i.id} has no stairs + slab of its own: build domes or stepped blocks, or use the closest stair family ${alt ? short(alt.id) : '?'} (ΔE00 ${alt ? alt.dE : '?'})`)
+        }
+      }
+      if ((i.role === 'wall' || i.role === 'roof') && i.C >= 50) notes.push(`${i.role} ${i.id} is highly saturated (C* ${i.C}): large surfaces read plastic outside modern/whimsical styles`)
+    }
+  }
   for (const i of items) {
     if (i.tags.includes('emissive')) notes.push(`${i.id} emits light`)
     if (i.tags.includes('glazed')) notes.push(`${i.id} is patterned (glazed terracotta)`)
