@@ -156,6 +156,11 @@ export class Builder {
     return this.get(x, y, z) !== null
   }
 
+  // Whether the block at a position matches `test` (id, id list, predicate, null/'air' for empty).
+  is(x, y, z, test) {
+    return this.matches(this.get(x, y, z), test)
+  }
+
   remove(x, y, z) {
     x = toInt(x)
     y = toInt(y)

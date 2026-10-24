@@ -63,7 +63,7 @@ Returning `null` from a function leaves the position untouched (great for masks)
 | Method | Notes |
 | --- | --- |
 | `b.set(x, y, z, paint, opts?)` | `opts.keep` only fills empty cells; `opts.only` replaces only matching blocks (`'oak_*'`, `'*_planks'`, id, array, predicate); `opts.mask(x,y,z,b)`; `opts.nbt` block entity |
-| `b.get(x, y, z)` / `b.nameAt` / `b.has` | read back `{ name, props }` |
+| `b.get(x, y, z)` / `b.nameAt` / `b.has` / `b.is(x, y, z, test)` | read back `{ name, props }`; `is` tests against an id, id list, predicate or `null`/`'air'` |
 | `b.remove(x, y, z)` | delete |
 | `b.topY(x, z, test?)` | highest block in a column (optionally matching `test`) |
 | `b.count(test?)`, `b.bounds()`, `b.entries()` | inspection |
@@ -136,7 +136,9 @@ b.roof({
                         // or { stairs, slab, block } ids
   pitch: 1,             // rise per row: 0.5 (slabs), 1 (stairs), 2/3 (steep), 0 (flat, after row 0) — or a
                         // list per row from the eave inward, e.g. [0.5, 0.5, 1, 1, 2] (curved/Asian),
-                        // [2, 2, 0.5, 0.5] (gambrel), [1, 1, 0] (Mojang low hip: two stair rings + flat field)
+                        // [2, 2, 0.5, 0.5] (gambrel), [1, 1, 0] (Mojang low hip: two stair rings + flat field).
+                        // List entry i is the rise from row i-1 up to row i; entry 0 only picks the eave
+                        // element (≤ 0.5 → slab, else stair), so [2, 1, 0.5] and [1, 1, 0.5] are the same roof
   overhang: 1,          // eave overhang beyond the side walls
   gableOverhang: 1,     // overhang beyond the gable end walls
   gable: 'spruce_planks', // fills every wall-line cell up to the roof (gable triangles, shed walls)
