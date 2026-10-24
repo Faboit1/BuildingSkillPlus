@@ -15,7 +15,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { DIR, blockExists, isFullSolid, parseBlock, withNamespace } from './blocks.mjs'
+import { DIR, blockExists, isFullSolid, parseBlock, vanillaStates, withNamespace } from './blocks.mjs'
 import { material as materialFamily } from './materials.mjs'
 import { coherent01, createRng, fbm3, hash01 } from './noise.mjs'
 
@@ -54,7 +54,7 @@ function rotate(v, k, a) {
 
 // Polynomial smooth minimum (k = fillet radius in blocks).
 export function smin(a, b, k) {
-  if (k <= 0) return Math.min(a, b)
+  if (k <= 0 || !Number.isFinite(a) || !Number.isFinite(b)) return Math.min(a, b) // Infinity (culled) would give NaN
   const h = clamp(0.5 + (0.5 * (b - a)) / k, 0, 1)
   return b * (1 - h) + a * h - k * h * (1 - h)
 }
@@ -196,7 +196,9 @@ function recolor(b, x, y, z, block, step) {
   const kind = /_stairs$/.test(block.name) ? 'stairs' : /_slab$/.test(block.name) ? 'slab' : /_wall$/.test(block.name) ? 'wall' : 'block'
   if (kind !== 'block' && !step[kind]) return // ramp material has no such shape: keep the block
   const target = withNamespace(kind === 'block' ? step.block : step[kind])
-  const props = kind === 'block' ? undefined : block.props
+  // keep the properties the new block also has (a wood's axis), drop the rest
+  const valid = vanillaStates()?.blocks[target]?.v
+  const props = valid && block.props ? Object.fromEntries(Object.entries(block.props).filter(([k]) => k in valid)) : kind === 'block' ? undefined : block.props
   b.put(x, y, z, block.nbt ? { name: target, props, nbt: block.nbt } : { name: target, props })
 }
 

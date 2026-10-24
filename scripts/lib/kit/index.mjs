@@ -56,6 +56,7 @@ export const sdf = {
   subtract: (a, b) => (x, y, z) => Math.max(a(x, y, z), -b(x, y, z)),
   // Smooth union: blends shapes with a fillet of size k (organic joins, tree roots, rocks).
   smoothUnion: (k, ...fs) => (x, y, z) => fs.map(f => f(x, y, z)).reduce((d1, d2) => {
+    if (!Number.isFinite(d1) || !Number.isFinite(d2)) return Math.min(d1, d2) // culled parts return Infinity
     const h = Math.max(0, Math.min(1, 0.5 + (0.5 * (d2 - d1)) / k))
     return d2 * (1 - h) + d1 * h - k * h * (1 - h)
   }),

@@ -1898,6 +1898,11 @@ function runChecks(model, info, counts, summary, lighting, options) {
       if (rule === 'sides') {
         const sides = ['north', 'east', 'south', 'west', 'up', 'down'].map((key, dir) => [key, dir]).filter(([key]) => b.props[key] === 'true')
         ok = sides.length === 0 || sides.some(([, dir]) => grid.get(i + grid.off[dir]) >= 0 || outsideFile(i + grid.off[dir]))
+        // a vine also holds on by hanging from the vine above it (vanilla canSupportAtFace)
+        if (!ok && b.short === 'vine') {
+          const above = grid.get(i + grid.off[4])
+          ok = above >= 0 && info[above].short === 'vine'
+        }
         where = 'on any attached face'
       } else if (rule === 'bell2') {
         const f = b.facing

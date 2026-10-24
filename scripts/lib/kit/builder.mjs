@@ -98,6 +98,7 @@ export class Builder {
     y = toInt(y)
     z = toInt(z)
     if (!this.inBounds(x, y, z)) {
+      if (opts?.mask && !opts.mask(x, y, z, this)) return this // masked out: not a clipped placement
       this.clipped += 1
       // remember where: the warning names the overflow range so it can be fixed quickly
       if (!this.clippedBox) {
