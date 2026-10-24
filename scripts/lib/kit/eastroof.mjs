@@ -198,6 +198,13 @@ export function rasterRoof(b, field, opts = {}) {
     }
     let bottom = Math.min(c.t - thickness, minN - 0.5)
     if (rim && rim.test(c.x, c.z)) bottom = Math.min(bottom, rim.level - base)
+    // Warm soffit: when the lowest piece would be tile (the top piece itself, or a visible riser),
+    // its underside shows from below as a tile stripe across the soffit. Hang half a block of
+    // rafter under it.
+    if (under !== mat) {
+      const hi = Math.min(c.t, Math.floor(bottom) + 1)
+      if (hi === c.t || hi > minN) bottom -= 0.5
+    }
     const top = base + c.t
     const bot = base + bottom
     const face = ribs && mod2(c.along ?? 0) === 0 ? ribs : mat

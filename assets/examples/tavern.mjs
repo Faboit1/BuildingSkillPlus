@@ -173,14 +173,17 @@ export default function build(api) {
   mergeRoof({ x0: WING.x0, z0: WING.z0, x1: WING.x1, z1: 22, y: ROOF_Y, axis: 'z', material: ROOF, pitch: MAIN_PITCH, eaveTrim: true,
     gable: (x, y, z) => (z !== WING.z0 ? null : y === 21 ? beam('x') : studGable(x, 4)) })
   // stable lean-to: a shed roof climbing toward the main gable wall
-  mergeRoof({ x0: STABLE.x0, z0: STABLE.z0, x1: STABLE.x1, z1: STABLE.z1, y: 10, type: 'shed', rises: 'west', material: 'spruce', pitch: 0.5, eaveTrim: true },
+  mergeRoof({ x0: STABLE.x0, z0: STABLE.z0, x1: STABLE.x1, z1: STABLE.z1, y: 10, type: 'shed', rises: 'west', material: ROOF, pitch: 0.5, eaveTrim: true },
     { floorY: 9, keepCell: x => x > UP.x1 })
   // dormers either side of the bay, lighting the attic
   // the dormer fronts are framed like the wall below: corner posts, plaster between
-  // Set one row up the slope, so the eave runs unbroken beneath them.
-  for (const [cx, cz, facing] of [[14, UP.z1 - 1, 'south'], [28, UP.z1 - 1, 'south'], [16, UP.z0 + 1, 'north']]) {
-    const wall = (x, y, z) => (z === cz && Math.abs(x - cx) === 1 ? POST : DAUB)
-    b.dormer([cx, ROOF_Y + 2, cz], facing, { width: 3, height: 3, material: ROOF, wall, window: { width: 1, height: 2 } })
+  // The street slope gets ONE wide wall dormer, east of the bay: with the chimney on the west
+  // and the gable in the middle that is an asymmetric but balanced front (a 3-wide dormer set
+  // back on this big roof read as a dark hole). The back slope gets a small one over the corridor.
+  for (const [cx, cz, y0, w, facing] of [[30, UP.z1, ROOF_Y, 5, 'south'], [16, UP.z0 + 1, ROOF_Y + 2, 3, 'north']]) {
+    const half = (w - 1) / 2
+    const wall = (x, y, z) => (z === cz && (Math.abs(x - cx) === half || (w === 5 && x === cx && y >= y0 + 3)) ? POST : DAUB)
+    b.dormer([cx, y0, cz], facing, { width: w, height: 3, material: ROOF, wall, window: { width: w - 2, height: 2, mullion: POST } })
   }
   // bargeboards: the soffit under every rake becomes warm spruce, outlining each gable
   for (const [x, y, z, block] of [...b.entries()]) {
@@ -285,7 +288,7 @@ export default function build(api) {
     b.set(x, FL1 - 1, PORCH.z0, 'dark_oak_stairs[facing=north,half=top]')
   }
   // stable: posts on the yard side, boarded ends, earth floor
-  const shedUnder = (x, z) => { for (let y = 9; y < 20; y += 1) if (b.has(x, y, z) && /spruce/.test(b.nameAt(x, y, z))) return y; return 10 }
+  const shedUnder = (x, z) => { for (let y = 9; y < 20; y += 1) if (b.has(x, y, z) && /deepslate/.test(b.nameAt(x, y, z))) return y; return 10 }
   for (let x = STABLE.x0; x <= STABLE.x1; x += 1) for (let z = STABLE.z0; z <= STABLE.z1; z += 1) {
     for (let y = ground(x, z) - 1; y <= 5; y += 1) b.set(x, y, z, 'dirt')
     b.set(x, 6, z, 'coarse_dirt')
@@ -303,9 +306,10 @@ export default function build(api) {
     b.texture([MAIN.x0, FL0, WING.z0], [MAIN.x1, FL1 - 1, MAIN.z1], stoneRamp, { only: STONE, focus: [[DOOR_X, FL0 + 2, MAIN.z1]], maxStep: 1, seed: 3 })
     b.texture([0, 0, 0], [51, FL0, 45], ['tuff_bricks', 'cobbled_deepslate', 'deepslate_bricks'], { only: PLINTH, base: 0.35, seed: 5 })
     b.texture([0, FL1, 0], [51, 30, 45], ['calcite', 'smooth_sandstone'], { only: DAUB, mid: 0.55, base: 0.2, drip: 0.15, noise: 0.18, maxStep: 1, seed: 7 })
-    b.texture([0, 0, 0], [51, 31, 45], ['cobblestone', 'stone_bricks', 'tuff', 'tuff_bricks', 'cobbled_deepslate'], { only: CHIM, base: 0.25, top: -0.35, seed: 9 })
-    b.texture([0, FL2 - 1, 0], [51, 30, 45], ['cobbled_deepslate', 'deepslate_bricks', 'deepslate_tiles'],
+    b.texture([0, 9, 0], [51, 30, 45], ['cobbled_deepslate', 'deepslate_bricks', 'deepslate_tiles'],
       { only: n => /deepslate/.test(n.name), mid: 0.75, base: 0.3, top: 0.35, edge: 0.1, noise: 0.2, maxStep: 1, seed: 11 })
+    // chimneys after the roof (their sooty top uses cobbled deepslate, which the roof pass would catch)
+    b.texture([0, 0, 0], [51, 31, 45], ['cobblestone', 'stone_bricks', 'tuff', 'tuff_bricks', 'cobbled_deepslate'], { only: CHIM, base: 0.25, top: -0.35, seed: 9 })
     // age: moss and cracks low on the walls and on the shaded north side only
     b.weather([0, 0, 0], [51, FL0 + 1, 45], { share: 0.2, mossBias: 0.7, seed: 2 })
     b.weather([0, FL0, 0], [51, FL1, MAIN.z0], { share: 0.12, mossBias: 0.8, seed: 3 })
@@ -492,7 +496,7 @@ export default function build(api) {
     // lanterns hung straight from the jetty beam between the corbels light the street front
     for (const x of [15, 27, 31]) b.set(x, FL1 - 1, UP.z1, 'lantern[hanging=true]')
     // lit dormers and a lit gable window make the roof read at night
-    for (const [x, z] of [[14, UP.z1 - 2], [28, UP.z1 - 2], [16, UP.z0 + 2]]) {
+    for (const [x, z] of [[30, UP.z1 - 1], [16, UP.z0 + 2]]) {
       for (let y = 25; y > 21; y -= 1) if (b.has(x, y, z)) { b.set(x, y - 1, z, 'lantern[hanging=true]'); break }
     }
     b.set(20, ROOF_Y, BAY.z1, 'barrel[facing=up]')

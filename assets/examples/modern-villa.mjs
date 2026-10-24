@@ -501,14 +501,16 @@ export default function build(api) {
 
     // ============================================================== 8. exterior lights (last)
     // slim bollards (wall post + end rod) every ~6 along driveway and walk, downlights under the
-    // carport, flush wall lights in the stair cheek, uplights hidden under ferns at two trees
+    // carport, flush wall lights in the stair cheek, hidden uplights at two trees
     const bollard = (x, z) => { const y = g(x, z) + 1; set(x, y, z, 'polished_blackstone_wall'); set(x, y + 1, z, 'end_rod[facing=up]') }
     for (const x of [2, 8]) { bollard(x, 6); bollard(x + 3, 12) }
     for (const x of [29, 32, 35]) bollard(x, 11)
     bollard(13, 18); bollard(16, 24)
     for (const [x, z] of [[17, 9], [23, 9]]) set(x, Y3 - 1, z, 'end_rod[facing=down]')
     set(13, Y1 + 2, 32, LIGHT); set(13, Y1 + 4, 30, LIGHT)
-    for (const [x, z] of [[5, 21], [50, 7]]) { set(x, g(x, z), z, LIGHT); set(x, g(x, z) + 1, z, 'fern') }
+    // tree uplights: froglight flush in the ground under a moss carpet (carpet passes light and is
+    // valid on any block; a fern or grass on top of a light block would pop off in game)
+    for (const [x, z] of [[5, 21], [50, 7]]) { const y = g(x, z); set(x, y, z, LIGHT); set(x, y + 1, z, 'moss_carpet'); b.remove(x, y + 2, z) }
   }
 
   // ---------------------------------------------------------------- 9. tidy

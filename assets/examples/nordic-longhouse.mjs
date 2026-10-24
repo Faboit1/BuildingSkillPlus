@@ -202,8 +202,10 @@ export default function build(api) {
     for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1) if (!inFoot(x + dx, z + dz)) return true
     return false
   }
-  // placeholders per surface role, textured later: WALL = log courses, FOOT = stone footing
-  const WALL = 'white_wool', FOOT = 'light_gray_wool'
+  // placeholders per surface role, textured later: WALL = log courses, FOOT = stone footing.
+  // Pick colours the finished build never uses (the sail is white wool), so a leftover is obvious
+  // in a render and `inspect --find lime_wool` / `magenta_wool` must come back empty.
+  const WALL = 'lime_wool', FOOT = 'magenta_wool'
   for (let x = X0 - 1; x <= X1 + 1; x += 1) for (let z = CZ - 9; z <= CZ + 9; z += 1) {
     if (!inFoot(x, z)) continue
     for (let y = Math.min(ground(x, z), F - 2) - 1; y <= F - 1; y += 1) b.set(x, y, z, FOOT) // footing reaches into the ground
@@ -328,14 +330,14 @@ export default function build(api) {
   const ridgeTop = x => topPiece.get(`${x},${CZ}`)
   for (const gx of [X0 - 1, X1 + 1]) {
     const yR = ridgeTop(gx)
-    // the two barge boards cross above the apex and splay into carved, outward-looking heads
+    // the two barge boards cross above the apex and splay into carved, outward-looking heads;
+    // each arm is a face-connected staircase (a diagonal-only step reads as a detached block)
     b.set(gx, yR + 1, CZ, 'dark_oak_planks')
     for (const s of [-1, 1]) {
-      for (const [dz, dy] of [[1, 1], [1, 2], [2, 3], [2, 4]]) b.set(gx, yR + dy, CZ + s * dz, 'dark_oak_planks')
+      for (const [dz, dy] of [[1, 1], [1, 2], [2, 2], [2, 3], [2, 4]]) b.set(gx, yR + dy, CZ + s * dz, 'dark_oak_planks')
       const inward = s > 0 ? 'north' : 'south'
-      b.set(gx, yR + 5, CZ + s * 2, 'dark_oak_planks')
-      b.set(gx, yR + 5, CZ + s * 3, `dark_oak_stairs[facing=${inward},half=bottom]`) // snout
-      b.set(gx, yR + 4, CZ + s * 3, `dark_oak_stairs[facing=${inward},half=top]`) // jaw
+      b.set(gx, yR + 5, CZ + s * 2, `dark_oak_stairs[facing=${inward},half=bottom]`) // crown
+      b.set(gx, yR + 4, CZ + s * 3, `dark_oak_stairs[facing=${inward},half=top]`) // snout looking out
     }
   }
   {
@@ -387,7 +389,7 @@ export default function build(api) {
   // and the lowest course is mostly darker stripped dark oak (damp, tarred), clumped by noise.
   const logWall = (x, y, z) => {
     const blk = b.get(x, y, z)
-    if (!blk || blk.name !== 'minecraft:white_wool') return null
+    if (!blk || blk.name !== `minecraft:${WALL}`) return null
     const along = (dx, dz) => {
       const n = b.get(x + dx, y, z + dz)
       return n !== null && n.name !== 'minecraft:air'
@@ -473,9 +475,9 @@ export default function build(api) {
   // ================================================================ 3 OUTBUILDINGS
   // Varied but related: same footing, same log walls, same doors; different footprints, roof
   // axes and pitches; sod roofs on the humble buildings, dark shingles on hall and stabbur.
-  const logBox = (x0, z0, x1, z1, fy, h, log) => { // stacked-log walls on a stone footing
+  const logBox = (x0, z0, x1, z1, fy, h, log, { footing = true } = {}) => { // stacked-log walls on a stone footing
     for (let x = x0; x <= x1; x += 1) for (let z = z0; z <= z1; z += 1) {
-      for (let y = Math.min(ground(x, z), fy - 1) - 1; y <= fy - 1; y += 1) b.set(x, y, z, FOOT)
+      if (footing) for (let y = Math.min(ground(x, z), fy - 1) - 1; y <= fy - 1; y += 1) b.set(x, y, z, FOOT)
       const edge = x === x0 || x === x1 || z === z0 || z === z1
       const corner = (x === x0 || x === x1) && (z === z0 || z === z1)
       for (let y = fy; y < fy + h; y += 1) {
@@ -547,11 +549,7 @@ export default function build(api) {
   }
   for (let x = STAB.x0 - 1; x <= STAB.x1 + 1; x += 1) for (let z = STAB.z0 - 1; z <= STAB.z1 + 1; z += 1) b.set(x, TF - 1, z, 'spruce_planks')
   for (let x = STAB.x0 - 1; x <= STAB.x1 + 1; x += 1) b.set(x, TF - 1, STAB.z1 + 1, 'spruce_slab[type=top]')
-  logBox(STAB.x0, STAB.z0, STAB.x1, STAB.z1 - 1, TF, 4, 'stripped_spruce_log')
-  for (let x = STAB.x0; x <= STAB.x1; x += 1) for (let z = STAB.z0; z <= STAB.z1 - 1; z += 1) for (let y = TF - 5; y < TF - 1; y += 1) {
-    const blk = b.get(x, y, z) // logBox laid a footing under the raised floor: lift it off the ground
-    if (blk && blk.name === 'minecraft:light_gray_wool') b.remove(x, y, z)
-  }
+  logBox(STAB.x0, STAB.z0, STAB.x1, STAB.z1 - 1, TF, 4, 'stripped_spruce_log', { footing: false })
   b.roof({ x0: STAB.x0, x1: STAB.x1, z0: STAB.z0, z1: STAB.z1 - 1, y: TF + 4, type: 'gable', axis: 'z', material: 'dark_oak', pitch: 2, overhang: 1, gableOverhang: 1, gable: 'stripped_spruce_log[axis=y]', eaveTrim: true })
   b.door([STAB.x0 + 2, TF, STAB.z1 - 1], 'south', { material: 'spruce' })
   for (let x = STAB.x0 - 1; x <= STAB.x1 + 1; x += 2) b.set(x, TF, STAB.z1 + 1, 'spruce_fence')
@@ -772,11 +770,11 @@ export default function build(api) {
   // dart-thrown with a minimum spacing, thinned by a glade noise, three height classes
   const treeSpots = []
   for (let i = 0; i < 900; i += 1) {
-    const x = rng.int(4, W - 4), z = rng.int(4, D - 5)
+    const x = rng.int(4, W - 5), z = rng.int(4, D - 5)
     const g = ground(x, z)
     if (g <= WATER + 1) continue
     const north = z < 6 + 1.5 * n2(x, 0, 8, 2)
-    const east = x > 83
+    const east = x >= 83
     const head = x < cliffX(z) - 1 && z < 60
     if (!(north || east || head)) continue
     if (kit.noise.coherent01(x, 0, z, { scale: 9, seed: 81 }) < 0.3) continue // glades

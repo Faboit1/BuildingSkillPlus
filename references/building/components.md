@@ -943,16 +943,21 @@ b.door([21, H.F, H.z1], 'south', { material: 'dark_oak', width: 2, frame: 'stone
 b.door([28, H.F, H.z1], 'south', { material: 'spruce', open: true, frame: 'stripped_spruce_log' })
 ```
 
-Grand portal: round arch in a 3-thick wall, door set 2 back under a plank tympanum, wall-post
-lanterns, steps across the front.
+Grand portal: a round-headed opening in a 3-thick wall, a lighter stone surround with a keystone,
+the door set 2 back under a plank tympanum, wall-post lanterns, steps across the front.
 
 ```js
 b.box([H.x0, H.F, H.z1 - 2], [H.x1, H.F + 8, H.z1], 'stone_bricks')
-b.box([15, H.F, H.z1 - 1], [17, H.F + 2, H.z1], 'air')                                       // reveal, 2 deep
-b.arch([15, H.F + 3, H.z1 - 1], [17, H.F + 3, H.z1 - 1], 'polished_andesite', { type: 'round', depth: 2 })
-b.box([15, H.F, H.z1 - 2], [17, H.F + 4, H.z1 - 2], 'dark_oak_planks')                      // door plane + tympanum
+b.box([14, H.F, H.z1], [18, H.F + 4, H.z1], 'polished_andesite')                           // surround: jambs + head, front layer
+b.set(16, H.F + 4, H.z1, 'chiseled_stone_bricks')                                            // keystone
+b.box([15, H.F, H.z1 - 1], [17, H.F + 3, H.z1], 'air')                                       // opening 3 x 4, 2 deep
+for (const z of [H.z1 - 1, H.z1]) {                                                          // round head: stair shoulders
+  b.set(15, H.F + 3, z, 'polished_andesite_stairs[facing=west,half=top]')
+  b.set(17, H.F + 3, z, 'polished_andesite_stairs[facing=east,half=top]')
+}
+b.box([15, H.F, H.z1 - 2], [17, H.F + 3, H.z1 - 2], 'dark_oak_planks')                      // door plane + tympanum
 b.door([16, H.F, H.z1 - 2], 'south', { material: 'dark_oak' })
-for (const x of [13, 19]) { b.set(x, H.F + 2, H.z1 + 1, 'stone_brick_wall'); b.set(x, H.F + 3, H.z1 + 1, 'lantern') }
+for (const x of [12, 20]) { b.set(x, H.F + 2, H.z1 + 1, 'stone_brick_wall'); b.set(x, H.F + 3, H.z1 + 1, 'lantern') }
 for (let x = 13; x <= 19; x++) b.set(x, H.F - 1, H.z1 + 1, 'stone_brick_stairs[facing=north,half=bottom]')
 ```
 
@@ -977,13 +982,14 @@ for (let x = 13; x <= 19; x++) b.set(x, H.F - 1, H.z1 + 1, 'stone_brick_stairs[f
 
 `b.arch(a, c, paint, { type: 'round' | 'pointed' | 'segmental' | 'flat', thickness, depth, fill, spandrel, top, rise })`
 builds full-block voussoirs: `a` and `c` are the springer cells (same y, inclusive opening width),
-`depth` runs toward +z (or +x), `rise` is the segmental height, `fill` clears the opening.
+`depth` runs toward +z (or +x), `rise` is the segmental height, `fill` clears the opening. Use it
+for pointed and segmental arches; round heads read better with the stair-smoothed profile below
+(full-block round arches end in a 1-wide notch at the crown).
 
 ```js
-b.box([0, H.F, 20], [44, H.F + 13, 21], 'stone_bricks')                                        // 2-deep wall
-b.box([2, H.F, 20], [8, H.F + 3, 21], 'air');   b.arch([2, H.F + 4, 20], [8, H.F + 4, 20], 'polished_andesite', { type: 'pointed', depth: 2 })
-b.box([12, H.F, 20], [22, H.F + 3, 21], 'air'); b.arch([12, H.F + 4, 20], [22, H.F + 4, 20], 'polished_andesite', { type: 'segmental', rise: 2, depth: 2 })
-b.box([26, H.F, 20], [34, H.F + 3, 21], 'air'); b.arch([26, H.F + 4, 20], [34, H.F + 4, 20], 'polished_andesite', { type: 'round', depth: 2 })
+b.box([0, H.F, 20], [36, H.F + 13, 21], 'stone_bricks')                                        // 2-deep wall
+b.box([2, H.F, 20], [10, H.F + 3, 21], 'air');  b.arch([2, H.F + 4, 20], [10, H.F + 4, 20], 'polished_andesite', { type: 'pointed', depth: 2 })
+b.box([14, H.F, 20], [24, H.F + 3, 21], 'air'); b.arch([14, H.F + 4, 20], [24, H.F + 4, 20], 'polished_andesite', { type: 'segmental', rise: 3, depth: 2 })
 ```
 
 For spans up to ~9 a stair-smoothed profile reads rounder than full-block voussoirs. `rows` = the
