@@ -122,7 +122,7 @@ b.roof({
   eaveTrim: true,       // upside-down stairs / top slabs under the outermost row (thick eaves)
   ridgeCap: 'stone_brick_wall', // extra block on the ridge line
   thickness: 1,         // solid layers under the roof surface inside the walls
-  underside: 'stairs',  // 'stairs' puts an upside-down stair (same facing) under each 1:1 stair: clean 45° ceiling
+  underside: 'stairs',  // 'stairs' puts an upside-down stair (facing down-slope) under each 1:1 stair: clean 45° ceiling
                         // inside, double-thick rake outside. 'block' uses full blocks.
   rises: 'north',       // shed only: direction the roof climbs toward
 })

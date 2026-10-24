@@ -93,7 +93,7 @@ const stateAt = (b, x, y, z) => {
   check('gable eave stair', b.nameAt(9, 4, 3) === 'minecraft:spruce_stairs' && b.get(9, 4, 3).props.facing === 'south')
   check('gable row over wall', b.get(9, 5, 4).props.facing === 'south')
   check('gable ridge block', b.nameAt(9, 8, 7) === 'minecraft:spruce_planks', stateAt(b, 9, 8, 7))
-  check('gable underside stair', b.nameAt(9, 5, 5) === 'minecraft:spruce_stairs' && b.get(9, 5, 5).props.half === 'top', stateAt(b, 9, 5, 5))
+  check('gable underside stair', b.nameAt(9, 5, 5) === 'minecraft:spruce_stairs' && b.get(9, 5, 5).props.half === 'top' && b.get(9, 5, 5).props.facing === 'north', stateAt(b, 9, 5, 5))
   check('gable fill', b.nameAt(4, 6, 7) === 'minecraft:spruce_planks', stateAt(b, 4, 6, 7))
   check('gable topY', res.topY === 8)
   const h = kit.builder([20, 16, 20])

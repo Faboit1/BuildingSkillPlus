@@ -84,10 +84,11 @@ function roofCell(b, x, z, base, top, prevTop, facing, mat, { thickness = 0, rid
   if (prevTop !== null) fillFrom = rise >= 2 ? Math.ceil(prevTop) - 1 : Math.floor(prevTop)
   for (let y = tb - 1; y >= fillFrom; y -= 1) b.set(x, base + y, z, mat.block, opts)
   for (let k = 1; k <= thickness; k += 1) {
-    // Under a 1:1 stair, an upside-down stair with the same facing gives a clean 45° ceiling
-    // (rafters from inside) and a double-thick rake edge from outside.
+    // Under a 1:1 stair, an upside-down stair facing DOWN-slope gives a smooth stepped soffit
+    // (clean 45° ceiling inside, double-thick rake outside). Facing up-slope would leave a
+    // half-block notch under every row (sawtooth).
     const stairUnder = underside === 'stairs' && k === 1 && kind === 'stairs' && fillFrom === tb
-    b.set(x, base + Math.min(tb, fillFrom) - k, z, stairUnder ? `${mat.stairs}[facing=${facing},half=top]` : mat.block, { keep: true })
+    b.set(x, base + Math.min(tb, fillFrom) - k, z, stairUnder ? `${mat.stairs}[facing=${opposite(facing)},half=top]` : mat.block, { keep: true })
   }
   return { tb, kind }
 }
