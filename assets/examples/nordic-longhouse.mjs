@@ -1,6 +1,6 @@
 // NORDIC LONGHOUSE (v1 — full layout, iterating)
 
-const SIZE = [88, 46, 76]
+const SIZE = [88, 46, 72]
 const WATER = 6 // top water block
 
 export default function build(api) {
@@ -22,8 +22,8 @@ export default function build(api) {
   // Naust (boathouse) at the foot of the headland, gable open to the water.
   const N = { x0: 14, x1: 22, z0: 41, z1: 55 }
   // Pier and longship east of the hall.
-  const PIER = { x0: 62, x1: 64, z0: 42, z1: 66 }
-  const SHIP = { cx: 69, z0: 50, z1: 71 }
+  const PIER = { x0: 35, x1: 37, z0: 42, z1: 60 }
+  const SHIP = { x: 47, z: 64 } // stern end x (module z = 0 maps here) and centreline z
   // Smokehouse and storehouse on stilts.
   const SMOKE = { x0: 71, x1: 77, z0: 32, z1: 38 }
   const STAB = { x0: 66, x1: 71, z0: 11, z1: 16 }
@@ -35,7 +35,7 @@ export default function build(api) {
   // A shore terrace between a rocky headland (west) and a forested slope (north, east). The
   // heightmap is designed first (shoreline, headland, terrace under the hall), then blurred
   // twice so the grass does not break into 1-block contour stripes, except on the cliff.
-  const shoreZ = x => 51 + 1.8 * Math.sin(x * 0.09 + 0.6) + 1.4 * n2(x, 3, 10, 5) - 3.5 * Math.exp(-(((x - 67) / 7) ** 2))
+  const shoreZ = x => 51 + 1.8 * Math.sin(x * 0.09 + 0.6) + 1.4 * n2(x, 3, 10, 5) - 3 * Math.exp(-(((x - 36) / 8) ** 2))
   const cliffX = z => 12 + 2 * n2(2, z, 9, 9) + (z > 44 ? (z - 44) * 0.14 : 0)
   const raw = (x, z) => {
     const inland = shoreZ(x) - z
@@ -527,10 +527,10 @@ export default function build(api) {
     if (ground(x, z) >= PY) continue
     b.box([x, ground(x, z), z], [x, PY + 1, z], 'spruce_log[axis=y]')
   }
-  b.lampPost([PIER.x1, PY + 1, PIER.z1], { height: 3, post: 'spruce_fence', arm: 'east' })
+  b.lampPost([PIER.x0, PY + 1, PIER.z1], { height: 3, post: 'spruce_fence', arm: 'east' })
 
   // longship: a lofted hull (half-breadth, keel rocker and sheer as functions along the length)
-  const longship = ({ cx, z0, z1, wy, beam = 3.4, keel = 2, free = 2, sheer = 2.5, mast = true, dragon = true }) => {
+  const longship = (tb, { cx, z0, z1, wy, beam = 3.4, keel = 2, free = 2, sheer = 2.5, mast = true, dragon = true, shields = true }) => {
     const L = z1 - z0
     const hb = t => beam * Math.pow(Math.max(0, Math.sin(Math.PI * t)), 0.55)
     const yk = t => wy - keel + (keel + 0.2) * Math.pow(Math.abs(2 * t - 1), 3)
@@ -540,7 +540,7 @@ export default function build(api) {
       if (t < 0 || t > 1) return false
       if (y < Math.round(yk(t)) || y > Math.round(ys(t))) return false
       const v = clamp((y - yk(t)) / Math.max(1, ys(t) - yk(t)), 0, 1)
-      return Math.abs(x - cx) <= Math.max(0.4, hb(t) * (0.45 + 0.55 * Math.sqrt(v)) + 0.15)
+      return Math.abs(x - cx) <= Math.max(0.4, hb(t) * (0.3 + 0.7 * Math.pow(v, 0.8)) + 0.15)
     }
     const R = Math.ceil(beam) + 1
     const top = Math.ceil(wy + free + sheer + 1)
@@ -550,43 +550,45 @@ export default function build(api) {
       const t = (z - z0) / L
       const rail = y === Math.round(ys(t))
       if (!shell) {
-        if (y > wy) b.remove(x, y, z)
-        else b.set(x, y, z, y === wy ? 'spruce_planks' : 'spruce_planks')
+        if (y > wy) tb.remove(x, y, z)
+        else tb.set(x, y, z, y === wy ? 'spruce_planks' : 'spruce_planks')
         continue
       }
       const flare = !inside(x, y - 1, z) && x !== cx
       const inward = x > cx ? 'west' : 'east'
       const mat = rail || y === wy ? 'dark_oak' : 'spruce'
-      b.set(x, y, z, flare ? `${mat}_stairs[facing=${inward},half=top]` : `${mat}_planks`)
+      tb.set(x, y, z, flare ? `${mat}_stairs[facing=${inward},half=top]` : `${mat}_planks`)
     }
     // benches
     for (let z = z0 + 4; z <= z1 - 4; z += 3) for (let x = cx - R; x <= cx + R; x += 1)
-      if (inside(x, wy + 1, z) && !b.has(x, wy + 1, z)) b.set(x, wy + 1, z, 'spruce_slab[type=bottom]')
+      if (inside(x, wy + 1, z) && !tb.has(x, wy + 1, z)) tb.set(x, wy + 1, z, 'spruce_slab[type=bottom]')
     // shields along the rail, red and white, one per bench room
-    for (let z = z0 + 3; z <= z1 - 3; z += 1) {
+    for (let z = z0 + 3; z <= z1 - 3 && shields; z += 1) {
       const t = (z - z0) / L
       const y = Math.round(ys(t))
       for (const s of [-1, 1]) {
         let x = cx
         while (inside(x + s, y, z)) x += s
         const face = s > 0 ? 'east' : 'west'
-        b.set(x + s, y, z, `${z % 2 ? 'mangrove' : 'birch'}_trapdoor[facing=${face},open=true,half=top]`)
+        tb.set(x + s, y, z, `${z % 2 ? 'mangrove' : 'birch'}_trapdoor[facing=${face},open=true,half=top]`)
       }
     }
     if (dragon) {
-      // stem post curling up into a dragon head (bow = +z), tail curl at the stern
+      // Stem post rising into a dragon head that looks forward (bow = +z), drawn as a side
+      // profile (dz forward, dy up): an S-curved neck, a two-block skull, an open beak made of an
+      // upside-down stair over a slab, a swept-back crest and glowing eyes. Stern: a curled tail.
       const yb = Math.round(ys(1))
-      const neck = [[0, 1], [1, 1], [1, 2], [1, 3], [2, 3], [2, 4]]
-      for (const [dz, dy] of neck) b.set(cx, yb + dy, z1 + dz, 'dark_oak_planks')
-      b.set(cx, yb + 5, z1 + 2, 'dark_oak_planks')
-      b.set(cx, yb + 5, z1 + 3, 'dark_oak_stairs[facing=north,half=bottom]') // upper jaw
-      b.set(cx, yb + 4, z1 + 3, 'dark_oak_slab[type=top]') // lower jaw
-      b.set(cx, yb + 6, z1 + 1, 'dark_oak_trapdoor[facing=north,open=true,half=bottom]') // crest
-      for (const s of [-1, 1]) b.set(cx + s, yb + 5, z1 + 2, `redstone_wall_torch[facing=${s > 0 ? 'east' : 'west'},lit=true]`)
+      for (const [dz, dy] of [[0, 1], [1, 1], [1, 2], [1, 3], [1, 4], [2, 4], [2, 5], [2, 6], [3, 6]]) tb.set(cx, yb + dy, z1 + dz, 'dark_oak_planks')
+      tb.set(cx, yb + 7, z1 + 3, 'dark_oak_planks')
+      tb.set(cx, yb + 7, z1 + 4, 'dark_oak_stairs[facing=north,half=top]') // upper jaw
+      tb.set(cx, yb + 6, z1 + 4, 'dark_oak_slab[type=bottom]') // lower jaw
+      tb.set(cx, yb + 8, z1 + 2, 'dark_oak_stairs[facing=south,half=bottom]') // crest
+      tb.set(cx, yb + 7, z1 + 2, 'dark_oak_stairs[facing=south,half=top]')
+      for (const s of [-1, 1]) tb.set(cx + s, yb + 7, z1 + 3, `redstone_wall_torch[facing=${s > 0 ? 'east' : 'west'},lit=true]`)
       const yt = Math.round(ys(0))
-      for (const [dz, dy] of [[0, 1], [-1, 1], [-1, 2], [-1, 3]]) b.set(cx, yt + dy, z0 + dz, 'dark_oak_planks')
-      b.set(cx, yt + 4, z0 - 1, 'dark_oak_stairs[facing=north,half=bottom]')
-      b.set(cx, yt + 4, z0, 'dark_oak_stairs[facing=south,half=top]')
+      for (const [dz, dy] of [[0, 1], [-1, 1], [-1, 2], [-1, 3], [-1, 4], [0, 5]]) tb.set(cx, yt + dy, z0 + dz, 'dark_oak_planks')
+      tb.set(cx, yt + 5, z0 - 1, 'dark_oak_stairs[facing=south,half=top]')
+      tb.set(cx, yt + 4, z0, 'dark_oak_stairs[facing=north,half=top]')
     }
     if (mast) {
       // square sail, wider than tall (~0.45 of the hull length), red and white strakes,
@@ -594,8 +596,8 @@ export default function build(api) {
       // cloth reads as one surface from every side
       const zm = Math.round(z0 + L * 0.5)
       const mh = 12, SW = 5, y0 = wy + 4, y1 = wy + mh - 2
-      b.box([cx, wy + 1, zm], [cx, wy + mh, zm], 'spruce_log[axis=y]')
-      b.box([cx - SW - 1, wy + mh - 1, zm], [cx + SW + 1, wy + mh - 1, zm], 'stripped_spruce_log[axis=x]')
+      tb.box([cx, wy + 1, zm], [cx, wy + mh, zm], 'spruce_log[axis=y]')
+      tb.box([cx - SW - 1, wy + mh - 1, zm], [cx + SW + 1, wy + mh - 1, zm], 'stripped_spruce_log[axis=x]')
       const bulge = (x, y) => {
         if (Math.abs(x - cx) > SW || y < y0 || y > y1) return null
         const sx = (x - cx) / (SW + 0.5), sy = (y - (y0 + y1) / 2) / ((y1 - y0) / 2 + 0.5)
@@ -605,19 +607,38 @@ export default function build(api) {
         const k = bulge(x, y)
         const kmin = Math.min(k, ...[[1, 0], [-1, 0], [0, 1], [0, -1]].map(([ax, ay]) => bulge(x + ax, y + ay) ?? k))
         const d = Math.abs(x - cx)
-        for (let j = kmin; j <= k; j += 1) b.set(x, y, zm + 1 + j, d <= 1 || d >= 4 ? 'red_wool' : 'white_wool')
+        for (let j = kmin; j <= k; j += 1) tb.set(x, y, zm + 1 + j, d <= 1 || d >= 4 ? 'red_wool' : 'white_wool')
       }
-      b.set(cx, wy + mh + 1, zm, 'spruce_fence')
-      b.set(cx, wy + 1, z0 + 3, 'spruce_fence')
-      b.set(cx, wy + 2, z0 + 3, 'lantern[hanging=false]')
+      tb.set(cx, wy + mh + 1, zm, 'spruce_fence')
+      tb.set(cx, wy + 1, z0 + 3, 'spruce_fence')
+      tb.set(cx, wy + 2, z0 + 3, 'lantern[hanging=false]')
     }
     return { inside, ys, yk }
   }
-  longship({ cx: SHIP.cx, z0: SHIP.z0, z1: SHIP.z1, wy: WATER })
+  // The ship is authored along +z (bow south) in a scratch module and stamped turned a quarter
+  // (rotate: 1 = clockwise: bow -> west), so it lies broadside to the main views with its dragon
+  // head against the pale cliff. stamp() rotates every block state (stairs, trapdoor shields, torches).
+  {
+    const mod = b.module([13, SIZE[1], 30])
+    longship(mod, { cx: 6, z0: 2, z1: 25, wy: WATER })
+    b.stamp(mod, [SHIP.x - 29, 0, SHIP.z - 6], { rotate: 1 }) // module (x, z) -> world (SHIP.x - z, SHIP.z - 6 + x)
+  }
+  // a small boat tied up on the other side of the pier
+  {
+    const mod = b.module([5, SIZE[1], 12])
+    longship(mod, { cx: 2, z0: 1, z1: 10, wy: WATER, beam: 1.6, keel: 1, free: 1, sheer: 1.2, mast: false, dragon: false, shields: false })
+    b.stamp(mod, [PIER.x0 - 5, 0, PIER.z1 - 11])
+  }
 
   // faering (small rowing boat) in the naust
-  longship({ cx: NCX, z0: N.z0 + 3, z1: N.z0 + 11, wy: NF, beam: 1.6, keel: 1, free: 1, sheer: 1.2, mast: false, dragon: false })
+  longship(b, { cx: NCX, z0: N.z0 + 3, z1: N.z0 + 11, wy: NF, beam: 1.6, keel: 1, free: 1, sheer: 1.2, mast: false, dragon: false, shields: false })
 
+  // a faering pulled up on the east beach
+  {
+    const mod = b.module([5, SIZE[1], 12])
+    longship(mod, { cx: 2, z0: 1, z1: 10, wy: ground(68, 49) + 1, beam: 1.6, keel: 1, free: 1, sheer: 1.2, mast: false, dragon: false, shields: false })
+    b.stamp(mod, [66, 0, 45], { rotate: 2 }) // bow up the beach (north)
+  }
   // fish-drying racks (hjell) on the beach: fence posts, a log rail, stockfish hanging below
   const rack = (x0, z, len) => {
     const g = Math.max(...Array.from({ length: len }, (_, i) => ground(x0 + i, z)))
@@ -628,15 +649,15 @@ export default function build(api) {
       if (i % 3 !== 0) b.set(x, g + 3, z, 'hanging_roots')
     }
   }
-  rack(72, 42, 7)
-  rack(70, 45, 7)
+  rack(74, 42, 7)
+  rack(72, 45, 7)
 
   // ================================================================ 6 LANDSCAPE
   const paths = [
     [[GATE.x + 2, 25], [76, 25], [69, 27], [X1 + 2, CZ]],
-    [[CX, PZ1 + 1], [CX + 1, 41], [50, 44], [58, 44], [PIER.x0, 44]],
-    [[CX, PZ1 + 1], [CX - 4, 41], [30, 42], [NCX, N.z0 - 2]],
-    [[60, 44], [66, 41], [SMOKE.x0 + 3, SMOKE.z1 + 2]],
+    [[CX, PZ1 + 1], [CX - 3, 41], [37, 43], [PIER.x0 + 1, PIER.z0 + 1]],
+    [[CX - 3, 41], [30, 41], [NCX + 1, N.z0 - 2]],
+    [[CX, PZ1 + 1], [CX + 5, 42], [56, 44], [64, 43], [SMOKE.x0 + 3, SMOKE.z1 + 2]],
     [[X1 + 2, CZ], [66, 22], [STAB.x0 + 2, STAB.z1 + 6]],
   ]
   for (const [i, p] of paths.entries()) b.path(p, { width: i < 2 ? 3 : 2, paint: pal({ coarse_dirt: 6, dirt_path: 3, gravel: 2, rooted_dirt: 1 }, 61 + i, 3.5), seed: i })
@@ -653,8 +674,22 @@ export default function build(api) {
       b.set(x, y, z, exposed && y > WATER && kit.noise.coherent01(x, y, z, { scale: 3, seed }) < 0.5 ? 'moss_block' : blk)
     }
   }
-  for (const [x, z, r, s] of [[28, 50, 2.2, 1], [33, 52, 1.4, 2], [50, 49, 1.6, 3], [79, 50, 2.0, 4], [8, 68, 2.6, 5], [14, 70, 1.6, 6], [36, 63, 1.8, 7]])
+  for (const [x, z, r, s] of [[27, 50, 2.0, 1], [50, 50, 1.5, 3], [79, 51, 2.0, 4], [8, 67, 2.4, 5], [57, 60, 1.6, 7], [62, 66, 2.2, 8], [80, 63, 1.8, 9]])
     rock([x, Math.max(ground(x, z), WATER - 1) + 0.3, z], [r * 1.3, r, r], s)
+  // a skerry with a cairn (varde) as a sea mark, lit at night
+  rock([72, WATER - 1, 62], [4.2, 3.2, 3.4], 10)
+  {
+    const top = b.topY(72, 62)
+    for (let y = top + 1; y <= top + 2; y += 1) b.set(72, y, 62, 'cobblestone_wall')
+    b.set(72, top + 3, 62, 'campfire[lit=true]')
+    b.scatter({ x0: 68, z0: 58, x1: 76, z1: 66, on: ['minecraft:moss_block'], density: 0.5, clump: 2, seed: 9, paints: [[3, 'short_grass'], [1, 'fern']] })
+  }
+  // fish weir: a V of stakes in the shallows off the east beach
+  for (const [a2, c2] of [[[64, 53], [68, 57]], [[72, 53], [68, 57]]])
+    for (const [x, z] of lineCells(a2, c2)) {
+      const g = ground(x, z)
+      for (let y = g + 1; y <= WATER + 1; y += 1) b.set(x, y, z, y <= WATER ? 'spruce_fence[waterlogged=true]' : 'spruce_fence')
+    }
 
   // trees: a pine/spruce forest on the slopes outside the palisade, a grove on the headland
   const treeSpots = []
@@ -723,11 +758,11 @@ export default function build(api) {
   }
   // window glow: a candle on the bench behind each window
   for (const [x, s] of windows) b.set(x, F + 1, CZ + s * (Wd(x) - 1), 'candle[candles=3,lit=true]')
-  b.lampPost([PIER.x0, PY + 1, PIER.z0 + 12], { height: 3, post: 'spruce_fence', arm: 'west' })
+  b.lampPost([PIER.x1, PY + 1, PIER.z0 + 9], { height: 3, post: 'spruce_fence', arm: 'west' })
   hang(SMOKE.x0 + 4, SF + 2, SMOKE.z1 + 1)
   hang(NCX, NF + 2, N.z1)
   b.lampPost([CX + 3, ground(CX + 3, PZ1 + 2) + 1, PZ1 + 2], { height: 3, post: 'spruce_fence', foot: 'cobblestone_wall' })
-  b.lampPost([58, ground(58, 46) + 1, 46], { height: 3, post: 'spruce_fence', foot: 'cobblestone_wall' })
+  b.lampPost([60, ground(60, 46) + 1, 46], { height: 3, post: 'spruce_fence', foot: 'cobblestone_wall' })
   b.lampPost([X1 + 3, ground(X1 + 3, CZ + 2) + 1, CZ + 2], { height: 3, post: 'spruce_fence', foot: 'cobblestone_wall' })
   b.lampPost([NCX + 2, ground(NCX + 2, N.z0 - 2) + 1, N.z0 - 2], { height: 3, post: 'spruce_fence', foot: 'cobblestone_wall', arm: 'west' })
 

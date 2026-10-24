@@ -267,5 +267,308 @@ export default function build(api) {
     b.weather([0, FL0, 0], [51, FL1, MAIN.z0], { share: 0.12, mossBias: 0.8, seed: 3 })
   }
 
+  // ------------------------------------------------------------------ 11. interior
+  if (at('interior')) interior()
+  function interior() {
+    const G = FL0 + 1   // first air row of the ground floor
+    const U = FL1 + 1   // first air row upstairs
+    const A = FL2 + 1   // first air row in the attic
+    const plaster = kit.palette({ calcite: 4, white_terracotta: 1 }, { scale: 3, seed: 2 })
+
+    // ---- furniture modules, authored with their front facing south, stamped rotated
+    const M = {}
+    M.dining = b.module([3, 1, 4])                     // 3x2 trestle table, four stair chairs
+    for (const z of [1, 2]) {
+      M.dining.set(0, 0, z, 'dark_oak_stairs[facing=west,half=top]')
+      M.dining.set(1, 0, z, 'dark_oak_slab[type=top]')
+      M.dining.set(2, 0, z, 'dark_oak_stairs[facing=east,half=top]')
+    }
+    for (const x of [0, 2]) {
+      M.dining.set(x, 0, 0, 'spruce_stairs[facing=north,half=bottom]')
+      M.dining.set(x, 0, 3, 'spruce_stairs[facing=south,half=bottom]')
+    }
+    M.armchair = b.module([3, 1, 1])
+    M.armchair.set(1, 0, 0, 'spruce_stairs[facing=north,half=bottom]')
+    M.armchair.set(0, 0, 0, 'spruce_trapdoor[facing=west,half=bottom,open=true]')
+    M.armchair.set(2, 0, 0, 'spruce_trapdoor[facing=east,half=bottom,open=true]')
+    M.bed = color => {                                 // single bed, head against the north wall
+      const m = b.module([1, 1, 2])
+      m.set(0, 0, 0, `${color}_bed[facing=north,part=head]`)
+      m.set(0, 0, 1, `${color}_bed[facing=north,part=foot]`)
+      return m
+    }
+    M.nightstand = b.module([1, 2, 1])
+    M.nightstand.set(0, 0, 0, 'barrel[facing=up]')
+    M.nightstand.set(0, 1, 0, 'candle[candles=2,lit=true]')
+    M.wardrobe = b.module([2, 3, 1])                   // doors against a north wall + stair cornice
+    M.wardrobe.set(0, 0, 0, 'spruce_door[facing=south,half=lower,hinge=left]')
+    M.wardrobe.set(1, 0, 0, 'spruce_door[facing=south,half=lower,hinge=right]')
+    M.wardrobe.set(0, 2, 0, 'spruce_stairs[facing=north,half=top]')
+    M.wardrobe.set(1, 2, 0, 'spruce_stairs[facing=north,half=top]')
+    M.desk = b.module([2, 2, 2])                       // desk on a north wall, chair facing it
+    M.desk.set(0, 0, 0, 'spruce_stairs[facing=west,half=top]')
+    M.desk.set(1, 0, 0, 'spruce_stairs[facing=east,half=top]')
+    M.desk.set(0, 0, 1, 'spruce_stairs[facing=south,half=bottom]')
+    M.desk.set(0, 1, 0, 'candle[candles=1,lit=true]')
+    M.desk.set(1, 1, 0, 'flower_pot')
+    M.chandelier = b.module([3, 2, 3])                 // fence cross under the joists, 4 lanterns
+    for (const [x, z] of [[1, 1], [0, 1], [2, 1], [1, 0], [1, 2]]) M.chandelier.set(x, 1, z, 'dark_oak_fence')
+    for (const [x, z] of [[0, 1], [2, 1], [1, 0], [1, 2]]) M.chandelier.set(x, 0, z, 'lantern[hanging=true]')
+    M.keg = b.module([1, 2, 2])                        // two casks on their side, a spigot on the lower
+    M.keg.set(0, 0, 0, 'barrel[facing=south]')
+    M.keg.set(0, 1, 0, 'barrel[facing=south]')
+    M.keg.set(0, 0, 1, 'lever[face=wall,facing=south]')
+    M.cabinet = b.module([1, 3, 2])                    // cupboard + bottles + shelf board
+    M.cabinet.set(0, 0, 0, 'spruce_planks')
+    M.cabinet.set(0, 0, 1, 'spruce_trapdoor[facing=south,half=bottom,open=true]')
+    M.cabinet.set(0, 2, 0, 'spruce_trapdoor[facing=south,half=top,open=false]')
+
+    // ---- ground floor: the taproom ------------------------------------------------------
+    // floor: dark border ring around a spruce field, stone hearth, flags behind the bar
+    b.box([14, FL0, 20], [33, FL0, 28], (x, y, z) => {
+      if (x === 15 && z >= 21 && z <= 27) return 'smooth_stone'
+      if (x >= 16 && x <= 17 && z >= 21 && z <= 27) return z === 21 || z === 27 ? 'brown_wool' : 'red_wool'   // fireside rug
+      if (x >= 25 && z <= 22) return kit.palette({ polished_andesite: 3, stone_bricks: 2 }, { scale: 2, seed: 5 })
+      if (x === 14 || x === 33 || z === 20 || z === 28) return 'dark_oak_planks'
+      return 'spruce_planks'
+    })
+    // the great fireplace: stone breast projecting from the thick west wall, timber bressummer,
+    // a deep firebox cut into the wall with the cooking pot hanging on a chain over the fire
+    const hearthStone = kit.palette({ stone_bricks: 4, cracked_stone_bricks: 1, mossy_stone_bricks: 0.3 }, { scale: 1.5, seed: 8 })
+    b.box([14, G, 21], [14, FL1 - 1, 27], hearthStone)
+    b.clear([12, G, 23], [14, G + 1, 25])
+    b.box([12, G + 2, 23], [13, G + 2, 25], 'air')
+    b.box([11, G, 23], [11, G + 3, 25], 'polished_blackstone_bricks')     // soot-black fireback
+    b.box([12, FL0, 23], [14, FL0, 25], 'bricks')
+    b.set(13, G, 24, 'campfire[lit=true,signal_fire=false,facing=east]')
+    b.set(13, G + 1, 24, 'water_cauldron[level=3]')
+    b.set(13, G + 2, 24, 'chain[axis=y]')
+    for (const z of [23, 25]) b.set(12, G, z, 'stripped_oak_log[axis=x]')
+    b.box([14, G + 2, 22], [14, G + 2, 26], beam('z'))
+    b.box([15, G + 2, 21], [15, G + 2, 27], 'spruce_slab[type=top]')           // mantel shelf
+    b.set(15, G + 3, 22, 'candle[candles=3,lit=true]')
+    b.set(15, G + 3, 24, 'decorated_pot[facing=east]')
+    b.set(15, G + 3, 26, 'candle[candles=2,lit=true]')
+    b.box([15, G, 27], [15, G + 1, 27], 'oak_log[axis=x]')                     // firewood stack
+    b.set(15, G, 21, 'oak_log[axis=z]')
+    // fireside snug: two armchairs facing the hearth
+    b.stamp(M.armchair, [17, G, 21], { rotate: 1 })
+    b.stamp(M.armchair, [17, G, 24], { rotate: 1 })
+    // ceiling: girders across the short span every 4, knee braces where they meet the walls,
+    // and two free-standing posts with braces either side (they frame the snug and the bar)
+    for (const x of [18, 22, 26, 30]) {
+      b.box([x, FL1 - 1, 20], [x, FL1 - 1, 28], beam('z'))
+      b.set(x, FL1 - 1, MAIN.z0, beam('z'))                                     // beam end in the wall
+      b.set(x, FL1 - 2, 20, 'dark_oak_stairs[facing=north,half=top]')
+      b.set(x, FL1 - 2, 28, 'dark_oak_stairs[facing=south,half=top]')
+    }
+    for (const x of [18, 26]) {
+      b.box([x, G, 24], [x, FL1 - 2, 24], POST)
+      b.set(x, FL1 - 2, 23, 'dark_oak_stairs[facing=south,half=top]')
+      b.set(x, FL1 - 2, 25, 'dark_oak_stairs[facing=north,half=top]')
+    }
+    // bar: an L-shaped counter of stripped spruce, fence-and-plate stools on the guest side
+    for (let x = 24; x <= 31; x += 1) b.set(x, G, 23, 'stripped_spruce_log[axis=x]')
+    for (let z = 20; z <= 22; z += 1) b.set(24, G, z, 'stripped_spruce_log[axis=z]')
+    for (const x of [25, 27, 29, 31]) { b.set(x, G, 24, 'spruce_fence'); b.set(x, G + 1, 24, 'dark_oak_pressure_plate') }
+    b.set(25, G + 1, 23, 'candle[candles=3,lit=true]')
+    b.set(27, G + 1, 23, 'brewing_stand[has_bottle_0=true,has_bottle_1=false,has_bottle_2=true]')
+    b.set(28, G + 1, 23, 'flower_pot')
+    b.set(30, G + 1, 23, 'decorated_pot[facing=south]')
+    b.set(24, G + 1, 21, 'potted_fern')
+    // behind the bar: casks on the north wall, cupboards with bottles, casks on the east wall
+    for (const x of [25, 26, 27]) b.stamp(M.keg, [x, G, 20])
+    for (const x of [28, 30, 31]) b.stamp(M.cabinet, [x, G, 20])
+    b.set(28, G + 1, 20, 'brewing_stand[has_bottle_0=true,has_bottle_1=true,has_bottle_2=false]')
+    b.set(30, G + 1, 20, 'potted_red_tulip')
+    b.set(31, G + 1, 20, 'candle[candles=4,lit=true]')
+    b.set(28, G + 3, 20, 'flower_pot')
+    b.set(31, G + 3, 20, 'brewing_stand[has_bottle_0=false,has_bottle_1=true,has_bottle_2=true]')
+    for (const z of [20, 21, 22]) b.stamp(M.keg, [32, G, z], { rotate: 3 })
+    b.door([29, G, MAIN.z0], 'north', { material: 'spruce' })
+    b.set(28, FL1 - 1, 21, 'lantern[hanging=true]')
+    // tables with their own lights
+    b.stamp(M.dining, [19, G, 20])
+    b.stamp(M.dining, [23, G, 26], { rotate: 1 })
+    b.stamp(M.dining, [27, G, 26], { rotate: 1 })
+    b.set(20, G + 1, 21, 'candle[candles=3,lit=true]')
+    b.set(20, G + 1, 22, 'potted_blue_orchid')
+    b.set(24, G + 1, 27, 'candle[candles=2,lit=true]')
+    b.set(25, G + 1, 26, 'cake')
+    b.set(29, G + 1, 27, 'candle[candles=3,lit=true]')
+    b.set(28, G + 1, 28, 'flower_pot')
+    b.stamp(M.chandelier, [23, FL1 - 2, 26])
+    b.stamp(M.chandelier, [27, FL1 - 2, 26])
+    b.set(20, FL1 - 1, 21, 'lantern[hanging=true]')
+    // settle and table in the window corner west of the door
+    for (let x = 15; x <= 18; x += 1) b.set(x, G, 28, 'spruce_stairs[facing=south,half=bottom]')
+    b.set(15, G, 28, 'spruce_trapdoor[facing=west,half=bottom,open=true]')
+    b.set(16, G, 27, 'dark_oak_stairs[facing=west,half=top]')
+    b.set(17, G, 27, 'dark_oak_stairs[facing=east,half=top]')
+    b.set(16, G + 1, 27, 'candle[candles=2,lit=true]')
+    // staircase up the east wall, open stringers underneath, casks stored below
+    b.stairway([33, G, 27], 'north', 4, 'spruce', { width: 2, fill: false })
+    for (let i = 1; i < 4; i += 1) for (const x of [32, 33]) b.set(x, G + i - 1, 27 - i, 'spruce_stairs[facing=south,half=top]')
+    b.set(33, G, 24, 'barrel[facing=up]')
+    b.set(32, G, 24, 'barrel[facing=west]')
+    b.clear([32, FL1, 24], [33, FL1, 25])
+    // wall sconce by the door
+    b.set(22, G + 2, 28, 'lantern[hanging=false]')
+    b.set(22, G + 1, 28, 'spruce_fence')
+    b.set(20, G, 28, 'barrel[facing=up]')
+
+    // ---- kitchen wing ----------------------------------------------------------------------
+    b.box([25, FL0, 11], [31, FL0, 18], kit.palette({ stone_bricks: 3, polished_andesite: 2, cobblestone: 1 }, { scale: 2, seed: 6 }))
+    // cooking range set into the north gable, brick hood over it, stack outside
+    b.set(27, G, 10, 'smoker[facing=south,lit=true]')
+    b.set(28, G, 10, 'campfire[lit=true,signal_fire=false,facing=south]')
+    b.set(29, G, 10, 'furnace[facing=south,lit=true]')
+    b.set(28, G + 1, 10, 'air')
+    for (const x of [27, 28, 29]) b.set(x, G + 2, 11, 'brick_stairs[facing=north,half=top]')
+    b.set(26, G + 2, 11, 'brick_stairs[facing=east,half=top]')
+    b.set(30, G + 2, 11, 'brick_stairs[facing=west,half=top]')
+    b.box([26, G + 3, 11], [30, G + 3, 11], 'bricks')
+    // counter run under the garden window: cask, sink, cupboard, chopping block
+    b.set(25, G, 11, 'barrel[facing=east]')
+    b.set(25, G, 12, 'water_cauldron[level=3]')
+    b.set(25, G, 13, 'spruce_planks')
+    b.set(26, G, 13, 'spruce_trapdoor[facing=east,half=bottom,open=true]')
+    b.set(25, G + 1, 13, 'stone_pressure_plate')
+    b.set(25, G, 14, 'barrel[facing=up]')
+    b.set(25, G + 1, 14, 'potted_fern')
+    // work table in the middle
+    b.set(27, G, 14, 'spruce_stairs[facing=west,half=top]')
+    b.set(28, G, 14, 'spruce_slab[type=top]')
+    b.set(29, G, 14, 'spruce_stairs[facing=east,half=top]')
+    b.set(28, G + 1, 14, 'cake')
+    b.set(27, G + 1, 14, 'melon')
+    b.set(28, G, 15, 'spruce_stairs[facing=south,half=bottom]')
+    // pantry corner: sacks, roots, casks
+    b.set(25, G, 18, 'hay_block[axis=x]')
+    b.set(26, G, 18, 'barrel[facing=up]')
+    b.set(25, G + 1, 18, 'pumpkin')
+    b.set(25, G, 17, 'barrel[facing=east]')
+    b.set(31, G, 11, 'barrel[facing=up]')
+    b.set(31, G, 12, 'chest[facing=west]')
+    for (const z of [11, 12]) b.set(31, G + 2, z, 'spruce_trapdoor[facing=west,half=top,open=false]')
+    b.set(31, G + 3, 11, 'flower_pot')
+    b.set(31, G + 3, 12, 'decorated_pot[facing=west]')
+    b.set(28, FL1 - 1, 13, 'lantern[hanging=true]')
+    // cellar under the wing, reached by a stair in the south-east corner
+    b.box([24, 1, 10], [32, FL0 - 1, 19], kit.palette({ cobblestone: 3, stone_bricks: 2, mossy_cobblestone: 1 }, { scale: 2, seed: 12 }))
+    b.box([25, 2, 11], [31, 2, 18], 'gravel')
+    b.clear([25, 3, 11], [31, FL0 - 1, 18])
+    b.stairway([30, FL0 - 1, 15], 'south', 4, 'stone_brick', { width: 2, fill: true, base: 3 })
+    for (let k = 0; k < 4; k += 1) for (const x of [30, 31]) b.set(x, FL0 - 1 - k, 15 + k, 'stone_brick_stairs[facing=north,half=bottom]')
+    b.box([30, 2, 15], [31, 5, 18], 'cobblestone', { keep: true })
+    b.clear([30, FL0, 15], [31, FL0, 16])
+    for (const z of [15, 16]) b.set(29, G, z, 'spruce_fence')
+    for (const x of [30, 31]) b.set(x, G, 17, 'spruce_fence')
+    for (const z of [11, 12, 13, 14, 15, 16]) { b.set(25, 3, z, 'barrel[facing=east]'); b.set(25, 4, z, 'barrel[facing=east]') }
+    for (const x of [26, 27, 28]) b.set(x, 3, 11, 'barrel[facing=south]')
+    b.set(29, 3, 11, 'chest[facing=south]')
+    b.set(27, 3, 17, 'hay_block[axis=x]')
+    b.set(26, 3, 18, 'barrel[facing=up]')
+    b.set(26, 5, 11, 'cobweb')
+    b.set(28, FL0 - 1, 14, 'lantern[hanging=true]')
+
+    // ---- first floor: corridor, three guest rooms, landing ----------------------------------
+    const partition = (along, w, u0, u1) => {
+      for (let u = u0; u <= u1; u += 1) for (let y = U; y <= FL2 - 1; y += 1) {
+        const end = u === u0 || u === u1
+        b.set(...(along === 'x' ? [u, y, w] : [w, y, u]), end ? POST : plaster)
+      }
+    }
+    partition('x', 22, 12, 30)
+    partition('z', 17, 22, 31)
+    partition('z', 25, 22, 31)
+    partition('z', 30, 22, 31)
+    for (const x of [15, 21, 28]) b.door([x, U, 22], 'north', { material: 'spruce' })
+    b.door([27, U, UP.z0], 'north', { material: 'spruce' })
+    // ceiling joists in the attic floor (visible from both sides)
+    for (const x of [15, 19, 23, 27, 31]) b.box([x, FL2, 20], [x, FL2, 30], beam('z'))
+    // corridor: red runner, lanterns, a bench under the window
+    b.box([13, FL1, 21], [30, FL1, 21], 'red_carpet', { keep: false })
+    for (let x = 13; x <= 30; x += 1) b.set(x, U, 21, 'red_carpet')
+    b.set(16, FL2 - 1, 20, 'lantern[hanging=true]')
+    b.set(24, FL2 - 1, 20, 'lantern[hanging=true]')
+    b.set(32, FL2 - 1, 28, 'lantern[hanging=true]')
+    b.set(13, U, 20, 'barrel[facing=up]')
+    b.set(13, U + 1, 20, 'potted_azure_bluet')
+    // landing: railing round the stairwell, ladder to the attic, linen chest
+    for (const z of [24, 25, 26]) b.set(31, U, z, 'spruce_fence')
+    for (const x of [32, 33]) b.set(x, U, 27, 'spruce_fence')
+    for (let y = U; y <= FL2; y += 1) b.set(33, y, 21, 'ladder[facing=west]')
+    b.set(33, U, 29, 'chest[facing=west]')
+    b.set(33, U, 30, 'barrel[facing=up]')
+    b.set(33, U + 1, 30, 'candle[candles=1,lit=true]')
+    // S1 (west): single bed, nightstand, desk under the window, wardrobe, chest, rug
+    b.stamp(M.bed('red'), [13, U, 25], { rotate: 1 })
+    b.stamp(M.nightstand, [13, U, 24])
+    b.stamp(M.desk, [14, U, 29], { rotate: 2 })
+    b.stamp(M.wardrobe, [16, U, 27], { rotate: 3 })
+    b.set(15, U, 25, 'chest[facing=west]')
+    b.box([14, FL1, 26], [15, FL1, 28], 'brown_wool')
+    // S2 (the best room, with the bay): canopy bed, window seat in the bay, wardrobe, rug
+    b.stamp(M.bed('blue'), [18, U, 25], { rotate: 1 })
+    b.stamp(M.bed('blue'), [18, U, 26], { rotate: 1 })
+    for (const [x, z] of [[18, 24], [18, 27], [20, 24], [20, 27]]) b.box([x, U, z], [x, U + 1, z], 'dark_oak_fence')
+    b.box([18, U + 2, 24], [20, U + 2, 27], 'dark_oak_slab[type=bottom]')
+    b.box([18, U + 2, 25], [19, U + 2, 26], 'blue_carpet')
+    b.stamp(M.nightstand, [18, U, 23])
+    b.stamp(M.nightstand, [18, U, 28])
+    b.set(21, U, 25, 'chest[facing=east]')
+    b.box([21, FL1, 27], [23, FL1, 30], (x, y, z) => (x === 21 || x === 23 || z === 27 || z === 30 ? 'blue_wool' : 'cyan_wool'))
+    b.stamp(M.wardrobe, [24, U, 23], { rotate: 1 })
+    for (let x = 19; x <= 23; x += 1) b.set(x, U, 33, 'spruce_stairs[facing=south,half=bottom]')
+    b.set(21, U, 32, 'dark_oak_fence')
+    b.set(21, U + 1, 32, 'dark_oak_pressure_plate')
+    b.set(19, U, 31, 'spruce_stairs[facing=north,half=bottom]')
+    b.set(23, U, 31, 'spruce_stairs[facing=north,half=bottom]')
+    b.set(24, U, 29, 'barrel[facing=up]')
+    b.set(24, U + 1, 29, 'candle[candles=3,lit=true]')
+    b.set(21, FL2 - 1, 29, 'lantern[hanging=true]')
+    // S3 (east): twin beds with a shared nightstand, desk, wardrobe
+    b.stamp(M.bed('green'), [28, U, 24], { rotate: 3 })
+    b.stamp(M.bed('green'), [28, U, 27], { rotate: 3 })
+    b.stamp(M.nightstand, [29, U, 25])
+    b.set(29, U, 26, 'chest[facing=west]')
+    b.stamp(M.desk, [26, U, 29], { rotate: 2 })
+    b.stamp(M.wardrobe, [26, U, 23], { rotate: 1 })
+    b.box([27, FL1, 25], [27, FL1, 28], 'green_wool')
+
+    // ---- innkeeper's room over the kitchen ------------------------------------------------
+    b.box([25, FL1, 11], [31, FL1, 18], 'spruce_planks')
+    b.stamp(M.bed('red'), [29, U, 11])
+    b.stamp(M.bed('red'), [30, U, 11])
+    b.stamp(M.nightstand, [31, U, 11])
+    b.set(28, U, 11, 'barrel[facing=up]')
+    b.set(28, U + 1, 11, 'potted_red_tulip')
+    b.set(29, U, 13, 'chest[facing=south]')
+    b.set(30, U, 13, 'chest[facing=south]')
+    b.stamp(M.desk, [25, U, 14], { rotate: 3 })
+    b.set(25, U, 12, 'lectern[facing=east,has_book=true]')
+    b.box([25, U, 11], [25, U + 2, 11], 'bookshelf')
+    b.set(25, U + 2, 12, 'bookshelf')
+    b.stamp(M.wardrobe, [31, U, 15], { rotate: 1 })
+    b.box([27, FL1, 14], [29, FL1, 16], (x, y, z) => (x === 28 && z === 15 ? 'yellow_wool' : 'orange_wool'))
+    b.set(25, U, 18, 'chest[facing=east]')
+    b.set(28, FL2 - 1, 15, 'lantern[hanging=true]')
+
+    // ---- attic: storage under the rafters, a stable-boy's cot by the west dormer ------------
+    for (const [x, z, id] of [[16, 24, 'barrel[facing=up]'], [16, 25, 'barrel[facing=up]'], [17, 24, 'barrel[facing=north]'], [16, 24, 'barrel[facing=up]'],
+      [23, 23, 'chest[facing=south]'], [27, 23, 'hay_block[axis=x]'], [28, 23, 'hay_block[axis=x]'], [27, 27, 'barrel[facing=up]'],
+      [30, 27, 'white_wool'], [31, 27, 'light_gray_wool'], [29, 23, 'composter[level=0]'], [32, 26, 'chest[facing=west]']]) b.set(x, A, z, id)
+    b.set(16, A + 1, 24, 'barrel[facing=up]')
+    b.set(28, A + 1, 23, 'hay_block[axis=x]')
+    b.stamp(M.bed('brown'), [14, A, 26])
+    b.set(13, A, 26, 'hay_block[axis=y]')
+    b.set(14, A, 28, 'candle[candles=1,lit=true]')
+    b.set(23, A + 3, 25, 'cobweb')
+    b.set(31, A + 1, 24, 'cobweb')
+    b.set(24, A + 5, 25, 'chain[axis=y]')
+    b.set(24, A + 4, 25, 'lantern[hanging=true]')
+  }
+
   return b.finish({ name: 'tavern' })
 }

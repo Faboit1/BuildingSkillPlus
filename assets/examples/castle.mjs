@@ -103,7 +103,7 @@ export default function build(api) {
   }
   const rock = kit.palette({ stone: 4, andesite: 3, tuff: 2, cobblestone: 1 }, { seed: 7 })
   const deep = kit.palette({ stone: 6, andesite: 2, tuff: 2, gravel: 1 }, { seed: 8 })
-  const bank = kit.palette({ gravel: 3, coarse_dirt: 2, mud: 1, clay: 1 }, { seed: 11 })
+  const bank = kit.palette({ gravel: 3, coarse_dirt: 2, dirt: 1, clay: 1 }, { seed: 11 })   // no mud: it reads as black holes at the waterline
   const moatBed = kit.palette({ gravel: 2, clay: 2, mud: 1, dirt: 1 }, { seed: 12 })
   // Hand-rolled instead of b.terrain() because the surface depends on local steepness.
   for (let x = 0; x < SIZE[0]; x += 1)

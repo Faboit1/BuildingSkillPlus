@@ -308,7 +308,11 @@ export default function build(api) {
     b.cylinder([t.cx, t.y0, t.cz], t.r - 1, t.y1 - t.y0 + 1, 'air')
     b.tube([t.cx, t.y0, t.cz], t.r, t.y1 - t.y0 + 1, wallPaint)
     b.disc([t.cx, t.y0, t.cz], t.r - 0.5, 'minecraft:spruce_planks')
-    b.set(t.cx, t.y0 - 1 - Math.ceil(t.r), t.cz, 'minecraft:pointed_dripstone[thickness=tip,vertical_direction=down,waterlogged=false]')
+    // the corbel cone skips its own axis (it only fills the overhang): plug the core and hang a
+    // dripstone "drop" from the tip, the classic bartizan finial
+    const J = Math.round(t.r - 0.4)
+    for (let j = 1; j <= J; j += 1) b.set(t.cx, t.y0 - j, t.cz, corbelBlock)
+    b.set(t.cx, t.y0 - J - 1, t.cz, 'minecraft:pointed_dripstone[thickness=tip,vertical_direction=down,waterlogged=false]')
   }
   turretBody(T1, PH)
   // The small timber turret: no posts (a 5-wide drum is too small for them), just sill, mid
@@ -561,7 +565,7 @@ export default function build(api) {
     b.set(29, y, 20, 'minecraft:purple_bed[facing=west,part=head,occupied=false]', { keep: true })
     b.set(30, y, 20, 'minecraft:purple_bed[facing=west,part=foot,occupied=false]', { keep: true })
     // a purple rug ring
-    b.disc([s.cx, y, s.cz], 4.5, 'minecraft:purple_carpet', { keep: true, inner: 3.5 })
+    b.disc([s.cx, y, s.cz], 4.5, 'minecraft:purple_carpet', { keep: true, inner: 3.5, mask: (x2, y2, z2, bb) => bb.has(x2, y2 - 1, z2) })
     // chandelier
     let topIn = tipY - 3
     while (topIn > ROOF_Y && b.has(hx, topIn - 1, hz)) topIn -= 1
@@ -667,12 +671,19 @@ export default function build(api) {
   // ------------------------------------------------------------------ rock finish
   // 1) Soil caps: every rock column whose top is fairly level gets grass (or moss) over a
   //    dirt layer, so cliff lips show a band of soil like a real outcrop.
+  //    The ground is found by scanning down from just above the plateau, not with topY: the
+  //    hat brim, balconies and turrets overhang the forecourt and would hide it from topY.
+  const groundY = (x, z) => {
+    let y = Math.min(b.topY(x, z), PLATEAU + 1)
+    while (y > 0 && !b.has(x, y, z)) y -= 1
+    return y
+  }
   for (let x = 0; x < SIZE[0]; x += 1) {
     for (let z = 0; z < SIZE[2]; z += 1) {
-      const y = b.topY(x, z)
-      if (y < 0 || b.nameAt(x, y, z) !== ROCK) continue
+      const y = groundY(x, z)
+      if (y < 0 || b.nameAt(x, y, z) !== ROCK || b.has(x, y + 1, z)) continue
       let slope = 0
-      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) slope = Math.max(slope, Math.abs(b.topY(x + dx, z + dz) - y))
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) slope = Math.max(slope, Math.abs(groundY(x + dx, z + dz) - y))
       const m = noise.coherent01(x, y, z, { scale: 4, seed: 17 })
       if (slope <= 2 || y >= PLATEAU - 1) {
         b.set(x, y, z, m < 0.22 ? 'moss_block' : 'grass_block')
@@ -757,8 +768,9 @@ export default function build(api) {
         for (let x = Math.floor(px - 1); x <= Math.ceil(px + 1); x += 1) {
           for (let z = Math.floor(pz - 1); z <= Math.ceil(pz + 1); z += 1) {
             if (Math.hypot(x - px, z - pz) > 1.05) continue
-            const y = b.topY(x, z)
-            if (/grass_block|moss_block|dirt$/.test(b.nameAt(x, y, z) ?? '')) b.set(x, y, z, trail)
+            let y = PLATEAU + 1 // scan down from just above the forecourt (the turret overhangs it)
+            while (y > 0 && !b.has(x, y, z)) y -= 1
+            if (/grass_block|moss_block|dirt$/.test(b.nameAt(x, y, z) ?? '') && !b.has(x, y + 1, z)) b.set(x, y, z, trail)
           }
         }
       }
@@ -835,6 +847,20 @@ export default function build(api) {
   plantTree(16, 29, 'azalea', { seed: 3, height: 7 }) // the wizard's garden tree on the plateau
   plantTree(45, 15, 'fantasy', { seed: 2, height: 15, trunk: 1.4, blob: [3, 3.8], branches: [4, 5], roots: 6, leaves: ['azalea_leaves', 'flowering_azalea_leaves', 'dark_oak_leaves'] })
   plantTree(9, 37, 'dark_oak', { seed: 5, height: 10 })
+  // a few lights for the meadow: a lamp where the path starts, lanterns hung in the big trees
+  {
+    let start = null
+    for (const [key, c] of pathCells) if (c.outer && (!start || c.t < start[1].t)) start = [key, c]
+    const [sx, sz] = start[0].split(',').map(Number)
+    b.lampPost([sx, groundY(sx, sz) + 1, sz], { height: 3, post: 'minecraft:spruce_fence', foot: 'minecraft:mossy_cobblestone_wall', lantern: 'minecraft:lantern' })
+    for (const [x, z] of [[45, 13], [47, 17], [8, 34], [11, 40]]) {
+      let y = 1
+      while (b.has(x, y, z)) y += 1 // first air above the meadow (groundY would stop in a canopy)
+      y += 3
+      while (y < SIZE[1] - 1 && !b.has(x, y, z)) y += 1
+      if (y < SIZE[1] - 1 && /_leaves$|_log|_wood/.test(b.nameAt(x, y, z) ?? '')) b.hangingLantern([x, y, z], 1)
+    }
+  }
   plantTree(12, 13, 'birch', { seed: 8, height: 12 })
   plantTree(44, 42, 'azalea', { seed: 7, height: 6 })
   for (const [x, z, r] of [[33, 47, 1.6], [16, 46, 1.8], [48, 25, 1.5], [6, 25, 1.7], [39, 9, 1.6]]) {
@@ -862,6 +888,18 @@ export default function build(api) {
     [1, 'minecraft:allium'], [1, 'minecraft:azure_bluet'], [1, 'minecraft:cornflower'], [1, 'minecraft:lily_of_the_valley'],
     [1, 'minecraft:oxeye_daisy'], [1, 'minecraft:red_mushroom'], [1, 'minecraft:brown_mushroom'], [1, 'minecraft:torchflower'],
   ] })
+  // b.scatter decorates the topmost block of each column, so the forecourt in the shadow of the
+  // hat brim and turrets gets its own little pass using the ground-scan instead
+  for (let x = 12; x <= 42; x += 1) {
+    for (let z = 14; z <= 42; z += 1) {
+      const y = groundY(x, z)
+      if (y < PLATEAU - 2 || !/grass_block|moss_block/.test(b.nameAt(x, y, z) ?? '') || b.has(x, y + 1, z)) continue
+      const h = kit.hash01(x, y, z, 77)
+      if (h < 0.3) b.set(x, y + 1, z, 'minecraft:short_grass')
+      else if (h < 0.38) b.set(x, y + 1, z, 'minecraft:fern')
+      else if (h < 0.42) b.set(x, y + 1, z, kit.hash01(x, 0, z, 78) < 0.5 ? 'minecraft:allium' : 'minecraft:azure_bluet')
+    }
+  }
 
   // texture the masonry placeholder
   b.texture([0, 16, 0], [55, 70, 55], ['polished_andesite', 'stone_bricks', 'cracked_stone_bricks', 'tuff_bricks', 'cobbled_deepslate'], { only: PH, base: 0.35 })

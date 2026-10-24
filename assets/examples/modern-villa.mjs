@@ -329,18 +329,27 @@ export default function build(api) {
 
     // rocks: half-buried clusters along the cliff foot and on the banks (one big + small ones)
     const rock = kit.palette({ stone: 5, andesite: 3, tuff: 2, cobblestone: 1 }, { scale: 2, seed: 4 })
+    // NOTE: boulder's own mossTop paints the top of EVERY column in its bounding box (water too),
+    // so moss is added here only on the boulder's own top blocks.
+    const boulder = (c, radii, seed) => {
+      b.boulder(c, radii, rock, { seed })
+      const R = Math.ceil(Math.max(...radii) * 1.3) + 1
+      for (let x = Math.floor(c[0] - R); x <= c[0] + R; x++) for (let z = Math.floor(c[2] - R); z <= c[2] + R; z++) {
+        const y = b.topY(x, z)
+        if (y >= c[1] && /stone|andesite|tuff|cobblestone/.test(b.nameAt(x, y, z) ?? '') && kit.noise.coherent01(x, y, z, { scale: 3, seed }) > 0.5) set(x, y, z, 'moss_block')
+      }
+    }
     const rocks = [[14, 47, 2.6], [17, 48, 1.6], [50, 46, 2.4], [53, 47, 1.5], [60, 41, 2.8], [62, 37, 1.7], [60, 25, 2.2], [61, 13, 2.6], [63, 16, 1.5], [33, 48, 1.4], [42, 49, 1.8]]
-    for (const [x, z, r] of rocks) b.boulder([x, SEA - 0.5, z], [r * 1.3, r, r], rock, { seed: x * 7 + z, mossTop: 'moss_block' })
-    for (const [x, z, r] of [[54, 32, 1.6], [55, 12, 1.8], [8, 31, 1.4], [3, 30, 1.8]]) b.boulder([x, hAt(x, z), z], [r * 1.3, r * 0.8, r], rock, { seed: x + z, mossTop: 'moss_block' })
+    for (const [x, z, r] of rocks) boulder([x, SEA - 0.5, z], [r * 1.3, r, r], x * 7 + z)
+    for (const [x, z, r] of [[54, 32, 1.6], [55, 12, 1.8], [8, 31, 1.4], [3, 30, 1.8]]) boulder([x, hAt(x, z), z], [r * 1.3, r * 0.8, r], x + z)
 
     // trees: a birch grove on the upper lawn, stone-pine (acacia form, spruce foliage) on the
     // ledges, a cherry as the one specimen tree, a small azalea in the roof garden
     const T = (x, z, sp, o = {}) => b.tree([x, g(x, z) + 1, z], sp, o)
-    T(4, 18, 'birch', { seed: 1, height: 12 }); T(8, 23, 'birch', { seed: 2, height: 10 }); T(3, 25, 'birch', { seed: 4, height: 9 })
-    T(9, 16, 'azalea', { seed: 3 })
-    T(55, 6, 'cherry', { seed: 2, height: 8 })
+    T(6, 18, 'birch', { seed: 1, height: 12 }); T(9, 23, 'birch', { seed: 2, height: 10 }); T(5, 26, 'birch', { seed: 4, height: 9 })
+    T(10, 17, 'azalea', { seed: 3 })
+    T(56, 9, 'cherry', { seed: 2, height: 8 })
     T(6, 38, 'acacia', { seed: 5, height: 8, log: 'spruce_log', wood: 'spruce_wood', leaves: ['spruce_leaves', 'spruce_leaves', 'oak_leaves'] })
-    T(54, 35, 'acacia', { seed: 9, height: 7, log: 'spruce_log', wood: 'spruce_wood', leaves: ['spruce_leaves', 'spruce_leaves', 'oak_leaves'] })
     b.tree([22, Y2 + 2, 25], 'azalea', { seed: 6, height: 6 })
     for (const [x, z] of [[38, 14], [42, 14], [47, 14], [52, 14], [12, 3], [26, 3]]) b.bush([x, UP + 1, z], { radius: 1.3, leaves: ['azalea_leaves', 'flowering_azalea_leaves'], seed: x })
     for (const [x, y, z] of [[20, Y2 + 2, 22], [25, Y2 + 2, 22], [20, Y2 + 2, 29]]) b.bush([x, y, z], { radius: 1.2, leaves: ['azalea_leaves', 'oak_leaves'], seed: z })

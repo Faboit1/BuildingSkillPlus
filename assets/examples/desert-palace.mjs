@@ -144,7 +144,7 @@ export default function build(api) {
   const DUNES = [
     // x, z, radius, height, angle of the lee side (radians, 0 = east)
     [4, 4, 18, 12, 0.7], [40, -4, 16, 8, 1.3], [72, -2, 17, 11, 1.1], [94, 20, 15, 9, 2.7],
-    [-2, 40, 14, 10, 0.1], [2, 72, 14, 8, 0.3], [10, 100, 16, 7, -0.7], [94, 98, 15, 8, 3.7], [96, 64, 11, 7, 3.1],
+    [-2, 40, 14, 10, 0.1], [2, 72, 14, 8, 0.3], [6, 96, 19, 10, -0.7], [94, 96, 19, 10, 3.7], [96, 66, 12, 7, 3.1],
   ]
   const OASIS = { x: 80, z: 45, r: 7 }
   const levelDist = (x, z) => {
@@ -383,6 +383,18 @@ export default function build(api) {
     b.set(cx, WING_TOP + 3 + p.height, HCZ, 'lightning_rod')
   }
 
+  // chhatris: little domed kiosks on the hall roof corners; they step the skyline down from
+  // the drum to the parapet and give the roof something to hold at night (a lantern each)
+  const CHHATRIS = [[HX0 + 3, Z0 + 3], [HX1 - 3, Z0 + 3], [HX0 + 3, HZ1 - 3], [HX1 - 3, HZ1 - 3]]
+  for (const [cx, cz] of CHHATRIS) {
+    for (let y = HALL_TOP + 1; y <= HALL_TOP + 3; y += 1) for (const [dx, dz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) b.set(cx + dx, y, cz + dz, 'sandstone_wall')
+    b.box([cx - 1, HALL_TOP + 4, cz - 1], [cx + 1, HALL_TOP + 4, cz + 1], WALL)
+    ringOf(cx, cz, HALL_TOP + 4, 1.5, 2.3, (dx, dz) => st(TRIM, kit.facingFrom(-dx, -dz), 'top'))
+    const cap = [1.6, 1.2, 0.5]
+    b.lathe([cx, HALL_TOP + 5, cz], cap.length, dy => cap[dy], DOME)
+    b.set(cx, HALL_TOP + 8, cz, 'lightning_rod')
+  }
+
   // ------------------------------------------------------------------ 8 minarets
   // 46 blocks tall on a 5-wide octagonal shaft (9:1): two balconies on corbels, an open
   // lantern stage, a small gilded onion. Slender verticals frame the dome without rivalling it.
@@ -521,7 +533,7 @@ export default function build(api) {
   stucco([X0, F, HZ1 + 1], [X1, ARC_TOP + 3, Z1], { seed: 8 })
   // Podium: Mughal palaces sit on red sandstone; here granite and terracotta (L* 48-46) give
   // the darkest, heaviest role a 35-point value gap below the walls.
-  b.texture([PX0 - 1, 0, PZ0 - 1], [PX1 + 1, F + 2, PZ1 + 3], ['polished_granite', 'granite', 'terracotta'], { only: PLINTH, base: 0.35, edge: 0.2, noise: 0.3, scale: 4, seed: 9 })
+  b.texture([PX0 - 1, 0, PZ0 - 1], [PX1 + 1, F + 2, PZ1 + 3], ['granite', 'terracotta', 'terracotta'], { only: PLINTH, base: 0.35, edge: 0.2, noise: 0.3, scale: 4, seed: 9 })
   // Domes: glazed turquoise, lighter (sun-bleached) at the crown, darker at the neck.
   b.texture([X0 - 4, WING_TOP, Z0 - 4], [X1 + 4, H - 1, Z1 + 4], ['prismarine_bricks', 'oxidized_cut_copper', 'dark_prismarine'], { only: DOME, base: 0.25, top: 0.25, edge: 0.05, noise: 0.15, scale: 3, drip: 0, seed: 10 })
 
@@ -550,8 +562,31 @@ export default function build(api) {
     for (const [x, y, z, blk] of cells) b.set(x, y, z, blk)
   }
   smoothDome(CX, HCZ, DOME_Y, DOME_TOP, 10.5)
+  for (const [cx, cz] of CHHATRIS) smoothDome(cx, cz, HALL_TOP + 5, HALL_TOP + 7, 2)
   for (const cx of [CX - 18, CX + 18]) smoothDome(cx, HCZ, WING_TOP + 3, WING_TOP + 12, 4.5)
   for (const [mx, mz] of MINARETS) smoothDome(mx, mz, F + 36, F + 41, 3)
+  // Pattern the tilework structurally instead of leaving it to noise: a field of deep teal
+  // (oxidized cut copper) with 16 lighter ribs (prismarine bricks) running to the finial and a
+  // dark band at the neck. Shapes are kept: a stair stays a stair of the new material.
+  const retile = (cx, cz, y0, y1, r, ribs) => {
+    for (let y = y0; y <= y1; y += 1)
+      for (let x = Math.floor(cx - r); x <= Math.ceil(cx + r); x += 1)
+        for (let z = Math.floor(cz - r); z <= Math.ceil(cz + r); z += 1) {
+          const blk = b.get(x, y, z)
+          if (!blk || !/(prismarine|oxidized_cut_copper)/.test(blk.name)) continue
+          const u = ((Math.atan2(z - cz, x - cx) / TAU + 1) * ribs) % 1
+          const rr = Math.max(1, Math.hypot(x - cx, z - cz))
+          const rib = ribs > 0 && Math.min(u, 1 - u) < 0.55 / ((TAU * rr) / ribs)
+          const fam = y < y0 + 2 ? 'dark_prismarine' : rib ? 'prismarine_bricks' : 'oxidized_cut_copper'
+          const m = kit.material(fam)
+          const kind = /_stairs$/.test(blk.name) ? 'stairs' : /_slab$/.test(blk.name) ? 'slab' : 'block'
+          b.set(x, y, z, { name: m[kind], props: blk.props })
+        }
+  }
+  retile(CX, HCZ, DOME_Y, DOME_TOP, 10.5, 16)
+  for (const cx of [CX - 18, CX + 18]) retile(cx, HCZ, WING_TOP + 3, WING_TOP + 12, 4.5, 0)
+  for (const [mx, mz] of MINARETS) retile(mx, mz, F + 36, F + 41, 3, 0)
+  for (const [cx, cz] of CHHATRIS) retile(cx, cz, HALL_TOP + 4, HALL_TOP + 8, 2, 0)
 
   if (!at('detail')) return b.finish({ name: 'desert-palace' })
 
@@ -749,8 +784,8 @@ export default function build(api) {
   // strays on the dunes. Three sizes; trunks lean in different directions.
   const PALMS = [
     // x, z, height, bend, seed
-    [70, 37, 11, 4, 1], [74, 54, 9, 3, 2], [86, 36, 10, 4, 3], [89, 50, 8, 3, 4], [80, 57, 12, 4, 5], [84, 31, 7, 2, 6], [72, 46, 6, 2, 7],
-    [CX - 7, ST0 + 3, 10, 2, 8], [CX + 7, ST0 + 11, 9, 2, 9], [CX - 7, ST0 + 18, 8, 2, 10],
+    [70, 37, 11, 4, 1], [74, 54, 9, 3, 2], [86, 36, 10, 4, 3], [89, 50, 8, 3, 4], [84, 59, 12, 4, 5], [84, 31, 7, 2, 6], [72, 46, 6, 2, 7],
+    [CX - 14, ST0 + 2, 10, 3, 8], [CX + 14, ST0 + 10, 9, 3, 9], [CX - 13, ST0 + 15, 8, 2, 10], [CX + 13, ST0 + 1, 7, 2, 15],
     [11, 58, 9, 3, 11], [8, 24, 7, 3, 12], [60, 84, 8, 3, 13], [26, 86, 9, 3, 14],
   ]
   for (const [x, z, h, bend, seed] of PALMS) palm(x, surface(x, z) + 1, z, { height: h, bend, seed })
@@ -815,9 +850,46 @@ export default function build(api) {
   stall(CX + 5, ST_Z[0], 'west', ['white', 'orange'], { rug: 'white', items: ['decorated_pot', 'potted_cactus', 'decorated_pot'], back: ['decorated_pot', 'flower_pot', 'decorated_pot'] })
   stall(CX + 5, ST_Z[1], 'west', ['white', 'cyan'], { rug: 'orange', items: ['lantern', 'hay_block', 'melon'], back: ['hay_block', 'composter', 'hay_block'] })
 
+  // A caravan has come in to trade: a low striped goat-hair tent by the track to the oasis,
+  // rugs and a chest inside, fodder and water jars outside, a fire at the door.
+  const tent = (x0, z0) => {
+    const y = G + 1
+    for (let x = x0 - 1; x <= x0 + 5; x += 1) for (let z = z0 - 1; z <= z0 + 5; z += 1) {
+      const top = b.topY(x, z)
+      for (let yy = top + 1; yy <= G; yy += 1) b.set(x, yy, z, 'sand') // level the pitch
+      for (let yy = G + 1; yy <= top; yy += 1) b.remove(x, yy, z)
+    }
+    for (const [x, z] of [[x0, z0], [x0, z0 + 4], [x0 + 4, z0], [x0 + 4, z0 + 4]]) for (let k = 0; k < 2; k += 1) b.set(x, y + k, z, 'jungle_fence')
+    for (const z of [z0, z0 + 4]) for (let k = 0; k < 3; k += 1) b.set(x0 + 2, y + k, z, 'jungle_fence')
+    for (let x = x0 - 1; x <= x0 + 5; x += 1)
+      for (let z = z0; z <= z0 + 4; z += 1) {
+        const ridge = x === x0 + 2
+        const eave = x === x0 - 1 || x === x0 + 5
+        b.set(x, ridge ? y + 3 : eave ? y + 1 : y + 2, z, (z - z0) % 2 === 0 ? 'brown_wool' : 'black_wool')
+      }
+    for (let z = z0; z <= z0 + 4; z += 1) b.set(x0 + 4, y, z, 'brown_wool') // closed back wall
+    for (let x = x0; x <= x0 + 3; x += 1) for (let z = z0 + 1; z <= z0 + 3; z += 1) b.set(x, y, z, (x + z) % 2 ? 'red_carpet' : 'orange_carpet')
+    b.set(x0 + 3, y, z0 + 2, 'chest[facing=west]')
+    b.set(x0 - 2, y, z0 - 1, 'hay_block')
+    b.set(x0 - 2, y + 1, z0 - 1, 'hay_block')
+    b.set(x0 - 3, y, z0 - 1, 'hay_block')
+    b.set(x0 - 2, y, z0 + 5, 'barrel[facing=up]')
+    b.set(x0 - 3, y, z0 + 5, 'decorated_pot')
+    b.set(x0 - 3, y, z0 + 2, 'campfire[lit=true]')
+  }
+  const CAMP = [74, 64]
+  tent(...CAMP)
+
   // ground cover: dead bush and the odd cactus on the dunes, grass and ferns in the oasis ring,
   // roses and lilies in the court beds (after paths and trees, before props and lights)
-  b.scatter({ on: ['minecraft:sand'], density: 0.025, clump: 9, seed: 41, paints: [[6, 'dead_bush'], [1, 'cactus']] })
+  for (let x = 0; x < W; x += 1)
+    for (let z = 0; z < D; z += 1) {
+      const y = b.topY(x, z)
+      if (y <= G + 1 || b.nameAt(x, y, z) !== 'minecraft:sand' || b.has(x, y + 1, z)) continue // dunes only, never the level ground
+      const h = kit.hash01(x, y, z, 41)
+      if (h < 0.012) b.set(x, y + 1, z, 'dead_bush')
+      else if (h < 0.015 && y > G + 3) b.set(x, y + 1, z, 'cactus')
+    }
   b.scatter({ x0: OASIS.x - 16, x1: W - 1, z0: OASIS.z - 18, z1: OASIS.z + 18, on: ['minecraft:grass_block'], density: 0.4, seed: 42, paints: [[8, 'short_grass'], [3, 'fern'], [1, 'tall_grass']] })
   b.scatter({ x0: COURT_W, x1: COURT_E, z0: COURT_N, z1: COURT_S, on: ['minecraft:grass_block'], density: 0.45, seed: 43, paints: [[6, 'short_grass'], [2, 'rose_bush'], [2, 'lily_of_the_valley'], [1, 'red_tulip']] })
 
@@ -837,8 +909,16 @@ export default function build(api) {
   const gateTop = firstSolidAbove(CX, F + 5, Z1)
   if (gateTop) b.hangingLantern([CX, gateTop, Z1], 1)
   for (const [mx, mz] of MINARETS) {
-    for (const [dx, dz] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) b.set(mx + dx, F + 22, mz + dz, 'lantern')
+    for (const [dx, dz] of [[3, 0], [-3, 0], [0, 3], [0, -3], [2, 2], [2, -2], [-2, 2], [-2, -2]]) b.set(mx + dx, F + 22, mz + dz, 'lantern')
+    for (const [dx, dz] of [[2, 2], [2, -2], [-2, 2], [-2, -2]]) b.set(mx + dx, F + 33, mz + dz, 'lantern')
     b.hangingLantern([mx, F + 35, mz], 0)
+  }
+  for (const [cx, cz] of CHHATRIS) b.hangingLantern([cx, HALL_TOP + 4, cz], 0)
+  for (const bed of BEDS) {
+    const x = bed.x0 < CX ? bed.x1 + 1 : bed.x0 - 1
+    const z = bed.z0 < CROSS_Z ? bed.z1 + 1 : bed.z0 - 1
+    b.set(x, F, z, 'sandstone_wall')
+    b.set(x, F + 1, z, 'lantern')
   }
   for (let z = COURT_N + 2; z < COURT_S; z += 4) {
     b.hangingLantern([galW, ARC_TOP, z], 0)
@@ -864,7 +944,6 @@ export default function build(api) {
     b.hangingLantern([CX - 6, G + 4, z + 2], 0)
     b.hangingLantern([CX + 6, G + 4, z + 2], 0)
   }
-  b.set(OASIS.x - 9, surface(OASIS.x - 9, OASIS.z + 8) + 1, OASIS.z + 8, 'campfire[lit=true]')
   b.lampPost([OASIS.x - 9, surface(OASIS.x - 9, OASIS.z - 6) + 1, OASIS.z - 6], { height: 3, post: 'jungle_fence', foot: 'sandstone_wall' })
   return b.finish({ name: 'desert-palace' })
 }

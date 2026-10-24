@@ -772,7 +772,7 @@ export default function build(api) {
   // ------------------------------------------------------------------ transept facades
   for (const [x, f] of [[CX - 26, 'west'], [CX + 26, 'east']]) {
     portal([x, F + 1, ZT], f, { w: 3, spring: 5, layers: 2, porch: 9 })
-    rose([x, F + 20, ZT], f, 4.5)
+    rose([x, F + 20, ZT], f, 6)
   }
 
   // ------------------------------------------------------------------ vault ribs and shafts
@@ -809,7 +809,7 @@ export default function build(api) {
   // One graded ramp over the whole build: base/edge/drip darkening and coherent clumps come
   // from b.texture; focus lightens the stone round the main portal (the hero area).
   b.texture([0, F - 1, 0], [W - 1, H - 1, L - 1], ['polished_andesite', 'andesite', 'stone_bricks', 'tuff_bricks', 'deepslate_bricks'], {
-    only: 'mud_brick*', mid: 0.42, base: 0.28, top: 0.3, edge: 0.08, drip: 0.12, focus: [[CX, F + 12, ZF + 2]], focusRadius: 14, focusAmount: 0.15,
+    only: 'mud_brick*', mid: 0.38, base: 0.28, top: 0.3, edge: 0.08, drip: 0.12, focus: [[CX, F + 12, ZF + 2]], focusRadius: 14, focusAmount: 0.15,
   })
   const MASONRY = ['minecraft:polished_andesite', 'minecraft:andesite', 'minecraft:stone_bricks', 'minecraft:tuff_bricks', 'minecraft:deepslate_bricks']
   // plinth: the bottom three courses in dark deepslate
@@ -892,6 +892,20 @@ export default function build(api) {
   hang(CX - 13, ZT, F + 12)
   hang(CX + 13, ZT, F + 12)
   hang(CX, ZF - 3, F + 18) // lights the rose from inside
+  for (const tx of TOWERS) hang(tx + 6, TZ0 + 6, F + 7) // tower porches
+  hang(CX, TZ0 + 2, F + 9) // narthex under the organ-loft bay
+  hang(CX, ZF + 1, F + 6) // main porch
+  for (const x of [CX - 2, CX + 2]) {
+    b.set(x, F + 1, ZF - 5, TRWALL)
+    b.set(x, F + 2, ZF - 5, 'minecraft:lantern[hanging=false]')
+  }
+  // bracket lanterns on the aisle face of every arcade pier, at eye level
+  for (const z of [36, 44, 58, 66, 74, 82, 90]) {
+    for (const [x, f] of [[CX - 8, 'east'], [CX + 8, 'west']]) {
+      b.set(x, F + 4, z, st(TST, f, 'top'))
+      b.set(x, F + 5, z, 'minecraft:lantern[hanging=false]')
+    }
+  }
   for (const deg of [18, 54, 90, 126, 162]) {
     const th = (deg * Math.PI) / 180
     hang(Math.round(CX + Math.cos(th) * 12.6), Math.round(ZA - Math.sin(th) * 12.6), F + 6)
@@ -997,7 +1011,7 @@ export default function build(api) {
   }
   b.scatter({ x0: 0, z0: 0, x1: W - 1, z1: L - 1, density: 0.22, paints: [[10, 'minecraft:short_grass'], [3, 'minecraft:tall_grass'], [1, 'minecraft:poppy'], [1, 'minecraft:oxeye_daisy'], [1, 'minecraft:cornflower'], [1, 'minecraft:fern']], seed: 21 })
   // benches and lamp posts on the forecourt
-  for (const [x, z] of [[CX - 14, PZ0 + 2], [CX + 14, PZ0 + 2], [CX - 14, L - 6], [CX + 14, L - 6], [4, 90], [4, 62], [4, 30], [W - 4, 62], [W - 4, 30], [CX, 1]]) {
+  for (const [x, z] of [[CX - 14, PZ0 + 2], [CX + 14, PZ0 + 2], [CX - 14, L - 6], [CX + 14, L - 6], [4, 90], [4, 62], [4, 30], [W - 4, 62], [W - 4, 30], [CX - 12, 1], [CX + 12, 1]]) {
     b.lampPost([x, G + 1, z], { height: 4, post: 'minecraft:dark_oak_fence', foot: 'minecraft:stone_brick_wall' })
   }
   for (const s of [-1, 1]) for (let k = 0; k < 3; k += 1) {

@@ -57,8 +57,9 @@ b.texture([0, 0, 0], [40, 16, 30], ['polished_andesite', 'stone_bricks', 'cracke
 ```
 
 Numbers in that study: wing footprint 63 cells = 38% of the main block (target ⅓–½); wing ridge
-5 below the main ridge (≥ 2); tower top 20 vs main ridge 14 (hero ≥ 25% taller). Before finishing,
-`node scripts/inspect.mjs FILE --find wool` must return 0 matches.
+at y 8, 6 below the main ridge at 14 (≥ 2); tower top 20 = 1.4× the main ridge (hero ≥ 1.25×). A lower
+roof that dies into a taller wall takes `overwrite: false` so it keeps the wall blocks it meets.
+Before finishing, `node scripts/inspect.mjs FILE --find wool` must return 0 matches.
 
 ---
 
@@ -652,7 +653,7 @@ b.lampPost([18, ground(18, H.z1 + 3) + 1, H.z1 + 3], { post: 'spruce_fence', foo
 
 A two-storey house on a slope: offset wing, plinth to terrain, stone ground floor, recessed timber
 upper floor with bays, stacked windows, door in the centre bay, roof 46% of the façade, wing ridge
-4 below the main ridge, chimney off centre, stone gradient, transition ring, path, bushes, lamp.
+5 below the main ridge, chimney off centre, stone gradient, transition ring, path, bushes, lamp.
 
 ```js
 export default function build(api) {

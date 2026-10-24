@@ -441,8 +441,7 @@ export default function build(api) {
     }
     for (const [x, z] of cells) b.set(x, Y, z, 'minecraft:birch_planks')
     for (const r of rim) {
-      const axis = Math.abs(r.nx) >= Math.abs(r.nz) ? 'z' : 'x'
-      b.set(r.x, Y, r.z, `minecraft:stripped_birch_log[axis=${axis}]`)
+      b.set(r.x, Y, r.z, 'minecraft:stripped_birch_wood')
       if (!b.get(r.x, Y - 1, r.z)) b.set(r.x, Y - 1, r.z, `minecraft:birch_stairs[facing=${kit.facingFrom(-r.nx, -r.nz)},half=top]`)
     }
     rim.sort((a, c) => Math.atan2(a.z - center[1], a.x - center[0]) - Math.atan2(c.z - center[1], c.x - center[0]))
@@ -457,12 +456,24 @@ export default function build(api) {
     return { cells, rim, isDeck }
   }
 
-  // Curved knee-brace struts: pale stripped birch ribs from the bark up to the deck rim. They
-  // bow outward first, then rise, like a bracket fungus.
+  // Rib brackets: 1-wide pale fins radiating from the bark (or a limb) to the deck rim. The
+  // underside follows a concave curve (deep at the trunk, thin at the rim) and every step of it
+  // gets an upside-down stair, so the fin reads as a smooth bracket-fungus curve, not a stair.
   const STRUT = 'minecraft:stripped_birch_wood'
-  const strut = (a, c) => {
-    const m = [lerp(a[0], c[0], 0.65), lerp(a[1], c[1], 0.3), lerp(a[2], c[2], 0.65)]
-    b.curve([a, m, c], STRUT, { radius: 0, mask: (x, y, z) => !isStair(x, y, z) && !isHead(x, y, z) && b.nameAt(x, y, z) !== 'minecraft:birch_planks' })
+  const rib = (cx, cz, th, Y, rFrom, rTo, depth) => {
+    const seen = new Set()
+    const inward = kit.facingFrom(-Math.cos(th), -Math.sin(th))
+    for (let r = rFrom; r <= rTo; r += 0.3) {
+      const x = Math.round(cx + Math.cos(th) * r)
+      const z = Math.round(cz + Math.sin(th) * r)
+      if (seen.has(x * 1000 + z)) continue
+      seen.add(x * 1000 + z)
+      const u = clamp((r - rFrom) / (rTo - rFrom), 0, 1)
+      const bot = Y - 1 - depth * (1 - u) ** 2
+      const yb = Math.round(bot)
+      for (let y = yb; y <= Y - 1; y += 1) if (!b.get(x, y, z) && !isStair(x, y, z) && !isHead(x, y, z)) b.set(x, y, z, STRUT)
+      if (!b.get(x, yb - 1, z) && !isHead(x, yb - 1, z)) b.set(x, yb - 1, z, `minecraft:birch_stairs[facing=${inward},half=top]`)
+    }
   }
 
   const BRIDGE_A = [42, 36]
@@ -471,36 +482,26 @@ export default function build(api) {
   const p2 = platform(deck2, Y2, { center: MUSIC, postEvery: 6, light: soulLantern })
   const pC = platform((x, z) => Math.hypot(x - C[0], z - C[1]) <= 6.6 + 0.4 * noise.fbm2(x, z, { scale: 4, seed: 12 }), YC, { center: C, postEvery: 5, open: (x, z) => Math.hypot(x - BRIDGE_B[0], z - BRIDGE_B[1]) < 2.2 })
 
-  // struts under the ring of the hall platform (skipping the stair) and under the lobe
-  for (let a = -170; a < 190; a += 32) {
+  // ribs under the ring of the hall platform, under the lobe (springing from limb L1), under the
+  // music platform and round the companion trunk
+  for (let a = -180; a < 180; a += 30) {
     const th = deg(a)
-    const rr = trunkR(Y1, th) + 4.6
-    const top = polarAt(Y1 - 1, th, rr)
-    const bot = polarAt(Y1 - 8, th, trunkR(Y1 - 8, th) - 0.5)
-    strut(bot, top)
+    const c = centerAt(Y1)
+    rib(c[0], c[2], th, Y1, trunkR(Y1 - 3, th) - 0.5, trunkR(Y1, th) + 4.6, 5)
   }
-  for (const [dx, dz] of [[-6.5, -2], [6.5, -2], [-6.5, 3], [6.5, 3], [-3.5, 6.5], [3.5, 6.5]]) {
-    const top = [HALL[0] + dx, Y1 - 1, HALL[1] + dz]
-    const bot = [HALL[0] + 0.3, 18.5, HALL[1] + dz * 0.6]
-    strut(bot, top)
-  }
-  for (const a of [-60, 0, 60, 120, 180, 240]) {
-    const th = deg(a)
-    strut([C[0] + Math.cos(th) * 1.2, YC - 6, C[1] + Math.sin(th) * 1.2], [C[0] + Math.cos(th) * 6, YC - 1, C[1] + Math.sin(th) * 6])
-  }
-  for (const a of [-40, 40, 110, 250]) {
-    const th = deg(a)
-    strut([MUSIC[0] + 3.5, Y2 - 5, MUSIC[1]], [MUSIC[0] + Math.cos(th) * 5.5, Y2 - 1, MUSIC[1] + Math.sin(th) * 5.5])
-  }
+  for (let a = 0; a < 360; a += 45) rib(HALL[0], HALL[1], deg(a + 22.5), Y1, 1.5, 7.5, 2.5)
+  for (let a = 0; a < 360; a += 60) rib(MUSIC[0], MUSIC[1], deg(a + 30), Y2, 1, 5.6, 2.5)
+  for (let a = 0; a < 360; a += 60) rib(C[0], C[1], deg(a + 15), YC, 1.5, 6.3, 3)
 
   // ------------------------------------------------------------------ pavilions
-  // Round plans, stripped-birch columns standing proud of a calcite wall ring, pointed openings
-  // (upside-down stairs as the arch head), a cornice, and a bell-cast oxidized copper roof.
+  // Round plans: a calcite wall ring, stripped-birch columns standing one block proud of it
+  // (depth), pointed openings (upside-down quartz stairs as the arch head), a birch ring beam,
+  // and a bell-cast roof of revolution in oxidized copper.
   const ringCells = (cx, cz, r) => {
     const out = []
+    const inside = (px, pz) => Math.hypot(px - cx, pz - cz) <= r + 0.5
     for (let x = Math.floor(cx - r - 1); x <= Math.ceil(cx + r + 1); x += 1)
       for (let z = Math.floor(cz - r - 1); z <= Math.ceil(cz + r + 1); z += 1) {
-        const inside = (px, pz) => Math.hypot(px - cx, pz - cz) <= r + 0.5
         if (!inside(x, z)) continue
         let edge = false
         for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1) if (!inside(x + dx, z + dz)) edge = true
@@ -509,55 +510,95 @@ export default function build(api) {
     return out
   }
   const angDiff = (a, c) => Math.atan2(Math.sin(a - c), Math.cos(a - c))
-  const ROOF = 'oxidized_cut_copper'
-  const pavilion = ({ c: [cx, cz], r, F, wallH, cols, door, bays, roofPitch, finial, glass = 'minecraft:white_stained_glass_pane', open = false }) => {
-    // floor
+  const tangentAxis = a => (Math.abs(Math.cos(a)) > Math.abs(Math.sin(a)) ? 'z' : 'x')
+
+  // Bell-cast roof of revolution: height above the eave h(d) = H * (1 - d/R)^p (concave: a
+  // flared skirt rising into a spire) plus an upturned lip at the eave. The surface is quantized
+  // to half blocks; half steps become stairs facing the apex (or slabs where the roof is flat),
+  // and the shell is as thick as the local slope so it never shows a gap.
+  const ROOF = kit.material('oxidized_cut_copper')
+  const bellRoof = ([cx, y0, cz], R, H, { p = 1.7, lip = 0.7, wallR = 0, finial } = {}) => {
+    const hAt = d => H * Math.pow(clamp(1 - d / R, 0, 1), p) + lip * clamp((d - (R - 2)) / 2, 0, 1) ** 2
+    const slopeAt = d => (hAt(Math.max(0, d - 0.5)) - hAt(d + 0.5))
+    // steep rows: whole-block heights, every top cell a stair facing the apex (smooth 45-degree
+    // courses, like vanilla roofs); gentle eave flare: half-block heights with slabs
+    const top = d => (slopeAt(d) >= 0.6 ? Math.round(y0 + hAt(d)) : Math.round((y0 + hAt(d)) * 2) / 2)
+    const cells = []
+    for (let x = Math.floor(cx - R - 1); x <= Math.ceil(cx + R + 1); x += 1)
+      for (let z = Math.floor(cz - R - 1); z <= Math.ceil(cz + R + 1); z += 1) {
+        const d = Math.hypot(x - cx, z - cz)
+        if (d > R + 0.35) continue
+        const t = top(d)
+        let drop = 0
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) drop = Math.max(drop, t - top(Math.hypot(x + dx - cx, z + dz - cz)))
+        const whole = t % 1 === 0
+        const yTop = whole ? t - 1 : Math.floor(t)
+        const thick = Math.max(1, Math.ceil(drop + 0.5))
+        let yBot = yTop - thick + 1
+        if (wallR && Math.abs(d - wallR) < 0.9) yBot = Math.min(yBot, y0) // seat the roof on the ring beam
+        for (let y = yBot; y < yTop; y += 1) b.set(x, y, z, ROOF.block)
+        const facing = kit.facingFrom(cx - x, cz - z)
+        if (!whole) b.set(x, yTop, z, `${ROOF.slab}[type=bottom]`)
+        else if (drop >= 0.5 && d > 0.8) b.set(x, yTop, z, `${ROOF.stairs}[facing=${facing},half=bottom]`)
+        else b.set(x, yTop, z, ROOF.block)
+        // soffit: an upside-down stair under the outermost eave cells
+        if (d > R - 0.8 && !b.get(x, yBot - 1, z)) b.set(x, yBot - 1, z, `${ROOF.stairs}[facing=${facing},half=top]`)
+        cells.push([x, yTop, z])
+      }
+    const apex = Math.max(...cells.map(c => c[1]))
+    if (finial) finial.forEach((f, i) => b.set(Math.round(cx), apex + 1 + i, Math.round(cz), f))
+    return { apex, cells }
+  }
+
+  const pavilion = ({ c: [cx, cz], r, F, wallH, cols, door, bays = {}, roof, open = false, glass = 'minecraft:white_stained_glass_pane' }) => {
     b.disc([cx, F - 1, cz], r - 0.5, 'minecraft:calcite')
     const wall = ringCells(cx, cz, r)
-    const colAng = Array.from({ length: cols }, (_, k) => door + Math.PI / cols + (k * TAU) / cols)
+    const step = TAU / cols
     for (const [x, z, a] of wall) {
+      const k = Math.round(angDiff(a, door) / step)
+      const bayA = door + k * step
+      const kind = k === 0 ? 'door' : (bays[((k % cols) + cols) % cols] ?? 'solid')
+      const off = Math.abs(angDiff(a, bayA)) * r
+      const width = kind === 'window' ? 0.75 : 1.3
+      const bottom = kind === 'window' ? F + 1 : F
+      const head = F + wallH - 3
       for (let y = F; y < F + wallH; y += 1) {
-        // nearest bay centre
-        const k = Math.round(angDiff(a, door) / (TAU / cols))
-        const bayA = door + (k * TAU) / cols
-        const off = Math.abs(angDiff(a, bayA)) * r
-        const isDoor = Math.abs(angDiff(bayA, door)) < 0.01 || bays?.[((k % cols) + cols) % cols] === 'arch'
-        const width = isDoor ? 1.6 : 1.1
-        const top = isDoor ? F + wallH - 3 : F + wallH - 3
-        const bottom = isDoor ? F : F + 1
-        if (open) {
-          if (y === F + wallH - 1) b.set(x, y, z, `minecraft:stripped_birch_log[axis=${Math.abs(Math.cos(a)) > Math.abs(Math.sin(a)) ? 'z' : 'x'}]`)
-          else if (y === F && !isDoor) b.set(x, y, z, 'minecraft:birch_fence')
+        if (y === F + wallH - 1) {
+          b.set(x, y, z, 'minecraft:stripped_birch_wood')
           continue
         }
-        if (off < width && y >= bottom && y < top) {
-          b.set(x, y, z, isDoor ? 'air' : glass)
-        } else if (off < width && y === top) {
-          const tang = angDiff(a, bayA) > 0 ? 1 : -1
-          const dirA = a + tang * Math.PI / 2 // away from the bay centre
-          b.set(x, y, z, `minecraft:smooth_quartz_stairs[facing=${kit.facingFrom(-Math.cos(dirA), -Math.sin(dirA))},half=top]`)
-        } else if (y === F + wallH - 1) {
-          b.set(x, y, z, `minecraft:stripped_birch_log[axis=${Math.abs(Math.cos(a)) > Math.abs(Math.sin(a)) ? 'z' : 'x'}]`)
-        } else {
-          b.set(x, y, z, 'minecraft:calcite')
+        if (open) {
+          if (y === F && kind !== 'door') b.set(x, y, z, 'minecraft:birch_fence')
+          continue
         }
+        const inOpening = kind !== 'solid' && off < width
+        if (inOpening && y >= bottom && y < head) b.set(x, y, z, kind === 'window' ? glass : 'air')
+        else if (inOpening && y === head && off > 0.35) {
+          const dirA = a + (angDiff(a, bayA) > 0 ? 1 : -1) * (Math.PI / 2) // away from the bay centre
+          b.set(x, y, z, `minecraft:smooth_quartz_stairs[facing=${kit.facingFrom(-Math.cos(dirA), -Math.sin(dirA))},half=top]`)
+        } else if (inOpening && y === head) b.set(x, y, z, kind === 'window' ? glass : 'air')
+        else b.set(x, y, z, 'minecraft:calcite')
       }
     }
-    // columns one block proud of the wall, with a stepped foot and a corbel capital
-    for (const a of colAng) {
+    for (let k = 0; k < cols; k += 1) {
+      const a = door + step / 2 + k * step
       const x = Math.round(cx + Math.cos(a) * (r + 1))
       const z = Math.round(cz + Math.sin(a) * (r + 1))
       const inward = kit.facingFrom(cx - x, cz - z)
+      b.set(x, F - 1, z, 'minecraft:stripped_birch_wood')
       for (let y = F; y < F + wallH; y += 1) b.set(x, y, z, 'minecraft:stripped_birch_log[axis=y]')
+      b.set(x, F, z, `minecraft:smooth_quartz_stairs[facing=${inward},half=bottom]`)
       b.set(x, F + wallH, z, `minecraft:birch_stairs[facing=${inward},half=top]`)
     }
-    const roof = b.coneRoof([cx, F + wallH + 1, cz], r + 0.5, { material: ROOF, pitch: roofPitch, overhang: 2, finial })
-    return { roof, colAng }
+    return bellRoof([cx, F + wallH, cz], r + 2.6, roof.H, { p: roof.p, wallR: r, finial: roof.finial })
   }
   const hallDoor = Math.atan2(T[1] - HALL[1], T[0] - HALL[0])
-  const hall = pavilion({ c: HALL, r: HALL_R, F: Y1 + 1, wallH: 6, cols: 8, door: hallDoor, bays: { 4: 'arch' }, roofPitch: [0.5, 0.5, 1, 1, 2, 2, 3, 3], finial: ['minecraft:end_rod[facing=up]'] })
-  const musicDoor = Math.atan2(centerAt(Y2)[2] - MUSIC[1], centerAt(Y2)[0] - MUSIC[0])
-  const music = pavilion({ c: MUSIC, r: MUSIC_R, F: Y2 + 1, wallH: 4, cols: 6, door: musicDoor, roofPitch: [0.5, 1, 1, 2, 3, 4], finial: ['minecraft:end_rod[facing=up]'], open: true })
+  const hall = pavilion({ c: HALL, r: HALL_R, F: Y1 + 1, wallH: 6, cols: 8, door: hallDoor,
+    bays: { 2: 'window', 3: 'window', 4: 'arch', 5: 'window', 6: 'window' }, roof: { H: 12, p: 1.8, finial: ['minecraft:end_rod[facing=up]'] },
+    glass: 'minecraft:light_blue_stained_glass_pane' })
+  const musicC = centerAt(Y2)
+  const musicDoor = Math.atan2(musicC[2] - MUSIC[1], musicC[0] - MUSIC[0])
+  const music = pavilion({ c: MUSIC, r: MUSIC_R, F: Y2 + 1, wallH: 4, cols: 6, door: musicDoor, open: true, roof: { H: 9, p: 1.9, finial: ['minecraft:end_rod[facing=up]'] } })
 
   // Companion "collar" pavilion: posts in a ring round the trunk and a bell-cast roof that the
   // trunk grows straight through.
@@ -566,16 +607,16 @@ export default function build(api) {
     const post = Math.round((a + Math.PI) / (TAU / 8)) * (TAU / 8) - Math.PI
     const isPost = Math.abs(angDiff(a, post)) * CR < 0.6
     for (let y = YC + 1; y <= YC + 4; y += 1) {
-      if (y === YC + 4) b.set(x, y, z, `minecraft:stripped_birch_log[axis=${Math.abs(Math.cos(a)) > Math.abs(Math.sin(a)) ? 'z' : 'x'}]`)
+      if (y === YC + 4) b.set(x, y, z, 'minecraft:stripped_birch_wood')
       else if (isPost) b.set(x, y, z, 'minecraft:stripped_birch_log[axis=y]')
     }
   }
-  b.coneRoof([C[0], YC + 5, C[1]], CR + 0.5, { material: ROOF, pitch: [0.5, 0.5, 1, 1, 2, 2], overhang: 2 })
+  bellRoof([C[0], YC + 4, C[1]], CR + 2.6, 7, { p: 1.6, wallR: CR })
   b.tubeAlong(cTrunk, cR, BARK, { mask: (x, y, z) => y > YC + 4 })
 
   // ------------------------------------------------------------------ spiral stair
   // Birch stairs with a top-slab soffit (the ribbon reads 1.5 blocks thick from afar), a fence
-  // railing on the outer edge, lantern posts every 4 steps and a strut every 3.
+  // railing on the outer edge, soul-lantern posts every 4 steps and a small corbel every 3.
   const steps = new Map()
   for (const s of stairCells.values()) {
     b.set(s.x, s.y, s.z, `minecraft:birch_stairs[facing=${s.facing},half=bottom]`)
@@ -592,11 +633,11 @@ export default function build(api) {
     if (s.y === Y1 || s.y === Y2) continue
     if (deck1(s.x, s.z) && s.y >= Y1 - 1 && s.y <= Y1 + 1) continue
     if (!b.get(s.x, s.y + 1, s.z)) b.set(s.x, s.y + 1, s.z, 'minecraft:birch_fence')
+    if (s.step % 3 === 0 && !b.get(s.x, s.y - 2, s.z)) b.set(s.x, s.y - 2, s.z, `minecraft:birch_stairs[facing=${kit.facingFrom(-Math.cos(s.th), -Math.sin(s.th))},half=top]`)
   }
   for (const s of steps.values()) {
     if (s.y === Y1 || s.y === Y2 || s.y === footY) continue
     if (s.step % 4 === 2 && b.nameAt(s.x, s.y + 1, s.z) === 'minecraft:birch_fence') b.set(s.x, s.y + 2, s.z, soulLantern)
-    if (s.step % 3 === 0) strut(polarAt(s.y - 5, s.th, trunkR(s.y - 5, s.th) - 0.3), [s.x, s.y - 1, s.z])
   }
 
   // ------------------------------------------------------------------ rope bridge
