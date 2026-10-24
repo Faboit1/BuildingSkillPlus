@@ -328,6 +328,48 @@ export function coneRoof(b, center, radius, { material: mat = 'spruce', pitch = 
   return { topY }
 }
 
+// Bell-cast roof of revolution (round pavilions, towers, chateaux): height above the eave
+// h(d) = H·(1 - d/R)^p (concave skirt rising into a spire) plus an upturned `lip` at the eave.
+// Steep courses are whole blocks with a stair facing the apex on every top cell; the gentle flare
+// uses half-block slabs; the shell is as thick as the local slope (no gaps), the apex rises at 45°
+// instead of a 1x1 needle, and the outermost ring gets an upside-down stair soffit.
+//   b.bellRoof([cx, y, cz], 7, 12, { material: 'oxidized_cut_copper', p: 1.7, lip: 0.7, wallR: 5, finial: ['lightning_rod'] })
+// `y` is the eave level; `wallR` (the wall radius) seats the roof on the ring beam.
+export function bellRoof(b, center, R, H, { material: mat = 'oxidized_cut_copper', p = 1.7, lip = 0.7, wallR = 0, finial, soffit = true } = {}) {
+  const m = roofMaterial(mat)
+  const [cx, y0, cz] = center
+  const clamp01 = v => Math.max(0, Math.min(1, v))
+  const h0 = d => H * Math.pow(clamp01(1 - d / R), p) + lip * clamp01((d - (R - 2)) / 2) ** 2
+  const hAt = d => (d < 1.5 ? h0(1.5) + (1.5 - d) * 1.2 : h0(d))
+  const slopeAt = d => hAt(Math.max(0, d - 0.5)) - hAt(d + 0.5)
+  const top = d => (slopeAt(d) >= 0.6 ? Math.round(y0 + hAt(d)) : Math.round((y0 + hAt(d)) * 2) / 2)
+  const cells = []
+  for (let x = Math.floor(cx - R - 1); x <= Math.ceil(cx + R + 1); x += 1) {
+    for (let z = Math.floor(cz - R - 1); z <= Math.ceil(cz + R + 1); z += 1) {
+      const d = Math.hypot(x - cx, z - cz)
+      if (d > R + 0.35) continue
+      const t = top(d)
+      let drop = 0
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) drop = Math.max(drop, t - top(Math.hypot(x + dx - cx, z + dz - cz)))
+      const whole = t % 1 === 0
+      const yTop = whole ? t - 1 : Math.floor(t)
+      const thick = Math.max(1, Math.ceil(drop + 0.5))
+      let yBot = yTop - thick + 1
+      if (wallR && Math.abs(d - wallR) < 0.9) yBot = Math.min(yBot, y0)
+      for (let y = yBot; y < yTop; y += 1) b.set(x, y, z, m.block)
+      const facing = facingFrom(cx - x, cz - z)
+      if (!whole) b.set(x, yTop, z, `${m.slab}[type=bottom]`)
+      else if (drop >= 0.5 && d > 0.8) b.set(x, yTop, z, `${m.stairs}[facing=${facing},half=bottom]`)
+      else b.set(x, yTop, z, m.block)
+      if (soffit && d > R - 0.8 && !b.get(x, yBot - 1, z)) b.set(x, yBot - 1, z, `${m.stairs}[facing=${facing},half=top]`)
+      cells.push([x, yTop, z])
+    }
+  }
+  const apex = Math.max(...cells.map(c => c[1]))
+  if (finial) (Array.isArray(finial) ? finial : [finial]).forEach((f, i) => b.set(Math.round(cx), apex + 1 + i, Math.round(cz), f))
+  return { apex, topY: apex, cells }
+}
+
 // Solid of revolution around a vertical axis: radius(dy, t) for dy = 0..height-1.
 // Domes, onion domes, fountains, chimneys, entasis columns, turret caps.
 export function lathe(b, center, height, radius, paint, opts = {}) {
@@ -909,6 +951,7 @@ export function bridge(b, a, c, { width = 3, deck = 'minecraft:spruce_planks', e
 }
 
 export const ARCH_METHODS = {
+  bellRoof,
   roof,
   coneRoof,
   lathe,
