@@ -40,14 +40,15 @@
   },
   "scripts": {
     "test": "node scripts/dev/kit-selftest.mjs",
-    "build:example": "node scripts/run-build.mjs assets/examples/celestial-forge.mjs --out-dir minecraft-builds/celestial-forge",
-    "render:example": "node scripts/render.mjs --nbt minecraft-builds/celestial-forge/celestial-forge.nbt",
-    "preview:example": "node scripts/preview.mjs --nbt minecraft-builds/celestial-forge/celestial-forge.nbt",
+    "build:example": "node scripts/run-build.mjs assets/examples/medieval-house.mjs --out-dir minecraft-builds/medieval-house",
+    "render:example": "node scripts/render.mjs --nbt minecraft-builds/medieval-house/medieval-house.nbt --lighting both",
+    "preview:example": "node scripts/preview.mjs --nbt minecraft-builds/medieval-house/medieval-house.nbt",
     "data:block-colors": "node scripts/dev/gen-block-colors.mjs",
     "data:materials": "node scripts/dev/gen-materials.mjs",
     "docs:sync": "node scripts/sync-lodestone-docs.mjs --from ../lodestone",
     "docs:check": "node scripts/sync-lodestone-docs.mjs --from ../lodestone --check",
-    "pack:dry-run": "npm pack --dry-run"
+    "pack:dry-run": "npm pack --dry-run",
+    "gallery": "node scripts/dev/gallery.mjs"
   },
   "dependencies": {
     "@mattzh72/lodestone": "0.6.0",
