@@ -691,12 +691,13 @@ export default function build(api) {
     } })
 
   // ============================================================================ HALL OF FAME
-  // West of the arena, facing south toward the court and the stage: three framed boards for
-  // hologram leaderboards (Wins, Elo, Streak), the Elo board raised over a top-3 podium. The
-  // kit's wall takes the house palette: calcite field, dark oak trim, red only at the crest and
-  // the champion's step. A 12-deep reading lawn lies in front.
-  const HOF = [20, M, 41]
-  b.leaderboards(HOF, 'south', {
+  // Along the west cliff, facing east across a raked court toward the arena and the stage (30
+  // degrees off its axis), out of the first view so the temple stands free: three framed boards
+  // for hologram leaderboards (Wins, Elo, Streak), the Elo board raised over a top-3 podium. The
+  // kit's wall takes the house palette: plaster field, deepslate-tile copings and sills, mossy
+  // plinth, red only at the crest and the champion's step. A 12-deep reading court lies in front.
+  const HOF = [9, M, 50]
+  b.leaderboards(HOF, 'east', {
     count: 3, width: 5, height: 6, gap: 3, podium: true,
     ids: ['wins', 'elo', 'streak'], labels: ['Most Wins', 'Top Elo', 'Best Streak'],
     primary: 'calcite', trim: 'deepslate_tile', base: 'mossy_stone_bricks', accent: RED, backdrop: BLACK,
@@ -704,8 +705,8 @@ export default function build(api) {
   })
   // a tiled coping roof over the two side wings of the wall (a tsuiji-bei); the raised Elo bay
   // keeps its crest against the sky
-  for (const [x0, x1] of [[5, 13], [27, 35]]) {
-    b.eastRoof({ ...ROOF, x0, z0: HOF[2] - 2, x1, z1: HOF[2], y: M + 13, type: 'gable', axis: 'x', overhang: 1, gableOverhang: 1, lift: 0.5, pitch: [0.5, 0.5, 1], gable: PLASTER })
+  for (const [z0, z1] of [[HOF[2] - 15, HOF[2] - 7], [HOF[2] + 7, HOF[2] + 15]]) {
+    b.eastRoof({ ...ROOF, x0: HOF[0] - 2, z0, x1: HOF[0], z1, y: M + 13, type: 'gable', axis: 'z', overhang: 1, gableOverhang: 1, lift: 0.5, pitch: [0.5, 0.5, 1], gable: PLASTER })
   }
 
   // ============================================================================ CRATE SHRINES
@@ -754,7 +755,7 @@ export default function build(api) {
         paintTop(x, z, sd > -0.5 ? 'minecraft:polished_andesite' : alongX ? GRAVEL_Z(x, z) : GRAVEL_X(x, z))
       }
   }
-  rakeField(20, 50, 14, 7, 3, true) // hall of fame reading court
+  rakeField(17, 50, 6.5, 13.5, 3, false) // hall of fame reading court
   rakeField(78, 56, 10, 4.5, 2, true) // crate court (the crowd at key-alls)
   // the temple's drip apron: gravel round the kidan foot
   for (let x = TK.x0 - 3; x <= TK.x1 + 3; x += 1) for (let z = TK.z0 - 2; z <= TK.z1 + 3; z += 1) {
@@ -777,7 +778,7 @@ export default function build(api) {
         }
     }
   }
-  wornPath([[31, 63], [28, 61], [24, 58], [21, 57]], 4, 1) // court → hall of fame
+  wornPath([[31, 63], [28, 63], [25, 62], [23, 60]], 4, 1) // court → hall of fame
   wornPath([[69, 63], [72, 61], [76, 60], [78, 61]], 4, 2) // court → crates
   wornPath([[86, 59], [88, 63], [90, 67]], 3, 3) // crates → parkour start
   wornPath([[70, 45], [74, 47], [77, 52]], 3, 4) // FFA gate → crates
@@ -888,20 +889,19 @@ export default function build(api) {
   pine(91, 22, 6, 25, [-0.8, 0.6])
   pine(34, 4, 6, 26, [0.3, 1])
   pine(70, 4, 5, 27, [-0.4, 1])
-  pine(9, 48, 5, 28, [1, 0.3])
   // bamboo backdrops on the west cliff and behind the crates
-  bambooClump(5, 58, 3.5, 31)
-  bambooClump(6, 66, 3, 32)
+  bambooClump(5, 72, 3.2, 31)
+  bambooClump(8, 30, 2.5, 32)
   bambooClump(94, 40, 3, 33)
   bambooClump(92, 46, 2.5, 34)
   // clipped azalea mounds at path corners and building feet
-  for (const [x, z, r] of [[33, 58, 1.6], [67, 58, 1.5], [30, 66, 1.4], [71, 70, 1.6], [27, 56, 1.3], [74, 58, 1.4], [38, 88, 1.6], [62, 87, 1.5], [29, 26, 1.5], [71, 27, 1.4], [86, 60, 1.3], [12, 57, 1.5]]) karikomi(x, z, r, x * 7 + z)
+  for (const [x, z, r] of [[33, 58, 1.6], [67, 58, 1.5], [30, 66, 1.4], [71, 70, 1.6], [24, 66, 1.3], [74, 58, 1.4], [38, 88, 1.6], [62, 87, 1.5], [29, 26, 1.5], [71, 27, 1.4], [86, 60, 1.3], [24, 36, 1.5]]) karikomi(x, z, r, x * 7 + z)
 
   // ============================================================================ LANTERNS AND BANNERS
   bigToro(39, M + 1, 58) // kasuga lanterns flank the torii (not mirrored: one big, one small)
   smallToro(61, M + 1, 58)
-  for (const [x, z] of [[44, 32], [56, 32], [33, 46], [33, 42], [67, 50], [52, 59]]) smallToro(x, G(x, z) + 1, z)
-  for (const [x, z] of [[24, 56], [16, 56], [74, 60], [82, 60], [88, 64], [20, 66], [86, 80], [12, 76]]) if (isSoft(x, z) || /gravel|andesite|concrete/.test(b.nameAt(x, G(x, z), z) ?? '')) smallToro(x, G(x, z) + 1, z)
+  for (const [x, z] of [[44, 32], [56, 32], [33, 46], [33, 42], [67, 50]]) smallToro(x, G(x, z) + 1, z)
+  for (const [x, z] of [[24, 38], [25, 63], [74, 60], [82, 60], [88, 64], [20, 66], [86, 80], [12, 76]]) if (isSoft(x, z) || /gravel|andesite|concrete/.test(b.nameAt(x, G(x, z), z) ?? '')) smallToro(x, G(x, z) + 1, z)
   bigToro(30, G(30, 30) + 1, 30)
   bigToro(70, G(70, 30) + 1, 30)
   // nobori round the arena rim in pairs and a three, never evenly spaced

@@ -483,6 +483,237 @@ export default function build(api) {
       }
     }
 
+  // ------------------------------------------------------------------ shared ground-level helpers
+  const FIELD_ID = 'minecraft:polished_andesite'
+  // paint the floor only where it is still the untouched field (buildings and features win)
+  const pave = (x, y, z, p) => {
+    if (b.nameAt(x, y, z) === FIELD_ID) b.set(x, y, z, p)
+  }
+  // worn desire paths: clumped andesite / stone / cobble along a polyline, densest on its centre
+  const wear = (pts, y, width = 3, seed = 0) => {
+    for (let i = 1; i < pts.length; i += 1) {
+      const [ax, az] = pts[i - 1]
+      const [cx, cz] = pts[i]
+      const n = Math.ceil(Math.hypot(cx - ax, cz - az))
+      for (let k = 0; k <= n; k += 1) {
+        const px = ax + ((cx - ax) * k) / n
+        const pz = az + ((cz - az) * k) / n
+        for (let x = Math.floor(px - width); x <= Math.ceil(px + width); x += 1)
+          for (let z = Math.floor(pz - width); z <= Math.ceil(pz + width); z += 1) {
+            const d = Math.hypot(x - px, z - pz) / width
+            if (d > 1) continue
+            const t = kit.noise.coherent01(x, 0, z, { scale: 2.5, seed: 70 + seed }) * (1 - d * 0.8)
+            if (t > 0.55) pave(x, y, z, t > 0.75 ? 'cobblestone' : t > 0.65 ? 'stone' : 'andesite')
+          }
+      }
+    }
+  }
+  // a straight stair flight descending toward `dir` from level hi to level lo; `at(k)` gives the
+  // [x, z] origin of row k, `across` the cells across the flight; a landing after `landingAfter`
+  const flight = (cellsOf, dir, hi, lo, { landingAfter = 0, landing = 2, mat = 'stone_brick', clearTo } = {}) => {
+    const up = opposite(dir)
+    let y = hi - 1
+    let k = 0
+    let row = 0
+    while (y > lo) {
+      for (const [x, z] of cellsOf(row)) {
+        b.box([x, Math.max(0, lo - 1), z], [x, y - 1, z], 'stone')
+        b.set(x, y, z, st(mat, up))
+        b.clear([x, y + 1, z], [x, clearTo ?? hi + 3, z])
+      }
+      row += 1
+      k += 1
+      if (landingAfter && k === landingAfter)
+        for (let j = 0; j < landing; j += 1) {
+          for (const [x, z] of cellsOf(row)) {
+            b.box([x, Math.max(0, lo - 1), z], [x, y, z], 'stone')
+            b.set(x, y, z, 'polished_andesite')
+            b.clear([x, y + 1, z], [x, clearTo ?? hi + 3, z])
+          }
+          row += 1
+        }
+      y -= 1
+    }
+    return row
+  }
+  // benches: stair seats with trapdoor arms, `n` long, facing `facing` (the way a sitter looks)
+  const bench = (x, y, z, facing, n = 3, wood = 'dark_oak') => {
+    const r = DIR[ccw(facing)]
+    for (let k = 0; k < n; k += 1) b.set(x + r[0] * k, y, z + r[2] * k, st(wood, opposite(facing)))
+    b.set(x - r[0], y, z - r[2], `${wood}_trapdoor[facing=${cw(facing)},open=true,half=bottom]`)
+    b.set(x + r[0] * n, y, z + r[2] * n, `${wood}_trapdoor[facing=${ccw(facing)},open=true,half=bottom]`)
+  }
+  // street lamps in three designs (never more than a few of one kind in a view)
+  const lamp = (x, y, z, kind = 'post', facing = 'north') => {
+    if (kind === 'post') {
+      b.set(x, y, z, 'polished_deepslate')
+      b.set(x, y + 1, z, 'polished_deepslate_wall')
+      b.set(x, y + 2, z, 'dark_oak_fence')
+      b.set(x, y + 3, z, 'dark_oak_fence')
+      b.set(x, y + 4, z, 'lantern[hanging=false]')
+    } else if (kind === 'arm') {
+      const d = DIR[facing]
+      b.set(x, y, z, 'polished_deepslate_wall')
+      for (let k = 1; k <= 3; k += 1) b.set(x, y + k, z, 'dark_oak_fence')
+      b.set(x, y + 4, z, sl('dark_oak', 'top'))
+      b.set(x + d[0], y + 4, z + d[2], 'dark_oak_trapdoor[facing=' + facing + ',half=top,open=false]')
+      b.set(x + d[0], y + 3, z + d[2], 'lantern[hanging=true]')
+    } else if (kind === 'candelabra') {
+      b.set(x, y, z, 'polished_deepslate')
+      for (let k = 1; k <= 4; k += 1) b.set(x, y + k, z, k === 1 ? 'polished_deepslate_wall' : 'dark_oak_fence')
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        b.set(x + dx, y + 4, z + dz, 'dark_oak_fence')
+        b.set(x + dx, y + 3, z + dz, 'lantern[hanging=true]')
+      }
+      b.set(x, y + 5, z, 'lantern[hanging=false]')
+    } else if (kind === 'bollard') {
+      b.set(x, y, z, 'polished_deepslate_wall')
+      b.set(x, y + 1, z, 'lantern[hanging=false]')
+    }
+  }
+  // a planter box with spill-over: trim kerb, soil, moss, two heights of flowers, a fern or two
+  const planter = (x0, z0, x1, z1, y, { kerb = 'polished_deepslate', cap = 'smooth_quartz', flowers = ['azure_bluet', 'cornflower', 'oxeye_daisy', 'lily_of_the_valley', 'allium'], seed = 0, tall = true } = {}) => {
+    for (let x = x0; x <= x1; x += 1)
+      for (let z = z0; z <= z1; z += 1) {
+        const edge = x === x0 || x === x1 || z === z0 || z === z1
+        if (edge) {
+          b.set(x, y, z, kerb)
+          b.set(x, y + 1, z, sl(cap))
+        } else {
+          b.set(x, y, z, 'dirt')
+          b.set(x, y + 1, z, 'grass_block')
+          const r = hash(x, y, z, seed + 3)
+          if (r < 0.28) b.set(x, y + 2, z, 'moss_carpet')
+          else if (r < 0.62) b.set(x, y + 2, z, flowers[Math.floor(hash(x, z, y, seed) * flowers.length)])
+          else if (r < 0.74) b.set(x, y + 2, z, 'fern')
+          else if (tall && r < 0.82) {
+            b.set(x, y + 2, z, 'peony[half=lower]')
+            b.set(x, y + 3, z, 'peony[half=upper]')
+          }
+        }
+      }
+  }
+
+  // ------------------------------------------------------------------ 4 crown terrace and belvedere
+  // twin stairs from the crown to the plaza, cut into the terrace beside the belvedere
+  const STAIRS_W = [84, 88]
+  const STAIRS_E = [122, 126]
+  for (const [x0, x1] of [STAIRS_W, STAIRS_E]) {
+    flight(k => Array.from({ length: x1 - x0 + 1 }, (_, i) => [x0 + i, 58 + k]), 'south', CRN, PLZ, { landingAfter: 5, landing: 2 })
+    for (let z = 57; z <= 70; z += 1) {
+      for (const x of [x0 - 1, x1 + 1]) {
+        b.set(x, CRN, z, 'polished_andesite')
+        b.set(x, CRN + 1, z, z % 4 === 1 ? QZ : 'diorite_wall')
+        b.set(x, CRN + 2, z, sl('smooth_quartz'))
+      }
+    }
+    lamp(x0 - 1, CRN + 3, 57, 'bollard')
+    lamp(x1 + 1, CRN + 3, 57, 'bollard')
+  }
+  // the crown's edge over the plaza: a see-through iron railing between quartz posts, so the
+  // first view keeps the plaza and the gate; the belvedere's arc gets a stone balustrade
+  for (let x = 80; x <= 130; x += 1)
+    for (let z = 66; z <= 76; z += 1) {
+      if (g(x, z) !== CRN || !isTown(x, z)) continue
+      if ((x >= STAIRS_W[0] - 1 && x <= STAIRS_W[1] + 1) || (x >= STAIRS_E[0] - 1 && x <= STAIRS_E[1] + 1)) continue
+      const lowN = ['east', 'west', 'south'].some(dir => g(x + DIR[dir][0], z + DIR[dir][2]) < CRN - 1)
+      if (!lowN) continue
+      const onArc = z > 70
+      const post = onArc ? (x - AX) % 3 === 0 : x % 5 === 0
+      b.set(x, CRN + 1, z, post ? QZ : onArc ? 'diorite_wall' : 'iron_bars')
+      b.set(x, CRN + 2, z, sl('smooth_quartz'))
+    }
+  // two lamp columns frame the view from the spawn (lateral 7, 8 ahead)
+  for (const x of [AX - 7, AX + 7]) {
+    b.set(x, CRN + 1, 71 - (x > AX ? 0 : 0), 'polished_deepslate')
+    for (let y = CRN + 2; y <= CRN + 7; y += 1) b.set(x, y, 71, 'quartz_pillar[axis=y]')
+    for (const f of ['north', 'south', 'east', 'west']) {
+      const d = DIR[f]
+      b.set(x + d[0], CRN + 1, 71 + d[2], st(TRIM, opposite(f)), { keep: true })
+      b.set(x + d[0], CRN + 8, 71 + d[2], st('smooth_quartz', opposite(f), 'top'))
+    }
+    b.set(x, CRN + 8, 71, QZ)
+    b.set(x, CRN + 9, 71, ACC)
+    b.set(x, CRN + 10, 71, 'lantern[hanging=false]')
+  }
+  // crown paving: a compass rose round the dais, calcite bands to the stairs and the vault
+  for (let x = 70; x <= 140; x += 1)
+    for (let z = 40; z <= 70; z += 1) {
+      const r = Math.hypot(x - SX, z - SZ)
+      if (r >= 5.5 && r < 6.5) pave(x, CRN, z, 'calcite')
+      else if (r >= 6.5 && r < 7.3) pave(x, CRN, z, 'polished_deepslate')
+      else if (r < 5.5 && (Math.abs(x - SX) === Math.abs(z - SZ) || x === SX || z === SZ)) pave(x, CRN, z, 'calcite')
+    }
+  for (const [dx, dz] of [[0, -6], [0, 6], [6, 0], [-6, 0]]) b.set(SX + dx, CRN, SZ + dz, ACC)
+  for (let z = 44; z <= SZ - 8; z += 1) for (const x of [AX - 1, AX + 1]) pave(x, CRN, z, 'calcite')
+  for (let x = 72; x <= 138; x += 1) for (const z of [SZ - 1, SZ + 1]) if (Math.abs(x - SX) > 8) pave(x, CRN, z, 'calcite')
+  wear([[AX, 46], [AX, SZ - 4]], CRN, 2.2, 1)
+  wear([[SX - 7, SZ], [86, SZ - 4], [86, 58]], CRN, 1.8, 2)
+  wear([[SX + 7, SZ], [124, SZ - 4], [124, 58]], CRN, 1.8, 3)
+  // Start Here beside the spawn (facing it), the Store kiosk on the terrace's east side
+  b.npcSpot([AX + 6, CRN, SZ + 3], 'west', { id: 'start', label: 'Start Here', role: 'tutorial', style: 'pedestal', shape: 'round', ...npcStyle, inlay: 'calcite' })
+  b.npcSpot([AX - 12, CRN, SZ - 3], 'east', { id: 'store', label: 'Store', role: 'store', style: 'kiosk', ...npcStyle, roof: ROOF, post: 'quartz_pillar[axis=y]' })
+  planter(AX + 9, SZ - 6, AX + 13, SZ - 2, CRN, { seed: 4 })
+  b.tree([AX + 11, CRN + 2, SZ - 4], 'azalea', { seed: 5, height: 6, roots: 0 })
+
+  // ------------------------------------------------------------------ 5 the plaza
+  // One field (polished andesite) with a dark border, a calcite axis band from the belvedere to
+  // the gate and a cross band from the Exchange to the Duels gate; at their crossing the fountain
+  // stands on a round step. Wear darkens the desire lines from the stairs to the exits.
+  const PC = [AX, 83] // plaza centre
+  for (let x = 80; x <= 130; x += 1)
+    for (let z = 70; z <= 96; z += 1) {
+      if (g(x, z) !== PLZ) continue
+      const nearEdge = ['north', 'east', 'south', 'west'].some(dir => g(x + DIR[dir][0], z + DIR[dir][2]) !== PLZ)
+      if (nearEdge) pave(x, PLZ, z, 'polished_deepslate')
+      else if (Math.abs(x - AX) <= 1 && z >= 76) pave(x, PLZ, z, Math.abs(x - AX) === 1 ? 'calcite' : 'smooth_stone')
+      else if (Math.abs(z - PC[1]) <= 1) pave(x, PLZ, z, Math.abs(z - PC[1]) === 1 ? 'calcite' : 'smooth_stone')
+    }
+  // the fountain: a round step, an octagonal basin, a column with a tazza and a finial
+  disc(PC[0] + 0.5, PLZ + 1, PC[1] + 0.5, 7.6, 'smooth_stone_slab[type=bottom]')
+  ringAt(PC[0] + 0.5, PLZ + 1, PC[1] + 0.5, 6.6, 7.6, (dx, dz) => 'polished_andesite_slab[type=bottom]')
+  disc(PC[0] + 0.5, PLZ + 1, PC[1] + 0.5, 5.4, 'polished_andesite')
+  const octa = (x, z, r) => Math.max(Math.abs(x - PC[0]), Math.abs(z - PC[1])) <= r && Math.abs(x - PC[0]) + Math.abs(z - PC[1]) <= r * 1.42
+  b.fillWhere([PC[0] - 6, PLZ + 1, PC[1] - 6], [PC[0] + 6, PLZ + 2, PC[1] + 6], (x, y, z) => octa(x, z, 5) && !octa(x, z, 4), (x, y, z) => (y === PLZ + 2 ? sl('smooth_quartz') : QZ))
+  b.fillWhere([PC[0] - 5, PLZ + 2, PC[1] - 5], [PC[0] + 5, PLZ + 2, PC[1] + 5], (x, y, z) => octa(x, z, 4), 'water')
+  b.fillWhere([PC[0] - 5, PLZ + 1, PC[1] - 5], [PC[0] + 5, PLZ + 1, PC[1] + 5], (x, y, z) => octa(x, z, 4), 'polished_deepslate')
+  for (const [dx, dz] of [[0, -5], [0, 5], [5, 0], [-5, 0]]) b.set(PC[0] + dx, PLZ + 2, PC[1] + dz, ACC)
+  for (let y = PLZ + 2; y <= PLZ + 5; y += 1) b.set(PC[0], y, PC[1], y === PLZ + 2 ? 'polished_deepslate' : 'quartz_pillar[axis=y]')
+  for (const f of ['north', 'south', 'east', 'west']) {
+    const d = DIR[f]
+    b.set(PC[0] + d[0], PLZ + 2, PC[1] + d[2], st('polished_deepslate', opposite(f)))
+    b.set(PC[0] + d[0], PLZ + 5, PC[1] + d[2], st('smooth_quartz', opposite(f), 'top'))
+    b.set(PC[0] + d[0] * 2, PLZ + 6, PC[1] + d[2] * 2, st('smooth_quartz', opposite(f)))
+  }
+  for (const [dx, dz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) b.set(PC[0] + dx, PLZ + 6, PC[1] + dz, QZ)
+  for (const [dx, dz] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) b.set(PC[0] + dx, PLZ + 6, PC[1] + dz, 'water')
+  b.set(PC[0], PLZ + 6, PC[1], QZ)
+  b.set(PC[0], PLZ + 7, PC[1], 'chiseled_quartz_block')
+  b.set(PC[0], PLZ + 8, PC[1], 'polished_deepslate_wall')
+  b.set(PC[0], PLZ + 9, PC[1], 'lantern[hanging=false]')
+  // seats round the fountain step and along the plaza sides (two lengths, three orientations)
+  bench(PC[0] - 9, PLZ + 1, PC[1] - 2, 'east', 3)
+  bench(PC[0] + 9, PLZ + 1, PC[1] + 2, 'west', 3)
+  bench(PC[0] - 2, PLZ + 1, PC[1] + 9, 'north', 2)
+  // planters with trees at the plaza's four corners: one feature tree, three smaller ones
+  planter(88, 74, 94, 79, PLZ, { seed: 11 })
+  b.tree([91, PLZ + 2, 76], 'oak', { seed: 21, height: 9, roots: 0, blob: [2.4, 3.0] })
+  planter(116, 74, 120, 78, PLZ, { seed: 12 })
+  b.tree([118, PLZ + 2, 76], 'azalea', { seed: 22, height: 6, roots: 0 })
+  planter(87, 88, 91, 92, PLZ, { seed: 13 })
+  b.tree([89, PLZ + 2, 90], 'birch', { seed: 23, height: 9, roots: 0 })
+  planter(118, 89, 123, 93, PLZ, { seed: 14 })
+  b.tree([120, PLZ + 2, 91], 'azalea', { seed: 24, height: 7, roots: 0 })
+  lamp(PC[0] - 7, PLZ + 1, PC[1] - 6, 'candelabra')
+  lamp(PC[0] + 7, PLZ + 1, PC[1] + 6, 'candelabra')
+  lamp(97, PLZ + 1, 93, 'post')
+  lamp(113, PLZ + 1, 93, 'post')
+  b.npcSpot([114, PLZ, 80], 'west', { id: 'events', label: 'Events', role: 'events', style: 'pedestal', ...npcStyle, inlay: 'calcite' })
+  wear([[86, 72], [92, 84], [102, 94]], PLZ, 2.2, 4)
+  wear([[124, 72], [118, 84], [108, 94]], PLZ, 2.2, 5)
+  wear([[82, PC[1]], [96, PC[1]]], PLZ, 1.8, 6)
+  wear([[114, PC[1]], [128, PC[1]]], PLZ, 1.8, 7)
+
   // ------------------------------------------------------------------ texture passes
   // white field: quartz → quartz bricks → calcite → polished diorite, darker toward the base and in
   // drip streaks, brighter around the focal points; plinths: polished deepslate → tiles
