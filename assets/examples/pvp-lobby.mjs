@@ -110,10 +110,6 @@ export default function build(api) {
   const rho = (x, z) => (Math.abs(x - CX) ** 3.2 + Math.abs(z - CZ) ** 3.2) ** (1 / 3.2)
   const edge = (x, z) => outlineR(x, z) - rho(x, z)
 
-  const bump = (x, z, cx, cz, r, h) => {
-    const d = Math.hypot(x - cx, z - cz) / r
-    return d < 1 ? h * (0.5 + 0.5 * Math.cos(Math.PI * d)) : 0
-  }
   // Arena geometry, needed by the ground: a rounded rectangle (Japanese plans are rectilinear).
   const BX = AX
   const BZ = 44
@@ -124,19 +120,41 @@ export default function build(api) {
   }
   const pitSd = (x, z) => sdRR(x, z, 7.5, 6.5, 3.5) // <= 0: the pit floor; 0..6 the stands; 6..9 the rim
 
-  // Ground levels by zone, before any building. Natural rises (crags) only where nothing is built.
+  // Ground levels by zone. The main level is flat (gardens are shaped with objects, not with
+  // 1-block mounds, which read as contour stripes). Height comes from rock masses built as
+  // TIERS of flat-topped plateaus with wobbly edges: each tier step is a 3-block cliff of rock
+  // strata, so crags read as layered stone with ledges, never as concentric lines.
   const inCourt = (x, z) => x >= 30 && x <= 70 && z >= 60 && z <= 81
   const southTerrace = (x, z) => x >= 33 && x <= 67 && z >= 82 + Math.round(1.2 * Math.sin(x / 4.5))
+  const tier = (x, z, cx, cz, rx, rz, h, seed) => {
+    const w = 1 + 0.3 * fbm(x, z, 4.5, seed)
+    return Math.hypot((x - cx) / rx, (z - cz) / rz) <= w ? h : 0
+  }
+  // A crag: tiers that shrink AWAY from its steep side, so on that side the tier edges line up
+  // into one tall cliff face of strata, and on the far side the rock steps down in ledges.
+  // [cx, cz, steepX, steepZ, [[rx, rz, h], ...], seed]
+  const CRAG_DEFS = [
+    [50, 1, 0, 1, [[30, 5, 4], [19, 3.5, 7], [9, 2.5, 9]], 41], // north ridge behind the temple
+    [14, 19, 0.75, 0.66, [[15, 14, 3], [12, 11, 6], [9, 8, 9], [6, 5.5, 12], [3, 3, 14]], 44], // NW crag (bell)
+    [86, 17, -0.7, 0.7, [[12, 14, 3], [9.5, 11, 6], [7, 8, 9], [4.5, 5, 12]], 48], // NE crag (parkour finish)
+  ]
+  const CRAGS = []
+  for (const [cx, cz, sx, sz, tiers, seed] of CRAG_DEFS) {
+    const [r0x, r0z] = tiers[0]
+    tiers.forEach(([rx, rz, h], k) => CRAGS.push([cx - sx * (r0x - rx) * 0.85, cz - sz * (r0z - rz) * 0.85, rx, rz, h, seed + k]))
+  }
+  const TERRACES = [
+    // south-west and south-east garden terraces (stone retaining walls, not rock)
+    [19, 93, 15, 8, 2, 52], [22, 96, 9, 5, 4, 53], [81, 93, 15, 8, 2, 54], [78, 96, 9, 5, 4, 55],
+  ]
+  const cragH = (x, z) => Math.max(0, ...CRAGS.map(c => tier(x, z, ...c)))
+  const terraceH = (x, z) => Math.max(0, ...TERRACES.map(c => tier(x, z, ...c)))
   const groundY = (x, z) => {
     if (pitSd(x, z) <= 9) return M
     if (southTerrace(x, z)) return D
     if (inCourt(x, z)) return Q
-    let y = M
-    y += bump(x, z, 17, 16, 17, 7) + bump(x, z, 27, 9, 9, 3) // NW crag
-    y += bump(x, z, 85, 17, 15, 8) + bump(x, z, 76, 8, 8, 2) // NE crag (parkour finish)
-    y += bump(x, z, 20, 90, 14, 4) + bump(x, z, 80, 90, 14, 4) // south garden slopes
-    y += 0.8 * fbm(x, z, 7, 13)
-    return Math.round(y)
+    if (x >= 30 && x <= 70 && z >= 6 && z <= 28) return M // the temple's ground
+    return M + Math.max(cragH(x, z), terraceH(x, z))
   }
 
   // Rock strata for cliffs and the underside: bands 2-4 thick, darker toward the bottom.
@@ -146,6 +164,8 @@ export default function build(api) {
     if (y < 7 && hash(x * 7 + y, z, 4) < 0.5) return 'minecraft:deepslate'
     return BANDS[((k % BANDS.length) + BANDS.length) % BANDS.length]
   }
+  // The underside: a cliff band of 5-8 under the rim that leans inward (overhangs), then an
+  // inverted mountain, then rock roots hanging into the void (added below).
   const top = new Map() // x,z → ground top
   for (let x = 0; x < SIZE[0]; x += 1) {
     for (let z = 0; z < SIZE[2]; z += 1) {
@@ -153,20 +173,41 @@ export default function build(api) {
       if (e < 0) continue
       const gy = groundY(x, z)
       top.set(`${x},${z}`, gy)
-      // underside: a 6-8 block cliff face at the edge, then an inverted mountain with lumps
-      const depth = 6 + 0.95 * Math.min(e, 24) + 3 * fbm(x, z, 6, 11) + 4 * Math.max(0, fbm(x, z, 4, 12))
-      const bottom = Math.max(1, Math.round(M - depth))
+      const lump = 3 * fbm(x, z, 6, 11) + 4 * Math.max(0, fbm(x, z, 3.5, 12))
+      const depth = e < 0.8 ? 3 + lump * 0.5 : 6 + 1.15 * Math.min(e, 22) ** 0.95 + lump
+      const bottom = Math.max(3, Math.round(M - depth))
+      const terrace = terraceH(x, z) > 0 && gy > M
       for (let y = bottom; y <= gy; y += 1) {
         const d = gy - y
         let paint
         if (d === 0) paint = 'minecraft:grass_block'
-        else if (d <= 2 && e > 1.5) paint = 'minecraft:dirt'
+        else if (terrace && y > M) paint = y === gy - 1 && hash(x, z, 77) < 0.3 ? 'minecraft:mossy_stone_bricks' : FOOT
+        else if (d <= 2 && e > 1.5 && gy <= M + 1) paint = 'minecraft:dirt'
         else paint = rock(x, y, z)
         b.set(x, y, z, paint)
       }
     }
   }
   const G = (x, z) => top.get(`${x},${z}`) ?? -1
+  // Rock roots: tapering spikes hanging from the underside, leaning a little, with strata.
+  const ROOTS = [[38, 40, 14, 4.5], [58, 52, 18, 5.5], [47, 64, 12, 4], [30, 58, 10, 3.5], [66, 36, 11, 4], [52, 30, 9, 3.5], [72, 62, 8, 3], [26, 34, 8, 3], [44, 50, 20, 6]]
+  for (const [rx, rz, len, r0] of ROOTS) {
+    let yTop = M
+    while (yTop > 0 && b.has(rx, yTop - 1, rz)) yTop -= 1
+    const lean = [(hash(rx, rz, 3) - 0.5) * 0.25, (hash(rz, rx, 4) - 0.5) * 0.25]
+    for (let k = 0; k <= len; k += 1) {
+      const y = yTop - k + 2
+      if (y < 0) break
+      const t = 1 - k / len
+      const r = r0 * t ** 0.75
+      const cx = rx + lean[0] * k
+      const cz = rz + lean[1] * k
+      for (let x = Math.floor(cx - r - 1); x <= Math.ceil(cx + r + 1); x += 1)
+        for (let z = Math.floor(cz - r - 1); z <= Math.ceil(cz + r + 1); z += 1) {
+          if (Math.hypot(x - cx, z - cz) <= r * (1 + 0.25 * fbm(x + y, z, 3, 61)) && !b.has(x, y, z)) b.set(x, y, z, rock(x, y, z))
+        }
+    }
+  }
   // the grass top: clumps of moss, coarse dirt on the windy cliff rim
   for (const [k, gy] of top) {
     const [x, z] = k.split(',').map(Number)
@@ -174,6 +215,29 @@ export default function build(api) {
     const e = edge(x, z)
     if (e < 1.6) b.set(x, gy, z, hash(x, z, 8) < 0.5 ? 'minecraft:coarse_dirt' : 'minecraft:moss_block')
     else if (kit.noise.coherent01(x, 0, z, { scale: 5, grain: 0.3, seed: 31 }) < 0.3) b.set(x, gy, z, 'minecraft:moss_block')
+  }
+  // Vines and hanging roots on the cliff band and the underside: strands 2-7 long, in clumps,
+  // only where rock has open air beside or below it.
+  {
+    const cells = []
+    for (const [x, y, z, blk] of b.entries()) if (y < M - 1 && y > 2 && /stone|andesite|tuff|deepslate|dirt/.test(blk.name)) cells.push([x, y, z])
+    for (const [x, y, z] of cells) {
+      const clump = kit.noise.coherent01(x, y, z, { scale: 6, seed: 71 })
+      if (clump > 0.35) continue
+      if (!b.has(x, y - 1, z) && hash(x * 3 + y, z, 72) < 0.18) {
+        const len = 1 + Math.floor(hash(x, z + y, 73) * 3)
+        for (let i = 1; i <= len && !b.has(x, y - i, z); i += 1) b.set(x, y - i, z, 'minecraft:hanging_roots')
+        continue
+      }
+      for (const [side, dx, dz] of DIRS) {
+        if (b.has(x + dx, y, z + dz) || hash(x + dx * 5, y, z + dz * 7, 74) > 0.22) continue
+        const len = 2 + Math.floor(hash(x, y, z, 75) * 6)
+        for (let i = 0; i < len; i += 1) {
+          if (b.has(x + dx, y - i, z + dz) || !b.has(x, y - i, z)) break
+          b.set(x + dx, y - i, z + dz, `minecraft:vine[${OPP[side]}=true]`)
+        }
+      }
+    }
   }
 
   // ============================================================================ ARENA BOWL
@@ -220,23 +284,23 @@ export default function build(api) {
       if (sd > 6 && sd <= 7) b.set(x, M, z, 'minecraft:polished_andesite')
     }
   }
-  // Pit floor: tatami in pinwheel units of 6 x 6 (four 2 x 4 mats round a 2 x 2 half mat), the
-  // grain of each mat along its long side, so the mats read without drawn borders. A dark
-  // border runs round the floor; the centre crest marks the FFA spawn.
-  const tatami = (x, z) => {
-    const lx = ((x - 41) % 6 + 6) % 6
-    const lz = ((z - 35) % 6 + 6) % 6
-    if (lx >= 2 && lx <= 3 && lz >= 2 && lz <= 3) return 'minecraft:bamboo_mosaic'
-    if (lz <= 1 && lx <= 3) return 'minecraft:stripped_bamboo_block[axis=x]'
-    if (lx >= 4 && lz <= 3) return 'minecraft:stripped_bamboo_block[axis=z]'
-    if (lz >= 4 && lx >= 2) return 'minecraft:stripped_bamboo_block[axis=x]'
-    return 'minecraft:stripped_bamboo_block[axis=z]'
-  }
+  // Pit floor: light "sand" (calcite and white concrete powder in clumps) inside a dark wooden
+  // border. The fighting square is drawn in dark oak, red marks only at its corners and the two
+  // start lines (runs of 3), and a black ring with a red centre marks the FFA spawn.
+  const SAND = kit.palette({ calcite: 3, white_concrete_powder: 2 }, { scale: 2.2, seed: 9 })
   for (let x = 40; x <= 60; x += 1) {
     for (let z = 34; z <= 54; z += 1) {
       const sd = pitSd(x, z)
       if (sd > 0) continue
-      b.set(x, P, z, sd > -1 ? 'minecraft:dark_oak_planks' : tatami(x, z))
+      const dx = x - BX
+      const dz = z - BZ
+      let paint = SAND
+      if (sd > -1) paint = 'minecraft:dark_oak_planks'
+      else if ((Math.abs(dx) === 5 && Math.abs(dz) <= 4) || (Math.abs(dz) === 4 && Math.abs(dx) <= 5)) {
+        const corner = Math.abs(dx) >= 4 && Math.abs(dz) >= 3
+        paint = corner ? RED : Math.abs(dx) === 5 ? 'minecraft:stripped_dark_oak_log[axis=z]' : 'minecraft:stripped_dark_oak_log[axis=x]'
+      } else if (Math.abs(dx) === 2 && Math.abs(dz) <= 1) paint = RED
+      b.set(x, P, z, paint)
     }
   }
   for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1) b.set(BX + dx, P, BZ + dz, dx || dz ? BLACK : RED)
@@ -625,6 +689,49 @@ export default function build(api) {
       W(-hw - 1, -1, 1, 'minecraft:chest[facing=west,type=single]'); W(-hw - 1, 0, 1, 'minecraft:potted_bamboo')
       W(0, -3, 1, 'minecraft:lectern[facing=west,has_book=false]')
     } })
+
+  // ============================================================================ HALL OF FAME
+  // West of the arena, facing south toward the court and the stage: three framed boards for
+  // hologram leaderboards (Wins, Elo, Streak), the Elo board raised over a top-3 podium. The
+  // kit's wall takes the house palette: calcite field, dark oak trim, red only at the crest and
+  // the champion's step. A 12-deep reading lawn lies in front.
+  const HOF = [20, M, 41]
+  b.leaderboards(HOF, 'south', {
+    count: 3, width: 5, height: 6, gap: 3, podium: true,
+    ids: ['wins', 'elo', 'streak'], labels: ['Most Wins', 'Top Elo', 'Best Streak'],
+    primary: 'calcite', trim: 'deepslate_tile', base: 'mossy_stone_bricks', accent: RED, backdrop: BLACK,
+    podiumCaps: [RED, 'minecraft:smooth_quartz', 'minecraft:polished_andesite'],
+  })
+  // a tiled coping roof over the two side wings of the wall (a tsuiji-bei); the raised Elo bay
+  // keeps its crest against the sky
+  for (const [x0, x1] of [[5, 13], [27, 35]]) {
+    b.eastRoof({ ...ROOF, x0, z0: HOF[2] - 2, x1, z1: HOF[2], y: M + 13, type: 'gable', axis: 'x', overhang: 1, gableOverhang: 1, lift: 0.5, pitch: [0.5, 0.5, 1], gable: PLASTER })
+  }
+
+  // ============================================================================ CRATE SHRINES
+  // Two small crate altars on the east lawn, facing the court: the Vote crate (dark wood panel,
+  // paper-white glow) and the Dojo crate (the premium one, the only red panel). Each gets a
+  // little gabled roof (a hokora) over its arch; the crowd area in front is open lawn.
+  const CRATES = [
+    { pos: [74, M + 2, 50], id: 'vote', label: 'Vote Crate', tier: 'vote', block: 'chest', tierBlock: 'minecraft:dark_oak_planks', glass: 'minecraft:white_stained_glass' },
+    { pos: [81, M + 2, 51], id: 'dojo', label: 'Dojo Crate', tier: 'mythic', block: 'ender_chest', tierBlock: RED, glass: 'minecraft:red_stained_glass', hero: true },
+  ]
+  for (const c of CRATES) {
+    b.crate(c.pos, 'south', { ...c, primary: 'calcite', trim: 'dark_oak', base: 'mossy_stone_bricks', accent: RED })
+    const L = frameOf(c.pos, 'south')
+    const archTop = c.hero ? 5 : 4
+    const rect = L.rect(-2, -5, 2, -2)
+    b.eastRoof({ ...ROOF, ...rect, y: c.pos[1] + archTop + 2, type: 'gable', axis: 'z', overhang: 1, gableOverhang: 1, lift: 0.5, pitch: [0.5, 0.5, 1, 1], gable: PLASTER })
+  }
+
+  // ============================================================================ FFA DROP GATE
+  // On the arena's east rim: the kit portal (kind 'pvp', pointed red fanlight) under a gate roof.
+  // Walking west through the opening triggers the drop into the pit.
+  {
+    const rec = b.portal([66, M + 1, 43], [66, M + 4, 45], { id: 'ffa-drop', label: 'FFA Drop', kind: 'pvp', facing: 'east', primary: 'calcite', trim: 'dark_oak', base: 'mossy_stone_bricks', accent: RED })
+    b.eastRoof({ ...ROOF, x0: 64, z0: 40, x1: 68, z1: 48, y: M + 1 + 10, type: 'gable', axis: 'z', overhang: 2, gableOverhang: 1, lift: 1, pitch: [0.5, 0.5, 1, 1, 1], gable: PLASTER })
+    b.ffaGate = rec
+  }
 
   return finishUp()
 

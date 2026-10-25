@@ -21,7 +21,7 @@ export default function build(api) {
   const PLZ = 23
   const CRN = 35
   const SHELF = CRN - 4 // the garden shelf east of the vault
-  const SPAWN = [AX, CRN + 2, 68] // spawn dais top block; players stand at y 38, eye 39.6
+  const SPAWN = [AX, CRN + 2, 63] // spawn dais top block; players stand at y 38, eye 39.6
 
   const clamp = (v, a, c) => Math.max(a, Math.min(c, v))
   const smooth = (a, c, v) => {
@@ -48,7 +48,7 @@ export default function build(api) {
   const DARK = 'minecraft:polished_blackstone'
   const ACC = 'minecraft:blue_concrete' // the one accent: points and short runs only
   const ROOF = 'deepslate_tile'
-  const FIELD = 'minecraft:smooth_stone' // paving field
+  const FIELD = 'minecraft:polished_andesite' // paving field (mid value, so the white architecture pops)
 
   // ------------------------------------------------------------------ 1 site: terraces
   // Four terraces step down a hill to a bay: the crown (vault, hall of fame, spawn), the plaza
@@ -222,78 +222,161 @@ export default function build(api) {
     }
   }
 
-  // ------------------------------------------------------------------ 2 the hero: clock bastion
-  // A rusticated bastion at the plaza's south edge carries the server name (HARBOR) on its face
-  // and the clock tower on its back half; its far side drops to the market street. The tower
-  // is the one monumental element: 9 x 9, finial at y 60 (37 over the plaza, 44 over the market).
-  const BX0 = 85
-  const BX1 = 125
-  const BZ0 = 96 // bastion front face (on the plaza)
-  const BZ1 = 109 // back face (on the market)
-  const BTOP = 32 // floor of the terrace on the bastion
-  b.box([BX0, MKT - 1, BZ0], [BX1, BTOP - 1, BZ1], RET)
-  b.box([BX0, BTOP, BZ0], [BX1, BTOP, BZ1], FIELD)
-  // rustication: a plinth course and a projecting cordon under the parapet on every face
-  for (const { facing, w, f } of rectFaces(BX0, BZ0, BX1, BZ1)) {
-    const base = facing === 'north' ? PLZ + 1 : MKT + 1
-    for (let u = 0; u < w; u += 1) {
-      b.set(...f(u, base, 1), st(TRIM, opposite(facing)), { keep: true })
-      b.set(...f(u, BTOP, 1), st(TRIM, opposite(facing), 'top'))
-      b.set(...f(u, BTOP - 1, 0), TRIM)
+  // Arch heads at half-block resolution (ported from desert-palace.mjs): each cell of the head is
+  // sampled at 4 points; 3-4 inside → open, the bottom pair → top slab, an inner bottom quarter
+  // → upside-down stair, an inner top quarter → bottom stair. k = 0.5 is a semicircle, k > 0.5
+  // a pointed two-centred arch. Cells are relative to the springing (j = 0: first head row).
+  const archHead = (w, k = 0.5) => {
+    const a = w / 2
+    const Rr = k * 2 * a
+    const inside = (u, v) => {
+      if (v < 0) return Math.abs(u) <= a
+      const du = Math.abs(u) + Rr - a
+      return du * du + v * v <= Rr * Rr && Math.abs(u) <= a
     }
-    // corner piers: two blocks proud, the full height, each crowned by a lantern on a plinth
-    for (const u of [0, w - 1]) {
-      for (let y = base; y <= BTOP; y += 1) b.set(...f(u, y, 1), y % 3 === 0 ? 'polished_andesite' : RET)
-      b.set(...f(u, BTOP + 1, 1), 'polished_deepslate')
-      b.set(...f(u, BTOP + 2, 1), 'polished_deepslate_wall')
-      b.set(...f(u, BTOP + 3, 1), 'lantern[hanging=false]')
+    const cells = []
+    const apex = Math.sqrt(Rr * Rr - (Rr - a) ** 2)
+    for (let j = 0; j <= Math.ceil(apex) + 1; j += 1)
+      for (let i = 0; i < w; i += 1) {
+        const u = i - (w - 1) / 2
+        const side = u < 0 ? -1 : u > 0 ? 1 : 0
+        const inner = u === 0 ? 0 : -Math.sign(u) * 0.25
+        const bi = inside(u + inner, j + 0.25)
+        const bo = inside(u - inner, j + 0.25)
+        const ti = inside(u + inner, j + 0.75)
+        const to = inside(u - inner, j + 0.75)
+        const n = bi + bo + ti + to
+        let kind = null
+        if (n >= 3) kind = 'air'
+        else if (bi && bo) kind = 'slabTop'
+        else if (ti && to) kind = 'slabBottom'
+        else if (bi) kind = 'stairTop'
+        else if (ti) kind = 'stairBottom'
+        if (kind) cells.push({ i, j, kind, side })
+      }
+    return cells
+  }
+  // cut an arched opening into a face frame f (u right, v = absolute y, d outward): u0 = left
+  // jamb, w wide, open rows y0..y0+spring-1, head above, from d = d0 inward `depth` layers
+  const cutArch = (f, facing, u0, w, y0, spring, { depth = 1, d0 = 0, mat = 'smooth_quartz', k = 0.5, fill = 'air' } = {}) => {
+    const left = cw(facing)
+    const right = ccw(facing)
+    for (let d = d0; d > d0 - depth; d -= 1) {
+      for (let v = 0; v < spring; v += 1) for (let i = 0; i < w; i += 1) b.set(...f(u0 + i, y0 + v, d), fill)
+      for (const c of archHead(w, k)) {
+        const p = f(u0 + c.i, y0 + spring + c.j, d)
+        const out = c.side < 0 ? left : right
+        if (c.kind === 'air') b.set(...p, fill)
+        else if (c.kind === 'slabTop') b.set(...p, sl(mat, 'top'))
+        else if (c.kind === 'slabBottom') b.set(...p, sl(mat, 'bottom'))
+        else if (c.kind === 'stairTop') b.set(...p, st(mat, c.side === 0 ? left : out, 'top'))
+        else if (c.kind === 'stairBottom') b.set(...p, st(mat, c.side === 0 ? left : out, 'bottom'))
+      }
     }
   }
-  // parapet round the terrace: quartz balustrade on the plaza side, iron rails toward the sea
-  balustrade(BX0, BZ0, BX1, BZ0, BTOP, { every: 5 })
-  balustrade(BX0, BZ1, BX1, BZ1, BTOP, { every: 5, kind: 'iron' })
-  balustrade(BX0, BZ0, BX0, BZ1, BTOP, { every: 5, kind: 'iron' })
-  balustrade(BX1, BZ0, BX1, BZ1, BTOP, { every: 5, kind: 'iron' })
 
-  // the server name, set into the bastion face on a framed blackstone board (letters 5 tall)
-  const HARBOR_TOP = PLZ + 7
-  b.sign('HARBOR', [AX, HARBOR_TOP, BZ0], 'north', { align: 'center', board: DARK, frame: TRIM, pad: 1, boardDepth: 2 })
-
-  // the clock tower: plinth, shaft, clock stage, belfry, balustrade and a pyramid spire.
-  // Its apex is set by the first view: from the spawn eye (y 39.6, 34.5 blocks away) the
-  // pitch-5 frame tops out at about y 59, so the finial ends there with sky above it.
-  const TX0 = 101
-  const TX1 = 109
-  const TZ0 = 99
-  const TZ1 = 107
-  const TC = [105, 103] // tower centre
-  const T0 = BTOP + 1 // tower floor, 33
-  const SHAFT = [T0 + 2, T0 + 7] // 35..40
-  const CLOCK = [T0 + 9, T0 + 15] // 42..48
-  const BELL = [T0 + 17, T0 + 20] // 50..53
-  b.box([TX0, T0, TZ0], [TX1, T0 + 1, TZ1], PLINTH)
-  b.box([TX0, T0 + 2, TZ0], [TX1, BELL[1] + 1, TZ1], WALL)
-  b.clear([TX0 + 2, T0, TZ0 + 2], [TX1 - 2, BELL[1], TZ1 - 2])
-  for (const { facing, f } of rectFaces(TX0, TZ0, TX1, TZ1)) {
+  // ------------------------------------------------------------------ 2 the hero: the Clock Gate
+  // A gate building straddles the step from the plaza down to the market: the axis runs through
+  // its arch as a vaulted stair (compression), out onto the market and the harbour view
+  // (release). The server name runs along its frieze; the clock tower rises from its centre in
+  // stages that step in: gate (39 wide, 18 tall) → clock stage (11) → belfry (9) → spire.
+  // The apex is set by the first view: from the spawn eye (y 39.6, 38 blocks out) the pitch-5
+  // frame tops out near y 61, so the finial ends there with sky above it.
+  const GX0 = 86
+  const GX1 = 124
+  const GZ0 = 96 // front face, on the plaza
+  const GZ1 = 106 // back face, on the market
+  const GTOP = 42 // gate cornice
+  const TX0 = 100
+  const TX1 = 110
+  const TC = [105, 101] // tower centre
+  const CLK = [GTOP + 1, GTOP + 7] // clock stage 43..49, dial centre y 46
+  const BEL = [CLK[1] + 2, CLK[1] + 5] // belfry 51..54
+  b.box([GX0, MKT - 1, GZ0], [GX1, GTOP, GZ1], WALL)
+  b.box([GX0, MKT - 1, GZ0], [GX1, PLZ + 1, GZ1], PLINTH)
+  b.box([GX0 + 1, PLZ + 2, GZ0 + 1], [GX1 - 1, GTOP - 1, GZ1 - 1], 'stone') // core (hidden)
+  const gateFaces = rectFaces(GX0, GZ0, GX1, GZ1)
+  for (const { facing, w, f } of gateFaces) {
     const inward = opposite(facing)
-    // plinth skirt and a water table
-    for (let u = -1; u <= 9; u += 1) b.set(...f(u, T0, 1), st('deepslate_brick', inward))
-    for (let u = 0; u <= 8; u += 1) b.set(...f(u, T0 + 2, 0), 'polished_diorite')
-    // shaft: corner pilasters two wide, a recessed field with one tall arched window
-    for (let u = 2; u <= 6; u += 1) for (let y = SHAFT[0] + 1; y <= SHAFT[1]; y += 1) b.set(...f(u, y, 0), 'air')
-    for (let y = SHAFT[0] + 2; y <= SHAFT[1] - 1; y += 1) b.set(...f(4, y, -1), 'gray_stained_glass_pane')
-    b.set(...f(3, SHAFT[1], -1), st('smooth_quartz', ccw(facing), 'top'))
-    b.set(...f(5, SHAFT[1], -1), st('smooth_quartz', cw(facing), 'top'))
-    b.set(...f(4, SHAFT[0] + 1, 0), st(TRIM, inward, 'top')) // sill
-    b.set(...f(4, SHAFT[1], -1), ACC) // keystone
-    // string course, then the clock: a framed white dial, two hands, four accent hour marks
-    for (let u = -1; u <= 9; u += 1) b.set(...f(u, SHAFT[1] + 1, 1), st(TRIM, inward, 'top'))
-    for (let u = 0; u <= 8; u += 1) b.set(...f(u, SHAFT[1] + 1, 0), TRIM)
-    for (const u of [0, 8]) for (let y = CLOCK[0]; y <= CLOCK[1]; y += 1) b.set(...f(u, y, 1), y % 2 === 0 ? QZ : 'quartz_bricks') // corner quoins, proud
-    const cy = (CLOCK[0] + CLOCK[1]) / 2
-    for (let u = 1; u <= 7; u += 1)
-      for (let y = CLOCK[0]; y <= CLOCK[1]; y += 1) {
-        const du = u - 4
+    const base = facing === 'north' ? PLZ + 1 : MKT + 1
+    // plinth skirt, a water table, the crowning cornice and a balustraded roof terrace
+    for (let u = -1; u <= w; u += 1) {
+      b.set(...f(u, base, 1), st('deepslate_brick', inward), { keep: true })
+      b.set(...f(u, GTOP, 1), st(TRIM, inward, 'top'))
+    }
+    for (let u = 0; u < w; u += 1) {
+      b.set(...f(u, base + 1, 0), 'polished_diorite')
+      b.set(...f(u, GTOP, 0), TRIM)
+      const post = u % 4 === 0 || u === w - 1
+      b.set(...f(u, GTOP + 1, 0), post ? QZ : 'diorite_wall')
+      b.set(...f(u, GTOP + 2, 0), post ? 'polished_deepslate_wall' : sl('smooth_quartz'))
+    }
+    // corner piers: quoined, proud by one, from the plinth to the cornice
+    for (const u of [0, w - 1])
+      for (let y = base + 1; y < GTOP; y += 1) b.set(...f(u, y, 1), (y - base) % 2 === 0 ? 'quartz_bricks' : QZ)
+  }
+  // north (plaza) face: the passage arch between paired pilasters, a niche in each wing for an
+  // NPC, the name on the frieze above
+  const NF = gateFaces[0].f // u = 0 at x 124, u grows west
+  const ux = x => GX1 - x // u of a column x on the north face
+  cutArch(NF, 'north', ux(107), 5, PLZ + 1, 5, { depth: 11, mat: 'smooth_quartz' })
+  for (const x of [101, 102, 108, 109]) {
+    b.set(x, PLZ + 1, GZ0 - 1, 'polished_deepslate')
+    for (let y = PLZ + 2; y <= PLZ + 7; y += 1) b.set(x, y, GZ0 - 1, 'quartz_pillar[axis=y]')
+    b.set(x, PLZ + 8, GZ0 - 1, st('smooth_quartz', 'south', 'top'))
+  }
+  for (let x = 102; x <= 108; x += 1) b.set(x, PLZ + 9, GZ0 - 1, st(TRIM, 'south', 'top'))
+  b.set(105, PLZ + 8, GZ0 - 1, ACC) // keystone
+  b.set(104, PLZ + 8, GZ0 - 1, st('smooth_quartz', 'east', 'top'))
+  b.set(106, PLZ + 8, GZ0 - 1, st('smooth_quartz', 'west', 'top'))
+  // the vaulted stair passage: landing, seven steps down, landing; a barrel vault with lanterns
+  b.clear([103, MKT + 1, GZ0], [107, PLZ + 7, GZ1])
+  for (let z = GZ0; z <= GZ1; z += 1) {
+    const k = clamp(z - (GZ0 + 2), 0, 7)
+    const y = PLZ - k
+    for (let x = 103; x <= 107; x += 1) {
+      b.box([x, MKT - 1, z], [x, y - 1, z], 'stone')
+      b.set(x, y, z, z > GZ0 + 2 && z <= GZ0 + 9 ? st('stone_brick', 'north') : x === 105 ? 'polished_deepslate' : 'stone_bricks')
+    }
+    for (const x of [103, 107]) b.set(x, PLZ + 7, z, st('smooth_quartz', x === 103 ? 'west' : 'east', 'top'))
+    b.set(102, PLZ + 6, z, z % 3 === 0 ? 'quartz_pillar[axis=y]' : QZ)
+    b.set(108, PLZ + 6, z, z % 3 === 0 ? 'quartz_pillar[axis=y]' : QZ)
+  }
+  for (const z of [GZ0 + 2, GZ1 - 2]) hang(105, PLZ + 6, z, 1)
+  // the market (south) face: a tall portal at the foot of the stair, shop arches in the wings
+  const SF = gateFaces[1].f // u = 0 at x 86, u grows east
+  cutArch(SF, 'south', 103 - GX0, 5, MKT + 1, 9, { depth: 1, mat: 'smooth_quartz' })
+  for (const x of [101, 109]) for (let y = MKT + 1; y <= MKT + 12; y += 1) b.set(x, y, GZ1 + 1, y === MKT + 12 ? st(TRIM, 'north', 'top') : 'quartz_pillar[axis=y]')
+  b.set(105, MKT + 12, GZ1, ACC)
+  for (const x0 of [89, 94, 113, 118]) {
+    cutArch(SF, 'south', x0 - GX0, 3, MKT + 1, 3, { depth: 3, mat: 'smooth_quartz' })
+    b.set(x0 + 1, MKT + 5, GZ1, 'polished_deepslate')
+    b.box([x0, MKT + 1, GZ1 - 3], [x0 + 2, MKT + 4, GZ1 - 3], 'dark_oak_planks')
+    b.set(x0 + 1, MKT + 1, GZ1 - 2, 'barrel[facing=south]')
+  }
+  // upper windows on the market face: one per bay over the shops
+  for (const x of [90, 95, 115, 120]) {
+    for (let y = MKT + 8; y <= MKT + 10; y += 1) b.set(x, y, GZ1, 'gray_stained_glass_pane')
+    b.set(x, MKT + 7, GZ1 + 1, st(TRIM, 'north', 'top'))
+    b.set(x, MKT + 11, GZ1, ACC)
+  }
+  // the server name on the frieze: letters stand one proud of the face, the board set into it
+  b.sign('HARBOR', [AX, GTOP - 4, GZ0 - 1], 'north', { align: 'center', board: DARK, frame: QZ, pad: 1, boardDepth: 2 })
+  // NPC niches in the wings, facing the plaza and the spawn
+  const npcStyle = { primary: 'smooth_quartz', trim: TRIM, accent: ACC, glass: 'light_blue_stained_glass', light: 'pearlescent_froglight', backdrop: 'polished_blackstone' }
+  b.npcSpot([94, PLZ, GZ0 + 1], 'north', { id: 'quests', label: 'Quests', role: 'quests', style: 'alcove', ...npcStyle })
+  b.npcSpot([116, PLZ, GZ0 + 1], 'north', { id: 'warps', label: 'Warps', role: 'warps', style: 'alcove', ...npcStyle })
+
+  // the tower, stage 2: the clock (11 wide, a dial on every face, quoined corners)
+  b.box([TX0, CLK[0], GZ0], [TX1, CLK[1], GZ1], WALL)
+  b.clear([TX0 + 2, CLK[0], GZ0 + 2], [TX1 - 2, CLK[1], GZ1 - 2])
+  for (const { facing, f } of rectFaces(TX0, GZ0, TX1, GZ1)) {
+    const inward = opposite(facing)
+    for (const u of [0, 10]) for (let y = CLK[0]; y <= CLK[1]; y += 1) b.set(...f(u, y, 1), (y - CLK[0]) % 2 === 0 ? 'quartz_bricks' : QZ)
+    const cy = (CLK[0] + CLK[1]) / 2
+    for (let u = 2; u <= 8; u += 1)
+      for (let y = CLK[0]; y <= CLK[1]; y += 1) {
+        const du = u - 5
         const dv = y - cy
         const r = Math.hypot(du, dv)
         if (r > 3.4) continue
@@ -303,37 +386,83 @@ export default function build(api) {
           b.set(...f(u, y, 0), hand || (du === 0 && dv === 0) ? 'polished_blackstone' : 'white_concrete')
         }
       }
-    // cornice over the clock, then the belfry: one round arch per face between corner piers
-    for (let u = -1; u <= 9; u += 1) b.set(...f(u, CLOCK[1] + 1, 1), st(TRIM, inward, 'top'))
-    for (let u = 0; u <= 8; u += 1) b.set(...f(u, CLOCK[1] + 1, 0), TRIM)
-    for (const u of [0, 8]) for (let y = BELL[0]; y <= BELL[1]; y += 1) b.set(...f(u, y, 1), QZ)
-    for (let u = 3; u <= 5; u += 1) for (let y = BELL[0]; y <= BELL[1] - 1; y += 1) for (let d = 0; d >= -1; d -= 1) b.set(...f(u, y, d), 'air')
-    for (let d = 0; d >= -1; d -= 1) {
-      b.set(...f(3, BELL[1] - 1, d), st('smooth_quartz', ccw(facing), 'top'))
-      b.set(...f(5, BELL[1] - 1, d), st('smooth_quartz', cw(facing), 'top'))
-    }
-    b.set(...f(4, BELL[1], 0), ACC)
-    for (let u = 2; u <= 6; u += 1) b.set(...f(u, BELL[0] - 1, 1), st('smooth_quartz', inward, 'top'))
-    // top cornice and a balustrade with pinnacles at the corners
-    for (let u = -1; u <= 9; u += 1) b.set(...f(u, BELL[1] + 1, 1), st(TRIM, inward, 'top'))
-    for (let u = 0; u <= 8; u += 1) b.set(...f(u, BELL[1] + 2, 0), u === 0 || u === 8 ? 'quartz_pillar[axis=y]' : u === 4 ? QZ : 'diorite_wall')
+    for (let u = -1; u <= 11; u += 1) b.set(...f(u, CLK[1] + 1, 1), st(TRIM, inward, 'top'))
+    for (let u = 0; u <= 10; u += 1) b.set(...f(u, CLK[1] + 1, 0), TRIM)
   }
-  for (const [x, z] of [[TX0, TZ0], [TX1, TZ0], [TX0, TZ1], [TX1, TZ1]]) {
-    b.set(x, BELL[1] + 3, z, 'quartz_pillar[axis=y]')
-    b.set(x, BELL[1] + 4, z, 'polished_deepslate_wall')
+  // stage 3: the belfry, set in by one, twin arched lights (bifora) on every face
+  b.box([TX0 + 1, BEL[0], GZ0 + 1], [TX1 - 1, BEL[1] + 1, GZ1 - 1], WALL)
+  b.clear([TX0 + 2, BEL[0], GZ0 + 2], [TX1 - 2, BEL[1], GZ1 - 2])
+  for (const { facing, f } of rectFaces(TX0 + 1, GZ0 + 1, TX1 - 1, GZ1 - 1)) {
+    const inward = opposite(facing)
+    for (const u0 of [2, 5]) cutArch(f, facing, u0, 2, BEL[0], 2, { depth: 2, mat: 'smooth_quartz' })
+    b.set(...f(4, BEL[0], 0), 'quartz_pillar[axis=y]')
+    b.set(...f(4, BEL[0] + 1, 0), 'quartz_pillar[axis=y]')
+    for (let u = 1; u <= 7; u += 1) b.set(...f(u, BEL[0] - 1, 1), st('smooth_quartz', inward, 'top'))
+    for (const u of [0, 8]) for (let y = BEL[0]; y <= BEL[1]; y += 1) b.set(...f(u, y, 1), y === BEL[1] ? st(TRIM, inward, 'top') : 'quartz_pillar[axis=y]')
+    for (let u = -1; u <= 9; u += 1) b.set(...f(u, BEL[1] + 1, 1), st(TRIM, inward, 'top'))
+    b.set(...f(4, BEL[1], 0), ACC)
   }
-  // inside: floors, lanterns so the windows glow at night, the bell under a beam
-  b.box([TX0 + 2, CLOCK[0] - 1, TZ0 + 2], [TX1 - 2, CLOCK[0] - 1, TZ1 - 2], 'dark_oak_planks')
-  b.box([TX0 + 2, BELL[0] - 1, TZ0 + 2], [TX1 - 2, BELL[0] - 1, TZ1 - 2], 'dark_oak_planks')
-  for (let x = TX0 + 2; x <= TX1 - 2; x += 1) b.set(x, BELL[1], TC[1], 'stripped_dark_oak_log[axis=x]')
-  b.set(TC[0], BELL[1] - 1, TC[1], 'bell[attachment=ceiling,facing=north]')
-  hang(TC[0], CLOCK[0] + 3, TC[1], CLOCK[1] - CLOCK[0] - 2)
-  hang(TC[0], SHAFT[0] + 2, TC[1], SHAFT[1] - SHAFT[0])
-  b.set(TC[0] - 1, BELL[0], TC[1] - 1, 'lantern[hanging=false]')
-  // the spire: a deepslate pyramid inside the balustrade, a finial on the apex
-  const spire = b.roof({ x0: TX0 + 1, z0: TZ0 + 1, x1: TX1 - 1, z1: TZ1 - 1, y: BELL[1] + 2, type: 'pyramid', material: ROOF, pitch: 1, overhang: 0, eaveTrim: false })
+  for (let x = TX0 + 2; x <= TX1 - 2; x += 1) b.set(x, BEL[1], TC[1], 'stripped_dark_oak_log[axis=x]')
+  b.set(TC[0], BEL[1] - 1, TC[1], 'bell[attachment=ceiling,facing=north]')
+  b.box([TX0 + 2, BEL[0] - 1, GZ0 + 2], [TX1 - 2, BEL[0] - 1, GZ1 - 2], 'dark_oak_planks')
+  b.box([TX0 + 2, CLK[0] - 1, GZ0 + 2], [TX1 - 2, CLK[0] - 1, GZ1 - 2], 'dark_oak_planks')
+  hang(TC[0], CLK[0] + 3, TC[1], CLK[1] - CLK[0] - 2)
+  b.set(TC[0] + 1, BEL[0], TC[1] + 1, 'lantern[hanging=false]')
+  // the spire: balustrade with corner pinnacles, a deepslate pyramid, a finial
+  const SPY = BEL[1] + 2
+  for (const { f } of rectFaces(TX0 + 1, GZ0 + 1, TX1 - 1, GZ1 - 1))
+    for (let u = 0; u <= 8; u += 1) b.set(...f(u, SPY, 0), u === 0 || u === 8 ? 'quartz_pillar[axis=y]' : 'diorite_wall')
+  for (const [x, z] of [[TX0 + 1, GZ0 + 1], [TX1 - 1, GZ0 + 1], [TX0 + 1, GZ1 - 1], [TX1 - 1, GZ1 - 1]]) b.set(x, SPY + 1, z, 'polished_deepslate_wall')
+  const spire = b.roof({ x0: TX0 + 2, z0: GZ0 + 2, x1: TX1 - 2, z1: GZ1 - 2, y: SPY, type: 'pyramid', material: ROOF, pitch: 1, overhang: 0, eaveTrim: false })
   b.set(TC[0], spire.topY + 1, TC[1], 'polished_deepslate_wall')
   b.set(TC[0], spire.topY + 2, TC[1], 'lightning_rod[facing=up]')
+
+  // ------------------------------------------------------------------ blocking of the districts
+  // CRATES VAULT: a treasury facade cut into the cliff behind the crown terrace, crates court in front
+  b.box([87, CRN + 1, 36], [123, CRN + 15, 41], WALL)
+  b.box([87, CRN + 1, 42], [92, CRN + 9, 50], WALL)
+  b.box([118, CRN + 1, 42], [123, CRN + 9, 50], WALL)
+  // HALL OF FAME: board wall + two stoas + propylon (crown west)
+  b.box([38, CRN + 1, 38], [43, CRN + 11, 62], WALL)
+  b.box([44, CRN + 1, 36], [72, CRN + 6, 41], WALL)
+  b.roof({ x0: 44, z0: 36, x1: 72, z1: 41, y: CRN + 7, type: 'gable', axis: 'x', material: ROOF, pitch: 0.5 })
+  b.box([44, CRN + 1, 59], [66, CRN + 6, 64], WALL)
+  b.roof({ x0: 44, z0: 59, x1: 66, z1: 64, y: CRN + 7, type: 'gable', axis: 'x', material: ROOF, pitch: 0.5 })
+  b.box([74, CRN + 1, 45], [80, CRN + 10, 55], WALL)
+  b.roof({ x0: 74, z0: 45, x1: 80, z1: 55, y: CRN + 11, type: 'gable', axis: 'x', material: ROOF, pitch: 0.5 })
+  // AFK GARDEN: pergola, pool and a round gazebo on the shelf (east)
+  b.box([142, SHELF + 1, 36], [176, SHELF + 4, 39], 'dark_oak_planks')
+  b.box([146, SHELF, 46], [172, SHELF, 54], 'water')
+  b.cylinder([179, SHELF + 1, 50], 4, 5, WALL)
+  b.bellRoof([179, SHELF + 6, 50], 5.5, 6, { material: ROOF })
+  // AUCTION EXCHANGE: hall with a gallery on the plaza (west)
+  b.box([50, PLZ + 1, 74], [72, PLZ + 13, 98], WALL)
+  b.roof({ x0: 50, z0: 74, x1: 72, z1: 98, y: PLZ + 14, type: 'hip', material: ROOF, pitch: 1 })
+  b.box([73, PLZ + 1, 76], [79, PLZ + 10, 96], WALL)
+  b.cylinder([61, PLZ + 22, 86], 2.5, 3, WALL)
+  b.lathe([61, PLZ + 25, 86], 3, dy => [3, 2.3, 1.2][dy], 'deepslate_tiles')
+  // DUELS: a gatehouse of two round towers, the arena bowl behind it (east)
+  b.cylinder([134, PLZ + 1, 79], 3.5, 14, WALL)
+  b.cylinder([134, PLZ + 1, 93], 3.5, 14, WALL)
+  b.coneRoof([134, PLZ + 15, 79], 3.5, { material: ROOF })
+  b.coneRoof([134, PLZ + 15, 93], 3.5, { material: ROOF })
+  b.box([131, PLZ + 1, 82], [137, PLZ + 11, 90], WALL)
+  b.fillWhere([142, PLZ - 4, 68], [188, PLZ + 6, 102], (x, y, z) => {
+    const r = Math.hypot((x - 165) / 22, (z - 85) / 16)
+    return r <= 1 && r > 0.82 && y > PLZ
+  }, PLINTH)
+  // MARKET: stalls against the plaza wall (north side), shophouses (south side)
+  const houses = [[36, 7, 3, 11], [44, 9, 2, 8], [54, 6, 3, 12], [61, 8, 2, 9], [70, 10, 3, 11], [81, 7, 2, 9], [89, 8, 3, 12], [113, 8, 2, 9], [122, 9, 3, 11], [132, 7, 2, 10], [140, 10, 3, 12], [151, 6, 2, 8], [158, 9, 3, 11], [168, 7, 2, 9]]
+  for (const [x0, w, , h] of houses) {
+    b.box([x0, QUAY + 1, 117], [x0 + w - 1, MKT + h, 125], WALL)
+    b.roof({ x0, z0: 117, x1: x0 + w - 1, z1: 125, y: MKT + h + 1, type: 'gable', axis: w > 8 ? 'x' : 'z', material: ROOF, pitch: 1 })
+  }
+  // HARBOUR: RTP gate pavilion on the axis pier, a harbour master's house, the mole + light
+  b.box([101, QUAY - 1, 139], [109, QUAY, 152], 'spruce_planks')
+  b.box([102, QUAY + 1, 145], [108, QUAY + 9, 151], WALL)
+  b.roof({ x0: 102, z0: 145, x1: 108, z1: 151, y: QUAY + 10, type: 'pyramid', material: ROOF, pitch: 1 })
+  b.box([150, QUAY + 1, 128], [160, QUAY + 10, 136], WALL)
+  b.cylinder([172, SEA + 1, 196], 3, 14, WALL)
 
   // ------------------------------------------------------------------ 3 spawn belvedere
   const [SX, SY, SZ] = SPAWN
@@ -353,7 +482,19 @@ export default function build(api) {
         b.set(x, SY, z, dx === 0 && dz === 0 ? 'chiseled_quartz_block' : dx === 0 || dz === 0 ? QZ : 'polished_deepslate')
       }
     }
-  for (const [dx, dz] of [[0, -4], [0, 4], [4, 0], [-4, 0]]) b.set(SX + dx, CRN, SZ + dz, ACC)
+
+  // ------------------------------------------------------------------ texture passes
+  // white field: quartz → quartz bricks → calcite → polished diorite, darker toward the base and in
+  // drip streaks, brighter around the focal points; plinths: polished deepslate → tiles
+  const WHITE_RAMP = ['smooth_quartz', 'quartz_bricks', 'calcite', 'polished_diorite']
+  const DARK_RAMP = ['polished_deepslate', 'deepslate_bricks', 'deepslate_tiles']
+  const RET_RAMP = ['polished_andesite', 'stone_bricks', 'cracked_stone_bricks', 'tuff_bricks']
+  const textureBuilding = (min, max, focus = [], seed = 0) => {
+    b.texture(min, max, WHITE_RAMP, { only: WALL, base: 0.32, edge: 0.12, drip: 0.12, focus, focusRadius: 8, scale: 5, noise: 0.25, seed })
+    b.texture(min, max, DARK_RAMP, { only: PLINTH, base: 0.3, scale: 4, noise: 0.3, seed: seed + 1 })
+  }
+  textureBuilding([GX0 - 2, MKT - 1, GZ0 - 3], [GX1 + 2, 66, GZ1 + 3], [[AX, PLZ + 4, GZ0], [AX, CLK[0] + 3, GZ0]], 1)
+  b.texture([0, 0, 0], [W - 1, CRN + 2, D - 1], RET_RAMP, { only: RET, base: 0.35, edge: 0.15, drip: 0.15, scale: 6, noise: 0.3, seed: 9 })
 
   b.spawnPoint(SPAWN, 'south')
   return b.finish({ name: 'spawn-plus', description: 'Harbor Hub spawn+' })

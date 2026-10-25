@@ -835,16 +835,20 @@ export function leaderboards(b, pos, facing = 'south', opts = {}) {
         b.set(...L.at(u, -4, top), stair(M.T, L.facing, 'top'))
       }
     }
-    if (ends) for (const [u, s] of [[a - 1, L.right], [z + 1, L.left]]) for (let d = -4; d <= 1; d += 1) {
-      b.set(...L.at(u, d, 1), stair(M.B, s))
-      b.set(...L.at(u, d, top), stair(M.T, s, 'top'))
+    if (ends) for (const [u, s] of [[a - 1, L.right], [z + 1, L.left]]) {
+      for (let d = -4; d <= 1; d += 1) {
+        b.set(...L.at(u, d, 1), stair(M.B, s))
+        b.set(...L.at(u, d, top), stair(M.T, s, 'top'))
+      }
+      // an end pilaster breaks the side face
+      for (let h = 2; h < top; h += 1) b.set(...L.at(u, -2, h), h === 2 ? M.B.block : M.T.block)
     }
   }
   // piers between and beside the boards: base, shaft, capital, a lantern on a bracket
   const piers = style === 'wall' ? [ua, ub, ...units.slice(0, -1).map(un => un.fr + 1 + Math.floor(gap / 2))] : []
   // the back of a freestanding wall: pilasters behind the piers and the board centres
   if (style === 'wall' && opts.back !== false) {
-    for (const u of [...piers, ...units.map(un => Math.round((un.cl + un.cr) / 2))]) {
+    for (const u of new Set([...piers, ...units.flatMap(un => [un.fl, Math.round((un.cl + un.cr) / 2), un.fr])])) {
       const top = units.some(un => un.hero && u >= un.fl - 1 && u <= un.fr + 1) ? crown(units[hero]) + 1 : baseTop
       for (let h = 1; h < top; h += 1) b.set(...L.at(u, -4, h), h <= 2 ? M.B.block : M.T.block)
       b.set(...L.at(u, -5, 1), stair(M.B, L.facing))
