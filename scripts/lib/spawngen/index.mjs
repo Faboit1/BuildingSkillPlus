@@ -35,6 +35,7 @@ import { normalizeBrief, TYPES } from './brief.mjs'
 import { resolveTheme } from './themes.mjs'
 import { buildSite } from './site.mjs'
 import { landscapePass } from './landscape.mjs'
+import { cleanupSpawn } from './cleanup.mjs'
 import * as normal from './layout-normal.mjs'
 import * as plus from './layout-plus.mjs'
 import * as pvp from './layout-pvp.mjs'
@@ -167,6 +168,7 @@ export function generateSpawn(api, input, opts = {}) {
   L.build(ctx)
   ctx.place(landscapePass)
   if (opts.after) opts.after(ctx)
+  const cleaned = ctx.place(cleanupSpawn) ?? 0
   // gameplay regions: the whole spawn is safe; layouts add pvp / afk regions with a higher priority
   b.region('spawn', [0, 0, 0], [S - 1, H - 1, S - 1], { pvp: 'deny', 'mob-spawning': 'deny', 'fall-damage': 'deny', 'item-drop': 'deny', priority: 10 })
   const land = ctx.site.land
@@ -177,6 +179,6 @@ export function generateSpawn(api, input, opts = {}) {
     spawnProof: { min: [0, ctx.FY - 6, 0], max: [S - 1, H - 1, S - 1], inside: (x, z) => land(x, z) },
   })
   result.metadata ??= {}
-  result.metadata.spawngen = { brief, theme: ctx.theme.key, setting: ctx.theme.setting, warnings: ctx.warnings, floorY: ctx.FY, spawn: ctx.layout.spawn }
+  result.metadata.spawngen = { brief, theme: ctx.theme.key, setting: ctx.theme.setting, warnings: ctx.warnings, floorY: ctx.FY, spawn: ctx.layout.spawn, cleaned }
   return result
 }

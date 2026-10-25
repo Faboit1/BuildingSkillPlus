@@ -17,6 +17,7 @@ const cases = [
   { name: 'Smoke Winter', type: 'normal', theme: 'winter', npcs: 8, setting: 'mountain', features: { pvp: false, afk: true } },
   { name: 'Smoke Plus', type: 'plus', theme: 'fantasy', npcs: 9, leaderboards: 2 },
   { name: 'Smoke PvP', type: 'pvp', theme: 'japanese', npcs: 5, crates: 1 },
+  { name: 'Smoke Crimson', type: 'normal', theme: 'crimson', npcs: 10, leaderboards: ['Kills', 'Playtime'] },
 ]
 let failed = 0
 for (const brief of cases) {

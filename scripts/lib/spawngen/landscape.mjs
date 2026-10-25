@@ -504,7 +504,7 @@ export function plantTree(ctx, name, [x, y, z], { size = 'medium', seed = 0, hei
   let H = height ?? rng.int(h0, h1)
   // a broadleaf crown is about 0.6 (cherry 0.75) of its height in radius: in a tight spot plant a
   // smaller tree of the same shape rather than squeezing a big one into a lollipop
-  const ratio = { cherry: 0.8, autumn: 0.62, oak: 0.62, big_oak: 0.62, blossom: 0.62, dark_oak: 0.7 }[name]
+  const ratio = { cherry: 0.8, autumn: 0.62, oak: 0.62, big_oak: 0.62, blossom: 0.62, dark_oak: 0.7, crimson: 0.62 }[name]
   if (maxR && ratio) H = Math.max(5, Math.min(H, Math.round(maxR / ratio)))
   if (maxH) H = Math.max(4, Math.min(H, Math.round(maxH)))
   const base = [x, y + 1, z]
@@ -524,6 +524,18 @@ export function plantTree(ctx, name, [x, y, z], { size = 'medium', seed = 0, hei
         log: 'dark_oak_log', wood: 'dark_oak_wood', paint: autumnPaint(ctx, hue, seed * 3 + x),
       })
     }
+    case 'crimson':
+      // a crimson-forest tree grown tall: crimson stem limbs, a nether-wart crown lit by shroomlights,
+      // weeping vines hanging from the rim
+      if (small) return youngTree(ctx, base, { height: H, seed, maxR, log: 'crimson_stem', wood: 'crimson_hyphae', paint: crimsonPaint(ctx, seed) })
+      return broadleaf(ctx, base, {
+        height: H, seed, maxR, fork: [0.36, 0.44], leaders: big ? [3, 4] : [2, 3], depth: big ? 2 : 1, fork3: 0.35,
+        reach: 0.3, elev: [0.58, 0.36, 0.26], split: [0.4, 0.75], decay: [0.6, 0.72], out: 0.25, bow: 0.1,
+        cluster: big ? [3.1, 1.7] : [2.6, 1.6], holes: 0.16, rough: 0.34, flat: 0.5, inner: 0.4, lobeVar: 0.22, sag: 0.8,
+        trunk: big ? 1.35 : 0.9, leader: !small, roots: big ? 4 : 2,
+        log: 'crimson_stem', wood: 'crimson_hyphae', paint: crimsonPaint(ctx, seed),
+        droop: { chance: 0.14, len: [1, 4], id: 'weeping_vines', outer: 0.45 },
+      })
     case 'oak':
     case 'big_oak':
       if (small) return youngTree(ctx, base, { height: H, seed, maxR, log: 'oak_log', wood: 'oak_wood', paint: shadedPaint(ctx, { base: 'oak_leaves', under: 'dark_oak_leaves', over: 'azalea_leaves', seed }) })
@@ -584,6 +596,17 @@ export function plantTree(ctx, name, [x, y, z], { size = 'medium', seed = 0, hei
         return { radius: H * 0.45, top: t.top[1] + 3, cells: [] }
       }
       return plantTree(ctx, 'oak', [x, y, z], { size, seed, height })
+  }
+}
+
+// crimson: nether wart in clumps with darker leaves in the shade and a few shroomlights glowing
+function crimsonPaint(ctx, seed) {
+  const { kit } = ctx
+  return crown => (x, y, z, info) => {
+    if (info.depth > 1.6) return kit.hash01(x, y, z, seed + 2) < 0.06 ? 'shroomlight' : 'dark_oak_leaves'
+    if (kit.hash01(x, y, z, seed + 7) < 0.035) return 'shroomlight'
+    const n = kit.noise.coherent01(x, y, z, { scale: 2.4, grain: 0.12, seed: seed + 29 })
+    return n < 0.14 ? 'dark_oak_leaves' : n > 0.9 ? 'red_terracotta' : 'nether_wart_block'
   }
 }
 
@@ -687,6 +710,7 @@ const PROP_STYLE = {
   japanese: { lamp: 'toro', stone: 'andesite', brick: 'stone_brick', rim: 'mossy', soil: { moss_block: 3, podzol: 1, grass_block: 1 } },
   winter: { lamp: 'wood', stone: 'cobblestone', brick: 'stone_brick', rim: 'log', soil: { podzol: 2, coarse_dirt: 1, snow_block: 1 } },
   fantasy: { lamp: 'birch', stone: 'mossy_cobblestone', brick: 'mossy_stone_brick', rim: 'mossy', soil: { moss_block: 2, grass_block: 2, rooted_dirt: 1 } },
+  crimson: { lamp: 'wood', stone: 'blackstone', brick: 'polished_blackstone_brick', rim: 'brick', soil: { crimson_nylium: 3, podzol: 1, rooted_dirt: 1 } },
 }
 
 function mats(ctx) {
@@ -873,7 +897,7 @@ export function planter(ctx, [x, y, z], { r = 2, tree = true, seed = 0, style } 
 }
 function smallTreeFor(ctx) {
   const f = ctx.theme?.trees?.feature
-  return { autumn: 'autumn', cherry: 'cherry', blossom: 'blossom', snowy_spruce: 'spruce', oak: 'azalea', pine: 'pine' }[f] ?? 'azalea'
+  return { autumn: 'autumn', cherry: 'cherry', blossom: 'blossom', snowy_spruce: 'spruce', oak: 'azalea', pine: 'pine', crimson: 'crimson' }[f] ?? 'azalea'
 }
 
 // A round fountain: a stone rim around a basin, a column carrying a small bowl of water, sea
@@ -1611,6 +1635,7 @@ const BUSH_LEAVES = {
   winter: [['spruce_leaves', 4], ['dark_oak_leaves', 1]],
   fantasy: [['flowering_azalea_leaves', 3], ['azalea_leaves', 2], ['cherry_leaves', 1]],
   'white-town': [['oak_leaves', 3], ['azalea_leaves', 2], ['flowering_azalea_leaves', 1]],
+  crimson: [['dark_oak_leaves', 3], ['oak_leaves', 1]],
 }
 
 // A bush: a squat leaf lobe around a log heart, the theme's leaf mix in clumps.
@@ -1858,7 +1883,7 @@ export function landscapePass(ctx) {
   let forestArea = 0
   for (let i = 0; i < N; i += 1) if (canopy[i] && cls[i] === 0) forestArea += 1
   const nLogs = Math.round(forestArea / 450)
-  const logId = { autumn: 'dark_oak_log', japanese: 'spruce_log', winter: 'spruce_log', fantasy: 'birch_log', 'white-town': 'oak_log' }[key] ?? 'oak_log'
+  const logId = { autumn: 'dark_oak_log', japanese: 'spruce_log', winter: 'spruce_log', fantasy: 'birch_log', 'white-town': 'oak_log', crimson: 'crimson_stem' }[key] ?? 'oak_log'
   for (let tries = 0, made = 0; tries < nLogs * 30 && made < nLogs; tries += 1) {
     const x = rng.int(4, S - 5)
     const z = rng.int(4, S - 5)

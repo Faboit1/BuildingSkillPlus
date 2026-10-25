@@ -46,8 +46,9 @@ Use the `AskUserQuestion` tool. Mark the option you recommend with "(Recommended
    *PvP lobby* (queue NPCs in an arc, an FFA arena).
 2. **Size** in blocks: *Recommended for the NPC count* / 100 x 100 / 150 x 150 / 220 x 220.
 3. **How many NPCs**: e.g. 6 / 8 / 12 / 16 (the user can type any number).
-4. **Theme**: autumn / medieval / white-town / japanese / winter / fantasy (one question can show
-   only 4 options: offer the 3 best for their server plus "Other", and list all six in the question).
+4. **Theme**: autumn / medieval / white-town / japanese / winter / fantasy / crimson (dark red,
+   nether-like; good for lifesteal). One question shows at most 4 options: offer the 3 that fit their
+   server best plus "Other", and list all seven in the question text.
 
 **Round 2** (one call): the **server name** (block letters on the hero wall), **which NPCs**
 (multiSelect from the type's list below, or they type their own), **which leaderboards**
@@ -71,7 +72,7 @@ the user did not decide (good defaults fill it). Examples: `assets/spawn-briefs/
 | `type` | `"normal"`, `"plus"`, `"pvp"` | `"normal"` |
 | `size` | blocks across (square) | recommended for the NPC count |
 | `npcs` | a number, or a list of ids/labels: `["shop", "auction", "rtp"]` or `[{ "id": "crates_guy", "label": "Crate Keys" }]` | 7 / 12 / 6 |
-| `theme` | `autumn`, `medieval`, `white-town`, `japanese`, `winter`, `fantasy` | `medieval` (pvp: `japanese`) |
+| `theme` | `autumn`, `medieval`, `white-town`, `japanese`, `winter`, `fantasy`, `crimson` | `medieval` (pvp: `japanese`) |
 | `setting` | `island`, `plains`, `valley`, `mountain`, `coast` | the theme's |
 | `accent` | a dye colour: `blue`, `red`, `orange`, `purple`, `cyan`, `lime`... | the theme's |
 | `leaderboards` | a number or labels: `["Money", "Kills", "Playtime"]` | 3 (plus: 4) |
@@ -80,6 +81,10 @@ the user did not decide (good defaults fill it). Examples: `assets/spawn-briefs/
 | `seed` | any number: a different variation of the same brief | 7 |
 | `origin` | `[x, y, z]` where the minimum corner is pasted | centred on 0, 0 at y 64 |
 | `world` | the world name used in the setup commands | `"world"` |
+
+A look that is not one of the themes (e.g. "ocean", "desert", "candy"): pick the closest theme, set
+`accent` to their colour, tell the user which theme you used, and add the missing touches in Step 4's
+`after(ctx)` (extra trees, statues, banners in their colour).
 
 NPC ids the generator knows (any other id works too and becomes its own label):
 normal/plus: `shop, auction, rtp, store, kits, quests, sell, warps, events, bounties, teams,
@@ -97,9 +102,20 @@ is small: raise `size` (or leave it out) and run again.
 
 ### Step 4: look at the renders, fix, rebuild
 
-Open every PNG in `minecraft-builds/<slug>/renders/` with the Read tool (overview from two sides, and
-the plaza close-up). Check: the name sign reads; the plaza, the NPC places, the boards and the crates
-are visible and not buried in trees; nothing floats or overlaps. To change something:
+Open every PNG in `minecraft-builds/<slug>/renders/` with the Read tool (overviews from two sides, the
+plaza close-up and, if Playwright is installed, the eye-level spawn view). Check: the name sign reads;
+the plaza, the NPC places, the boards and the crates are visible and not buried in trees; nothing
+floats or overlaps. Leaderboard text, NPC names and crate titles are holograms set up from
+`setup.md`, so renders show only the dark board backdrops, the plinths and the chests: that is
+expected. Then lint it:
+
+```bash
+node scripts/inspect.mjs minecraft-builds/<slug>/<slug>.nbt --checks
+```
+
+Only `flat-walls` and `palette-size` notes are normal for a spawn; anything else (floating blocks,
+support, plant-soil, fluids) is worth fixing in `after(ctx)`. (In `--score`, "base columns over air"
+is always high for a floating island; ignore it.) To change something:
 - Different look of the same plan: change `seed` (or `theme`, `setting`, `accent`) in the brief and
   run Step 3 again.
 - Hand additions (a statue, an extra tree, a fountain...): edit `after(ctx)` in

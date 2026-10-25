@@ -23,7 +23,7 @@ leaderboard hall with the server name in quartz letters, crates, the RTP gate, a
 cottages, trees and lamps, all spawn-proofed. It writes `.nbt` / `.schem` / `.litematic`, the
 NPC/hologram/crate/WorldGuard setup commands and the renders. Three layouts: **normal** (FreshSMP-like
 plaza, NPCs in a ring), **spawn+** (DonutSMP-like town, one building per NPC) and **PvP lobby**;
-six themes (autumn, medieval, white-town, japanese, winter, fantasy); five island settings.
+seven themes (autumn, medieval, white-town, japanese, winter, fantasy, crimson); five island settings.
 `SKILL.md` gives the agent the five-step workflow; the briefs below are in `assets/spawn-briefs/`.
 
 | | |
@@ -36,6 +36,8 @@ six themes (autumn, medieval, white-town, japanese, winter, fantasy); five islan
 | **Sakura PvP**: PvP lobby, japanese, 6 queue NPCs | overview |
 | <img src="docs/gallery/spawngen-cheese-smp.jpg" width="400" alt="White-town spawn, spawn view"> | <img src="docs/gallery/spawngen-winter-smp-overview.jpg" width="400" alt="Winter mountain spawn, overview"> |
 | **CheeseSMP**: normal spawn, white-town, blue accent, coast | **Frost SMP**: normal spawn, winter, mountain ridge |
+| <img src="docs/gallery/spawngen-crimson-lifesteal.jpg" width="400" alt="Crimson lifesteal spawn, spawn view"> | <img src="docs/gallery/spawngen-crimson-lifesteal-overview.jpg" width="400" alt="Crimson lifesteal spawn, overview"> |
+| **Crimson SMP**: normal spawn, crimson (nether-style), 10 NPCs | overview |
 
 ## What's inside
 

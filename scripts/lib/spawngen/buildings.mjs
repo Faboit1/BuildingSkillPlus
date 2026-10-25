@@ -127,6 +127,18 @@ const STYLES = {
     flowers: ['fern'],
     props: ['logs', 'barrel', 'logs', 'lanternpost'], rug: ['red_carpet', 'white_carpet'],
   },
+  crimson: {
+    system: 'timber', ground2: 'stone', single: 'timber', singleAlt: 'stone', singleAltP: 0.4, quoin: 'frame',
+    infill: { red_nether_bricks: 5, nether_bricks: 1 },
+    plinth: { blackstone: 3, polished_blackstone_bricks: 2, cracked_polished_blackstone_bricks: 1 }, plinthH: 1, skirt: 'polished_blackstone_brick',
+    postEvery: 3, jetty: 0.6, porch: 0.35,
+    roof: { type: 'gable', profile: 'steep', material: 'nether_brick', barge: 'crimson', overhang: 1 },
+    gable: { kind: 'frame' },
+    win: { shutters: 0.4, box: 0.3, mullion: 'crimson_fence' },
+    door: 'crimson', floor: 'crimson_planks', chimney: { blackstone: 3, polished_blackstone_bricks: 1 },
+    flowers: ['crimson_fungus', 'crimson_roots', 'red_tulip', 'poppy'],
+    props: ['barrel', 'logs', 'pots', 'composter'], rug: ['red_carpet', 'black_carpet'],
+  },
   fantasy: {
     system: 'timber', single: 'timber', ground2: 'stone',
     infill: { calcite: 5, polished_diorite: 1 },
@@ -1800,7 +1812,7 @@ export function building(ctx, spec) {
 }
 
 // The dark field behind block letters (quartz letters need >= 30 L* of contrast).
-const signWall = S => (S.key === 'white-town' ? 'minecraft:polished_deepslate' : S.key === 'fantasy' ? 'minecraft:dark_prismarine' : S.key === 'winter' ? 'minecraft:spruce_planks' : S.key === 'japanese' ? 'minecraft:dark_oak_planks' : 'minecraft:dark_oak_planks')
+const signWall = S => (S.key === 'white-town' ? 'minecraft:polished_deepslate' : S.key === 'fantasy' ? 'minecraft:dark_prismarine' : S.key === 'winter' ? 'minecraft:spruce_planks' : S.key === 'crimson' ? 'minecraft:polished_blackstone' : 'minecraft:dark_oak_planks')
 
 // Repaint the non-post cells of a run between y0 and y1 (a sign band on a facade).
 function paintBand(B, run, y0, y1, paint, { u0 = 1, u1 = run.L - 2 } = {}) {
@@ -1985,8 +1997,8 @@ export function heroWall(ctx, { x0, x1, z0, z1, y, cx, z, width, facing = 'south
   const fw = B.dirW('south')
   if (n) b.leaderboards(B.toW(bcx, F, frontZ), fw, kitOpts)
   if (text) {
-    const board = S.key === 'white-town' ? 'minecraft:polished_deepslate' : S.key === 'fantasy' ? 'minecraft:dark_prismarine' : S.key === 'winter' ? 'minecraft:spruce_planks' : S.key === 'japanese' ? 'minecraft:dark_oak_planks' : 'minecraft:dark_oak_planks'
-    const frame = S.key === 'white-town' ? 'minecraft:smooth_quartz' : S.key === 'fantasy' ? 'minecraft:prismarine_bricks' : S.key === 'winter' ? 'minecraft:stripped_spruce_wood' : 'minecraft:polished_deepslate'
+    const board = S.key === 'white-town' ? 'minecraft:polished_deepslate' : S.key === 'fantasy' ? 'minecraft:dark_prismarine' : S.key === 'winter' ? 'minecraft:spruce_planks' : S.key === 'crimson' ? 'minecraft:polished_blackstone' : 'minecraft:dark_oak_planks'
+    const frame = S.key === 'white-town' ? 'minecraft:smooth_quartz' : S.key === 'fantasy' ? 'minecraft:prismarine_bricks' : S.key === 'winter' ? 'minecraft:stripped_spruce_wood' : S.key === 'crimson' ? 'minecraft:red_nether_bricks' : 'minecraft:polished_deepslate'
     void board
     void frame
     b.sign(text, B.toW(bcx, letterTop, az1 + 1), fw, { font, align: 'center' })

@@ -119,9 +119,26 @@ export const THEMES = {
     light: 'pearlescent_froglight',
     kit: { primary: 'calcite', trim: 'prismarine_brick', base: 'mossy_stone_bricks', wood: 'birch', roof: 'dark_prismarine', accent: 'amethyst_block', colour: 'purple' },
   },
+  crimson: {
+    ...base,
+    label: 'Crimson (nether)',
+    setting: 'island',
+    light: 'shroomlight',
+    ground: { grass_block: 7, crimson_nylium: 2, podzol: 1, coarse_dirt: 1 },
+    paving: { field: { polished_blackstone_bricks: 4, polished_blackstone: 2, blackstone: 1, cracked_polished_blackstone_bricks: 1 }, border: 'red_nether_bricks', path: { blackstone: 2, polished_blackstone: 2, coarse_dirt: 1 }, inlay: 'nether_bricks' },
+    wall: { field: { polished_blackstone_bricks: 5, cracked_polished_blackstone_bricks: 1, blackstone: 1 }, quoin: 'polished_blackstone', base: 'blackstone' },
+    timber: 'stripped_crimson_stem', wood: 'crimson', plaster: 'red_nether_bricks',
+    roof: 'nether_brick', roofStyle: 'steep-gable',
+    trim: 'polished_blackstone',
+    accent: 'red',
+    plinth: 'polished_blackstone',
+    trees: { feature: 'crimson', forest: [[4, 'crimson'], [2, 'dark_oak'], [1, 'autumn']] },
+    flowers: [[5, 'short_grass'], [2, 'crimson_roots'], [1, 'red_tulip'], [1, 'poppy'], [1, 'crimson_fungus']],
+    kit: { primary: 'polished_blackstone_bricks', trim: 'polished_blackstone', base: 'blackstone', wood: 'crimson', roof: 'nether_brick', accent: 'red_nether_bricks', colour: 'red' },
+  },
 }
 
-export const THEME_ALIASES = { fall: 'autumn', halloween: 'autumn', town: 'medieval', castle: 'medieval', white: 'white-town', classic: 'white-town', modern: 'white-town', greek: 'white-town', asian: 'japanese', japan: 'japanese', sakura: 'japanese', snow: 'winter', christmas: 'winter', elven: 'fantasy', magic: 'fantasy' }
+export const THEME_ALIASES = { fall: 'autumn', halloween: 'autumn', town: 'medieval', castle: 'medieval', white: 'white-town', classic: 'white-town', modern: 'white-town', greek: 'white-town', asian: 'japanese', japan: 'japanese', sakura: 'japanese', snow: 'winter', christmas: 'winter', elven: 'fantasy', magic: 'fantasy', nether: 'crimson', hell: 'crimson', lifesteal: 'crimson', red: 'crimson', dark: 'crimson', blood: 'crimson' }
 
 export function resolveTheme(name, accent) {
   const key = THEMES[name] ? name : THEME_ALIASES[name] ?? 'medieval'
