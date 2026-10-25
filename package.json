@@ -48,7 +48,9 @@
     "docs:sync": "node scripts/sync-lodestone-docs.mjs --from ../lodestone",
     "docs:check": "node scripts/sync-lodestone-docs.mjs --from ../lodestone --check",
     "pack:dry-run": "npm pack --dry-run",
-    "gallery": "node scripts/dev/gallery.mjs"
+    "gallery": "node scripts/dev/gallery.mjs",
+    "test:spawns": "node scripts/dev/spawngen-smoke.mjs",
+    "spawn": "node scripts/make-spawn.mjs"
   },
   "dependencies": {
     "@mattzh72/lodestone": "0.6.0",

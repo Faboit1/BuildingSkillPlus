@@ -39,7 +39,9 @@ export function buildSite(ctx) {
     return Math.hypot(x - cx, z - cz) / (R * wob)
   }
   const cove = setting === 'coast' ? { x: cx + R * 0.52, z: cz + R * 0.5, r: R * 0.3 } : null
-  const peak = setting === 'mountain' ? { x: cx + R * 0.12, z: cz - R * 0.66, r: R * 0.42 } : null
+  // the mountain: a ridge round the north-west rim, behind the hero's shoulder, highest at its middle
+  const ridgeDir = (-35 * Math.PI) / 180
+  const peak = setting === 'mountain' ? { dir: ridgeDir, height: S * 0.3 } : null
 
   const relief = (x, z) => {
     const e = edgeE(x, z)
@@ -50,12 +52,16 @@ export function buildSite(ctx) {
     else if (setting === 'valley') h = 1 + 1.2 * n1 + 16 * smooth(0.5, 0.92, e) * (0.65 + 0.5 * n1 + 0.2 * n2)
     else h = 1.2 + 1.8 * n1 + 0.8 * n2 // island, coast, mountain
     if (peak) {
-      const d = Math.hypot(x - peak.x, z - peak.z) / peak.r
-      const ridged = noise.ridged2 ? noise.ridged2(x, z, { scale: 16, seed: seed + 33 }) : n2
-      if (d < 1.3) h += Math.max(0, (1 - d / 1.3)) ** 1.6 * (S * 0.3) * (0.8 + 0.35 * ridged)
+      // angle from north, clockwise; the ridge falls off over ±80° from its direction
+      const a = Math.atan2(x - cx, -(z - cz))
+      let da = Math.abs(a - peak.dir)
+      if (da > Math.PI) da = 2 * Math.PI - da
+      const along = Math.max(0, Math.cos(Math.min(Math.PI / 2, da * 1.15))) ** 1.4
+      const ridged = noise.ridged2 ? noise.ridged2(x, z, { scale: 14, seed: seed + 33 }) : n2
+      h += peak.height * along * smooth(0.5, 0.93, e) * (0.7 + 0.45 * ridged + 0.15 * n1)
     }
-    // the shore: the ground rolls down over the last stretch to the cliff
-    h -= 3.5 * smooth(0.82, 1, e)
+    // the shore: the ground rolls down over the last stretch to the cliff (a mountain keeps its cliffs)
+    h -= (peak ? 3.5 * (1 - smooth(0.6, 0.9, h / 12)) : 3.5) * smooth(0.82, 1, e)
     return h
   }
 
@@ -108,6 +114,21 @@ export function buildSite(ctx) {
           } else top[i] = Math.min(top[i], FY)
         } else if (d < 1.25 && top[i] > FY) top[i] = Math.round(FY + (top[i] - FY) * smooth(1, 1.25, d))
       }
+    // banks: every column next to the water stands at least at the water level, so nothing spills
+    for (let pass = 0; pass < 2; pass += 1)
+      for (let x = 1; x < S - 1; x += 1)
+        for (let z = 1; z < S - 1; z += 1) {
+          if (!water[x + S * z]) continue
+          for (let dx = -1; dx <= 1; dx += 1)
+            for (let dz = -1; dz <= 1; dz += 1) {
+              const j = x + dx + S * (z + dz)
+              if (water[j]) continue
+              if (top[j] < 0) {
+                water[x + S * z] = 0 // the coast is too close: no water here
+                top[x + S * z] = FY - 1
+              } else if (top[j] < FY - 1) top[j] = FY - 1
+            }
+        }
   }
 
   // write the columns

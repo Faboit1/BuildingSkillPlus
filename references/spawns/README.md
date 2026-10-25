@@ -5,6 +5,13 @@ leaderboard section and a crates section, a DonutSMP-style hub, or a PvP lobby. 
 the building handbook (`references/building/README.md`): every law there still applies; this file
 adds the spawn program, the numbers and the workflow.
 
+**The fast path is the generator** (`SKILL.md` → "Server spawns and lobbies"): the interview below
+fills a JSON brief and `node scripts/make-spawn.mjs brief.json` builds the whole spawn with the
+layouts, numbers and checklist of this handbook already applied (`scripts/lib/spawngen/`: `brief.mjs`
+defaults, `themes.mjs` palettes, `site.mjs` island terrain and paving, `layout-normal.mjs` /
+`layout-plus.mjs` / `layout-pvp.mjs` plans, `buildings.mjs`, `landscape.mjs`). Read on to understand
+or extend it, or to hand-build a spawn the generator cannot.
+
 Companion files in this folder:
 
 | File | What it holds |

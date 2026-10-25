@@ -475,7 +475,7 @@ Conventions: `facing` is the side the **player** stands on (where an NPC looks, 
 opens). Materials come from the same options everywhere: `primary` (light field, default
 `smooth_quartz`), `trim` (frames and cornices, needs stairs; `polished_deepslate`), `base` (plinths and
 skirts; `deepslate_tiles`), `wood` (posts, stalls; `dark_oak`), `roof` (`deepslate_tile`), `accent`
-(keystones and finials; `gold_block`), `field` (any paint for big surfaces), `colour` (dye for the
+(keystones and finials; `blue_concrete`; never gold by default), `field` (any paint for big surfaces), `colour` (dye for the
 glow glass; from the accent), `glass` and `light` (the glow; `ochre_froglight`).
 
 | Method | Notes |

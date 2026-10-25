@@ -255,7 +255,7 @@ const dyeColour = (tier, fallback = 'white') => {
 // `field` may be any paint (a kit.palette) for the big surfaces.
 function palette(opts, defaults = {}) {
   const get = (k, d) => opts[k] ?? defaults[k] ?? d
-  const accent = parseBlock(get('accent', 'gold_block')).name
+  const accent = parseBlock(get('accent', 'blue_concrete')).name
   const colour = get('colour', dyeOf(accent) ?? 'yellow')
   const P = fam(get('primary', 'smooth_quartz'))
   return {
@@ -942,7 +942,7 @@ export function leaderboards(b, pos, facing = 'south', opts = {}) {
 // Each step: a base course, a body, stair nosing on its open faces, the rank cap under the statue.
 function leaderboardPodium(b, L, M, un, id, label, opts) {
   const mid = Math.round((un.cl + un.cr) / 2)
-  const caps = (opts.podiumCaps ?? ['gold_block', 'iron_block', 'waxed_copper_block']).map(c => parseBlock(c).name)
+  const caps = (opts.podiumCaps ?? ['chiseled_quartz_block', 'iron_block', 'waxed_copper_block']).map(c => parseBlock(c).name)
   const steps = [[2, mid - 3, 2], [1, mid, 3], [3, mid + 3, 1]]
   const heightAt = u => steps.find(([, uc]) => Math.abs(u - uc) <= 1)?.[2] ?? 0
   for (const [rank, uc, hgt] of steps) {

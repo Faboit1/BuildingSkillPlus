@@ -3,6 +3,8 @@
 // as short as { "name": "CheeseSMP", "type": "normal" }. See references/spawns/README.md §1 and
 // assets/spawn-briefs/*.json.
 
+import { THEMES, THEME_ALIASES } from './themes.mjs'
+
 export const TYPES = {
   normal: { size: 120, min: 80, max: 180, height: 90 },
   plus: { size: 220, min: 160, max: 320, height: 110 },
@@ -35,14 +37,31 @@ const CRATE_DEFAULTS = [
   { id: 'seasonal', label: 'Seasonal', tier: 'seasonal' },
 ]
 const CRATE_ORDER = ['vote', 'common', 'rare', 'legendary', 'epic', 'seasonal']
-const FACINGS = ['north', 'east', 'south', 'west']
 
 const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'spawn'
 const idOf = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
 
+const KNOWN = ['name', 'slug', 'type', 'size', 'height', 'theme', 'setting', 'accent', 'facing', 'npcs', 'npc', 'leaderboards', 'boards', 'crates', 'features', 'seed', 'origin', 'world']
+const SETTINGS = ['island', 'plains', 'valley', 'mountain', 'coast']
+const DYES = ['white', 'light_gray', 'gray', 'black', 'brown', 'red', 'orange', 'yellow', 'lime', 'green', 'cyan', 'light_blue', 'blue', 'purple', 'magenta', 'pink']
+const near = (word, list) => list.find(k => k.startsWith(String(word).slice(0, 3)) || String(word).includes(k))
+
 export function normalizeBrief(input = {}) {
   const raw = typeof input === 'string' ? JSON.parse(input) : { ...input }
   const warnings = []
+  for (const k of Object.keys(raw)) if (!KNOWN.includes(k)) warnings.push(`unknown field "${k}" ignored${near(k, KNOWN) ? ` (did you mean "${near(k, KNOWN)}"?)` : ''}`)
+  if (raw.setting && !SETTINGS.includes(raw.setting)) {
+    warnings.push(`unknown setting "${raw.setting}" (use ${SETTINGS.join(', ')}); using the theme's`)
+    raw.setting = null
+  }
+  if (raw.accent) {
+    raw.accent = String(raw.accent).toLowerCase().replace(/[\s-]+/g, '_')
+    if (raw.accent === 'gold') raw.accent = 'yellow'
+    if (!DYES.includes(raw.accent)) {
+      warnings.push(`accent "${raw.accent}" is not a dye colour (use ${DYES.join(', ')}); using the theme's`)
+      raw.accent = null
+    }
+  }
   const type = TYPE_ALIASES[String(raw.type ?? 'normal').toLowerCase()] ?? 'normal'
   if (raw.type && !TYPE_ALIASES[String(raw.type).toLowerCase()]) warnings.push(`unknown type "${raw.type}", using normal`)
   const T = TYPES[type]
@@ -87,8 +106,15 @@ export function normalizeBrief(input = {}) {
     return o
   })
 
-  const theme = String(raw.theme ?? (type === 'pvp' ? 'japanese' : 'medieval')).toLowerCase().replace(/[\s_]+/g, '-')
-  const facing = FACINGS.includes(raw.facing) ? raw.facing : 'north'
+  let theme = String(raw.theme ?? (type === 'pvp' ? 'japanese' : 'medieval')).toLowerCase().replace(/[\s_]+/g, '-')
+  if (!THEMES[theme] && !THEME_ALIASES[theme]) {
+    warnings.push(`unknown theme "${theme}" (use ${Object.keys(THEMES).join(', ')}); using medieval`)
+    theme = 'medieval'
+  }
+  theme = THEMES[theme] ? theme : THEME_ALIASES[theme]
+  // the layouts always face the spawn north (rotate the paste if the world needs another way)
+  if (raw.facing && raw.facing !== 'north') warnings.push(`facing "${raw.facing}" is not supported yet: players spawn facing north`)
+  const facing = 'north'
   const features = {
     rtp: true,
     pvp: type !== 'pvp',          // a PvP zone (ruin arena) next to the plaza; the pvp type has its own arena

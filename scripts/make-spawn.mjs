@@ -31,6 +31,7 @@ Options:
   --out-dir <dir>   where to write (default minecraft-builds/<slug>)
   --recipe <file>   rebuild from an edited <slug>.recipe.mjs instead of a brief
   --no-render       skip the renders            --no-convert   skip .schem/.litematic
+  --no-spawn-view   skip the eye-level view (the only render that needs Playwright)
   --seed <n>        another variation of the same brief (overrides the brief's seed)
   --quiet           only the final report
 `
@@ -161,6 +162,16 @@ if (!flag('--no-render')) {
     const file = path.join(rdir, `${slug}-${v.name}.png`)
     run([path.join(here, 'isorender.mjs'), nbt, '--out', file, ...v.args], `render ${v.name}`)
     renders.push(file)
+  }
+  // what a player sees on joining: eye level at the spawn, looking north (needs render.mjs's
+  // Playwright + Chromium; skipped quietly without them)
+  if (floor !== null && !flag('--no-spawn-view')) {
+    const H = brief.height ?? 90
+    const clip = [c - 70, Math.max(0, floor - 3), c - Math.min(90, c - 1), c + 70, H - 1, c + 4].map(v => Math.max(0, v))
+    const r2 = spawnSync(node, [path.join(here, 'render.mjs'), '--nbt', nbt, '--out', rdir, '--yaw', '0', '--pitch', '2', '--target', `${c},${floor + 3},${c - 20}`, '--distance', '22', '--fov', '72', '--view-name', `${slug}-spawn-view`, '--clip', clip.join(','), '--no-sheet', '--width', '1280', '--height', '720'], { cwd: root, encoding: 'utf8', maxBuffer: 1 << 26, timeout: 240000 })
+    const file = path.join(rdir, `${slug}-spawn-view.png`)
+    if (r2.status === 0 && fs.existsSync(file)) renders.push(file)
+    else log('  (spawn-view render skipped: scripts/render.mjs needs Playwright + Chromium, see SKILL.md Setup)')
   }
 }
 
