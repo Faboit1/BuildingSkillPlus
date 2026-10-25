@@ -136,7 +136,7 @@ export default function build(api) {
   const CRAG_DEFS = [
     [50, 1, 0, 1, [[30, 5, 4], [19, 3.5, 7], [9, 2.5, 9]], 41], // north ridge behind the temple
     [14, 19, 0.75, 0.66, [[15, 14, 3], [12, 11, 6], [9, 8, 9], [6, 5.5, 12], [3, 3, 14]], 44], // NW crag (bell)
-    [86, 17, -0.7, 0.7, [[12, 14, 3], [9.5, 11, 6], [7, 8, 9], [4.5, 5, 12]], 48], // NE crag (parkour finish)
+    [83, 19, -0.7, 0.7, [[12, 14, 3], [9.5, 11, 6], [7, 8, 9], [4.5, 5, 12]], 48], // NE crag (parkour finish)
   ]
   const CRAGS = []
   for (const [cx, cz, sx, sz, tiers, seed] of CRAG_DEFS) {
@@ -892,8 +892,8 @@ export default function build(api) {
   // bamboo backdrops on the west cliff and behind the crates
   bambooClump(5, 72, 3.2, 31)
   bambooClump(8, 30, 2.5, 32)
-  bambooClump(94, 40, 3, 33)
-  bambooClump(92, 46, 2.5, 34)
+  bambooClump(89, 36, 2.6, 33)
+  bambooClump(88, 42, 2.2, 34)
   // clipped azalea mounds at path corners and building feet
   for (const [x, z, r] of [[33, 58, 1.6], [67, 58, 1.5], [30, 66, 1.4], [71, 70, 1.6], [24, 66, 1.3], [74, 58, 1.4], [38, 88, 1.6], [62, 87, 1.5], [29, 26, 1.5], [71, 27, 1.4], [86, 60, 1.3], [24, 36, 1.5]]) karikomi(x, z, r, x * 7 + z)
 
@@ -907,6 +907,126 @@ export default function build(api) {
   // nobori round the arena rim in pairs and a three, never evenly spaced
   for (const [x, z, rot] of [[47, 31, 8], [53, 31, 8], [35, 40, 4], [35, 48, 4], [65, 39, 12], [65, 49, 12], [63, 54, 10]]) {
     if (!b.has(x, M + 1, z)) nobori(x, M + 1, z, rot)
+  }
+
+  // ============================================================================ NW CRAG: BELL TOWER
+  // A stone stair cut into the crag climbs from the hall of fame court to a shoro (bell tower)
+  // on the summit: splayed posts, an irimoya roof with a strong lift, a great bell and its
+  // striker log hung on chains. Story: the bell rings for every new season champion.
+  const carveStair = (cells, facing) => {
+    // cells: [x, z, y] step tops; fills below with stone, clears above, the tread is a stair
+    for (const [x, z, y] of cells) {
+      const gy = Math.max(G(x, z), y)
+      b.box([x, M - 2, z], [x, y - 1, z], STONE)
+      b.clear([x, y + 1, z], [x, gy + 4, z])
+      b.set(x, y, z, `minecraft:stone_brick_stairs[facing=${facing}]`)
+      top.set(`${x},${z}`, y)
+    }
+  }
+  {
+    const flight1 = []
+    for (let z = 36; z >= 21; z -= 1) {
+      const y = M + Math.min(9, Math.max(1, Math.ceil((36 - z) * 0.62)))
+      for (let x = 15; x <= 17; x += 1) flight1.push([x, z, y])
+    }
+    carveStair(flight1, 'north')
+    const flight2 = []
+    for (const [x, y] of [[14, M + 10], [13, M + 11], [12, M + 12]]) for (let z = 18; z <= 20; z += 1) flight2.push([x, z, y])
+    carveStair(flight2, 'west')
+    // the summit pad and the shoro
+    const S0 = [8, 13]
+    const SY = M + 12
+    for (let x = S0[0] - 1; x <= S0[0] + 5; x += 1) for (let z = S0[1] - 1; z <= S0[1] + 5; z += 1) {
+      if (edge(x, z) < 0) continue
+      b.box([x, M, z], [x, SY - 1, z], rock(x, SY, z), { keep: true })
+      b.set(x, SY, z, x === S0[0] - 1 || x === S0[0] + 5 || z === S0[1] - 1 || z === S0[1] + 5 ? 'minecraft:mossy_stone_bricks' : 'minecraft:polished_andesite')
+      b.clear([x, SY + 1, z], [x, SY + 10, z])
+    }
+    const [sx, sz] = [S0[0] + 2, S0[1] + 2]
+    for (const [dx, dz] of [[-2, -2], [2, -2], [-2, 2], [2, 2]]) {
+      b.set(sx + dx, SY + 1, sz + dz, 'minecraft:polished_andesite')
+      b.box([sx + dx, SY + 2, sz + dz], [sx + dx, SY + 6, sz + dz], POST)
+    }
+    for (let k = -1; k <= 1; k += 1) for (const s2 of [-2, 2]) {
+      b.set(sx + k, SY + 6, sz + s2, BEAM('x'))
+      b.set(sx + s2, SY + 6, sz + k, BEAM('z'))
+      b.set(sx + k, SY + 4, sz + s2, BEAM('x')) // nuki tie beams
+      b.set(sx + s2, SY + 4, sz + k, BEAM('z'))
+    }
+    b.eastRoof({ ...ROOF, x0: sx - 2, z0: sz - 2, x1: sx + 2, z1: sz + 2, y: SY + 7, type: 'irimoya', axis: 'x', overhang: 2, lift: 1.5, pitch: [0.5, 0.5, 1, 1, 1, 1], gable: PLASTER, barge: true, lanterns: true })
+    b.box([sx, SY + 5, sz], [sx, SY + 6, sz], 'minecraft:chain[axis=y]')
+    b.set(sx, SY + 4, sz, 'minecraft:bell[attachment=ceiling,facing=east]')
+    b.set(sx - 1, SY + 6, sz + 1, 'minecraft:chain[axis=y]')
+    b.set(sx + 1, SY + 6, sz + 1, 'minecraft:chain[axis=y]')
+    b.box([sx - 1, SY + 5, sz + 1], [sx + 1, SY + 5, sz + 1], 'minecraft:stripped_spruce_log[axis=x]') // shumoku striker
+    smallToro(S0[0] + 5, SY + 1, S0[1] + 5)
+  }
+
+  // ============================================================================ PARKOUR
+  // From a start pad on the east lawn, stepping stones run north along the cliff edge (some over
+  // the void, each a floating rock with hanging roots), climb onto the north-east crag's ledges
+  // and finish at a rest pavilion on its summit. Jumps: 2-block gaps, +0 or +1 per jump, one
+  // checkpoint halfway. Start and finish are gold plates, the checkpoint an iron plate.
+  {
+    const START = [90, M, 66]
+    for (let x = START[0] - 1; x <= START[0] + 1; x += 1) for (let z = START[2] - 1; z <= START[2] + 1; z += 1) b.set(x, M, z, x === START[0] && z === START[2] ? 'minecraft:polished_andesite' : 'minecraft:stone_bricks')
+    b.set(START[0], M + 1, START[2], 'minecraft:light_weighted_pressure_plate[power=0]')
+    nobori(START[0] + 1, M + 1, START[2] + 2, 0)
+    smallToro(START[0] - 2, M + 1, START[2] + 1)
+    b.region('parkour-start', [START[0], M + 1, START[2]], [START[0], M + 1, START[2]], { note: 'gold plate: start' })
+    const JUMPS = [
+      [92, 0, 62], [93, 1, 59], [93, 1, 56], [94, 2, 53], [95, 2, 50], [94, 3, 47], [94, 3, 44, 'check'],
+      [95, 3, 41], [94, 4, 38], [95, 5, 35], [94, 5, 32], [93, 6, 29], [91, 7, 27], [89, 8, 26], [87, 9, 25],
+    ]
+    const TOPS = ['minecraft:polished_andesite', 'minecraft:mossy_stone_bricks', 'minecraft:andesite', 'minecraft:stone_bricks']
+    JUMPS.forEach(([x, h, z, kind], i) => {
+      const y = M + h
+      const ground = G(x, z)
+      if (kind === 'check') {
+        for (let dx = 0; dx <= 1; dx += 1) for (let dz = 0; dz <= 1; dz += 1) {
+          b.set(x + dx, y, z + dz, 'minecraft:polished_andesite')
+          if (ground < 0 || G(x + dx, z + dz) < y) b.set(x + dx, y - 1, z + dz, 'minecraft:mossy_cobblestone')
+        }
+        b.set(x, y + 1, z, 'minecraft:heavy_weighted_pressure_plate[power=0]')
+        b.set(x + 1, y + 1, z + 1, 'minecraft:lantern[hanging=false]')
+        b.region('parkour-checkpoint', [x, y + 1, z], [x, y + 1, z], { note: 'iron plate: checkpoint' })
+        return
+      }
+      if (ground >= y) { b.clear([x, y + 1, z], [x, ground + 3, z]); b.set(x, y, z, TOPS[i % 4]); return }
+      if (ground >= 0 && i % 4 === 2) {
+        // a wooden pole jump where there is ground below: fence post, slab on top (half-block jump)
+        b.box([x, ground + 1, z], [x, y - 1, z], 'minecraft:dark_oak_fence')
+        b.set(x, y, z, 'minecraft:spruce_slab[type=top]')
+        return
+      }
+      // a floating rock: the top block, a smaller lump under it, roots hanging below
+      b.set(x, y, z, TOPS[i % 4])
+      b.set(x, y - 1, z, i % 2 ? 'minecraft:mossy_cobblestone' : 'minecraft:tuff')
+      if (!b.has(x, y - 2, z) && (ground < 0 || ground < y - 2)) b.set(x, y - 2, z, 'minecraft:hanging_roots')
+    })
+    // finish: a pad on the summit and a rest pavilion (azumaya) with a pyramid roof
+    const FY = M + 9
+    const F0 = [84, 16]
+    for (let x = F0[0] - 3; x <= F0[0] + 3; x += 1) for (let z = F0[1] - 3; z <= F0[1] + 3; z += 1) {
+      if (edge(x, z) < 0) continue
+      b.box([x, M, z], [x, FY - 1, z], rock(x, FY, z), { keep: true })
+      b.set(x, FY, z, Math.max(Math.abs(x - F0[0]), Math.abs(z - F0[1])) === 3 ? 'minecraft:mossy_stone_bricks' : 'minecraft:spruce_planks')
+      b.clear([x, FY + 1, z], [x, FY + 9, z])
+    }
+    for (const [dx, dz] of [[-2, -2], [2, -2], [-2, 2], [2, 2]]) b.box([F0[0] + dx, FY + 1, F0[1] + dz], [F0[0] + dx, FY + 4, F0[1] + dz], POST)
+    for (let k = -1; k <= 1; k += 1) for (const s2 of [-2, 2]) {
+      b.set(F0[0] + k, FY + 4, F0[1] + s2, BEAM('x'))
+      b.set(F0[0] + s2, FY + 4, F0[1] + k, BEAM('z'))
+      if (s2 === -2) b.set(F0[0] + k, FY + 1, F0[1] + s2, 'minecraft:spruce_stairs[facing=north]') // bench
+    }
+    b.eastRoof({ ...ROOF, x0: F0[0] - 2, z0: F0[1] - 2, x1: F0[0] + 2, z1: F0[1] + 2, y: FY + 5, type: 'pyramid', overhang: 2, lift: 1, pitch: [0.5, 0.5, 1, 1, 1], lanterns: true, finial: ['minecraft:polished_blackstone_wall'] })
+    b.set(F0[0], FY + 1, F0[1] + 1, 'minecraft:light_weighted_pressure_plate[power=0]')
+    b.hangingLantern([F0[0], FY + 4, F0[1]], 0)
+    b.region('parkour-finish', [F0[0], FY + 1, F0[1] + 1], [F0[0], FY + 1, F0[1] + 1], { note: 'gold plate: finish' })
+    // the way down from the summit: a stair on the crag's west side to the temple's east lawn
+    const down = []
+    for (let i = 0; i < 9; i += 1) for (let z = 19; z <= 20; z += 1) down.push([F0[0] - 4 - i, z, FY - 1 - i])
+    carveStair(down, 'east')
   }
 
   return finishUp()

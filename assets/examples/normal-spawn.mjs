@@ -239,7 +239,7 @@ export default function build(api) {
     pal({ stone_bricks: 6, andesite: 1, polished_andesite: 2 }, 114, 4),
   ], { t: (x, y, z) => (y - P + 3) / 18, dither: 0.8 })
   const DRESSED = pal({ stone_bricks: 5, polished_andesite: 3 }, 115, 2)
-  const PLASTER = pal({ white_terracotta: 5, calcite: 2 }, 116, 2)
+  const PLASTER = pal({ calcite: 6, white_terracotta: 1, diorite: 1 }, 116, 2)
   const TRIM = 'polished_andesite'
   const SB = 'stone_brick'
   const banner = (x, y, z, f, c = 'red') => b.set(x, y, z, `${c}_wall_banner[facing=${f}]`)
@@ -272,7 +272,8 @@ export default function build(api) {
   const STAGE = (x, z) => x <= 52 && z >= 44 && z <= 71                // crate stage (P + 1)
   const ROSE = [66, 66]
   const field = pal({ stone_bricks: 14, andesite: 2, cracked_stone_bricks: 2, mossy_stone_bricks: 1 }, 101, 4)
-  const worn = pal({ cobblestone: 4, andesite: 3, gravel: 1, stone_bricks: 2 }, 102, 2)
+  const worn = pal({ cobblestone: 3, packed_mud: 2, andesite: 2, gravel: 1, stone_bricks: 2 }, 102, 2)
+  const warmWorn = pal({ packed_mud: 3, mud_bricks: 2, coarse_dirt: 1, cobblestone: 1 }, 107, 2)
   const ROUTES = [
     [[66, 56], [66, 79], 1.6],            // avenue: spawn -> gate (worn centre line)
     [[63, 61], [54, 58], 1.3],            // crates
@@ -300,7 +301,7 @@ export default function build(api) {
     if (z > 57 && z < 79 && (x === 62 || x === 70)) return 'polished_andesite'   // avenue edges
     if (z > 57 && x > 62 && x < 70) {                                              // avenue field
       const wv = wear(x, z)
-      return wv > 0 && N.coherent01(x, 0, z, { scale: 3, seed: 104 }) < 0.3 + wv * 0.3 ? worn : pal({ polished_andesite: 3, stone_bricks: 2 }, 105, 3)
+      return wv > 0 && N.coherent01(x, 0, z, { scale: 3, seed: 104 }) < 0.25 + wv * 0.25 ? warmWorn : pal({ mud_bricks: 8, packed_mud: 1 }, 105, 3)
     }
     const wv = wear(x, z)
     if (wv > 0 && N.coherent01(x, 0, z, { scale: 3, seed: 103 }) < 0.25 + wv * 0.35) return worn
@@ -343,8 +344,8 @@ export default function build(api) {
     }
   b.spawnPoint([AX, P + 2, SPZ], 'south', { label: 'Valley spawn' })
   // two lamps behind the dais (never in the forward view)
-  armLamp(62, P + 2, 48, 'east')
-  armLamp(70, P + 2, 48, 'west')
+  lampPost(61, P + 2, 48)
+  lampPost(71, P + 2, 49)
 
   // ------------------------------------------------------------------ the gate (the hero)
   // A square gate tower with a jettied timber storey and a hipped slate roof, flanked by two
@@ -413,7 +414,7 @@ export default function build(api) {
   b.set(66, P + 21, 82, 'spruce_fence'); b.set(66, P + 22, 82, 'spruce_fence'); b.set(66, P + 23, 82, 'red_banner[rotation=8]')
 
   // flanking round towers: battered, corbelled crown, cone roof; the east one a little taller
-  const roundTower = (cx, cz, top) => {
+  const roundTower = (cx, cz, top, flag = false) => {
     const R = 3.6
     for (let x = Math.floor(cx - 5); x <= Math.ceil(cx + 5); x += 1)
       for (let z = Math.floor(cz - 5); z <= Math.ceil(cz + 5); z += 1) {
@@ -432,10 +433,10 @@ export default function build(api) {
       const x = Math.round(cx + Math.cos(a) * 3.4), z = Math.round(cz + Math.sin(a) * 3.4)
       b.set(x, y, z, 'air'); b.set(x, y + 1, z, 'air')
     }
-    b.coneRoof([cx, top + 2, cz], 4, { material: 'deepslate_tile', pitch: 1.4, overhang: 0, flare: true })
+    b.bellRoof([cx, top + 2, cz], 4.7, 8, { material: 'deepslate_tile', p: 1.5, lip: 0.6, wallR: 4.1, finial: flag ? ['spruce_fence', 'spruce_fence', 'red_banner[rotation=4]'] : ['lightning_rod[facing=up]'] })
   }
   roundTower(55, 82, P + 10)
-  roundTower(77, 82, P + 11)
+  roundTower(77, 82, P + 11, true)
   for (const xs of [[59, 60], [72, 73]]) for (const x of xs) for (let z = 79; z <= 84; z += 1) {   // short curtains to the gate tower
     foundation(x, z)
     for (let y = P + 1; y <= P + 8; y += 1) b.set(x, y, z, MASON)
@@ -768,11 +769,11 @@ export default function build(api) {
   // ------------------------------------------------------------------ start here (by the spawn)
   b.npcSpot([59, P + 1, 54], 'east', { id: 'start', label: 'Start Here', role: 'tutorial', style: 'pedestal', primary: 'stone_bricks', trim: TRIM, base: 'mossy_stone_bricks', accent: 'red_terracotta', inlay: TRIM })
   // rules plaque (lectern) and a little map board on posts beside it
-  b.set(59, P + 2, 50, 'lectern[facing=east,has_book=true]')
-  for (const z of [56, 59]) for (let y = P + 2; y <= P + 4; y += 1) b.set(55, y, z, 'stripped_dark_oak_log[axis=y]')
-  const MAP = [['green_terracotta', 'lime_terracotta'], ['light_blue_terracotta', 'green_terracotta'], ['brown_terracotta', 'light_blue_terracotta'], ['lime_terracotta', 'stone']]
-  for (let i = 0; i < 2; i += 1) for (let k = 0; k < 2; k += 1) b.set(55, P + 3 + k, 57 + i, MAP[i * 2 + k][0])
-  for (let z = 56; z <= 59; z += 1) b.set(55, P + 5, z, sl('dark_oak'))
+  b.set(58, P + 2, 50, 'lectern[facing=east,has_book=true]')
+  for (const z of [47, 50]) for (let y = P + 2; y <= P + 4; y += 1) b.set(56, y, z, 'stripped_dark_oak_log[axis=y]')
+  const MAP = ['green_terracotta', 'light_blue_terracotta', 'lime_terracotta', 'brown_terracotta']
+  for (let i = 0; i < 2; i += 1) for (let k = 0; k < 2; k += 1) b.set(56, P + 3 + k, 48 + i, MAP[i * 2 + k])
+  for (let z = 47; z <= 50; z += 1) b.set(56, P + 5, z, sl('dark_oak'))
 
   // ------------------------------------------------------------------ planting in the plaza
   // One feature oak (the left frame of the first view) in a round planter with seats, a birch
