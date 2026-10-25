@@ -70,7 +70,7 @@ export default function build(api) {
   // embracing the bay (the east one higher, with cliffs)
   const hill = (x, z) => {
     let h = 9 + 37 * (1 - smooth(0, 150, z)) ** 1.15 + 7 * (1 - smooth(10, 46, z))
-    h += 4 * Math.exp(-(((x - AX) / 30) ** 2)) * (1 - smooth(20, 44, z)) // crest over the vault
+    h += 11 * Math.exp(-(((x - AX) / 34) ** 4)) * (1 - smooth(26, 41, z)) // the rock the vault is cut into
     h += 10 * Math.exp(-(((x - 8) / 22) ** 2)) * smooth(90, 175, z)
     h += 18 * Math.exp(-(((x - 202) / 20) ** 2)) * smooth(70, 170, z)
     h += 2.6 * fbm(x, z, 30, 3) + 1.2 * fbm(x, z, 11, 4)
@@ -557,38 +557,6 @@ export default function build(api) {
 
   // ------------------------------------------------------------------ blocking of the districts
   // CRATES VAULT: a treasury facade cut into the cliff behind the crown terrace, crates court in front
-  b.box([87, CRN + 1, 36], [123, CRN + 15, 41], WALL)
-  b.box([87, CRN + 1, 42], [92, CRN + 9, 50], WALL)
-  b.box([118, CRN + 1, 42], [123, CRN + 9, 50], WALL)
-  // HALL OF FAME: board wall + two stoas + propylon (crown west)
-  b.box([38, CRN + 1, 38], [43, CRN + 11, 62], WALL)
-  b.box([44, CRN + 1, 36], [72, CRN + 6, 41], WALL)
-  b.roof({ x0: 44, z0: 36, x1: 72, z1: 41, y: CRN + 7, type: 'gable', axis: 'x', material: ROOF, pitch: 0.5 })
-  b.box([44, CRN + 1, 59], [66, CRN + 6, 64], WALL)
-  b.roof({ x0: 44, z0: 59, x1: 66, z1: 64, y: CRN + 7, type: 'gable', axis: 'x', material: ROOF, pitch: 0.5 })
-  b.box([74, CRN + 1, 45], [80, CRN + 10, 55], WALL)
-  b.roof({ x0: 74, z0: 45, x1: 80, z1: 55, y: CRN + 11, type: 'gable', axis: 'x', material: ROOF, pitch: 0.5 })
-  // AFK GARDEN: pergola, pool and a round gazebo on the shelf (east)
-  b.box([142, SHELF + 1, 36], [176, SHELF + 4, 39], 'dark_oak_planks')
-  b.box([146, SHELF, 46], [172, SHELF, 54], 'water')
-  b.cylinder([179, SHELF + 1, 50], 4, 5, WALL)
-  b.bellRoof([179, SHELF + 6, 50], 5.5, 6, { material: ROOF })
-  // AUCTION EXCHANGE: hall with a gallery on the plaza (west)
-  b.box([50, PLZ + 1, 74], [72, PLZ + 13, 98], WALL)
-  b.roof({ x0: 50, z0: 74, x1: 72, z1: 98, y: PLZ + 14, type: 'hip', material: ROOF, pitch: 1 })
-  b.box([73, PLZ + 1, 76], [79, PLZ + 10, 96], WALL)
-  b.cylinder([61, PLZ + 22, 86], 2.5, 3, WALL)
-  b.lathe([61, PLZ + 25, 86], 3, dy => [3, 2.3, 1.2][dy], 'deepslate_tiles')
-  // DUELS: a gatehouse of two round towers, the arena bowl behind it (east)
-  b.cylinder([134, PLZ + 1, 79], 3.5, 14, WALL)
-  b.cylinder([134, PLZ + 1, 93], 3.5, 14, WALL)
-  b.coneRoof([134, PLZ + 15, 79], 3.5, { material: ROOF })
-  b.coneRoof([134, PLZ + 15, 93], 3.5, { material: ROOF })
-  b.box([131, PLZ + 1, 82], [137, PLZ + 11, 90], WALL)
-  b.fillWhere([142, PLZ - 4, 68], [188, PLZ + 6, 102], (x, y, z) => {
-    const r = Math.hypot((x - 165) / 22, (z - 85) / 16)
-    return r <= 1 && r > 0.82 && y > PLZ
-  }, PLINTH)
   // MARKET: stalls against the plaza wall (north side), shophouses (south side)
   const houses = [[36, 7, 3, 11], [44, 9, 2, 8], [54, 6, 3, 12], [61, 8, 2, 9], [70, 10, 3, 11], [81, 7, 2, 9], [89, 8, 3, 12], [113, 8, 2, 9], [122, 9, 3, 11], [132, 7, 2, 10], [140, 10, 3, 12], [151, 6, 2, 8], [158, 9, 3, 11], [168, 7, 2, 9]]
   for (const [x0, w, , h] of houses) {
@@ -716,7 +684,7 @@ export default function build(api) {
   bench(PC[0] - 2, PLZ + 1, PC[1] - 8, 'south', 3)
   bench(PC[0] + 8, PLZ + 1, PC[1] - 2, 'west', 3)
   // the feature tree east of the axis in a raised round bed, with a seat ring
-  const FT = [118, 88]
+  const FT = [121, 72]
   disc(FT[0] + 0.5, PLZ + 1, FT[1] + 0.5, 4.2, 'polished_deepslate')
   disc(FT[0] + 0.5, PLZ + 2, FT[1] + 0.5, 4.2, sl('smooth_quartz'))
   disc(FT[0] + 0.5, PLZ + 1, FT[1] + 0.5, 3.2, 'dirt')
@@ -726,7 +694,8 @@ export default function build(api) {
   // corner planters by the stair foot and the gate
   planter(86, 68, 91, 72, PLZ, { seed: 11 })
   b.tree([88, PLZ + 2, 70], 'azalea', { seed: 21, height: 6, roots: 0 })
-  planter(120, 68, 124, 72, PLZ, { seed: 12 })
+  planter(116, 96, 120, 100, PLZ, { seed: 12 })
+  b.tree([118, PLZ + 2, 98], 'azalea', { seed: 25, height: 5, roots: 0 })
   lamp(PC[0] + 7, PLZ + 1, PC[1] + 6, 'candelabra')
   lamp(GS[0] - 2, PLZ + 1, 81, 'post')
   lamp(GS[1] + 2, PLZ + 1, 81, 'post')
@@ -737,6 +706,120 @@ export default function build(api) {
   wear([[82, PZ], [100, PZ]], PLZ, 1.8, 6)
   wear([[110, PZ], [128, PZ]], PLZ, 1.8, 7)
 
+  // ------------------------------------------------------------------ 6 the Crates Vault
+  // The vault yard: a court behind the spawn, open to the sky (crate effects) and wide enough for
+  // a key-all crowd. The treasury closes it to the north, cut into the rock: a rusticated ground
+  // storey with the round vault door on the axis (its iron door stands swung open beside it),
+  // CRATES on the frieze, a cornice and a low pediment. Two wings hold three crate niches each,
+  // facing each other across the court; the queue aprons in front of them are worn dark.
+  const VX0 = 89
+  const VX1 = 121
+  const VZ = 41 // treasury facade plane
+  const VTOP = CRN + 19 // cornice 54
+  b.box([VX0 - 1, CRN + 1, VZ - 12], [VX1 + 1, VTOP + 1, VZ - 1], 'stone') // the rock it is cut into
+  b.box([VX0, CRN + 1, VZ - 4], [VX1, VTOP, VZ], WALL)
+  b.box([VX0, CRN, VZ - 4], [VX1, CRN + 4, VZ], PLINTH)
+  const VF = F([VX0, 0, VZ], 'south') // u grows east from x 89
+  const vw = VX1 - VX0
+  for (let u = -1; u <= vw + 1; u += 1) {
+    b.set(...VF(u, CRN + 1, 1), st('deepslate_brick', 'north'))
+    b.set(...VF(u, CRN + 5, 1), st(TRIM, 'north', 'top'))
+    b.set(...VF(u, VTOP, 1), st(TRIM, 'north', 'top'))
+    b.set(...VF(u, VTOP, 0), TRIM)
+  }
+  for (let u = 0; u <= vw; u += 1) {
+    if (u % 3 === 1) for (let y = CRN + 2; y <= CRN + 4; y += 1) b.set(...VF(u, y, 0), 'polished_deepslate') // rustication joints
+    b.set(...VF(u, VTOP - 1, 1), st('smooth_quartz', 'north', 'top'))
+  }
+  // the pediment: a smooth low gable (two stair courses per rise) with the accent in the tympanum
+  for (let x = VX0 - 1; x <= VX1 + 1; x += 1) {
+    const k = Math.min(x - (VX0 - 1), VX1 + 1 - x)
+    const yk = VTOP + 1 + Math.floor(k / 3)
+    for (let y = VTOP + 1; y < yk; y += 1) b.set(x, y, VZ, WALL)
+    const half = k % 3 === 2 ? 'top' : 'bottom'
+    const p = x === AX ? sl(TRIM, 'bottom') : k % 3 === 2 ? sl(TRIM, 'top') : st(TRIM, x < AX ? 'east' : 'west')
+    b.set(x, yk, VZ, p)
+    b.set(x, yk, VZ + 1, p)
+    void half
+  }
+  b.set(AX, VTOP + 4, VZ + 1, ACC)
+  b.set(AX, VTOP + 6, VZ, 'polished_deepslate_wall')
+  // engaged columns and corner pilasters, proud by one
+  for (const x of [VX0, VX0 + 1, VX1 - 1, VX1])
+    for (let y = CRN + 6; y < VTOP - 1; y += 1) b.set(x, y, VZ + 1, y === CRN + 6 ? 'polished_deepslate' : y === VTOP - 2 ? 'chiseled_quartz_block' : 'quartz_pillar[axis=y]')
+  for (const x of [AX - 6, AX + 6]) {
+    for (let y = CRN + 1; y <= CRN + 9; y += 1) b.set(x, y, VZ + 1, y === CRN + 1 ? 'polished_deepslate' : y === CRN + 9 ? 'chiseled_quartz_block' : 'quartz_pillar[axis=y]')
+    b.set(x, CRN + 10, VZ + 1, st('smooth_quartz', 'north', 'top'))
+  }
+  // the title on the frieze above the door, between the inner columns
+  b.sign('CRATES', [AX, VTOP - 4, VZ + 1], 'south', { align: 'center', font: 'small', board: DARK, frame: false, pad: 1, boardDepth: 2 })
+  for (let x = AX - 13; x <= AX + 13; x += 1) b.set(x, VTOP - 8, VZ + 1, st(TRIM, 'north', 'top'))
+  // windows in the outer bays of the upper storey
+  for (const x of [VX0 + 4, VX1 - 4]) {
+    for (let y = CRN + 8; y <= CRN + 11; y += 1) {
+      b.set(x, y, VZ, 'air')
+      b.set(x, y, VZ - 1, 'gray_stained_glass_pane')
+    }
+    b.set(x, CRN + 7, VZ + 1, st(TRIM, 'north', 'top'))
+    b.set(x, CRN + 12, VZ + 1, ACC)
+  }
+  // the round vault door: a ring of iron and deepslate round a 7-wide opening, a dark strong
+  // room behind it with stacked loot; the door itself stands swung open on the east side
+  const DC = [AX, CRN + 4.5] // door centre (x, y)
+  for (let x = AX - 5; x <= AX + 5; x += 1)
+    for (let y = CRN + 1; y <= CRN + 9; y += 1) {
+      const r = Math.hypot(x - DC[0], y - DC[1])
+      if (r <= 3.6) for (let z = VZ - 6; z <= VZ; z += 1) b.set(x, y, z, 'air')
+      else if (r <= 4.8) {
+        b.set(x, y, VZ + 1, (Math.round(Math.atan2(y - DC[1], x - DC[0]) * 8 / Math.PI) & 1) ? 'iron_block' : 'polished_deepslate')
+        b.set(x, y, VZ, 'polished_blackstone')
+      }
+    }
+  b.box([AX - 4, CRN, VZ - 7], [AX + 4, CRN, VZ], 'polished_blackstone_bricks')
+  b.box([AX - 4, CRN + 1, VZ - 7], [AX + 4, CRN + 9, VZ - 7], 'polished_blackstone_bricks')
+  b.box([AX - 4, CRN + 9, VZ - 6], [AX + 4, CRN + 9, VZ - 1], 'polished_blackstone_bricks')
+  for (const [x, z, p] of [[AX - 2, VZ - 6, 'chest[facing=south]'], [AX + 2, VZ - 6, 'chest[facing=south]'], [AX - 3, VZ - 4, 'barrel[facing=up]'], [AX + 3, VZ - 5, 'iron_block'], [AX + 3, VZ - 4, 'barrel[facing=up]'], [AX, VZ - 6, 'ender_chest[facing=south]']]) b.set(x, CRN + 1, z, p)
+  hang(AX, CRN + 7, VZ - 4, 1)
+  const DOOR_X = AX + 8 // the swung-open door: a disc in the x plane, hinged at the facade
+  for (let y = CRN + 1; y <= CRN + 8; y += 1)
+    for (let z = VZ + 2; z <= VZ + 9; z += 1) {
+      const r = Math.hypot(y - DC[1], z - (VZ + 5.5))
+      if (r > 3.6) continue
+      b.set(DOOR_X, y, z, r > 2.7 ? 'polished_deepslate' : r < 1.2 ? 'polished_blackstone' : 'iron_block')
+      if (r > 1.6 && r <= 2.4) b.set(DOOR_X - 1, y, z, 'iron_trapdoor[facing=west,open=true,half=bottom]')
+    }
+  for (let y = CRN + 2; y <= CRN + 7; y += 1) b.set(DOOR_X, y, VZ + 1, 'chain[axis=y]')
+  // the crate wings: a wall behind each row of niches, capped and balustraded
+  const crateStyle = { primary: 'smooth_quartz', trim: TRIM, base: 'deepslate_tile', accent: ACC, light: 'sea_lantern', tierBlock: 'polished_blackstone' }
+  for (const [x0, x1] of [[79, 84], [126, 131]]) {
+    b.box([x0, CRN - 4, VZ + 1], [x1, CRN + 7, 59], WALL)
+    b.box([x0, CRN - 4, VZ + 1], [x1, CRN + 1, 59], PLINTH)
+    for (let z = VZ + 1; z <= 59; z += 1) for (let x = x0; x <= x1; x += 1) b.set(x, CRN + 8, z, x === x0 || x === x1 || z === 59 ? QZ : sl('smooth_quartz'))
+    for (let x = x0; x <= x1; x += 1) for (let y = CRN + 2; y <= CRN + 7; y += 1) b.set(x, y, 59, y === CRN + 7 ? st(TRIM, 'north', 'top') : WALL)
+  }
+  b.crateRow([88, CRN + 2, 55], 'east', [
+    { id: 'vote', label: 'Vote Crate', tier: 'vote', block: 'chest', glass: 'light_gray_stained_glass' },
+    { id: 'common', label: 'Common Crate', tier: 'common', block: 'chest', glass: 'white_stained_glass' },
+    { id: 'rare', label: 'Rare Crate', tier: 'rare', block: 'chest', glass: 'light_blue_stained_glass' },
+  ], { spacing: 5, ...crateStyle, hero: false })
+  b.crateRow([122, CRN + 2, 45], 'west', [
+    { id: 'legendary', label: 'Legendary Crate', tier: 'legendary', block: 'ender_chest', glass: 'blue_stained_glass', tierBlock: ACC, hero: true },
+    { id: 'epic', label: 'Epic Crate', tier: 'epic', block: 'chest', glass: 'cyan_stained_glass', hero: false },
+    { id: 'seasonal', label: 'Seasonal Crate', tier: 'seasonal', block: 'barrel', glass: 'white_stained_glass', tierBlock: 'calcite', hero: false },
+  ], { spacing: 5, ...crateStyle })
+  // the keys NPC in a niche in the treasury's west bay, facing the court
+  b.npcSpot([AX - 11, CRN, VZ - 1], 'south', { id: 'keys', label: 'Crate Keys', role: 'crates', style: 'alcove', ...npcStyle })
+  // court paving: dark queue aprons in front of the niches, a worn path to the door
+  for (let z = VZ + 1; z <= 58; z += 1) {
+    for (const x of [89, 90, 91, 92]) pave(x, CRN, z, x === 92 ? 'calcite' : 'polished_deepslate')
+    for (const x of [118, 119, 120, 121]) pave(x, CRN, z, x === 118 ? 'calcite' : 'polished_deepslate')
+  }
+  wear([[AX, VZ + 2], [AX, 54]], CRN, 2.6, 9)
+  wear([[95, 47], [95, 56]], CRN, 1.6, 10)
+  wear([[115, 45], [115, 56]], CRN, 1.6, 11)
+  lamp(94, CRN + 1, 43, 'post')
+  lamp(116, CRN + 1, 52, 'post')
+
   // ------------------------------------------------------------------ texture passes
   // white field: quartz → quartz bricks → calcite → polished diorite, darker toward the base and in
   // drip streaks, brighter around the focal points; plinths: polished deepslate → tiles
@@ -744,10 +827,11 @@ export default function build(api) {
   const DARK_RAMP = ['polished_deepslate', 'deepslate_bricks', 'deepslate_tiles']
   const RET_RAMP = ['polished_andesite', 'stone_bricks', 'cracked_stone_bricks', 'tuff_bricks']
   const textureBuilding = (min, max, focus = [], seed = 0) => {
-    b.texture(min, max, WHITE_RAMP, { only: WALL, base: 0.32, edge: 0.12, drip: 0.12, focus, focusRadius: 8, scale: 5, noise: 0.25, seed })
+    b.texture(min, max, WHITE_RAMP, { only: WALL, mid: 0.28, base: 0.24, edge: 0.1, drip: 0.12, focus, focusRadius: 8, scale: 5, noise: 0.25, seed })
     b.texture(min, max, DARK_RAMP, { only: PLINTH, base: 0.3, scale: 4, noise: 0.3, seed: seed + 1 })
   }
   textureBuilding([GX0 - 2, MKT - 1, GZ0 - 3], [GX1 + 2, 70, GZ1 + 3], [[AX, PLZ + 4, GZ0], [AX, CLK[0] + 3, GZ0]], 1)
+  textureBuilding([76, CRN - 5, VZ - 8], [134, VTOP + 8, 60], [[AX, CRN + 5, VZ]], 2)
   b.texture([0, 0, 0], [W - 1, CRN + 2, D - 1], RET_RAMP, { only: RET, base: 0.35, edge: 0.15, drip: 0.15, scale: 6, noise: 0.3, seed: 9 })
 
   b.spawnPoint(SPAWN, 'south')

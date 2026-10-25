@@ -107,7 +107,7 @@ export default function build(api) {
     return t2 + l2 * 0.6 + (d - c2) * 2.6
   }
   const gully = (x, z) => 3.4 * smooth((N.ridged2(x, z, { scale: 10, seed: 71 }) - 0.72) / 0.2)
-  const trailGrade = s => Math.max(P - 16, P - 0.42 * Math.max(0, s - 2))
+  const trailGrade = s => (s <= 5 ? P : s <= 10 ? P - (s - 5) : Math.max(P - 16, P - 5 - 0.36 * (s - 10)))
   const Hf = new Float32Array(W * D)
   for (let x = 0; x < W; x += 1)
     for (let z = 0; z < D; z += 1) {
@@ -297,7 +297,7 @@ export default function build(api) {
       const star = Math.abs(Math.cos(4 * a)) * (4.5 - r) > 1.4 || Math.abs(x - ROSE[0]) < 0.6 || Math.abs(z - ROSE[1]) < 0.6
       return star ? 'polished_andesite' : 'stone_bricks'
     }
-    if (r < 5.5) return 'polished_deepslate'
+    if (r < 5.5) return pal({ cobblestone: 2, andesite: 2, stone_bricks: 1 }, 108, 2)
     if (z > 57 && z < 79 && (x === 62 || x === 70)) return 'polished_andesite'   // avenue edges
     if (z > 57 && x > 62 && x < 70) {                                              // avenue field
       const wv = wear(x, z)
@@ -421,7 +421,7 @@ export default function build(api) {
         const d = Math.hypot(x - cx, z - cz)
         if (d <= R) {
           foundation(x, z)
-          for (let y = P + 1; y <= top; y += 1) b.set(x, y, z, MASON)
+          for (let y = P + 1; y <= top; y += 1) b.set(x, y, z, d < R - 1.2 && y < top ? 'air' : MASON)
         } else if (d <= R + 1) {
           const f = kit.facingFrom(Math.round(cx - x), Math.round(cz - z))
           if (!b.get(x, P + 1, z) && inShelf(x, z)) b.set(x, P + 1, z, st(SB, f))
@@ -472,8 +472,20 @@ export default function build(api) {
   for (let x = 81; x <= 85; x += 1) for (let y = L0; y <= L0 + 3; y += 1) if (x === 81 || x === 85 || y === L0 + 3) b.set(x, y, 82, 'mossy_stone_bricks')
   b.set(83, L0 + 3, 83, 'chiseled_stone_bricks')
   // landing outside the gate, then the trail down the valley
-  for (let x = 62; x <= 70; x += 1) for (let z = GZ1 + 1; z <= GZ1 + 3; z += 1) { foundation(x, z); b.set(x, P, z, x === 62 || x === 70 ? DRESSED : pal({ cobblestone: 3, stone_bricks: 2, gravel: 1 }, 121, 2)) }
-  b.path(TRAIL.pts.slice(1), { width: 3, paint: pal({ dirt_path: 5, coarse_dirt: 2, gravel: 1 }, 122, 2), jitter: 0.5 })
+  for (let x = 62; x <= 70; x += 1)
+    for (let z = GZ1 + 1; z <= GZ1 + 11; z += 1) {
+      const s5 = z - GZ1 - 1                                       // 0..10 along the trail
+      const y = s5 <= 5 ? P : P - (s5 - 5)
+      const edge = x === 62 || x === 70
+      for (let k = Math.min(height(x, z), y - 3); k <= y; k += 1) b.set(x, k, z, MASON)
+      for (let k = y + 1; k <= y + 4; k += 1) b.set(x, k, z, 'air')
+      if (edge) b.set(x, y + 1, z, s5 <= 5 ? (z % 2 ? 'stone_brick_wall' : DRESSED) : 'stone_brick_wall')
+      else if (s5 > 5) b.set(x, y + 1, z, st(SB, 'north'))       // the stair: one block down per step
+      else b.set(x, y, z, pal({ cobblestone: 3, stone_bricks: 2, gravel: 1 }, 121, 2))
+      if (s5 > 5) b.set(x, y, z, MASON)
+    }
+  for (const x of [62, 70]) { lantern(x, P + 2, GZ1 + 2); lantern(x, P + 2, GZ1 + 5) }
+  b.path(TRAIL.pts.slice(2), { width: 3, paint: pal({ dirt_path: 5, coarse_dirt: 2, gravel: 1 }, 122, 2), jitter: 0.5 })
 
   // ------------------------------------------------------------------ hall of fame (north)
   // The cliff behind the terrace is built up into a crag; the board wall stands against it and
@@ -481,7 +493,7 @@ export default function build(api) {
   // board, a masonry frame and cornice, lit from lanterns on its sill.
   for (let x = 42; x <= 92; x += 1)
     for (let z = 22; z <= 36; z += 1) {
-      const face = 34 + Math.round(1.4 * fbm(x, z, 5, 131, 2)) + (Math.abs(x - 67) > 21 ? -1 : 0)
+      const face = Math.abs(x - 66) <= 21 ? 34 : 34 + Math.round(1.4 * fbm(x, z, 5, 131, 2)) - 1
       if (z > face) continue
       const top = P + 33 + Math.round(3 * fbm(x, z, 9, 132, 2)) - Math.round(Math.max(0, Math.abs(x - 67) - 18) * 0.9) - Math.max(0, z - 31)
       for (let y = P + 1; y <= top; y += 1) if (!b.get(x, y, z)) b.set(x, y, z, strata(x, y, z))
@@ -493,6 +505,15 @@ export default function build(api) {
     footlight: 'ochre_froglight',
     ids: ['money', 'kills', 'playtime', 'blocks'], labels: ['Richest', 'Top Kills', 'Playtime', 'Blocks Mined'],
   })
+  // a slate pent roof on dark oak brackets along the board wall (the hero bay rises through it):
+  // a dark band and a warm bracket rhythm break the grey mass and make the wall a gallery
+  for (let x = 44; x <= 90; x += 1) {
+    if (x >= 56 && x <= 68) continue
+    b.set(x, P + 16, 38, 'deepslate_tiles'); b.set(x, P + 17, 38, 'deepslate_tiles')
+    b.set(x, P + 17, 39, st('deepslate_tile', 'north'))
+    b.set(x, P + 17, 40, sl('deepslate_tile'))
+    if (x % 4 === 1 && ![46, 77, 87].includes(x)) b.set(x, P + 16, 39, st('dark_oak', 'north', 'top'))
+  }
   const tablet = b.sign('VALLEY', [66, P + 28, 35], 'south', { font: 'medium', align: 'center', block: 'quartz_block', board: 'polished_blackstone', frame: 'polished_deepslate', pad: 1 })
   // a masonry surround: piers either side of the frame, a corbel shelf under the sill
   for (const x of [tablet.min[0] - 1, tablet.max[0] + 1])
@@ -504,11 +525,19 @@ export default function build(api) {
   // The stream falls from a notch in the crag into a pool cut in the plaza floor. Water: the
   // pool and the channel above are sources held on every side; only the falling column (in a
   // rock chute, open at the front) is flowing water, and falling water never spreads sideways.
-  const POOL = { x: 96, z: 38.5, rx: 4.6, rz: 6.2 }
+  const POOL = { x: 97, z: 39.5, rx: 4.2, rz: 7 }
   const poolD = (x, z) => Math.hypot((x - POOL.x) / POOL.rx, (z - POOL.z) / POOL.rz) * (1 + 0.1 * fbm(x, z, 4, 141, 2))
-  const FX = [95, 96], FZ = [30, 31]
+  const FX = [98, 99], FZ = [30, 31]
+  for (let x = 89; x <= 107; x += 1)
+    for (let z = 14; z <= 31; z += 1) {
+      const face = 30 + Math.round(1.3 * fbm(x, z, 4, 146, 2)) - (x < 94 || x > 103 ? 1 : 0)
+      if (z > face) continue
+      const top = P + 20 + Math.round(3 * fbm(x, z, 8, 147, 2)) - Math.round(Math.max(0, Math.abs(x - 98.5) - 5) * 1.3) - Math.max(0, 18 - z)
+      for (let y = P + 1; y <= top; y += 1) if (!b.get(x, y, z)) b.set(x, y, z, strata(x, y, z))
+      if (top > height(x, z) && !b.get(x, top + 1, z)) b.set(x, top, z, ledge)
+    }
   for (let x = 89; x <= 103; x += 1)
-    for (let z = 29; z <= 47; z += 1) {
+    for (let z = 29; z <= 48; z += 1) {
       const pd = poolD(x, z)
       const chute = FX.includes(x) && FZ.includes(z)
       if (pd < 1 || chute) {
@@ -523,19 +552,19 @@ export default function build(api) {
       }
     }
   // the chute and the channel on the crag top
-  const lipY = Math.min(...[22, 24, 26, 28].map(z => height(95, z)), P + 20)
-  for (const x of [94, 97]) for (let z = 26; z <= 31; z += 1) for (let y = P; y <= lipY; y += 1) b.set(x, y, z, strata(x, y, z))
+  const lipY = P + 19
+  for (const x of [97, 100]) for (let z = 26; z <= 31; z += 1) for (let y = P; y <= lipY; y += 1) b.set(x, y, z, strata(x, y, z))
   for (const x of FX) {
     for (let y = P; y < lipY; y += 1) b.set(x, y, 29, strata(x, y, 29))                               // chute back
     for (const z of FZ) for (let y = P; y <= lipY; y += 1) b.set(x, y, z, 'water[level=8]')
     for (const z of FZ) for (let y = lipY + 1; y <= lipY + 4; y += 1) b.set(x, y, z, 'air')
-    for (let z = 21; z <= 29; z += 1) {                                                                  // channel
+    for (let z = 17; z <= 29; z += 1) {                                                                  // channel
       for (let y = lipY + 1; y <= lipY + 4; y += 1) b.set(x, y, z, 'air')
-      b.set(x, lipY - 1, z, 'gravel'); b.set(x, lipY, z, z === 21 ? 'mossy_cobblestone' : 'water')
+      b.set(x, lipY - 1, z, 'gravel'); b.set(x, lipY, z, z === 17 ? 'mossy_cobblestone' : 'water')
     }
   }
-  for (const x of [94, 97]) for (let z = 21; z <= 31; z += 1) { b.set(x, lipY, z, 'mossy_cobblestone'); b.set(x, lipY - 1, z, 'stone') }
-  b.overgrow([90, P, 22], [102, lipY + 2, 34], { amount: 0.7, maxLength: 5, seed: 5, only: ['stone', 'andesite', 'tuff', 'cobblestone', 'mossy_cobblestone', 'calcite'] })
+  for (const x of [97, 100]) for (let z = 17; z <= 31; z += 1) { b.set(x, lipY, z, 'mossy_cobblestone'); b.set(x, lipY - 1, z, 'stone') }
+  b.overgrow([90, P, 16], [106, lipY + 2, 34], { amount: 0.7, maxLength: 5, seed: 5, only: ['stone', 'andesite', 'tuff', 'cobblestone', 'mossy_cobblestone', 'calcite'] })
 
   // ------------------------------------------------------------------ crate shrine (west)
   // Four crate stations on a raised stage, backed by a masonry wall cut into the cliff foot:
@@ -545,7 +574,7 @@ export default function build(api) {
     for (let x = 34; x <= 40; x += 1)
       for (let y = P + 1; y <= P + 21; y += 1) {
         if (x === 40) b.set(x, y, z, y >= P + 20 ? st(SB, 'east', 'top') : MASON)
-        else if (!b.get(x, y, z)) b.set(x, y, z, x >= 38 ? MASON : strata(x, y, z))
+        else if (!b.get(x, y, z)) b.set(x, y, z, strata(x, y, z))
       }
   for (const z of [46, 52, 58, 64, 70]) {
     b.set(41, P + 2, z, DRESSED); b.set(42, P + 2, z, st(SB, 'west'))
@@ -582,7 +611,7 @@ export default function build(api) {
   b.box([AH.x0 + 1, P, AH.z0 + 1], [AH.x1 - 1, P, AH.z1 - 1], 'spruce_planks')
   b.box([AH.x0 - 1, P + 4, AH.z0], [AH.x1, P + 4, AH.z1], 'spruce_planks')                       // upper floor + jetty
   for (const [x, z] of [[AH.x0, AH.z0], [AH.x0, AH.z1], [AH.x1, AH.z0], [AH.x1, AH.z1]]) for (let y = P + 1; y <= P + 4; y += 1) b.set(x, y, z, (y - P) % 2 ? TRIM : 'stone_bricks')
-  for (let z = AH.z0; z <= AH.z1; z += 1) if (z < 55 || z > 59) b.set(AH.x0 - 1, P + 4, z, st('dark_oak', 'east', 'top'))   // jetty brackets
+  for (let z = AH.z0; z <= AH.z1; z += 1) if (z < 54 || z > 60) b.set(AH.x0 - 1, P + 4, z, st('dark_oak', 'east', 'top'))   // jetty brackets
   // upper storey: frame on a 3-4 bay rhythm, plaster infill, windows with shutters
   const upper = (x, z, along) => {
     for (let y = P + 5; y <= P + 8; y += 1) {
@@ -596,7 +625,7 @@ export default function build(api) {
   for (let z = AH.z0; z <= AH.z1; z += 1) { upper(AH.x0 - 1, z, 'z'); upper(AH.x1, z, 'z') }
   for (let x = AH.x0; x <= AH.x1; x += 1) { upper(x, AH.z0, 'x'); upper(x, AH.z1, 'x') }
   b.box([AH.x0, P + 5, AH.z0 + 1], [AH.x1 - 1, P + 8, AH.z1 - 1], 'air')
-  for (const [z0, z1] of [[51, 52], [54, 56], [58, 60], [62, 63]]) {
+  for (const [z0, z1] of [[51, 52], [62, 63]]) {
     for (let z = z0; z <= z1; z += 1) for (let y = P + 6; y <= P + 7; y += 1) b.set(AH.x0 - 1, y, z, 'glass_pane')
     b.set(AH.x0 - 2, P + 6, z0 - 1, 'spruce_trapdoor[facing=west,open=true,half=bottom]')
     b.set(AH.x0 - 2, P + 6, z1 + 1, 'spruce_trapdoor[facing=west,open=true,half=bottom]')
@@ -613,41 +642,56 @@ export default function build(api) {
   for (let z = 53; z <= 61; z += 1) if (z !== 57) b.set(93, P + 1, z, z % 2 ? st('spruce', 'east', 'top') : 'barrel[facing=up,open=false]')
   for (const z of [53, 57, 61]) { lantern(95, P + 1, z); lantern(92, P + 5, z) }
   b.set(90, P + 1, 52, 'chest[facing=east]'); b.set(90, P + 1, 62, 'chest[facing=east]')
+  // the auctioneer's bay: a two-storey gabled front projecting from the hall (a cross gable),
+  // the alcove in its stone ground floor, a jettied timber upper floor, the bell on a bracket
+  for (let x = 84; x <= 87; x += 1)
+    for (let z = 54; z <= 60; z += 1) {
+      foundation(x, z)
+      for (let y = P + 1; y <= P + 4; y += 1) b.set(x, y, z, (x === 84 && (z === 54 || z === 60)) ? ((y - P) % 2 ? TRIM : 'stone_bricks') : MASON)
+    }
+  for (let z = 54; z <= 60; z += 1) b.set(83, P + 4, z, st('dark_oak', 'east', 'top'))            // jetty brackets
+  for (let x = 83; x <= 87; x += 1)
+    for (let z = 54; z <= 60; z += 1)
+      for (let y = P + 5; y <= P + 8; y += 1) {
+        const front = x === 83, side = z === 54 || z === 60
+        if (!front && !side) { b.set(x, y, z, 'air'); continue }
+        const post = (front && (z === 54 || z === 57 || z === 60)) || (side && (x === 83 || x === 87))
+        const beam = y === P + 5 || y === P + 8
+        b.set(x, y, z, post ? 'stripped_dark_oak_log[axis=y]' : beam ? `dark_oak_log[axis=${front ? 'z' : 'x'}]` : PLASTER)
+      }
+  for (let z = 55; z <= 59; z += 1) { for (let y = P + 5; y <= P + 8; y += 1) b.set(AH.x0 - 1, y, z, 'air'); b.set(84, P + 4, z, 'spruce_planks'); b.set(85, P + 4, z, 'spruce_planks'); b.set(86, P + 4, z, 'spruce_planks') }
+  for (const [z0, z1] of [[55, 56], [58, 59]]) for (let z = z0; z <= z1; z += 1) for (let y = P + 6; y <= P + 7; y += 1) b.set(83, y, z, 'glass_pane')
+  b.set(82, P + 6, 54, 'spruce_trapdoor[facing=west,open=true,half=bottom]'); b.set(82, P + 6, 60, 'spruce_trapdoor[facing=west,open=true,half=bottom]')
+  lantern(85, P + 5, 57)
   // the alcove: 3 wide, 4 tall, dark panelled back with ledgers and a red glow behind the head
-  for (let x = AH.x0; x <= AH.x0 + 1; x += 1) for (let z = 56; z <= 58; z += 1) for (let y = P + 1; y <= P + 4; y += 1) b.set(x, y, z, 'air')
-  for (let z = 56; z <= 58; z += 1) {
-    b.set(AH.x0 + 1, P, z, 'polished_andesite'); b.set(AH.x0, P, z, 'polished_andesite')
-    for (let y = P + 1; y <= P + 4; y += 1) b.set(AH.x0 + 2, y, z, z === 57 ? 'dark_oak_planks' : y <= P + 2 ? 'bookshelf' : 'dark_oak_planks')
-    b.set(AH.x0 + 1, P + 5, z, 'dark_oak_planks'); b.set(AH.x0, P + 5, z, 'dark_oak_log[axis=z]')
+  for (let x = 84; x <= 85; x += 1) for (let z = 56; z <= 58; z += 1) {
+    for (let y = P + 1; y <= P + 4; y += 1) b.set(x, y, z, 'air')
+    b.set(x, P, z, 'polished_andesite'); b.set(x, P + 5, z, 'dark_oak_planks')
   }
-  b.set(AH.x0 + 2, P + 3, 57, 'red_stained_glass'); b.set(AH.x0 + 3, P + 3, 57, 'ochre_froglight')
-  for (const z of [55, 59]) for (let y = P + 1; y <= P + 4; y += 1) b.set(AH.x0, y, z, y === P + 4 ? 'chiseled_stone_bricks' : TRIM)
-  b.set(AH.x0, P + 4, 56, st(TRIM, 'north', 'top')); b.set(AH.x0, P + 4, 58, st(TRIM, 'south', 'top'))
-  for (let x = 85; x <= 89; x += 1) b.set(x, P + 1, 57, 'red_carpet')
-  b.npcSpot([AH.x0 + 1, P, 57], 'west', { id: 'auction', label: 'Auction House', role: 'auction', style: 'none' })
-  // the porch: posts, beams, its own small gable joined to the hall
-  for (const z of [54, 60]) {
-    b.set(84, P + 1, z, DRESSED)
-    for (let y = P + 2; y <= P + 5; y += 1) b.set(84, y, z, 'stripped_dark_oak_log[axis=y]')
-    for (let x = 85; x <= 87; x += 1) b.set(x, P + 5, z, 'dark_oak_log[axis=x]')
-  }
-  for (let z = 55; z <= 59; z += 1) b.set(84, P + 5, z, 'dark_oak_log[axis=z]')
-  b.roof({ x0: 84, z0: 54, x1: 88, z1: 60, y: P + 6, type: 'gable', axis: 'x', material: 'deepslate_tile', pitch: 1, overhang: 1, gableOverhang: 1, gable: PLASTER, eaveTrim: true, overwrite: false })
-  b.set(85, P + 1, 55, `lectern[facing=west,has_book=true]`)
-  b.set(85, P + 1, 59, 'stripped_dark_oak_log[axis=y]'); b.set(85, P + 2, 59, 'bell[attachment=floor,facing=north]')
-  b.set(84, P + 4, 57, 'lantern[hanging=true]')
-  // roped-off lots either side of the porch
+  for (let z = 56; z <= 58; z += 1) for (let y = P + 1; y <= P + 4; y += 1) b.set(86, y, z, z !== 57 && y <= P + 2 ? 'bookshelf' : 'dark_oak_planks')
+  b.set(86, P + 3, 57, 'red_stained_glass'); b.set(87, P + 3, 57, 'ochre_froglight')
+  for (const z of [55, 59]) for (let y = P + 1; y <= P + 4; y += 1) b.set(84, y, z, TRIM)
+  b.set(84, P + 4, 56, st(TRIM, 'north', 'top')); b.set(84, P + 4, 58, st(TRIM, 'south', 'top'))
+  b.set(83, P + 4, 57, 'chiseled_stone_bricks')
+  for (let x = 81; x <= 85; x += 1) b.set(x, P + 1, 57, 'red_carpet')
+  b.npcSpot([85, P, 57], 'west', { id: 'auction', label: 'Auction House', role: 'auction', style: 'none' })
+  // the podium (lectern) and the bell hung from a bracket, lanterns under the jetty
+  b.set(82, P + 1, 54, 'lectern[facing=west,has_book=true]'); b.set(82, P, 54, 'polished_andesite')
+  b.set(82, P + 4, 60, 'dark_oak_fence'); b.set(82, P + 3, 60, 'bell[attachment=ceiling,facing=west]')
+  b.set(83, P + 3, 55, 'lantern[hanging=true]'); b.set(83, P + 3, 59, 'lantern[hanging=true]')
+  // roped-off lots either side of the bay
   for (const [za, zb, goods] of [[51, 53, ['barrel[facing=up,open=false]', 'decorated_pot', 'chest[facing=west]']], [61, 63, ['hay_block[axis=y]', 'chest[facing=west]', 'iron_block']]]) {
     goods.forEach((g, i) => b.set(AH.x0 - 1, P + 1, za + i, g))
     b.set(AH.x0 - 2, P + 1, za, 'dark_oak_fence'); b.set(AH.x0 - 2, P + 1, zb, 'dark_oak_fence')
     b.set(AH.x0 - 2, P + 1, za + 1, 'chain[axis=z]')
   }
   b.set(AH.x0 - 1, P + 2, 63, 'lantern[hanging=false]')
-  // roof: slate gable over plaster gable ends; a chimney on the back slope; banners on the jetty
-  b.roof({ x0: AH.x0 - 1, z0: AH.z0, x1: AH.x1, z1: AH.z1, y: P + 9, type: 'gable', axis: 'z', material: 'deepslate_tile', pitch: 1, overhang: 1, gableOverhang: 1, gable: PLASTER, eaveTrim: true })
+  // one roof over the hall and the bay: slate, plaster gable ends, a chimney on the back slope
+  b.compoundRoof({ rects: [[AH.x0 - 1, AH.z0, AH.x1, AH.z1], [83, 54, 92, 60]], y: P + 9, type: 'gable', gableAxes: ['z', 'x'], material: 'deepslate_tile', pitch: 1, overhang: 1, gableOverhang: 1, gable: PLASTER, eaveTrim: true })
   for (const z of [AH.z0, AH.z1]) for (let y = P + 9; y <= P + 13; y += 1) b.set(93, y, z, 'stripped_dark_oak_log[axis=y]')
+  for (let y = P + 9; y <= P + 11; y += 1) b.set(83, y, 57, 'stripped_dark_oak_log[axis=y]')
   b.chimney([97, P + 9, 61], 9, { paint: pal({ stone_bricks: 3, cobblestone: 1, mossy_stone_bricks: 1 }, 151, 2) })
-  banner(AH.x0 - 2, P + 7, 53, 'west'); banner(AH.x0 - 2, P + 7, 61, 'west')
+  banner(AH.x0 - 2, P + 7, 52, 'west'); banner(AH.x0 - 2, P + 7, 62, 'west')
 
   // ------------------------------------------------------------------ market corner (SW)
   // Two stalls side by side, each its own design: the shop under a red-and-white striped
@@ -693,7 +737,11 @@ export default function build(api) {
       put(u, 0, 6, st('dark_oak', 'south')); put(u, 1, 5, st('dark_oak', 'south')); put(u, 2, 4, sl('dark_oak', 'top'))
     }
     // weapon rack: spears (lightning rods) on a shelf, shields (banners) above
-    for (const u of [-2, -1, 1, 2]) { put(u, 0, 1, sl('spruce', 'top')); put(u, 0, 2, 'lightning_rod[facing=up]'); put(u, 0, 3, 'lightning_rod[facing=up]') }
+    for (const u of [-2, -1, 1, 2]) put(u, 0, 1, sl('spruce', 'top'))
+    for (const u of [-2, 2]) { put(u, 0, 2, 'lightning_rod[facing=up]'); put(u, 0, 3, 'lightning_rod[facing=up]') }
+    for (const u of [-1, 1]) { put(u, 0, 3, 'lever[face=wall,facing=north,powered=false]'); put(u, 0, 2, 'tripwire_hook[facing=north]') }
+    put(0, -1, 2, 'stripped_spruce_log[axis=y]'); put(0, -1, 3, 'stripped_spruce_log[axis=y]'); put(0, -1, 4, 'stripped_spruce_log[axis=y]')
+    for (let u = -2; u <= 2; u += 1) put(u, -1, 4, u === 0 ? 'stripped_spruce_log[axis=y]' : 'spruce_log[axis=x]')
     put(-2, 0, 5, 'red_wall_banner[facing=north]'); put(2, 0, 5, 'white_wall_banner[facing=north]'); put(0, 0, 5, 'red_wall_banner[facing=north]')
     put(-2, 1, 1, 'anvil[facing=east]'); put(2, 1, 1, 'grindstone[face=floor,facing=north]')
     put(-4, 0, 1, 'smithing_table'); put(-4, 1, 1, 'barrel[facing=up,open=true]')
@@ -767,7 +815,7 @@ export default function build(api) {
   }
 
   // ------------------------------------------------------------------ start here (by the spawn)
-  b.npcSpot([59, P + 1, 54], 'east', { id: 'start', label: 'Start Here', role: 'tutorial', style: 'pedestal', primary: 'stone_bricks', trim: TRIM, base: 'mossy_stone_bricks', accent: 'red_terracotta', inlay: TRIM })
+  b.npcSpot([59, P + 1, 54], 'east', { id: 'start', label: 'Start Here', role: 'tutorial', style: 'pedestal', size: 3, screen: false, primary: 'stone_bricks', trim: TRIM, base: 'mossy_stone_bricks', accent: 'red_terracotta', inlay: TRIM })
   // rules plaque (lectern) and a little map board on posts beside it
   b.set(58, P + 2, 50, 'lectern[facing=east,has_book=true]')
   for (const z of [47, 50]) for (let y = P + 2; y <= P + 4; y += 1) b.set(56, y, z, 'stripped_dark_oak_log[axis=y]')
@@ -825,7 +873,7 @@ export default function build(api) {
   for (const [x, z, s] of [[45, 41, 2], [98, 70, 5], [36, 76, 9]]) b.tree([x, b.groundY(x, z) + 1, z], 'spruce', { seed: s, height: 8, radius: 2.6, roots: 0 })
 
   // ------------------------------------------------------------------ lamps and seats
-  lampPost(61, P + 1, 59); armLamp(71, P + 1, 59, 'west')              // the avenue's head (two designs)
+  lampPost(57, P + 1, 58); armLamp(76, P + 2, 55, 'south')             // the terrace step ends (two designs)
   armLamp(54, P + 1, 45, 'east'); armLamp(54, P + 1, 72, 'east')        // crate apron
   lampPost(86, P + 1, 48); armLamp(86, P + 1, 65, 'west')               // auction hall
   armLamp(90, P + 1, 46, 'south')                                       // pool
@@ -851,7 +899,7 @@ export default function build(api) {
     species: [[6, 'spruce'], [3, 'forester_cone'], [2, 'birch'], [2, 'oak']],
     density: 0.6, minSpacing: 7, sizes: [0, 0.55, 0.45],
     clearings: [[30, 40, 8], [104, 50, 7], [60, 14, 8]],
-    avoid: (x, z) => forestAvoid(x, z) || height(x, z) > 50 || (x > 44 && x < 92 && z > 20 && z < 37),
+    avoid: (x, z) => forestAvoid(x, z) || height(x, z) > 48 || (x > 44 && x < 92 && z > 20 && z < 37),
   })
   b.scatter({ on: ['minecraft:grass_block'], density: 0.3, seed: 3, clump: 7, paints: [[12, 'short_grass'], [3, 'tall_grass'], [3, 'fern'], [1, 'oxeye_daisy'], [1, 'azure_bluet'], [1, 'cornflower'], [1, 'poppy']] })
 
@@ -870,7 +918,7 @@ export default function build(api) {
 
   // ------------------------------------------------------------------ gameplay: region, light
   b.region('spawn', [32, 0, 24], [106, SIZE[1] - 1, 92], { pvp: 'deny', 'mob-spawning': 'deny', 'fall-damage': 'deny', 'greeting-title': 'Valley', priority: 10 })
-  const safe = (x, z) => shelfD[id2(x, z)] <= 3.5 || (x >= 60 && x <= 72 && z <= 90)
+  const safe = (x, z) => shelfD[id2(x, z)] <= 3.5 || (x >= 50 && x <= 82 && z <= 98)
   b.spawnProof([32, P - 1, 24], [106, P + 24, 92], { inside: (x, z) => safe(x, z) })
 
   return b.finish({

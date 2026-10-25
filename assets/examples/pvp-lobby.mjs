@@ -56,6 +56,9 @@ const LATTICE = f => `minecraft:dark_oak_trapdoor[facing=${f},open=true,half=bot
 const RED = 'minecraft:red_terracotta' // the one accent: matte vermilion
 const BLACK = 'minecraft:polished_blackstone'
 const ROOF = { material: 'deepslate_tile', ribs: 'deepslate_brick', ridge: 'polished_blackstone', rafter: 'spruce' }
+// small roofs (under ~12 across): one tile, no ribs, tile hips; a dark ridge would cluster at
+// the corners and the ribs read as noise at this size
+const SMALL = { material: 'deepslate_tile', ribs: null, ridge: 'deepslate_tile', rafter: 'spruce' }
 
 const DIRS = [['east', 1, 0], ['west', -1, 0], ['south', 0, 1], ['north', 0, -1]]
 const VEC = { east: [1, 0], west: [-1, 0], south: [0, 1], north: [0, -1] }
@@ -124,7 +127,7 @@ export default function build(api) {
   // 1-block mounds, which read as contour stripes). Height comes from rock masses built as
   // TIERS of flat-topped plateaus with wobbly edges: each tier step is a 3-block cliff of rock
   // strata, so crags read as layered stone with ledges, never as concentric lines.
-  const inCourt = (x, z) => x >= 30 && x <= 70 && z >= 60 && z <= 81
+  const inCourt = (x, z) => x >= 27 && x <= 73 && z >= 60 && z <= 81
   const southTerrace = (x, z) => x >= 33 && x <= 67 && z >= 82 + Math.round(1.2 * Math.sin(x / 4.5))
   const tier = (x, z, cx, cz, rx, rz, h, seed) => {
     const w = 1 + 0.3 * fbm(x, z, 4.5, seed)
@@ -330,12 +333,20 @@ export default function build(api) {
   // ============================================================================ QUEUE COURT
   // One step above the rim, kerbed in polished andesite. Field: raked gravel (furrows along x);
   // paths of flagstones are drawn later from the stage stairs to each shrine.
-  for (let x = 30; x <= 70; x += 1) {
+  for (let x = 27; x <= 73; x += 1) {
     for (let z = 60; z <= 81; z += 1) {
       if (!inCourt(x, z) || G(x, z) !== Q) continue
-      const kerb = x === 30 || x === 70 || z === 60
+      const kerb = x === 27 || x === 73 || z === 60
       b.set(x, Q, z, kerb ? 'minecraft:polished_andesite' : GRAVEL_X(x, z))
     }
+  }
+
+  // walkways: a flagstone landing at the stair foot and 4-wide flag walks along the stage's
+  // sides, the worn routes to the shrines; the gravel field stays round the shrines
+  for (let x = 41; x <= 59; x += 1) for (let z = 60; z <= 79; z += 1) {
+    const side = (x >= 41 && x <= 44) || (x >= 56 && x <= 59)
+    const landing = z <= 61
+    if ((side || landing) && G(x, z) === Q) b.set(x, Q, z, FLAG(x, z))
   }
 
   // ============================================================================ SOUTH TERRACE
@@ -354,8 +365,8 @@ export default function build(api) {
   // ============================================================================ SPAWN STAGE
   // A wooden butai on a lattice of posts (kakezukuri), x 45-55, z 65-79, floor at D. Boards run
   // north-south toward the view; a dark border; the spawn crest is a ring inlaid in the boards.
-  const SX0 = 45
-  const SX1 = 55
+  const SX0 = 46
+  const SX1 = 54
   const SZ0 = 65
   const SZ1 = 81
   for (let x = SX0; x <= SX1; x += 1) {
@@ -367,7 +378,7 @@ export default function build(api) {
     }
   }
   // the lattice under the stage: posts on stone footings, tie beams (nuki) both ways
-  const SPX = [45, 48, 52, 55]
+  const SPX = [46, 49, 51, 54]
   const SPZ = [65, 69, 73, 77]
   for (const x of SPX) for (const z of SPZ) {
     b.set(x, Q, z, 'minecraft:polished_andesite')
@@ -386,7 +397,7 @@ export default function build(api) {
   }
   // koran: a low railing along the sides and the front corners, open at the stair
   for (let z = SZ0; z <= 79; z += 1) for (const x of [SX0, SX1]) b.set(x, D + 1, z, 'minecraft:dark_oak_fence')
-  for (const x of [45, 46, 54, 55]) b.set(x, D + 1, SZ0, 'minecraft:dark_oak_fence')
+  for (const x of [46, 54]) b.set(x, D + 1, SZ0, 'minecraft:dark_oak_fence')
   for (const [x, z] of [[SX0, SZ0], [SX1, SZ0], [SX0, 72], [SX1, 72], [SX0, 79], [SX1, 79]]) {
     b.set(x, D + 1, z, POST)
     b.set(x, D + 2, z, 'minecraft:dark_oak_slab[type=bottom]')
@@ -591,7 +602,12 @@ export default function build(api) {
       b.clear([x, F + 1, z], [x, F + posts + 8, z])
     }
     for (let u = -1; u <= 1; u += 1) W(u, 1, 0, `minecraft:stone_brick_stairs[facing=${L.back}]`)
-    if (base) for (let u = -1; u <= 1; u += 1) { W(u, 2, base - 1, `minecraft:stone_brick_stairs[facing=${L.back}]`); W(u, 1, 0, 'minecraft:stone_bricks') }
+    if (base) for (let u = -1; u <= 1; u += 1) { W(u, 2, -base, `minecraft:stone_brick_stairs[facing=${L.back}]`); W(u, 1, 0, 'minecraft:stone_bricks') }
+    // the apron: worn flagstones from the walkway to the NPC
+    for (let u = -2; u <= 2; u += 1) for (let d = 2; d <= 4; d += 1) {
+      const [x, , z] = L.at(u, d)
+      if (G(x, z) === Q && inCourt(x, z) && (Math.abs(u) < 2 || hash(x, z, 5) < 0.5)) b.set(x, Q, z, FLAG(x, z))
+    }
     // frame: corner posts, top beams round the wall line
     for (const u of [-hw, hw]) for (const d of [dF, dB]) for (let h = 1; h <= posts; h += 1) W(u, d, h, POST)
     for (let u = -hw + 1; u < hw; u += 1) for (const d of [dF, dB]) W(u, d, posts, BEAM(axU))
@@ -618,7 +634,13 @@ export default function build(api) {
       roof = b.roof({ ...rect, y: ry, type: 'shed', rises: L.back, material: r.material, overhang: 1, gableOverhang: 1, gable: r.gable, eaveTrim: true })
     } else {
       const axis = r.axis ? (r.axis === 'u' ? axU : axD) : undefined
-      roof = b.eastRoof({ ...ROOF, ...r, ...rect, y: ry, axis })
+      roof = b.eastRoof({ ...SMALL, ...r, ...rect, y: ry, axis, finial: undefined })
+      if (r.finial && roof.apex) {
+        // the apex can be a bottom slab (x.5 level): make it a block so the finial sits on it
+        const [ax, ay, az] = roof.apex
+        if (/_slab/.test(b.nameAt(ax, ay, az) ?? '')) b.set(ax, ay, az, 'minecraft:deepslate_tiles')
+        r.finial.forEach((p, k) => b.set(ax, ay + 1 + k, az, p))
+      }
     }
     // the NPC place and its record; the NPC turns to look at the spawn
     const rec = b.npcSpot(L.at(0, 0, 0), facing, { style: 'none', id, label, role })
@@ -629,7 +651,7 @@ export default function build(api) {
 
   // W1 UNRANKED: the practice hall. Gable facing the walkway (tsumairi), lit shoji at the back,
   // lattice sides. Props: a makiwara striking post, a bucket of bamboo shinai, a target.
-  shrine({ id: 'unranked', label: 'Unranked', role: 'queue', npc: [40, 62], facing: 'east', width: 5, depth: 4, posts: 4, back: 'shoji', sides: 'lattice',
+  shrine({ id: 'unranked', label: 'Unranked', role: 'queue', npc: [39, 62], facing: 'east', width: 5, depth: 4, posts: 4, back: 'shoji', sides: 'lattice',
     floor: 'minecraft:stripped_bamboo_block[axis=x]',
     roof: { type: 'gable', axis: 'd', overhang: 1, gableOverhang: 1, lift: 0.5, pitch: [0.5, 0.5, 1, 1, 1], gable: PLASTER, barge: true, lanterns: true },
     props: ({ W, hw }) => {
@@ -640,7 +662,7 @@ export default function build(api) {
     } })
   // E1 RANKED: the honour shrine. Irimoya across the front, taller posts, brackets, a scroll with
   // a red seal at the back. Props: the rank bell, a lectern ledger, offerings, two nobori.
-  shrine({ id: 'ranked', label: 'Ranked', role: 'queue', npc: [60, 62], facing: 'west', width: 5, depth: 5, posts: 5, back: 'scroll', sides: 'plaster',
+  shrine({ id: 'ranked', label: 'Ranked', role: 'queue', npc: [61, 62], facing: 'west', width: 5, depth: 5, posts: 5, back: 'scroll', sides: 'plaster',
     roof: { type: 'irimoya', axis: 'u', overhang: 1, lift: 1, pitch: [0.5, 0.5, 1, 1, 1], gable: PLASTER, barge: true, brackets: true, lanterns: true },
     props: ({ W, hw, posts }) => {
       W(0, -4, posts - 1, 'minecraft:chain[axis=y]'); W(0, -4, posts - 2, 'minecraft:bell[attachment=ceiling,facing=west]')
@@ -650,7 +672,7 @@ export default function build(api) {
     } })
   // W2 FFA: the war-drum tower. Square, tall posts, pyramid roof (hogyo) with a jewel finial.
   // Props: a taiko on its stand, a spear rack, a straw target, open sides with rails.
-  shrine({ id: 'ffa', label: 'FFA', role: 'queue', npc: [37, 69], facing: 'east', width: 5, depth: 5, posts: 5, back: 'plaster', sides: 'open',
+  shrine({ id: 'ffa', label: 'FFA', role: 'queue', npc: [36, 69], facing: 'east', width: 5, depth: 5, posts: 5, back: 'plaster', sides: 'open',
     roof: { type: 'pyramid', overhang: 1, lift: 1, pitch: [0.5, 0.5, 1, 1, 1], lanterns: true, finial: [BLACK, 'minecraft:lightning_rod[facing=up]'] },
     props: ({ W, hw }) => {
       W(0, -4, 1, 'minecraft:dark_oak_fence'); W(0, -4, 2, 'minecraft:barrel[facing=east,open=false]'); W(0, -5, 2, 'minecraft:dark_oak_trapdoor[facing=west,half=bottom,open=true]')
@@ -660,7 +682,7 @@ export default function build(api) {
     } })
   // W3 KIT EDITOR: the armoury workshop. Low, a shed roof of dark oak shingles rising to the back.
   // Props: anvil, smithing table, grindstone, a lit forge, a weapon chest, shelves.
-  shrine({ id: 'kit-editor', label: 'Kit Editor', role: 'queue', npc: [39, 76], facing: 'east', width: 5, depth: 3, posts: 3, back: 'shelves', sides: 'plaster',
+  shrine({ id: 'kit-editor', label: 'Kit Editor', role: 'queue', npc: [38, 76], facing: 'east', width: 5, depth: 3, posts: 3, back: 'shelves', sides: 'plaster',
     floor: 'minecraft:spruce_planks',
     roof: { type: 'shed', material: 'dark_oak', gable: 'minecraft:dark_oak_planks' },
     props: ({ W, hw }) => {
@@ -670,7 +692,7 @@ export default function build(api) {
     } })
   // E2 EVENTS: the festival yagura. Raised one more step, hip roof with strong lift, lanterns
   // strung under the eaves. Props: festival drum, paper lanterns, a firework crate.
-  shrine({ id: 'events', label: 'Events', role: 'queue', npc: [63, 69], facing: 'west', width: 5, depth: 4, posts: 4, base: 1, back: 'shoji', sides: 'open',
+  shrine({ id: 'events', label: 'Events', role: 'queue', npc: [64, 69], facing: 'west', width: 5, depth: 4, posts: 4, base: 1, back: 'shoji', sides: 'open',
     roof: { type: 'hip', overhang: 1, lift: 1.5, pitch: [0.5, 0.5, 1, 1, 1], lanterns: true, brackets: true },
     props: ({ W, hw }) => {
       W(0, -3, 1, 'minecraft:note_block'); W(0, -3, 2, 'minecraft:barrel[facing=west,open=false]')
@@ -680,7 +702,7 @@ export default function build(api) {
     } })
   // E3 STORE: the merchant stall. Low, gable across the front in spruce shingles, shelves of
   // stock at the back, a red noren hung from the front beam. Props: barrels, pots, a cash chest.
-  shrine({ id: 'store', label: 'Store', role: 'queue', npc: [60, 76], facing: 'west', width: 5, depth: 3, posts: 3, back: 'shelves', sides: 'plaster',
+  shrine({ id: 'store', label: 'Store', role: 'queue', npc: [62, 76], facing: 'west', width: 5, depth: 3, posts: 3, back: 'shelves', sides: 'plaster',
     floor: 'minecraft:spruce_planks',
     roof: { type: 'gable', axis: 'u', material: 'spruce', ridge: 'dark_oak', ribs: null, rafter: 'dark_oak', overhang: 1, gableOverhang: 1, lift: 0.5, pitch: [0.5, 0.5, 1, 1], gable: PLASTER },
     props: ({ W, hw, posts }) => {
@@ -706,7 +728,7 @@ export default function build(api) {
   // a tiled coping roof over the two side wings of the wall (a tsuiji-bei); the raised Elo bay
   // keeps its crest against the sky
   for (const [z0, z1] of [[HOF[2] - 15, HOF[2] - 7], [HOF[2] + 7, HOF[2] + 15]]) {
-    b.eastRoof({ ...ROOF, x0: HOF[0] - 2, z0, x1: HOF[0], z1, y: M + 13, type: 'gable', axis: 'z', overhang: 1, gableOverhang: 1, lift: 0.5, pitch: [0.5, 0.5, 1], gable: PLASTER })
+    b.eastRoof({ ...SMALL, x0: HOF[0] - 2, z0, x1: HOF[0], z1, y: M + 13, type: 'gable', axis: 'z', overhang: 1, gableOverhang: 1, lift: 0.5, pitch: [0.5, 0.5, 1], gable: PLASTER })
   }
 
   // ============================================================================ CRATE SHRINES
@@ -714,23 +736,29 @@ export default function build(api) {
   // paper-white glow) and the Dojo crate (the premium one, the only red panel). Each gets a
   // little gabled roof (a hokora) over its arch; the crowd area in front is open lawn.
   const CRATES = [
-    { pos: [74, M + 2, 50], id: 'vote', label: 'Vote Crate', tier: 'vote', block: 'chest', tierBlock: 'minecraft:dark_oak_planks', glass: 'minecraft:white_stained_glass' },
-    { pos: [81, M + 2, 51], id: 'dojo', label: 'Dojo Crate', tier: 'mythic', block: 'ender_chest', tierBlock: RED, glass: 'minecraft:red_stained_glass', hero: true },
+    { pos: [74, M + 2, 50], id: 'vote', label: 'Vote Crate', tier: 'vote', block: 'chest', tierBlock: 'minecraft:dark_oak_planks', panel: 'minecraft:stripped_dark_oak_log[axis=y]', glass: 'minecraft:white_stained_glass' },
+    { pos: [81, M + 2, 51], id: 'dojo', label: 'Dojo Crate', tier: 'mythic', block: 'ender_chest', tierBlock: RED, panel: RED, glass: 'minecraft:red_stained_glass', hero: true },
   ]
   for (const c of CRATES) {
-    b.crate(c.pos, 'south', { ...c, primary: 'calcite', trim: 'dark_oak', base: 'mossy_stone_bricks', accent: RED })
+    b.crate(c.pos, 'south', { ...c, primary: 'calcite', trim: 'deepslate_tile', base: 'mossy_stone_bricks', accent: RED })
     const L = frameOf(c.pos, 'south')
-    const archTop = c.hero ? 5 : 4
-    const rect = L.rect(-2, -5, 2, -2)
-    b.eastRoof({ ...ROOF, ...rect, y: c.pos[1] + archTop + 2, type: 'gable', axis: 'z', overhang: 1, gableOverhang: 1, lift: 0.5, pitch: [0.5, 0.5, 1, 1], gable: PLASTER })
+    // the kit lights the dais with candles in the tier colour; the vote crate's are plain wax
+    for (let u = -2; u <= 2; u += 1) for (let d = -1; d <= 2; d += 1) {
+      const p = L.at(u, d, 0)
+      const blk = b.get(...p)
+      if (blk && /green_candle$/.test(blk.name)) b.set(...p, { name: 'minecraft:candle', props: blk.props })
+    }
+    const top = c.hero ? 9 : 7 // above the arch's cap (and the hero's crest)
+    const rect = L.rect(-2, -4, 2, -2)
+    b.eastRoof({ ...SMALL, ...rect, y: c.pos[1] + top, type: 'gable', axis: 'z', overhang: 1, gableOverhang: 1, lift: 0.5, pitch: [0.5, 0.5, 1, 1], gable: PLASTER })
   }
 
   // ============================================================================ FFA DROP GATE
   // On the arena's east rim: the kit portal (kind 'pvp', pointed red fanlight) under a gate roof.
   // Walking west through the opening triggers the drop into the pit.
   {
-    const rec = b.portal([66, M + 1, 43], [66, M + 4, 45], { id: 'ffa-drop', label: 'FFA Drop', kind: 'pvp', facing: 'east', primary: 'calcite', trim: 'dark_oak', base: 'mossy_stone_bricks', accent: RED })
-    b.eastRoof({ ...ROOF, x0: 64, z0: 40, x1: 68, z1: 48, y: M + 1 + 10, type: 'gable', axis: 'z', overhang: 2, gableOverhang: 1, lift: 1, pitch: [0.5, 0.5, 1, 1, 1], gable: PLASTER })
+    const rec = b.portal([66, M + 1, 47], [66, M + 4, 49], { id: 'ffa-drop', label: 'FFA Drop', kind: 'pvp', facing: 'east', primary: 'calcite', trim: 'deepslate_tile', base: 'mossy_stone_bricks', accent: RED })
+    b.eastRoof({ ...SMALL, x0: 65, z0: 44, x1: 67, z1: 52, y: M + 1 + 10, type: 'gable', axis: 'z', overhang: 2, gableOverhang: 1, lift: 1, pitch: [0.5, 0.5, 1, 1, 1], gable: PLASTER })
     b.ffaGate = rec
   }
 
@@ -781,7 +809,7 @@ export default function build(api) {
   wornPath([[31, 63], [28, 63], [25, 62], [23, 60]], 4, 1) // court → hall of fame
   wornPath([[69, 63], [72, 61], [76, 60], [78, 61]], 4, 2) // court → crates
   wornPath([[86, 59], [88, 63], [90, 67]], 3, 3) // crates → parkour start
-  wornPath([[70, 45], [74, 47], [77, 52]], 3, 4) // FFA gate → crates
+  wornPath([[70, 48], [74, 47], [77, 45]], 3, 4) // FFA gate → crates (behind them)
   wornPath([[33, 33], [28, 33], [25, 35]], 3, 5) // rim → bell stair
   wornPath([[67, 30], [72, 31], [76, 33]], 3, 6) // rim → NE crag foot
 
@@ -895,17 +923,17 @@ export default function build(api) {
   bambooClump(89, 36, 2.6, 33)
   bambooClump(88, 42, 2.2, 34)
   // clipped azalea mounds at path corners and building feet
-  for (const [x, z, r] of [[33, 58, 1.6], [67, 58, 1.5], [30, 66, 1.4], [71, 70, 1.6], [24, 66, 1.3], [74, 58, 1.4], [38, 88, 1.6], [62, 87, 1.5], [29, 26, 1.5], [71, 27, 1.4], [86, 60, 1.3], [24, 36, 1.5]]) karikomi(x, z, r, x * 7 + z)
+  for (const [x, z, r] of [[33, 58, 1.6], [67, 58, 1.5], [28, 63, 1.2], [72, 74, 1.4], [24, 66, 1.3], [74, 58, 1.4], [38, 88, 1.6], [62, 87, 1.5], [29, 26, 1.5], [71, 27, 1.4], [86, 60, 1.3], [24, 36, 1.5]]) karikomi(x, z, r, x * 7 + z)
 
   // ============================================================================ LANTERNS AND BANNERS
   bigToro(39, M + 1, 58) // kasuga lanterns flank the torii (not mirrored: one big, one small)
   smallToro(61, M + 1, 58)
-  for (const [x, z] of [[44, 32], [56, 32], [33, 46], [33, 42], [67, 50]]) smallToro(x, G(x, z) + 1, z)
+  for (const [x, z] of [[44, 32], [56, 32], [33, 46], [33, 42], [67, 41]]) smallToro(x, G(x, z) + 1, z)
   for (const [x, z] of [[24, 38], [25, 63], [74, 60], [82, 60], [88, 64], [20, 66], [86, 80], [12, 76]]) if (isSoft(x, z) || /gravel|andesite|concrete/.test(b.nameAt(x, G(x, z), z) ?? '')) smallToro(x, G(x, z) + 1, z)
   bigToro(30, G(30, 30) + 1, 30)
   bigToro(70, G(70, 30) + 1, 30)
   // nobori round the arena rim in pairs and a three, never evenly spaced
-  for (const [x, z, rot] of [[47, 31, 8], [53, 31, 8], [35, 40, 4], [35, 48, 4], [65, 39, 12], [65, 49, 12], [63, 54, 10]]) {
+  for (const [x, z, rot] of [[47, 31, 8], [53, 31, 8], [35, 40, 4], [35, 48, 4], [65, 38, 12], [65, 41, 12], [62, 56, 10]]) {
     if (!b.has(x, M + 1, z)) nobori(x, M + 1, z, rot)
   }
 
@@ -953,7 +981,7 @@ export default function build(api) {
       b.set(sx + k, SY + 4, sz + s2, BEAM('x')) // nuki tie beams
       b.set(sx + s2, SY + 4, sz + k, BEAM('z'))
     }
-    b.eastRoof({ ...ROOF, x0: sx - 2, z0: sz - 2, x1: sx + 2, z1: sz + 2, y: SY + 7, type: 'irimoya', axis: 'x', overhang: 2, lift: 1.5, pitch: [0.5, 0.5, 1, 1, 1, 1], gable: PLASTER, barge: true, lanterns: true })
+    b.eastRoof({ ...SMALL, x0: sx - 2, z0: sz - 2, x1: sx + 2, z1: sz + 2, y: SY + 7, type: 'irimoya', axis: 'x', overhang: 2, lift: 1.5, pitch: [0.5, 0.5, 1, 1, 1, 1], gable: PLASTER, barge: true, lanterns: true })
     b.box([sx, SY + 5, sz], [sx, SY + 6, sz], 'minecraft:chain[axis=y]')
     b.set(sx, SY + 4, sz, 'minecraft:bell[attachment=ceiling,facing=east]')
     b.set(sx - 1, SY + 6, sz + 1, 'minecraft:chain[axis=y]')
@@ -1019,7 +1047,7 @@ export default function build(api) {
       b.set(F0[0] + s2, FY + 4, F0[1] + k, BEAM('z'))
       if (s2 === -2) b.set(F0[0] + k, FY + 1, F0[1] + s2, 'minecraft:spruce_stairs[facing=north]') // bench
     }
-    b.eastRoof({ ...ROOF, x0: F0[0] - 2, z0: F0[1] - 2, x1: F0[0] + 2, z1: F0[1] + 2, y: FY + 5, type: 'pyramid', overhang: 2, lift: 1, pitch: [0.5, 0.5, 1, 1, 1], lanterns: true, finial: ['minecraft:polished_blackstone_wall'] })
+    b.eastRoof({ ...SMALL, x0: F0[0] - 2, z0: F0[1] - 2, x1: F0[0] + 2, z1: F0[1] + 2, y: FY + 5, type: 'pyramid', overhang: 2, lift: 1, pitch: [0.5, 0.5, 1, 1, 1], lanterns: true, finial: ['minecraft:polished_blackstone_wall'] })
     b.set(F0[0], FY + 1, F0[1] + 1, 'minecraft:light_weighted_pressure_plate[power=0]')
     b.hangingLantern([F0[0], FY + 4, F0[1]], 0)
     b.region('parkour-finish', [F0[0], FY + 1, F0[1] + 1], [F0[0], FY + 1, F0[1] + 1], { note: 'gold plate: finish' })
