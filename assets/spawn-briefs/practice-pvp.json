@@ -1,0 +1,9 @@
+{
+  "name": "Sakura PvP",
+  "type": "pvp",
+  "theme": "japanese",
+  "npcs": ["unranked", "ranked", "ffa", "kits", "events", "store"],
+  "leaderboards": ["Elo", "Wins", "Streak"],
+  "crates": 2,
+  "seed": 5
+}

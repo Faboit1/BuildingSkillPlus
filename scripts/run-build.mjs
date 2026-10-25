@@ -488,6 +488,13 @@ function setupSheet({ name, origin, world, size, placements }) {
     }
   }
 
+  const holos = of('hologram')
+  if (holos.length) {
+    L.push('## Other holograms (DecentHolograms)', '')
+    L.push('Free-standing text: rules, district names, tips. The location is the top line.', '')
+    code(holos.map(p => `dh hologram create ${slugId(p.id)} -l:${world}:${p.world.pos.join(':')} ${p.label}`))
+  }
+
   const crates = of('crate')
   if (crates.length) {
     // where to stand: the middle of the clear area in front of the station, looking at the crate

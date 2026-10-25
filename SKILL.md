@@ -5,51 +5,123 @@ description: Design and generate high-quality Minecraft builds — above all ser
 
 # Minecraft Builder Skill
 
-You write a JavaScript **recipe** with the building kit, export a vanilla structure `.nbt`, then
-**render it and look at the PNGs**. Quality comes from that loop. The building craft itself —
+**Server spawn, lobby or hub?** Follow the five steps in the next section: an interview, a JSON
+brief, one command (`scripts/make-spawn.mjs`), a look at the renders, delivery.
+
+**Anything else:** you write a JavaScript **recipe** with the building kit, export a vanilla structure
+`.nbt`, then **render it and look at the PNGs**. Quality comes from that loop. The building craft itself —
 proportions, depth, palettes, roofs, styles, landscaping, lighting — lives in
 `references/building/`. Read `references/building/README.md` (the handbook) before every build.
 
-## Server spawns and lobbies (the main use)
+## Server spawns and lobbies: use the generator (the main use)
 
-When the user asks for a spawn, lobby, hub, or anything a server's players will land in, switch to
-**spawn mode**: read `references/spawns/README.md` (the spawn handbook) first and follow its
-workflow. The non-negotiables:
+For a server spawn, lobby or hub, **do not hand-write a recipe**. Follow these five steps exactly.
+`scripts/make-spawn.mjs` builds the whole spawn from a short JSON brief: island terrain, the plaza,
+NPC places, leaderboards with the server name, crates, the RTP gate, the PvP zone, themed buildings,
+trees and lighting, already spawn-proofed, plus the plugin setup sheet and renders.
 
-1. **Ask before you build.** Never start placing blocks for a spawn from a one-line request. Run the
-   interview in `references/spawns/README.md` §1 with the `AskUserQuestion` tool:
-   - **Round 1 (type, size, NPC count, theme):** *normal spawn* (FreshSMP-style: one beautiful
-     compact plaza set in great terrain) or *spawn+* (DonutSMP-style: a hub where every NPC/feature
-     gets its own building or place), or a PvP/minigame lobby; **the size in blocks** (e.g.
-     100 × 100, 150 × 150, 250 × 250); **how many NPCs**; the theme.
-   - **Round 2 (program):** the server name and branding, which NPCs (one place each, filling the
-     count), which leaderboards, which crates (names and tiers), and extras (RTP, AFK, warps,
-     PvP pit...).
-   - **Round 3 (follow-ups that perfect it):** ask about whatever the answers left open: spawn
-     facing and first view, terrain and setting, colour accents, signage (block letters or holograms
-     only), night lighting, version and server software, where it will be pasted, size limits.
-   - Then write the brief back in a few lines and get a yes before building.
-2. **Program every gameplay place with the spawn kit** (`b.npcSpot`, `b.leaderboards`, `b.crate`,
-   `b.spawnPoint`, `b.portal`, `b.sign`, `b.spawnProof`; `references/kit-api.md` → "Spawn & lobby
-   kit"). They record placements, so `run-build` writes `<name>.placements.json` and `<name>.setup.md`
-   (coordinates and ready-to-paste NPC/hologram/crate/WorldGuard commands).
-3. **Make it look hand-built.** The anti-AI checklist in the spawn handbook is mandatory: render the
-   spawn-point view, every feature at eye level, the overview (`scripts/isorender.mjs` for any size)
-   and night, and fix every tell before delivering.
-4. **Spawn-proof and gameplay-check.** 0 dark walkable cells inside the spawn
-   (`b.spawnProof`, `inspect --checks`), no flooding water, no trip hazards on main routes, clear
-   2-block stand-off in front of every NPC and crate.
-
-## Setup (once)
-
-Work from the installed skill directory.
+### Step 0: check the tools
 
 ```bash
-npm install --omit=dev          # if node_modules/@mattzh72/lodestone is missing
+node scripts/make-spawn.mjs --help
 ```
 
-`scripts/render.mjs` needs Playwright + Chromium (it finds a global install too). If it is missing:
-`npm install --no-save playwright && npx playwright install chromium`.
+It must print a usage text. Needs Node 20.19+ (`node --version`). If `scripts/` or `node_modules/`
+is missing, or the command fails with "Cannot find module", install the full skill from its repo and
+work from there:
+
+```bash
+git clone https://github.com/Faboit1/BuildingSkillPlus && cd BuildingSkillPlus
+npm ci --omit=dev        # or: npm install --omit=dev
+node scripts/make-spawn.mjs --help
+```
+
+### Step 1: interview (never skip, never build from a one-line request)
+
+Use the `AskUserQuestion` tool. Mark the option you recommend with "(Recommended)".
+
+**Round 1** (one call, four questions):
+1. **Type**: *Normal spawn* (FreshSMP-like: one beautiful round plaza on good terrain, the NPCs in a
+   ring; best for most SMPs) / *Spawn+* (DonutSMP-like: a town where every NPC has its own building) /
+   *PvP lobby* (queue NPCs in an arc, an FFA arena).
+2. **Size** in blocks: *Recommended for the NPC count* / 100 x 100 / 150 x 150 / 220 x 220.
+3. **How many NPCs**: e.g. 6 / 8 / 12 / 16 (the user can type any number).
+4. **Theme**: autumn / medieval / white-town / japanese / winter / fantasy (one question can show
+   only 4 options: offer the 3 best for their server plus "Other", and list all six in the question).
+
+**Round 2** (one call): the **server name** (block letters on the hero wall), **which NPCs**
+(multiSelect from the type's list below, or they type their own), **which leaderboards**
+(multiSelect: Money, Kills, Playtime, Blocks Mined, Deaths, Votes / for PvP: Elo, Wins, Streak),
+**which crates** (multiSelect: Vote, Common, Rare, Epic, Legendary, Seasonal).
+
+**Round 3** (one call, follow-ups): the **setting** (island / valley / mountain / coast / plains),
+an **accent colour** (blue, red, orange, purple, cyan...; never gold), **extras** (PvP zone, AFK
+area, RTP gate; multiSelect), and **where it goes** (paste corner and world name, or "centred on 0,0").
+
+Then show the brief as JSON and ask "Build this?". Build only after a yes.
+
+### Step 2: write the brief
+
+Save it as `minecraft-builds/<slug>/brief.json`. Only `name` and `type` are required; leave out what
+the user did not decide (good defaults fill it). Examples: `assets/spawn-briefs/*.json`.
+
+| Field | Values | Default |
+| --- | --- | --- |
+| `name` | the server name | `"Spawn"` |
+| `type` | `"normal"`, `"plus"`, `"pvp"` | `"normal"` |
+| `size` | blocks across (square) | recommended for the NPC count |
+| `npcs` | a number, or a list of ids/labels: `["shop", "auction", "rtp"]` or `[{ "id": "crates_guy", "label": "Crate Keys" }]` | 7 / 12 / 6 |
+| `theme` | `autumn`, `medieval`, `white-town`, `japanese`, `winter`, `fantasy` | `medieval` (pvp: `japanese`) |
+| `setting` | `island`, `plains`, `valley`, `mountain`, `coast` | the theme's |
+| `accent` | a dye colour: `blue`, `red`, `orange`, `purple`, `cyan`, `lime`... | the theme's |
+| `leaderboards` | a number or labels: `["Money", "Kills", "Playtime"]` | 3 (plus: 4) |
+| `crates` | a number, labels, or `[{ "id", "label", "tier" }]` (tiers: common, uncommon, rare, epic, legendary, mythic, vote, seasonal) | 4 (pvp: 2) |
+| `features` | `{ "rtp": true, "pvp": true, "afk": false, "signs": true }` | rtp; pvp zone except in a pvp lobby; afk in spawn+; signs |
+| `seed` | any number: a different variation of the same brief | 7 |
+| `origin` | `[x, y, z]` where the minimum corner is pasted | centred on 0, 0 at y 64 |
+| `world` | the world name used in the setup commands | `"world"` |
+
+NPC ids the generator knows (any other id works too and becomes its own label):
+normal/plus: `shop, auction, rtp, store, kits, quests, sell, warps, events, bounties, teams,
+tutorial, afk, vote, duels, enchanter`; pvp: `unranked, ranked, ffa, kits, events, store, duels, bots`.
+
+### Step 3: generate
+
+```bash
+node scripts/make-spawn.mjs minecraft-builds/<slug>/brief.json
+```
+
+It prints every file it wrote (`.recipe.mjs`, `.nbt`, `.schem`, `.litematic`, `.placements.json`,
+`.setup.md`, `renders/*.png`), the world spawn, the NPC list and any warnings. A warning that the size
+is small: raise `size` (or leave it out) and run again.
+
+### Step 4: look at the renders, fix, rebuild
+
+Open every PNG in `minecraft-builds/<slug>/renders/` with the Read tool (overview from two sides, and
+the plaza close-up). Check: the name sign reads; the plaza, the NPC places, the boards and the crates
+are visible and not buried in trees; nothing floats or overlaps. To change something:
+- Different look of the same plan: change `seed` (or `theme`, `setting`, `accent`) in the brief and
+  run Step 3 again.
+- Hand additions (a statue, an extra tree, a fountain...): edit `after(ctx)` in
+  `minecraft-builds/<slug>/<slug>.recipe.mjs` (it has the builder `ctx.b`, `ctx.FY` = plaza floor
+  level, `ctx.C` = spawn column, `ctx.layout` = every slot) and rebuild with
+  `node scripts/make-spawn.mjs --recipe minecraft-builds/<slug>/<slug>.recipe.mjs`.
+
+### Step 5: deliver
+
+Give the user: the `.schem` (WorldEdit/FAWE) and `.litematic` (Litematica), the `.setup.md` (world
+spawn, Citizens/FancyNpcs NPCs, DecentHolograms, crates, WorldGuard regions with ready commands), and
+the renders. Tell them the paste corner and the world spawn printed in Step 3.
+
+To go beyond the generator (a hand-built spawn, a custom layout), read `references/spawns/README.md`
+(the spawn handbook: interview, program, measured numbers, anti-AI checklist) and use the spawn kit
+(`references/kit-api.md` → "Spawn & lobby kit"); `assets/examples/spawn-kit-demo.mjs` uses every part.
+
+## Setup (once, for hand-written builds)
+
+Building, inspecting, converting and `scripts/isorender.mjs` need only `@mattzh72/lodestone`
+(`npm ci --omit=dev`). `scripts/render.mjs` and `preview.mjs` also need Playwright + Chromium (it finds
+a global install too); if missing: `npm install --no-save playwright && npx playwright install chromium`.
 
 ## The loop
 
@@ -115,7 +187,7 @@ other chapters when the build needs them.
 | Task | Read |
 | --- | --- |
 | Any build | `references/building/README.md` (laws, workflow, scale tiers, cheat sheets) |
-| Server spawn, lobby, hub, PvP lobby | `references/spawns/README.md` (interview, program, numbers, anti-AI checklist), then `corpus-study.md`, `design-research.md`, `case-studies.md` in the same folder |
+| Server spawn, lobby, hub, PvP lobby | the five steps above (`scripts/make-spawn.mjs`); for hand-built spawns `references/spawns/README.md`, then `corpus-study.md`, `design-research.md`, `case-studies.md` |
 | Judging and fixing your renders | `references/building/quality-and-critique.md` |
 | Numeric targets (distinct ids, partial-block %, lights, contrast) per style and size | `references/building/benchmarks.md` |
 | What skilled community builders do differently (measured idioms, cross-sections) | `references/building/community-lessons.md` |
