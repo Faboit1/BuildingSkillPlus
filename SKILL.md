@@ -1,6 +1,6 @@
 ---
 name: minecraft-builder-skill
-description: Design and generate high-quality Minecraft builds — houses, castles, cathedrals, towers, villages, temples, ships, statues, trees, terrain and whole scenes — as vanilla structure .nbt (or .schem/.litematic) using a JavaScript building kit, then render them headlessly to critique and iterate. Use for any request to build, design, generate, export, preview, import or improve a Minecraft build, schematic or structure.
+description: Design and generate high-quality Minecraft builds — above all server spawns and lobbies (SMP spawns with NPC places, leaderboards and crates, DonutSMP-style multi-building hubs, FreshSMP-style terrain spawns, PvP lobbies), plus houses, castles, cathedrals, towers, villages, temples, ships, statues, trees, terrain and whole scenes — as vanilla structure .nbt (or .schem/.litematic, or ready-to-paste region files) using a JavaScript building kit, then render them headlessly to critique and iterate. Use for any request to build, design, generate, export, preview, import or improve a Minecraft build, spawn, lobby, hub, schematic or structure.
 ---
 
 # Minecraft Builder Skill
@@ -9,6 +9,34 @@ You write a JavaScript **recipe** with the building kit, export a vanilla struct
 **render it and look at the PNGs**. Quality comes from that loop. The building craft itself —
 proportions, depth, palettes, roofs, styles, landscaping, lighting — lives in
 `references/building/`. Read `references/building/README.md` (the handbook) before every build.
+
+## Server spawns and lobbies (the main use)
+
+When the user asks for a spawn, lobby, hub, or anything a server's players will land in, switch to
+**spawn mode**: read `references/spawns/README.md` (the spawn handbook) first and follow its
+workflow. The non-negotiables:
+
+1. **Ask before you build.** Never start placing blocks for a spawn from a one-line request. Run the
+   interview in `references/spawns/README.md` §1 with the `AskUserQuestion` tool:
+   - **Round 1 (type and frame):** *normal spawn* (FreshSMP-style: one beautiful compact plaza set in
+     great terrain) or *spawn+* (DonutSMP-style: a hub where every NPC/feature gets its own building
+     or place), or a PvP/minigame lobby; size; theme; version and plugins.
+   - **Round 2 (program):** the server name and branding, which NPCs (one place each), which
+     leaderboards, which crates (names and tiers), and extras (RTP, AFK, warps, PvP pit...).
+   - **Round 3 (follow-ups that perfect it):** ask about whatever the answers left open: spawn
+     facing and first view, terrain and setting, colour accents, signage (block letters or holograms
+     only), night lighting, where it will be pasted, size limits.
+   - Then write the brief back in a few lines and get a yes before building.
+2. **Program every gameplay place with the spawn kit** (`b.npcSpot`, `b.leaderboards`, `b.crate`,
+   `b.spawnPoint`, `b.portal`, `b.sign`, `b.spawnProof`; `references/kit-api.md` → "Spawn & lobby
+   kit"). They record placements, so `run-build` writes `<name>.placements.json` and `<name>.setup.md`
+   (coordinates and ready-to-paste NPC/hologram/crate/WorldGuard commands).
+3. **Make it look hand-built.** The anti-AI checklist in the spawn handbook is mandatory: render the
+   spawn-point view, every feature at eye level, the overview (`scripts/isorender.mjs` for any size)
+   and night, and fix every tell before delivering.
+4. **Spawn-proof and gameplay-check.** 0 dark walkable cells inside the spawn
+   (`b.spawnProof`, `inspect --checks`), no flooding water, no trip hazards on main routes, clear
+   2-block stand-off in front of every NPC and crate.
 
 ## Setup (once)
 
@@ -41,6 +69,10 @@ node scripts/render.mjs --nbt minecraft-builds/NAME/NAME.nbt          # → rend
   1,212 human builds: palette breadth, partial blocks, upside-down stairs, lights, contrast, relief,
   overhangs — each out-of-band metric comes with a fix). Aim for 85+ with nothing far out of band.
 - Interactive viewer for the user: `node scripts/preview.mjs --nbt FILE` (`--no-open` when headless).
+- Big builds (whole spawns, islands, cities; `render.mjs` crashes above ~1M visible blocks):
+  `node scripts/isorender.mjs FILE --out OUT.png --px 4 [--from se|sw|ne|nw] [--box x0,z0,x1,z1]
+  [--ymin Y] [--half]` draws every block as a textured isometric cube on the CPU, any size, one image.
+  `--px 2` overview, `--px 8` district close-up.
 
 Iterate at least: massing → structure → material → detail → landscape → night. Fix the biggest
 problem first (silhouette, proportions, roof, depth, texture, detail — in that order).
@@ -81,6 +113,7 @@ other chapters when the build needs them.
 | Task | Read |
 | --- | --- |
 | Any build | `references/building/README.md` (laws, workflow, scale tiers, cheat sheets) |
+| Server spawn, lobby, hub, PvP lobby | `references/spawns/README.md` (interview, program, numbers, anti-AI checklist), then `corpus-study.md`, `design-research.md`, `case-studies.md` in the same folder |
 | Judging and fixing your renders | `references/building/quality-and-critique.md` |
 | Numeric targets (distinct ids, partial-block %, lights, contrast) per style and size | `references/building/benchmarks.md` |
 | What skilled community builders do differently (measured idioms, cross-sections) | `references/building/community-lessons.md` |
