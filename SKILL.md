@@ -18,14 +18,16 @@ workflow. The non-negotiables:
 
 1. **Ask before you build.** Never start placing blocks for a spawn from a one-line request. Run the
    interview in `references/spawns/README.md` §1 with the `AskUserQuestion` tool:
-   - **Round 1 (type and frame):** *normal spawn* (FreshSMP-style: one beautiful compact plaza set in
-     great terrain) or *spawn+* (DonutSMP-style: a hub where every NPC/feature gets its own building
-     or place), or a PvP/minigame lobby; size; theme; version and plugins.
-   - **Round 2 (program):** the server name and branding, which NPCs (one place each), which
-     leaderboards, which crates (names and tiers), and extras (RTP, AFK, warps, PvP pit...).
+   - **Round 1 (type, size, NPC count, theme):** *normal spawn* (FreshSMP-style: one beautiful
+     compact plaza set in great terrain) or *spawn+* (DonutSMP-style: a hub where every NPC/feature
+     gets its own building or place), or a PvP/minigame lobby; **the size in blocks** (e.g.
+     100 × 100, 150 × 150, 250 × 250); **how many NPCs**; the theme.
+   - **Round 2 (program):** the server name and branding, which NPCs (one place each, filling the
+     count), which leaderboards, which crates (names and tiers), and extras (RTP, AFK, warps,
+     PvP pit...).
    - **Round 3 (follow-ups that perfect it):** ask about whatever the answers left open: spawn
      facing and first view, terrain and setting, colour accents, signage (block letters or holograms
-     only), night lighting, where it will be pasted, size limits.
+     only), night lighting, version and server software, where it will be pasted, size limits.
    - Then write the brief back in a few lines and get a yes before building.
 2. **Program every gameplay place with the spawn kit** (`b.npcSpot`, `b.leaderboards`, `b.crate`,
    `b.spawnPoint`, `b.portal`, `b.sign`, `b.spawnProof`; `references/kit-api.md` → "Spawn & lobby

@@ -19,9 +19,9 @@ A spawn is a client job. A build team never starts from "make me a spawn", and n
 the `AskUserQuestion` tool (up to 4 questions per call, 2-4 options each; the user can always type
 their own answer). Ask in rounds, and let each round's answers shape the next one.
 
-### Round 1: type and frame
+### Round 1: type, size and NPC count
 
-Ask all four together:
+Ask all four together. Size and NPC count are always explicit questions: they decide the layout.
 
 1. **Spawn type.**
    - *Normal spawn*: FreshSMP-style. One compact, beautiful spawn plaza with all NPCs, leaderboards
@@ -31,20 +31,25 @@ Ask all four together:
      terraces or a central plaza.
    - *PvP lobby*: a compact arena-focused lobby (kit/queue NPCs, leaderboards, a view of the action).
    - *Other*: minigame hub, network lobby...
-2. **Size.** Small (about 80-120 blocks across), medium (about 150-220), large (about 250-400), or a
-   size they give. Recommend from the type: normal 100-160, spawn+ 200-350, PvP lobby 60-120.
-3. **Theme and style.** Offer 3-4 that fit the server name if known (medieval town, fantasy,
+2. **Size** (in blocks, footprint × footprint). Options: *100 × 100*, *150 × 150*, *250 × 250*,
+   or their own number. Recommend from the type: normal 100-160, spawn+ 200-350, PvP lobby
+   60-120. If they also care about height or a hard limit (world border, paste area), note it.
+3. **How many NPCs.** Options: *4-6* (essentials), *7-10*, *11-16*, *17+* or an exact number.
+   Recommend from the type: normal 5-10, spawn+ 12-25 slots (fill about half, keep spare dressed
+   spots for seasons), PvP lobby 4-8. Every NPC gets its own place, so the count drives the size:
+   a normal spawn holds about 10 NPCs around one plaza; more than that needs a spawn+ layout or a
+   bigger plaza ring. If the count and size don't fit, say so and propose a fix.
+4. **Theme and style.** Offer 3-4 that fit the server name if known (medieval town, fantasy,
    modern/futuristic, Japanese, nature/organic, island/tropical, winter...) and accept their own.
-4. **Version and platform.** Minecraft version and server software (Paper, Folia, Purpur...), and
-   how it will be placed (WorldEdit/FAWE paste, Litematica, or region files for a fresh world).
 
 ### Round 2: the program
 
 1. **Server name and branding.** Name, colours, logo or mascot, the text they want on signs.
-2. **NPCs** (multi-select, then ask for any missing): shop, crates, auction house, RTP / wild,
-   warps, kits, ranks / store, sell, quests / battle pass, AFK, bounties, teams/clans, events,
-   tutorial / rules. One place per NPC: in a normal spawn a pedestal, alcove or booth around the
-   plaza; in a spawn+ its own building or district.
+2. **Which NPCs** (multi-select, to fill the count from round 1; ask for any missing): shop,
+   crates, auction house, RTP / wild, warps, kits, ranks / store, sell, quests / battle pass, AFK,
+   bounties, teams/clans, events, tutorial / rules. One place per NPC: in a normal spawn a
+   pedestal, alcove or booth around the plaza; in a spawn+ its own building or district. If they
+   pick fewer than the count, the rest become dressed spare spots.
 3. **Leaderboards** (multi-select): money, kills, playtime, deaths, blocks mined, mobs killed,
    votes, KDR, streaks, team value... and how many boards (3-6 typical).
 4. **Crates**: how many, their names and tiers (vote, common, rare, epic, legendary, seasonal), the
@@ -67,6 +72,8 @@ round if answers open new questions. Typical follow-ups:
   shops of players, an arrival tunnel/portal.
 - **Limits.** Maximum size, view distance, performance (entity counts), what must stay free for
   holograms and NPC plugins, and the paste coordinates.
+- **Version and platform.** Minecraft version and server software (Paper, Folia, Purpur...), and
+  how it will be placed (WorldEdit/FAWE paste, Litematica, or region files for a fresh world).
 - **Delivery.** `.schem`, `.litematic`, region files for a fresh world, a server upload.
 
 ### The brief
@@ -75,7 +82,7 @@ Write the answers back as a short brief and get a yes:
 
 ```
 SPAWN BRIEF — <Server>
-Type: spawn+ (DonutSMP-style), 260 x 260, Paper/Folia 1.21.x or 26.x, region files at 0,0
+Type: spawn+ (DonutSMP-style), 260 x 260, 14 NPC places (8 used + 6 spare), Paper/Folia 1.21.x or 26.x, region files at 0,0
 Theme: white stone + dark oak + deep blue accent; nature setting: forested mountain valley
 First view: facing south, the CRATES hall across a fountain plaza, mountains behind
 NPCs (own place each): Shop (market hall), Auction (auction house), RTP (portal gate), Kits,
