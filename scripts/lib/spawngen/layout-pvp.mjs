@@ -9,7 +9,7 @@
 // The rest of the island is landscaped; the theme dresses the gates (torii for japanese).
 
 import { building, crateHall, heroWall } from './buildings.mjs'
-import { bench, featureTree, lamp, pvpArena, torii } from './landscape.mjs'
+import { bench, featureTree, lamp, pvpArena } from './landscape.mjs'
 import { paveRound, pavePath } from './site.mjs'
 import { facingToward, polar, yawToward } from './index.mjs'
 import { treeBed } from './layout-normal.mjs'
@@ -129,7 +129,6 @@ export function build(ctx) {
   pavePath(ctx, [[cx, cz + Rp - 1], [cx, L.pvp.z0 - 1]], { width: 5 })
   if (L.crates) pavePath(ctx, [[cx - Rp + 1, L.crates.z0 + 6], [L.crates.x1 + 1, L.crates.z0 + 6]], { width: 5 })
   pavePath(ctx, [[cx + Rp - 1, cz + 3], [L.pavilion.x0 - 1, cz + 3]], { width: 4 })
-  if (theme.key === 'japanese') ctx.place(torii, [cx, FY, L.pvp.z0 - 3], 'north', { width: 7 })
   for (const a of [100, 260, 160, 200]) {
     const [x, z] = polar(ctx, a, Rp - 1.5)
     ctx.place(lamp, [Math.round(x), FY, Math.round(z)], { kind: 'post' })

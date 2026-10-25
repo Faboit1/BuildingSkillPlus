@@ -212,7 +212,10 @@ export function build(ctx) {
         const px = x + (dz ? w : 0)
         const pz = z + (dx ? w : 0)
         const gy = ctx.site.groundY(px, pz)
-        if (gy === FY && /grass|dirt|podzol|moss|snow|mud/.test(b.nameAt(px, gy, pz) ?? '')) b.set(px, gy, pz, ctx.paint.path)
+        if (gy === FY && /grass|dirt|podzol|moss|snow|mud/.test(b.nameAt(px, gy, pz) ?? '')) {
+          b.set(px, gy, pz, ctx.paint.path)
+          ctx.site.paved[px + ctx.S * pz] = 1
+        }
       }
       x += dx
       z += dz

@@ -78,10 +78,12 @@ export function plan(ctx) {
   if (brief.features.pvp) L.pvp = reserve({ kind: 'pvp', x0: ex0, x1: ex0 + aw, z0: cz - Math.floor(aw / 2), z1: cz + Math.ceil(aw / 2), y: FY, entrance: 'west' }, 2)
   else L.eastHall = reserve({ kind: 'hall', x0: ex0 + 2, x1: ex0 + 18, z0: cz - 8, z1: cz + 8, y: FY, facing: 'west' }, 2)
   // the four feature trees on the diagonals, just outside the plaza
-  L.trees = [45, 135, 225, 315].map((a, i) => {
-    const [x, z] = polar(ctx, a + rng.range(-7, 7), Rp + 4.5)
-    grid.reserveDisc(x, z, 5, 'tree')
-    return { x: Math.round(x), z: Math.round(z), seed: ctx.seed + i }
+  // (the north pair stands wide of the hero and stays lower, so the name sign reads over the plaza)
+  L.trees = [58, 130, 230, 302].map((a, i) => {
+    const [x, z] = polar(ctx, a + rng.range(-5, 5), Rp + 4.5)
+    const north = a < 90 || a > 270
+    grid.reserveDisc(x, z, north ? 6 : 7, 'tree')
+    return { x: Math.round(x), z: Math.round(z), seed: ctx.seed + i, maxRadius: north ? 7 : 9, maxHeight: north ? 13 : 18 }
   })
   // AFK garden (optional) in the free south-west sector
   if (brief.features.afk) {
@@ -181,7 +183,7 @@ export function build(ctx) {
   if (L.pvp) ctx.place(pvpArena, L.pvp)
   if (L.eastHall) ctx.place(building, { ...L.eastHall, seed: ctx.seed + 5, storeys: 2 })
   if (L.afk) ctx.place(afkPark, L.afk)
-  for (const t of L.trees) ctx.place(featureTree, [t.x, ctx.site.groundY(t.x, t.z), t.z], { size: 'large', seed: t.seed })
+  for (const t of L.trees) ctx.place(featureTree, [t.x, ctx.site.groundY(t.x, t.z), t.z], { size: 'large', seed: t.seed, maxRadius: t.maxRadius, maxHeight: t.maxHeight })
   for (const h of L.houses) {
     const res = ctx.place(building, h)
     if (res?.door) L.paths.push([[res.door[0], res.door[2]], towardPlaza(ctx, res.door, Rp - 1)])

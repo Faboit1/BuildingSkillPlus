@@ -189,7 +189,9 @@ export function buildSite(ctx) {
         top[i] = y
       }
   }
-  return { setting, top, groundY, land, level, isWater: (x, z) => land(x, z) && water[x + S * z] === 1, edgeE, plazaOut, ground, soil, rock }
+  // paved: every column the plaza, roads and paths cover (the landscape keeps off them)
+  const paved = new Uint8Array(N)
+  return { setting, top, paved, groundY, land, level, isWater: (x, z) => land(x, z) && water[x + S * z] === 1, edgeE, plazaOut, ground, soil, rock }
 }
 
 // ------------------------------------------------------------------ paving
@@ -211,6 +213,7 @@ export function paveRound(ctx, { cx, cz, r, rings = [], kerb, field, y = ctx.FY,
       if (kerb && d > edge - 1) p = kerb
       b.set(x, y, z, p)
       ctx.site.top[x + ctx.S * z] = y
+      ctx.site.paved[x + ctx.S * z] = 1
     }
 }
 
@@ -226,6 +229,7 @@ export function paveRect(ctx, { x0, z0, x1, z1, border, field, y = ctx.FY, corne
       if (!ctx.site.land(x, z)) continue
       b.set(x, y, z, border && (cxd === 0 || czd === 0) ? border : field)
       ctx.site.top[x + ctx.S * z] = y
+      ctx.site.paved[x + ctx.S * z] = 1
     }
 }
 
@@ -234,6 +238,7 @@ export function pavePath(ctx, points, { width = 5, paint, fray = true } = {}) {
   const { b, kit, seed } = ctx
   paint ??= ctx.paint.path
   b.path(points, { width, paint })
+  markPaved(ctx, points, width / 2 + 1.2)
   if (!fray) return
   // fray the edges: a few path blocks one beyond each side, grass tufts creeping in
   const sampled = ctx.kit.plan.resamplePolyline ? ctx.kit.plan.resamplePolyline(points, 1) : points
@@ -246,5 +251,21 @@ export function pavePath(ctx, points, { width = 5, paint, fray = true } = {}) {
         if (gy > 0 && /grass_block|snow_block|moss_block|podzol/.test(b.nameAt(px, gy, pz) ?? '')) b.set(px, gy, pz, paint)
       }
     }
+  }
+}
+
+// mark the columns within r of a polyline as paved
+export function markPaved(ctx, points, r) {
+  const { S } = ctx
+  for (let k = 1; k < points.length; k += 1) {
+    const [ax, az] = points[k - 1]
+    const [bx, bz] = points[k]
+    const len = Math.hypot(bx - ax, bz - az)
+    for (let x = Math.floor(Math.min(ax, bx) - r); x <= Math.ceil(Math.max(ax, bx) + r); x += 1)
+      for (let z = Math.floor(Math.min(az, bz) - r); z <= Math.ceil(Math.max(az, bz) + r); z += 1) {
+        if (x < 0 || z < 0 || x >= S || z >= S) continue
+        const t = len ? Math.max(0, Math.min(1, ((x - ax) * (bx - ax) + (z - az) * (bz - az)) / (len * len))) : 0
+        if (Math.hypot(x - (ax + t * (bx - ax)), z - (az + t * (bz - az))) <= r) ctx.site.paved[x + S * z] = 1
+      }
   }
 }
