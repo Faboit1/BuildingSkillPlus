@@ -601,16 +601,16 @@ function npcAlcove(b, L, M, opts) {
     for (const u of [-2, 2]) for (let h = 1; h <= 4; h += 1) b.set(...L.at(u, d, h), M.P.block)
   }
   // floor plate: trim with the accent under the NPC, a step down to the street
-  for (let u = -1; u <= 1; u += 1) for (let d = 0; d <= 1; d += 1) b.set(...L.at(u, d, 0), u === 0 && d === 0 ? M.A : M.T.block)
-  // backdrop with a halo behind the head: tinted glass with lights set behind it
+  for (let u = -1; u <= 1; u += 1) for (let d = 0; d <= 1; d += 1) b.set(...L.at(u, d, 0), M.T.block)
+  // backdrop with an arched halo window behind the head: tinted glass with lights behind it
   for (let u = -1; u <= 1; u += 1) for (let h = 1; h <= 4; h += 1) b.set(...L.at(u, -1, h), backdrop)
-  for (const [u, h] of [[0, 2], [0, 3], [-1, 3], [1, 3], [0, 4]]) {
+  for (const [u, h] of [[-1, 2], [0, 2], [1, 2], [-1, 3], [0, 3], [1, 3], [0, 4]]) {
     b.set(...L.at(u, -1, h), M.glass)
     b.set(...L.at(u, -2, h), M.light)
   }
   // trim reveal in the wall plane: jambs and an arch band with the keystone
   for (let h = 0; h <= 4; h += 1) for (const u of [-2, 2]) b.set(...L.at(u, 1, h), M.T.block)
-  for (let u = -2; u <= 2; u += 1) b.set(...L.at(u, 1, 5), u === 0 ? M.A : M.T.block)
+  for (let u = -2; u <= 2; u += 1) b.set(...L.at(u, 1, 5), M.T.block)
   for (let u = -1; u <= 1; u += 1) b.set(...L.at(u, 1, 6), u === 0 ? stair(M.T, L.back) : M.T.block)
   // pilasters proud of the wall: base, shaft, capital
   for (const u of [-3, 3]) {
@@ -628,7 +628,8 @@ function npcAlcove(b, L, M, opts) {
   for (let u = -4; u <= 4; u += 1) b.set(...L.at(u, 3, 6), stair(M.T, L.back, 'top'))
   for (const u of [-4, 4]) b.set(...L.at(u, 2, 6), stair(M.T, sideFacing(L, -u), 'top'))
   for (let u = -3; u <= 3; u += 1) b.set(...L.at(u, 2, 7), Math.abs(u) === 3 ? slab(M.T) : Math.abs(u) === 2 ? stair(M.P, sideFacing(L, -u)) : M.P.block)
-  for (let u = -1; u <= 1; u += 1) b.set(...L.at(u, 2, 8), u === 0 ? M.A : stair(M.P, sideFacing(L, -u)))
+  for (let u = -1; u <= 1; u += 1) b.set(...L.at(u, 2, 8), u === 0 ? M.P.block : stair(M.P, sideFacing(L, -u)))
+  b.set(...L.at(0, 2, 9), slab(M.P))
   return {}
 }
 
@@ -646,7 +647,7 @@ function npcBooth(b, L, M, opts) {
   for (let u = -hu; u <= hu; u += 1)
     for (let d = -1; d <= 1; d += 1) {
       b.set(...L.at(u, d, -1), M.B.block, { keep: true })
-      b.set(...L.at(u, d, 0), Math.abs(u) === hu || d === -1 ? M.B.block : W.block)
+      b.set(...L.at(u, d, 0), Math.abs(u) === hu || d !== 0 ? M.B.block : W.block)
     }
   // log posts, the header beam over the counter and the back beam
   for (const u of [-hu, hu]) for (const d of [-1, 1]) for (let h = 1; h <= 4; h += 1) b.set(...L.at(u, d, h), log(W))
@@ -681,17 +682,16 @@ function npcBooth(b, L, M, opts) {
   }
   // lanterns hanging under the eave at the front corners
   for (const u of [-hu - 1, hu + 1]) b.set(...L.at(u, 2, 2), 'minecraft:lantern[hanging=true]')
-  // sign board standing on the awning: a 3 x 2 panel between log posts, capped
+  // sign board standing on the awning: a 3 x 2 panel between log posts, capped, lanterns on the posts
   const by = 6
   for (let u = -1; u <= 1; u += 1) {
     for (let h = by; h <= by + 1; h += 1) b.set(...L.at(u, -1, h), boardPaint)
-    b.set(...L.at(u, -1, by + 2), stair(W, L.back, 'top'))
-    b.set(...L.at(u, -1, by + 3), slab(W))
+    b.set(...L.at(u, -1, by + 2), slab(W))
     b.set(...L.at(u, -2, by), stair(W, L.back, 'top'))
   }
   for (const u of [-2, 2]) {
-    for (let h = by; h <= by + 2; h += 1) b.set(...L.at(u, -1, h), log(W))
-    b.set(...L.at(u, -1, by + 3), 'minecraft:lantern[hanging=false]')
+    for (let h = by; h <= by + 1; h += 1) b.set(...L.at(u, -1, h), log(W))
+    b.set(...L.at(u, -1, by + 2), 'minecraft:lantern[hanging=false]')
   }
   const c = L.at(0, -1, by)
   return { board: { center: [c[0] + 0.5, c[1] + 1, c[2] + 0.5], facing: L.facing, size: [3, 2] } }
@@ -699,7 +699,7 @@ function npcBooth(b, L, M, opts) {
 
 // Kiosk: a freestanding pavilion. A 7x7 deck with a stair skirt, log posts on base blocks, knee
 // braces under the beams, rails with potted plants on three sides, an info lectern, a hipped roof
-// with lanterns at the eave corners and a finial, a lantern hanging over the NPC.
+// level with the beams, lanterns under the eave corners, a finial, a lantern over the NPC.
 function npcKiosk(b, L, M, opts) {
   const W = M.W
   for (let u = -3; u <= 3; u += 1)
@@ -709,21 +709,20 @@ function npcKiosk(b, L, M, opts) {
       if (ring === 3) b.set(...L.at(u, d, 0), Math.abs(u) === 3 && Math.abs(d) === 3 ? M.B.block : stair(M.B, inwardOf(L, u, d)))
       else b.set(...L.at(u, d, 0), u === 0 && d === 0 ? M.A : ring === 2 ? M.T.block : W.block)
     }
-  // posts on base blocks, beams, knee braces
+  // posts on base blocks, beams at h 5, knee braces under them
   const along = L.right === 'east' || L.right === 'west' ? 'x' : 'z'
   const across = along === 'x' ? 'z' : 'x'
   for (const u of [-2, 2]) for (const d of [-2, 2]) {
     b.set(...L.at(u, d, 1), M.T.block)
-    for (let h = 2; h <= 3; h += 1) b.set(...L.at(u, d, h), log(W))
-    b.set(...L.at(u, d, 4), log(W))
+    for (let h = 2; h <= 5; h += 1) b.set(...L.at(u, d, h), log(W))
   }
   for (let k = -1; k <= 1; k += 1) {
-    for (const d of [-2, 2]) b.set(...L.at(k, d, 4), log(W, along))
-    for (const u of [-2, 2]) b.set(...L.at(u, k, 4), log(W, across))
+    for (const d of [-2, 2]) b.set(...L.at(k, d, 5), log(W, along))
+    for (const u of [-2, 2]) b.set(...L.at(u, k, 5), log(W, across))
   }
   for (const s of [-1, 1]) {
-    for (const d of [-2, 2]) b.set(...L.at(s, d, 3), stair(W, sideFacing(L, s), 'top'))
-    for (const u of [-2, 2]) b.set(...L.at(u, s, 3), stair(W, s > 0 ? L.facing : L.back, 'top'))
+    for (const d of [-2, 2]) b.set(...L.at(s, d, 4), stair(W, sideFacing(L, s), 'top'))
+    for (const u of [-2, 2]) b.set(...L.at(u, s, 4), stair(W, s > 0 ? L.facing : L.back, 'top'))
   }
   // rails with potted plants on the back and the sides; the front stays open; an info lectern
   for (let k = -1; k <= 1; k += 1) {
@@ -733,19 +732,23 @@ function npcKiosk(b, L, M, opts) {
   }
   b.set(...L.at(-2, 0, 2), POTS[2])
   b.set(...L.at(2, 0, 2), POTS[0])
+  b.set(...L.at(0, -2, 2), POTS[1])
   b.set(...L.at(-1, -1, 1), `minecraft:lectern[facing=${L.facing},has_book=true]`)
-  b.set(...L.at(1, -1, 1), `minecraft:barrel[facing=up,open=false]`)
-  // hipped roof with a deep eave, lanterns at the eave corners, a finial
+  b.set(...L.at(1, -1, 1), 'minecraft:barrel[facing=up,open=false]')
+  // hipped roof whose eave runs level with the beams, a finial, lanterns under the eave corners
   const [ax, , az] = L.at(-2, -2, 0)
   const [cx, , cz] = L.at(2, 2, 0)
-  const roof = b.roof({ x0: Math.min(ax, cx), z0: Math.min(az, cz), x1: Math.max(ax, cx), z1: Math.max(az, cz), y: L.origin[1] + 5, type: 'pyramid', material: M.roof, pitch: [1, 1, 2], overhang: 2, eaveTrim: true })
-  for (const u of [-4, 4]) for (const d of [-4, 4]) {
-    const top = b.topY(...[L.at(u, d, 0)].map(p => [p[0], p[2]])[0])
-    if (top > 0) b.set(L.at(u, d, 0)[0], top - 1, L.at(u, d, 0)[2], 'minecraft:lantern[hanging=true]')
-  }
+  const roof = b.roof({ x0: Math.min(ax, cx), z0: Math.min(az, cz), x1: Math.max(ax, cx), z1: Math.max(az, cz), y: L.origin[1] + 6, type: 'pyramid', material: M.roof, pitch: opts.pitch ?? 1, overhang: 1, eaveTrim: true })
   const apex = roof.topY - L.origin[1]
   b.set(...L.at(0, 0, apex + 1), M.A)
   b.set(...L.at(0, 0, apex + 2), 'minecraft:lightning_rod[facing=up]')
+  for (const u of [-3, 3]) for (const d of [-3, 3]) {
+    for (let h = 3; h <= 7; h += 1) {
+      if (!b.get(...L.at(u, d, h))) continue
+      b.set(...L.at(u, d, h - 1), 'minecraft:lantern[hanging=true]')
+      break
+    }
+  }
   hangUnder(b, L, 0, 0, apex)
   return {}
 }
@@ -785,7 +788,7 @@ export function leaderboards(b, pos, facing = 'south', opts = {}) {
   const M = palette(opts)
   const backdrop = parseBlock(opts.backdrop ?? 'polished_blackstone').name
   const light = parseBlock(opts.footlight ?? M.light).name
-  const strip = parseBlock(opts.strip ?? M.glass).name
+  const strip = parseBlock(opts.strip ?? `${M.colour}_stained_glass_pane`).name
   const hero = count >= 3 ? Math.floor((count - 1) / 2) : -1
   const H0 = 4
   // lay the boards out left to right, then centre the row on pos
@@ -859,7 +862,7 @@ export function leaderboards(b, pos, facing = 'south', opts = {}) {
     for (let u = cl - 1; u <= cr + 1; u += 1)
       for (let h = h0 - 1; h <= top + 1; h += 1) {
         const inner = u >= cl && u <= cr && h >= h0 && h <= top
-        b.set(...L.at(u, -1, h), inner ? 'minecraft:air' : M.T.block)
+        b.set(...L.at(u, -1, h), inner ? 'minecraft:air' : M.P.block)
         if (inner) b.set(...L.at(u, -2, h), backdrop)
       }
     // bevels: an upside-down stair lintel and a stair sill in the reveal; the footlight trough
@@ -868,7 +871,7 @@ export function leaderboards(b, pos, facing = 'south', opts = {}) {
       b.set(...L.at(u, 0, top + 1), stair(M.T, L.back, 'top'))
       b.set(...L.at(u, 0, h0 - 1), stair(M.T, L.back))
     }
-    for (let u = cl; u <= cr; u += 1) b.set(...L.at(u, -1, h0 - 1), (u - cl) % 2 === 0 ? light : M.T.block)
+    for (let u = cl; u <= cr; u += 1) b.set(...L.at(u, -1, h0 - 1), (u - cl) % 2 === 0 ? light : M.P.block)
     // stiles proud of the wall: base, shaft, capital
     for (const u of [fl, fr]) {
       for (let h = h0 - 1; h <= top + 1; h += 1) b.set(...L.at(u, 0, h), M.T.block)
@@ -888,7 +891,8 @@ export function leaderboards(b, pos, facing = 'south', opts = {}) {
       const glow = u > fl && u < fr
       b.set(...L.at(u, 1, h0 - 2), glow ? strip : M.B.block)
       if (glow) b.set(...L.at(u, 0, h0 - 2), light)
-      for (let h = 1; h < h0 - 2; h += 1) b.set(...L.at(u, 1, h), M.B.block)
+      for (let h = 1; h < Math.min(h0 - 2, H0 - 1); h += 1) b.set(...L.at(u, 1, h), M.B.block)
+      if (h0 - 2 > H0 - 1 && (u === fl || u === fr)) b.set(...L.at(u, 1, h0 - 3), stair(M.T, L.back, 'top'))
       b.set(...L.at(u, 2, 1), stair(M.B, L.back))
     }
     // a framed apron under a raised board
@@ -973,7 +977,8 @@ export function crate(b, pos, facing = 'south', opts = {}) {
   const M = palette({ ...opts, colour, glass: opts.glass ?? `${colour}_stained_glass` })
   const tierBlock = parseBlock(opts.tierBlock ?? `${colour}_concrete`).name
   const panel = parseBlock(opts.panel ?? `${colour}_terracotta`).name
-  const archTop = hero ? 6 : 5
+  const pierTop = hero ? 4 : 3 // piers h 0..pierTop, the arch ring above them
+  const ring = pierTop + 1
   // footing down to the floor (at most 4 deep)
   for (let u = -2; u <= 2; u += 1)
     for (let d = -5; d <= 2; d += 1)
@@ -982,21 +987,20 @@ export function crate(b, pos, facing = 'south', opts = {}) {
         if (b.get(...p)) break
         b.set(...p, M.B.block)
       }
-  // dais: stair skirt, top tier, slab collar with lit glass corners and candles, the crate
+  // dais: stair skirt, top tier with glass corner tiles lit from below, a slab collar, candles
   for (let u = -2; u <= 2; u += 1)
     for (let d = -1; d <= 2; d += 1) {
       if (Math.max(Math.abs(u), Math.abs(d)) === 2) {
         b.set(...L.at(u, d, -1), Math.abs(u) === 2 && d === 2 ? M.B.block : stair(M.B, Math.abs(u) === 2 ? (u > 0 ? L.left : L.right) : L.back))
         continue
       }
-      b.set(...L.at(u, d, -1), u === 0 && d === 0 ? M.T.block : M.P.block)
-      if (u === 0 && d === 0) continue
-      if (Math.abs(u) === 1 && Math.abs(d) === 1) {
-        b.set(...L.at(u, d, 0), M.glass)
-        b.set(...L.at(u, d, -1), M.light)
-        if (d > 0) b.set(...L.at(u, d, 1), `minecraft:${colour}_candle[candles=${u > 0 ? 3 : 2},lit=true]`)
-      } else {
-        b.set(...L.at(u, d, 0), slab(M.T))
+      const corner = Math.abs(u) === 1 && Math.abs(d) === 1
+      b.set(...L.at(u, d, -1), u === 0 && d === 0 ? M.T.block : corner ? M.glass : M.P.block)
+      if (corner) {
+        b.set(...L.at(u, d, -2), M.light)
+        b.set(...L.at(u, d, 0), `minecraft:${colour}_candle[candles=${d > 0 ? (u > 0 ? 3 : 2) : 1},lit=true]`)
+      } else if (u !== 0 || d !== 0) {
+        b.set(...L.at(u, d, 0), slab(M.P))
       }
     }
   const kind = parseBlock(block).name.replace(/^minecraft:/, '')
@@ -1006,41 +1010,33 @@ export function crate(b, pos, facing = 'south', opts = {}) {
         : kind === 'shulker' ? `minecraft:${colour}_shulker_box[facing=up]`
           : block
   b.set(...L.at(0, 0, 0), crateState)
-  // the arch: piers on stair bases, capitals, a stair arch ring with the tier keystone
+  // the arch: piers on stair bases with stair capitals, round shoulders, a ring with the tier
+  // keystone, a light frieze under a projecting cornice, a slab cap
   for (let u = -2; u <= 2; u += 1) {
     b.set(...L.at(u, -2, -1), M.B.block)
     b.set(...L.at(u, -3, -1), M.B.block)
   }
   for (const u of [-2, 2]) {
     b.set(...L.at(u, -1, 0), stair(M.B, L.back))
-    for (let h = 0; h < archTop - 1; h += 1) b.set(...L.at(u, -2, h), M.P.block)
-    b.set(...L.at(u, -2, archTop - 1), M.T.block)
-    b.set(...L.at(u, -1, archTop - 1), stair(M.T, L.back, 'top'))
+    for (let h = 0; h <= ring; h += 1) b.set(...L.at(u, -2, h), M.P.block)
   }
-  for (let u = -1; u <= 1; u += 1) for (let h = 0; h < archTop - 1; h += 1) b.set(...L.at(u, -2, h), 'minecraft:air')
-  for (const u of [-1, 1]) {
-    b.set(...L.at(u, -2, archTop - 2), stair(M.T, sideFacing(L, u), 'top'))
-    b.set(...L.at(u, -2, archTop - 1), M.T.block)
-  }
-  b.set(...L.at(0, -2, archTop - 1), tierBlock)
+  for (let u = -1; u <= 1; u += 1) for (let h = 0; h <= pierTop; h += 1) b.set(...L.at(u, -2, h), 'minecraft:air')
+  for (const u of [-1, 1]) b.set(...L.at(u, -2, pierTop), stair(M.T, sideFacing(L, u), 'top'))
   for (let u = -2; u <= 2; u += 1) {
-    b.set(...L.at(u, -2, archTop), M.T.block)
-    b.set(...L.at(u, -1, archTop), stair(M.T, L.back, 'top'))
-    b.set(...L.at(u, -2, archTop + 1), Math.abs(u) === 2 ? slab(M.T) : u === 0 && !hero ? M.A : slab(M.P))
+    if (Math.abs(u) < 2) b.set(...L.at(u, -2, ring), u === 0 ? tierBlock : M.T.block)
+    b.set(...L.at(u, -2, ring + 1), M.field)
+    b.set(...L.at(u, -1, ring + 1), stair(M.T, L.back, 'top'))
+    b.set(...L.at(u, -2, ring + 2), Math.abs(u) === 2 ? slab(M.T) : hero && Math.abs(u) === 1 ? stair(M.P, sideFacing(L, -u)) : hero ? M.P.block : slab(M.P))
   }
+  if (hero) b.set(...L.at(0, -2, ring + 3), tierBlock)
   // the reveal panel 1 deeper in the tier colour, a glowing slot with the light behind it
-  for (let u = -2; u <= 2; u += 1) for (let h = 0; h <= archTop; h += 1) b.set(...L.at(u, -3, h), Math.abs(u) <= 1 && h < archTop - 1 ? panel : M.field)
-  for (let h = 1; h <= archTop - 3; h += 1) {
+  for (let u = -2; u <= 2; u += 1) for (let h = 0; h <= ring + 2; h += 1) b.set(...L.at(u, -3, h), Math.abs(u) <= 1 && h <= pierTop ? panel : M.field)
+  for (let h = 1; h < pierTop; h += 1) {
     b.set(...L.at(0, -3, h), M.glass)
     b.set(...L.at(0, -4, h), M.light)
+    b.set(...L.at(0, -5, h), M.field)
   }
-  for (let u = -2; u <= 2; u += 1) for (let h = -1; h <= archTop; h += 1) b.set(...L.at(u, -4, h), M.field, { keep: true })
-  for (let h = 1; h <= archTop - 3; h += 1) b.set(...L.at(0, -5, h), M.field)
-  if (hero) {
-    for (let u = -1; u <= 1; u += 1) b.set(...L.at(u, -2, archTop + 1), u === 0 ? M.P.block : stair(M.P, sideFacing(L, -u)))
-    b.set(...L.at(0, -2, archTop + 2), M.A)
-    b.set(...L.at(0, -3, archTop + 1), M.field)
-  }
+  for (let u = -2; u <= 2; u += 1) for (let h = -1; h <= ring + 1; h += 1) b.set(...L.at(u, -4, h), M.field, { keep: true })
   // a clear 3x3 standing area in front of the dais
   const stand = []
   for (let u = -1; u <= 1; u += 1) for (let d = 3; d <= 5; d += 1) for (let h = -1; h <= 0; h += 1) stand.push(L.at(u, d, h))
@@ -1089,15 +1085,41 @@ export function region(b, id, min, max, flags = {}) {
   return record(b, { type: 'region', id, min: lo, max: hi, flags: { ...flags } })
 }
 
+// The intrados of a small arch over `span` columns, springing at row 0: kind(i, row) is 'open',
+// 'stair' (an upside-down stair, its tall back to the outside) or null (solid) for column i in
+// 0..span-1; crown is the first solid row over the middle. Round = semicircle; pointed = two
+// centres (radius 0.85 x span). Cleaner than b.arch at the 3-9 block spans of gates and niches.
+function archShape(span, type = 'round') {
+  const r = span / 2
+  const c = (span - 1) / 2
+  const R = Math.max(r + 0.5, span * 0.85)
+  const hAt = i => {
+    const k = Math.abs(i - c)
+    return type === 'pointed' ? Math.sqrt(Math.max(0, R * R - (k + R - r) ** 2)) : Math.sqrt(Math.max(0, r * r - k * k))
+  }
+  const middle = i => Math.abs(i - c) < 0.6
+  const open = (i, row) => i >= 0 && i < span && hAt(i) >= row + (middle(i) ? 0.5 : 0.75)
+  const kind = (i, row) => {
+    if (open(i, row)) return 'open'
+    if (middle(i) || i < 0 || i >= span) return null
+    const inner = i < c ? i + 1 : i - 1
+    if (hAt(i) >= row + 0.25 || (open(inner, row) && (row === 0 || open(i, row - 1)))) return 'stair'
+    return null
+  }
+  let crown = 0
+  while (open(Math.floor(c), crown) || open(Math.ceil(c), crown)) crown += 1
+  return { kind, crown, centre: c }
+}
+
 // A portal gate around the opening a..c (inclusive corners of a 1-thick vertical opening).
 //   b.portal([20, 5, 30], [22, 8, 30], { id: 'rtp', label: 'Random Teleport', kind: 'rtp' })
 // A layered arch, the same on both faces: a plinth, pilasters with stair bases and capitals, an
-// outer arch ring of stairs (1 wider than the opening, round; pointed on 'pvp') with a keystone in
-// the kind colour, an inner reveal stepped 1 deeper whose jambs carry glass strips lit from inside
-// (the reveal glows, not the surface), an entablature with a cornice and a cap, and a threshold
-// with a glowing inset. The opening stays air (the trigger for a portal / warp / RTP plugin) unless
-// kind is 'nether' (obsidian core and nether_portal fill). kind: 'rtp' | 'warp' | 'pvp' | 'nether';
-// facing picks the front (default south / east). Footprint: width + 6 by 7 deep.
+// outer arch ring (1 wider than the opening on each side, round; pointed on 'pvp') with a keystone
+// in the kind colour, an inner reveal stepped 1 deeper whose jambs carry glass strips lit from
+// inside (the reveal glows, not the surface), a frieze, a cornice and a cap, and a threshold with
+// a glowing inset. The opening stays air (the trigger for a portal / warp / RTP plugin) unless kind
+// is 'nether' (obsidian core and nether_portal fill). kind: 'rtp' | 'warp' | 'pvp' | 'nether';
+// facing picks the front (default south / east). Footprint: width + 8 by 7 deep.
 // Records { type: 'portal', id, label, kind, min, max, facing }: the opening as trigger region.
 export function portal(b, a, c, opts = {}) {
   const { kind = 'warp' } = opts
@@ -1113,7 +1135,7 @@ export function portal(b, a, c, opts = {}) {
   const nether = kind === 'nether'
   const colour = opts.colour ?? PORTAL_COLOURS[kind] ?? 'purple'
   const M = palette({ ...opts, colour, glass: opts.glass ?? `${colour}_stained_glass` }, nether ? { primary: 'polished_blackstone_bricks', trim: 'polished_blackstone', base: 'blackstone', accent: 'crying_obsidian' } : {})
-  const keyBlock = nether ? M.A : parseBlock(`${colour}_glazed_terracotta`).name
+  const keyBlock = nether ? M.A : parseBlock(opts.keystone ?? `${colour}_glazed_terracotta`).name
   // local frame on the opening: u along its width from the left jamb (seen from the front)
   const W = alongX ? hi[0] - lo[0] + 1 : hi[2] - lo[2] + 1
   const Ht = hi[1] - lo[1] + 1
@@ -1121,29 +1143,43 @@ export function portal(b, a, c, opts = {}) {
   const base = alongX ? [front === 'north' ? hi[0] : lo[0], lo[1], lo[2]] : [lo[0], lo[1], front === 'west' ? lo[2] : hi[2]]
   const L = frame(base, front)
   const core = nether ? 'minecraft:obsidian' : M.T.block
-  const mid = (W - 1) / 2
-  const outerRise = Math.ceil((W + 2) / 2)
-  const archTop = Ht + outerRise + 1
-  // the mass of the gate: core (d -1..1) and the outer faces (d = +-2), pilasters at the ends
-  for (let u = -3; u <= W + 2; u += 1)
-    for (let d = -2; d <= 2; d += 1)
-      for (let h = 0; h <= archTop; h += 1) {
-        const opening = u >= 0 && u < W && h < Ht
-        const step = Math.abs(d) === 2 && (u === -1 || u === W) && h < Ht
-        if (opening || step) continue
-        b.set(...L.at(u, d, h), Math.abs(d) <= 1 && (u === -1 || u === W) ? core : h <= 1 ? M.B.block : M.field)
-      }
-  // arches: the inner one over the opening (core, 3 deep), the outer one a step wider on each face
-  const s = (u, d, h) => L.at(u, d, h)
-  const archOpts = { type: kind === 'pvp' ? 'pointed' : 'round', fill: 'minecraft:air', top: L.origin[1] + archTop - 1 }
-  b.arch(s(0, -1, Ht), [s(W - 1, -1, Ht)[0], s(0, -1, Ht)[1], s(W - 1, -1, Ht)[2]], core, { ...archOpts, depth: 3, direction: L.facing, spandrel: M.field })
-  for (const d of [-2, 2]) b.arch(s(-1, d, Ht), [s(W, d, Ht)[0], s(0, d, Ht)[1], s(W, d, Ht)[2]], M.T.block, { ...archOpts, depth: 1, direction: L.facing, spandrel: M.field })
-  // keystones at the crown of the outer rings
-  for (const d of [-2, 2]) {
-    let crownH = Ht
-    for (let h = Ht; h <= archTop; h += 1) if (!b.get(...L.at(Math.floor(mid), d, h))) crownH = h
-    for (let u = Math.floor(mid); u <= Math.ceil(mid); u += 1) b.set(...L.at(u, d, crownH + 1), keyBlock)
+  const type = kind === 'pvp' ? 'pointed' : 'round'
+  const inner = archShape(W, type) // over u 0..W-1 in the core (d -1..1)
+  const outer = archShape(W + 2, type) // over u -1..W on both faces (d = +-2)
+  const archTop = Ht + outer.crown + 2 // the entablature row
+  // which cells of a layer are open (the trigger rectangle plus the arch above it)
+  const kindAt = (u, d, h) => {
+    const shape = Math.abs(d) === 2 ? outer : inner
+    const i = Math.abs(d) === 2 ? u + 1 : u
+    const span = Math.abs(d) === 2 ? W + 2 : W
+    if (i < 0 || i >= span) return null
+    if (h < Ht) return 'open'
+    return shape.kind(i, h - Ht)
   }
+  for (let u = -4; u <= W + 3; u += 1)
+    for (let d = -2; d <= 2; d += 1)
+      for (let h = 0; h < archTop; h += 1) {
+        const k = kindAt(u, d, h)
+        if (k === 'open') {
+          b.set(...L.at(u, d, h), 'minecraft:air')
+          continue
+        }
+        const near = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]].some(([du, dh]) => kindAt(u + du, d, h + dh) === 'open')
+        // core cells seen through the outer opening (or a shoulder stair's open quarter) are reveal
+        const seen = Math.abs(d) === 1 && kindAt(u, 2 * d, h) !== null
+        const ring = (k === 'stair' || near || seen) && h >= Ht - 1
+        let p = h <= 1 ? M.B.block : M.field
+        if (k === 'stair') p = stair(Math.abs(d) === 2 ? M.T : fam(parseBlock(core).name), u < (Math.abs(d) === 2 ? W / 2 - 0.5 : (W - 1) / 2) ? L.left : L.right, 'top')
+        else if (ring) p = Math.abs(d) === 2 ? M.T.block : core
+        else if (Math.abs(d) <= 1 && (u === -1 || u === W) && h < Ht) p = core
+        b.set(...L.at(u, d, h), p)
+      }
+  // the faces: an impost band at the springing, dark corner columns on the side faces
+  for (const d of [-2, 2]) for (let u = -4; u <= W + 3; u += 1) if (u < -1 || u > W) b.set(...L.at(u, d, Ht - 1), M.T.block)
+  for (const u of [-4, W + 3]) for (const d of [-2, 2]) for (let h = 2; h < archTop; h += 1) b.set(...L.at(u, d, h), M.T.block)
+  // keystones over the outer crowns
+  const midU = (W - 1) / 2
+  for (const d of [-2, 2]) for (let u = Math.floor(midU); u <= Math.ceil(midU); u += 1) b.set(...L.at(u, d, Ht + outer.crown), keyBlock)
   // the reveal: glass strips on the stepped jambs, lit from inside the core
   for (const [ju, lu] of [[-1, -2], [W, W + 1]])
     for (const d of [-1, 1])
@@ -1151,32 +1187,32 @@ export function portal(b, a, c, opts = {}) {
         b.set(...L.at(ju, d, h), nether ? core : M.glass)
         if (!nether) b.set(...L.at(lu, d, h), M.light)
       }
-  // the trigger opening itself stays clear (the arches may round its top corners)
-  for (let u = 0; u < W; u += 1) for (let h = 0; h < Ht; h += 1) for (let d = -2; d <= 2; d += 1) b.set(...L.at(u, d, h), 'minecraft:air')
-  // pilasters on both faces: stair base, shaft, capital
-  for (const u of [-3, -2, W + 1, W + 2])
-    for (const d of [-3, 3]) {
-      const back = d < 0 ? L.facing : L.back
-      b.set(...L.at(u, d, 0), stair(M.B, back))
-      if (u === -3 || u === W + 2) {
-        for (let h = 1; h < archTop - 1; h += 1) b.set(...L.at(u, d, h), M.P.block)
-        b.set(...L.at(u, d, archTop - 1), stair(M.T, back, 'top'))
-      }
+  // pilasters on both faces: stair base, dark shaft, capital; plinth stairs along the base
+  for (const d of [-3, 3]) {
+    const back = d < 0 ? L.facing : L.back
+    for (let u = -4; u <= W + 3; u += 1) if (u < -1 || u > W) b.set(...L.at(u, d, 0), stair(M.B, back))
+    for (const u of [-3, W + 2]) {
+      b.set(...L.at(u, d, 0), M.B.block)
+      for (let h = 1; h < archTop - 1; h += 1) b.set(...L.at(u, d, h), M.T.block)
+      b.set(...L.at(u, d, archTop - 1), stair(M.T, back, 'top'))
     }
+  }
   // threshold with a glowing inset across the opening
-  for (let u = -4; u <= W + 3; u += 1)
+  for (let u = -5; u <= W + 4; u += 1)
     for (let d = -3; d <= 3; d += 1) {
       const inset = !nether && u >= 0 && u < W && d === 0
       b.set(...L.at(u, d, -2), inset ? M.light : M.B.block, inset ? undefined : { keep: true })
-      if (Math.abs(d) <= 2 || (u >= 0 && u < W)) b.set(...L.at(u, d, -1), inset ? M.glass : nether && d === 0 && u >= 0 && u < W ? 'minecraft:obsidian' : u >= -1 && u <= W && Math.abs(d) <= 2 ? M.T.block : M.B.block)
+      if (Math.abs(d) <= 2 || (u >= 0 && u < W)) b.set(...L.at(u, d, -1), inset ? M.glass : nether && d === 0 && u >= 0 && u < W ? 'minecraft:obsidian' : u >= -1 && u <= W ? M.T.block : M.B.block)
     }
-  // entablature with a projecting cornice, returned at the ends, and a cap with the keystone colour
+  // entablature: a trim band with a projecting cornice returned at the ends, a slab cap with the
+  // keystone colour at its centre
   for (let u = -4; u <= W + 3; u += 1) {
     for (let d = -2; d <= 2; d += 1) b.set(...L.at(u, d, archTop), M.T.block)
     for (const d of [-3, 3]) b.set(...L.at(u, d, archTop), stair(M.T, d < 0 ? L.facing : L.back, 'top'))
-    for (let d = -2; d <= 2; d += 1) b.set(...L.at(u, d, archTop + 1), Math.abs(u - mid) < 1 && d === 0 ? keyBlock : Math.abs(d) === 2 || u === -4 || u === W + 3 ? slab(M.T) : M.field)
+    for (let d = -2; d <= 2; d += 1) b.set(...L.at(u, d, archTop + 1), Math.abs(u - midU) < 1 && d === 0 ? keyBlock : Math.abs(d) === 2 || u === -4 || u === W + 3 ? slab(M.T) : M.field)
   }
-  for (const [u, sf] of [[-4, L.right], [W + 3, L.left]]) for (let d = -2; d <= 2; d += 1) b.set(...L.at(u, d, archTop), stair(M.T, sf, 'top'))
+  for (const [u, sf] of [[-5, L.right], [W + 4, L.left]]) for (let d = -3; d <= 3; d += 1) b.set(...L.at(u, d, archTop), stair(M.T, sf, 'top'))
+  for (const [u, sf] of [[-5, L.right], [W + 4, L.left]]) for (let d = -2; d <= 2; d += 1) b.set(...L.at(u, d, 0), stair(M.B, sf))
   if (nether) {
     const axis = alongX ? 'x' : 'z'
     for (let u = -1; u <= W; u += 1) {
