@@ -19,7 +19,7 @@ export const arcOf = N => {
   const Rn = Math.max(11, Math.ceil((7 * Math.max(N, 1) * 180) / (Math.PI * ARC)))
   return { Rn, Rp: Rn + 5 }
 }
-export const recommendSize = brief => 2 * (arcOf(brief.npcs.length).Rp + 34)
+export const recommendSize = brief => 2 * (arcOf(brief.npcs.length).Rp + 36)
 
 export function plan(ctx) {
   const { brief, S, FY, C, grid, rng } = ctx
@@ -48,8 +48,8 @@ export function plan(ctx) {
   // hero wall behind the arc
   const nb = Math.max(1, brief.leaderboards.length)
   const heroW = Math.max(nb * 9 + (nb - 1) * 3 + 14, 30)
-  const hz = cz - Rp - 6
-  L.hero = reserve({ kind: 'hero', x0: cx - Math.ceil(heroW / 2), x1: cx + Math.ceil(heroW / 2), z0: hz - 9, z1: hz + 3, y: FY, cx, z: hz, width: heroW })
+  const hz = cz - Math.max(Rp + 13, 34)
+  L.hero = reserve({ kind: 'hero', x0: cx - Math.ceil(heroW / 2), x1: cx + Math.ceil(heroW / 2), z0: hz - 9, z1: hz + 7, y: FY, cx, z: hz, width: heroW })
   // the arena to the south
   const aw = Math.max(20, Math.min(34, Math.round(islandR - Rp - 8)))
   const az0 = cz + Rp + 4

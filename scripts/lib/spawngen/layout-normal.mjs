@@ -20,7 +20,8 @@ export const ringOf = N => {
   const Rn = N ? Math.max(10, Math.ceil((5.5 * N + 34) / (2 * Math.PI))) : 8
   return { Rn, Rp: Rn + 6 }
 }
-export const recommendSize = brief => 2 * (ringOf(brief.npcs.length).Rp + 36)
+// room for the plaza, the four sections and a ring of cottages at the rim
+export const recommendSize = brief => 2 * (ringOf(brief.npcs.length).Rp + 44)
 
 export function plan(ctx) {
   const { brief, S, FY, C, rng, grid } = ctx
@@ -60,9 +61,11 @@ export function plan(ctx) {
   // north: the hero (boards + name)
   const nb = Math.max(1, brief.leaderboards.length)
   const boardsW = nb * 9 + (nb - 1) * 3 + (nb >= 3 ? 2 : 0) + 4
-  const heroZ = cz - Rp - 7
+  // the boards' front 35-40 out, so the name above them (up to floor + 26) fits a player's view;
+  // the podium steps reach 6 in front of it
+  const heroZ = cz - Math.max(Rp + 13, 36)
   const heroW = Math.max(boardsW + 10, 30)
-  L.hero = reserve({ kind: 'hero', x0: cx - Math.ceil(heroW / 2), x1: cx + Math.ceil(heroW / 2), z0: heroZ - 9, z1: heroZ + 3, y: FY, cx, z: heroZ, width: heroW })
+  L.hero = reserve({ kind: 'hero', x0: cx - Math.ceil(heroW / 2), x1: cx + Math.ceil(heroW / 2), z0: heroZ - 9, z1: heroZ + 7, y: FY, cx, z: heroZ, width: heroW })
   // west: the crates hall (stations 5 apart, facing the plaza)
   const nc = brief.crates.length
   if (nc) {
@@ -79,11 +82,22 @@ export function plan(ctx) {
   else L.eastHall = reserve({ kind: 'hall', x0: ex0 + 2, x1: ex0 + 18, z0: cz - 8, z1: cz + 8, y: FY, facing: 'west' }, 2)
   // the four feature trees on the diagonals, just outside the plaza
   // (the north pair stands wide of the hero and stays lower, so the name sign reads over the plaza)
-  L.trees = [58, 130, 230, 302].map((a, i) => {
-    const [x, z] = polar(ctx, a + rng.range(-5, 5), Rp + 4.5)
-    const north = a < 90 || a > 270
-    grid.reserveDisc(x, z, north ? 6 : 7, 'tree')
-    return { x: Math.round(x), z: Math.round(z), seed: ctx.seed + i, maxRadius: north ? 7 : 9, maxHeight: north ? 13 : 18 }
+  // each crown stays clear of the sections: the tree swings along the rim to the roomiest angle
+  const sections = L.slots.slice()
+  const gap = (x, z) => Math.min(...sections.map(r => Math.hypot(Math.max(r.x0 - x, 0, x - r.x1), Math.max(r.z0 - z, 0, z - r.z1))))
+  L.trees = [58, 130, 230, 302].map((a0, i) => {
+    const north = a0 < 90 || a0 > 270
+    let best = null
+    for (const da of [0, -6, 6, -12, 12, -18, 18]) {
+      const a = a0 + da + rng.range(-2, 2)
+      const [x, z] = polar(ctx, a, Rp + 4.5)
+      const room = gap(x, z)
+      if (!best || room > best.room + 1.5) best = { x, z, room }
+      if (room >= 10) break
+    }
+    const maxRadius = Math.max(4, Math.min(north ? 7 : 9, Math.floor(best.room - 1)))
+    grid.reserveDisc(best.x, best.z, Math.min(maxRadius, 7), 'tree')
+    return { x: Math.round(best.x), z: Math.round(best.z), seed: ctx.seed + i, maxRadius, maxHeight: north ? 13 : maxRadius >= 8 ? 18 : 14 }
   })
   // AFK garden (optional) in the free south-west sector
   if (brief.features.afk) {
@@ -103,7 +117,7 @@ export function plan(ctx) {
     const a = a0 + rng.range(-6, 6)
     const big = landmark && Math.abs(((a + 540) % 360) - 180) > 120 // the landmark goes north, behind the hero's shoulder
     const [w, d] = big ? [15, 13] : shapes[rng.int(0, shapes.length - 1)]
-    for (const r of [Rp + 10, Rp + 14, Rp + 18, Rp + 23]) {
+    for (const r of [Rp + 9, Rp + 12, Rp + 15, Rp + 18, Rp + 22, Rp + 26]) {
       const [x, z] = polar(ctx, a, r + Math.max(w, d) / 2)
       const facing = facingToward([x, z], C)
       // the long side faces the street
@@ -125,7 +139,7 @@ export function plan(ctx) {
   L.flat = (x, z) => {
     const dx = x - cx
     const dz = z - cz
-    return (Math.abs(dx) <= 4 && Math.abs(dz) <= Rp + 12) || (Math.abs(dz) <= 4 && Math.abs(dx) <= Rp + 12)
+    return (Math.abs(dx) <= 5 && Math.abs(dz) <= Rp + 16) || (Math.abs(dz) <= 4 && Math.abs(dx) <= Rp + 12)
   }
   return L
 }

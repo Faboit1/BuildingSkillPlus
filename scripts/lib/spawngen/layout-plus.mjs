@@ -10,12 +10,12 @@
 // The plaza grows with the NPC count until every NPC has a lot; spare lots become plain houses.
 
 import { building, crateHall, heroWall } from './buildings.mjs'
-import { afkPark, bench, featureTree, lamp, pvpArena, stall, clutter } from './landscape.mjs'
-import { treeBed } from './layout-normal.mjs'
+import { afkPark, bench, bushAt, featureTree, lamp, planter, pvpArena, stall, clutter } from './landscape.mjs'
 import { paveRect, paveRound, pavePath } from './site.mjs'
 
 const ROAD = 5 // ring road width
 const BAND = 16 // lot band depth (building depth + setback)
+const FORE = 6 // the corner halls' forecourts: the ends of the west and east bands, paved to the road
 
 // the hub plaza side P that gives every NPC a lot (lots ≥ 11 wide, ≥ 2 apart, two halves per band
 // either side of its centre piece, plus the four corner halls)
@@ -25,7 +25,8 @@ export function hubOf(brief) {
   const nb = Math.max(1, brief.leaderboards.length)
   const heroW = Math.max(nb * 9 + (nb - 1) * 3 + 16, 34)
   const crateW = nc ? Math.max(17, nc * 5 + 7) : 0
-  const centre = { north: heroW, west: crateW || 9, south: 15, east: 9 }
+  // west/east bands also give 6 at each end to the corner halls' forecourts
+  const centre = { north: heroW, west: (crateW || 9) + 12, south: 15, east: 9 + 12 }
   const capacity = P => {
     const Lb = P + 2 * ROAD
     return Object.values(centre).reduce((s, w) => s + 2 * Math.max(0, Math.floor(((Lb - w) / 2 - 3 + 2) / 13)), 0) + 4
@@ -62,8 +63,8 @@ export function plan(ctx) {
   const bands = {
     north: { a0: R.x0, a1: R.x1, inner: R.z0 - 1, facing: 'south' },
     south: { a0: R.x0, a1: R.x1, inner: R.z1 + 1, facing: 'north' },
-    west: { a0: R.z0, a1: R.z1, inner: R.x0 - 1, facing: 'east' },
-    east: { a0: R.z0, a1: R.z1, inner: R.x1 + 1, facing: 'west' },
+    west: { a0: R.z0 + FORE, a1: R.z1 - FORE, inner: R.x0 - 1, facing: 'east' },
+    east: { a0: R.z0 + FORE, a1: R.z1 - FORE, inner: R.x1 + 1, facing: 'west' },
   }
   // rect of a band segment [a, a + w) at depth d from the road
   const rectOf = (side, a, w, d, setback = 1) => {
@@ -76,8 +77,9 @@ export function plan(ctx) {
   const mid = side => Math.round((bands[side].a0 + bands[side].a1) / 2)
 
   // the centre pieces of each band
-  L.hero = reserve({ kind: 'hero', ...rectOf('north', cx - Math.floor(heroW / 2), heroW, 13, 1), y: FY, cx, width: heroW })
-  L.hero.z = L.hero.z1 - 3
+  // the boards' podium steps reach 6 in front of the boards, so the boards stand 7 back from the road
+  L.hero = reserve({ kind: 'hero', ...rectOf('north', cx - Math.floor(heroW / 2), heroW, 17, 1), y: FY, cx, width: heroW })
+  L.hero.z = L.hero.z1 - 7
   if (nc) L.crates = reserve({ kind: 'crates', ...rectOf('west', mid('west') - Math.floor(crateW / 2), crateW, 12, 1), y: FY, facing: 'east' })
   if (brief.features.rtp) {
     const r = rectOf('south', cx - 7, 15, 7, 0)
@@ -95,6 +97,13 @@ export function plan(ctx) {
     { side: 'south', corner: 'se', rect: { x0: R.x1 + 2, x1: R.x1 + BAND, z0: R.z1 + 2, z1: R.z1 + BAND }, facing: 'north' },
   ]
   for (const c of corners) lots.push({ ...c.rect, facing: c.facing, corner: true, rank: c.corner.startsWith('n') ? 0 : 3 })
+  // each corner hall faces its forecourt (between it and the side band), which opens onto the road
+  L.forecourts = corners.map(c => {
+    const f = c.corner.startsWith('n') ? { z0: R.z0, z1: R.z0 + FORE - 1 } : { z0: R.z1 - FORE + 1, z1: R.z1 }
+    const r = { x0: c.rect.x0, x1: c.rect.x1 + 1, ...f }
+    grid.reserve(r.x0, r.z0, r.x1, r.z1, 'road')
+    return r
+  })
   const centreSpan = { north: [L.hero.x0, L.hero.x1], west: L.crates ? [L.crates.z0, L.crates.z1] : [mid('west') - 4, mid('west') + 4], south: L.rtp ? [L.rtp.x0, L.rtp.x1] : [cx - 4, cx + 4], east: [spoke.z0 - 1, spoke.z1 + 1] }
   for (const side of ['north', 'west', 'east', 'south']) {
     const B = bands[side]
@@ -165,7 +174,7 @@ function inside(ctx, s, r) {
 }
 
 export function build(ctx) {
-  const { b, theme, brief, FY, C, layout: L, M, rng } = ctx
+  const { b, kit, theme, brief, FY, C, layout: L, M, rng } = ctx
   const [cx, cz] = C
   const { plaza: P, road: R } = L
 
@@ -193,6 +202,8 @@ export function build(ctx) {
       }
   }
   b.spawnPoint([cx, FY, cz], 'north')
+
+  for (const f of L.forecourts) paveRect(ctx, { ...f, field: ctx.paint.path })
 
   // ---------------------------------------------------------------- the town
   ctx.place(heroWall, { ...L.hero, facing: 'south', boards: brief.leaderboards, name: brief.features.signs ? brief.name : null })
@@ -235,16 +246,48 @@ export function build(ctx) {
   }
 
   // ---------------------------------------------------------------- plaza dressing
-  const inset = 6
-  const corners = [[P.x0 + inset, P.z0 + inset], [P.x1 - inset, P.z0 + inset], [P.x0 + inset, P.z1 - inset], [P.x1 - inset, P.z1 - inset]]
-  corners.forEach(([x, z], i) => {
-    treeBed(ctx, x, z, 3)
-    ctx.place(featureTree, [x, FY, z], { size: 'medium', seed: ctx.seed + 40 + i })
+  // a quarter-round garden in every plaza corner (grass, a feature tree, flower drifts, bushes, a
+  // bench facing the rose, a lamp), so the hub has no dead floor; planters round the rose
+  const Rg = Math.max(7, Math.min(Math.round(0.207 * L.P + 4), Math.floor(L.P / 2) - 12))
+  const trimM = kit.material(theme.trim)
+  const flowers = kit.palette(Object.fromEntries(theme.flowers.map(([w, f]) => [f, w])), { scale: 2, seed: ctx.seed + 9 })
+  const gardens = [[P.x0, P.z0, 1, 1], [P.x1, P.z0, -1, 1], [P.x0, P.z1, 1, -1], [P.x1, P.z1, -1, -1]]
+  gardens.forEach(([gx, gz, sx, sz], i) => {
+    for (let dx = 0; dx <= Rg + 1; dx += 1)
+      for (let dz = 0; dz <= Rg + 1; dz += 1) {
+        const x = gx + sx * dx
+        const z = gz + sz * dz
+        const d = Math.hypot(dx, dz)
+        if (d > Rg + 0.5) continue
+        if (d > Rg - 0.5) {
+          b.set(x, FY, z, theme.paving.border)
+          b.set(x, FY + 1, z, trimM.slab ? `${trimM.slab}[type=bottom]` : theme.paving.border)
+          continue
+        }
+        b.set(x, FY, z, kit.hash01(x, 5, z, ctx.seed) < 0.15 ? 'minecraft:moss_block' : theme.ground.snow_block ? 'minecraft:snow_block' : 'minecraft:grass_block')
+        ctx.site.paved[x + ctx.S * z] = 0
+        if (d > 3 && kit.noise.coherent01(x, 0, z, { scale: 3, seed: ctx.seed + i }) > 0.45 && kit.hash01(x, 7, z, ctx.seed) < 0.7) b.set(x, FY + 1, z, flowers)
+      }
+    const tx = gx + sx * Math.round(Rg * 0.42)
+    const tz = gz + sz * Math.round(Rg * 0.42)
+    for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1) b.remove(tx + dx, FY + 1, tz + dz)
+    ctx.place(featureTree, [tx, FY, tz], { size: 'medium', seed: ctx.seed + 40 + i, maxRadius: Math.max(4, Rg - 3), maxHeight: 14 })
+    for (const [ox, oz] of [[Math.round(Rg * 0.75), 2], [2, Math.round(Rg * 0.75)]]) ctx.place(bushAt, [gx + sx * ox, FY, gz + sz * oz], { r: 1.4, seed: ctx.seed + i + ox })
+    // the bench on the arc, facing the rose; a lamp beside it
+    const ba = Math.round(Rg / Math.SQRT2)
+    const bx = gx + sx * (ba + 1)
+    const bz = gz + sz * (ba + 1)
+    ctx.place(bench, [bx, FY, bz], Math.abs(bx - cx) > Math.abs(bz - cz) ? (sx > 0 ? 'east' : 'west') : (sz > 0 ? 'south' : 'north'), { length: 3, seed: i })
+    ctx.place(lamp, [gx + sx * (ba + 3), FY, gz + sz * (ba - 1)], { kind: 'post', seed: i })
   })
-  // market stalls along the east and west plaza edges, between the corners and the cross walk
-  if (L.P >= 44) {
+  // planters round the rose on the diagonals
+  const pr = Math.round(rr * 0.62)
+  ;[[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz], i) => ctx.place(planter, [cx + sx * pr, FY, cz + sz * pr], { r: 2, tree: L.P >= 50, seed: ctx.seed + 60 + i }))
+  // market stalls along the east and west plaza edges, clear of the gardens and the cross walk
+  const stallZ = Math.round((L.P / 2 - Rg + 4) / 2)
+  if (L.P / 2 - Rg >= 12) {
     for (const [x, f] of [[P.x0 + 3, 'east'], [P.x1 - 3, 'west']])
-      for (const s of [-1, 1]) ctx.place(stall, [x, FY, cz + s * Math.round(L.P / 4)], f, { width: 5 })
+      for (const sgn of [-1, 1]) ctx.place(stall, [x, FY, cz + sgn * stallZ], f, { width: 5, seed: ctx.seed + sgn })
   }
   for (const [x, z, f] of [[cx - 6, cz - rr - 3, 'south'], [cx + 6, cz + rr + 3, 'north'], [cx - rr - 3, cz + 6, 'east'], [cx + rr + 3, cz - 6, 'west']]) ctx.place(bench, [x, FY, z], f, { length: 3 })
   // lamps on the plaza's inner kerb and along the ring road

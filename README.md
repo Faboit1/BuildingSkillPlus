@@ -10,6 +10,33 @@ agent writes a JavaScript recipe with a building kit, exports a vanilla structur
 iterates. A builder's handbook in `references/building/` teaches it the craft: proportions, depth,
 palettes, roofs, styles, landscaping, interiors, lighting and composition.
 
+## Server spawns in one command
+
+Interview the server owner, write a short brief, run one command:
+
+```bash
+node scripts/make-spawn.mjs assets/spawn-briefs/autumn-lifesteal.json
+```
+
+`scripts/make-spawn.mjs` generates the whole spawn on a floating island: plaza, NPC places, the
+leaderboard hall with the server name in quartz letters, crates, the RTP gate, a PvP ruin, themed
+cottages, trees and lamps, all spawn-proofed. It writes `.nbt` / `.schem` / `.litematic`, the
+NPC/hologram/crate/WorldGuard setup commands and the renders. Three layouts: **normal** (FreshSMP-like
+plaza, NPCs in a ring), **spawn+** (DonutSMP-like town, one building per NPC) and **PvP lobby**;
+six themes (autumn, medieval, white-town, japanese, winter, fantasy); five island settings.
+`SKILL.md` gives the agent the five-step workflow; the briefs below are in `assets/spawn-briefs/`.
+
+| | |
+| --- | --- |
+| <img src="docs/gallery/spawngen-autumn-lifesteal.jpg" width="400" alt="Autumn normal spawn, spawn view"> | <img src="docs/gallery/spawngen-autumn-lifesteal-overview.jpg" width="400" alt="Autumn normal spawn, overview"> |
+| **Ember SMP**: normal spawn, autumn, 12 NPCs | overview |
+| <img src="docs/gallery/spawngen-donut-style-plus.jpg" width="400" alt="Medieval spawn+, spawn view"> | <img src="docs/gallery/spawngen-donut-style-plus-overview.jpg" width="400" alt="Medieval spawn+, overview"> |
+| **Glaze SMP**: spawn+, medieval valley, 16 NPCs in their own buildings | overview |
+| <img src="docs/gallery/spawngen-practice-pvp.jpg" width="400" alt="Japanese PvP lobby, spawn view"> | <img src="docs/gallery/spawngen-practice-pvp-overview.jpg" width="400" alt="Japanese PvP lobby, overview"> |
+| **Sakura PvP**: PvP lobby, japanese, 6 queue NPCs | overview |
+| <img src="docs/gallery/spawngen-cheese-smp.jpg" width="400" alt="White-town spawn, spawn view"> | <img src="docs/gallery/spawngen-winter-smp-overview.jpg" width="400" alt="Winter mountain spawn, overview"> |
+| **CheeseSMP**: normal spawn, white-town, blue accent, coast | **Frost SMP**: normal spawn, winter, mountain ridge |
+
 ## What's inside
 
 - **Builder's handbook** (`references/building/`, about 15k lines): 25 laws and a staged workflow,
