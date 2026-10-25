@@ -461,6 +461,112 @@ The functions that take the builder are also Builder methods (`b.paintRoad(path,
 | `kit.plan.skylineReport(b)` | crown ratio, accents, height variety, flat runs, ASCII skylines (`.text`) |
 | `kit.plan.ringPolygon`, `pointInPolygon`, `chaikin`, `resamplePolyline`, `gradeProfile` | geometry helpers |
 
+## Spawn & lobby kit
+
+Server spawns, hubs and PvP lobbies (`scripts/lib/kit/spawn.mjs`; full example
+`minecraft-builds/spawnkit-demo/spawnkit-demo.mjs`). Each component is built with depth (plinths,
+stair skirts, reveals, cornices) and lights itself with a fixture or a light set behind tinted glass,
+never a bare light block in view. Components that a plugin has to finish **record a placement**
+(NPC spots, hologram anchors, crate blocks, portal triggers, regions, the world spawn); `finish()`
+puts them in `metadata.placements` and `run-build.mjs` writes `<name>.placements.json` and
+`<name>.setup.md` (below).
+
+Conventions: `facing` is the side the **player** stands on (where an NPC looks, a sign reads, a crate
+opens). Materials come from the same options everywhere: `primary` (light field, default
+`smooth_quartz`), `trim` (frames and cornices, needs stairs; `polished_deepslate`), `base` (plinths and
+skirts; `deepslate_tiles`), `wood` (posts, stalls; `dark_oak`), `roof` (`deepslate_tile`), `accent`
+(keystones and finials; `gold_block`), `field` (any paint for big surfaces), `colour` (dye for the
+glow glass; from the accent), `glass` and `light` (the glow; `ochre_froglight`).
+
+| Method | Notes |
+| --- | --- |
+| `b.sign(text, at, facing, opts)` | block letters; `at` = top-left letter cell as the reader sees it (top-centre with `align: 'center'`, top-right with `'right'`); `font: 'small'` (3x5) \| `'medium'` (5 tall, default) \| `'large'` (5x7); `block` / `stairs` (quartz_block / quartz; any block with its own stairs smooths, others stay square); `depth`; `'\n'` for lines (`leading`). `board` adds a framed panel: the field `boardDepth` (2) deep sits 1 behind the letters inside a `frame` ring (polished_deepslate; `false` for a bare board with an optional flat `boardEdge`) with a stair cornice and sill, returned ends and a slab `cap`; `pad` (1) cells of field around the text. Returns `{ width, height, min, max }` |
+| `kit.signWidth(text, font)` / `kit.signHeight(text, font)` | size of the lettering (widest line), to centre or fit it before drawing |
+| `b.npcSpot(pos, facing, { id, label, role, style })` | `pos` = the block the NPC stands on (feet at y + 1). `style`: `'pedestal'` (5x5, `size: 3`, or `shape: 'round'`), `'alcove'`, `'booth'`, `'kiosk'`, `'none'`. Keeps 2 + 1 blocks of head room and a 2-deep click stand-off clear (finish warns if a later edit fills them) |
+| `b.leaderboards(pos, facing, { count: 3, width: 5, height: 6, gap: 3, style, ids, labels, podium })` | framed hologram boards in a wall (`style: 'wall'`) or as steles (`'row'`); `pos` = floor block in the middle of the wall face (the wall lies 1-4 blocks behind it). The middle board of 3+ is the hero (2 wider, 1 taller, raised bay with a crest); `podium: true` adds 2nd/1st/3rd steps in front of it whose statues are recorded as NPC spots (`role: 'statue'`, `rank`). `backdrop` (polished_blackstone), `footlight`, `strip`, `podiumCaps` |
+| `b.crate(pos, facing, { id, label, tier, block, hero })` | `pos` = the crate block, on a 1-tall dais (floor at y - 2; a footing fills down). `block`: `'ender_chest'` \| `'chest'` \| `'barrel'` \| `'shulker'` \| any id; `tier`: common, uncommon, rare, epic, legendary, mythic, vote, seasonal (`kit.CRATE_TIERS`) or a dye colour; a clear 3x3 standing area in front |
+| `b.crateRow(start, facing, crates[], { spacing: 5, ...shared })` | stations along the players' right from `start`; the highest tier (or the middle) of 3+ becomes the hero (taller arch, crest) |
+| `b.spawnPoint(pos, facing)` | the world spawn (`pos` = floor block, players at y + 1); exactly one, a second call moves it and warns |
+| `b.portal(a, c, { id, label, kind, facing })` | gate around a 1-thick opening `a`..`c` (inclusive); `kind`: `'rtp'` \| `'warp'` \| `'pvp'` (pointed arch) \| `'nether'` (obsidian, `nether_portal` fill); the opening stays air otherwise and is recorded as the trigger region. Footprint: width + 8 by 7 deep |
+| `b.region(id, min, max, flags)` | a WorldGuard-style region record; `flags` e.g. `{ pvp: 'deny', 'mob-spawning': 'deny', priority: 10 }` |
+| `b.spawnProof(min, max, { inside, maxStep: 10, maxRounds: 8, level: 15 })` | propagates block light and puts invisible `light[level=15]` in dark walkable cells (feet height, or head height over a plant; never replacing a block or a door / tall plant top), lights placed in one round ≥ `maxStep` apart, repeated while dark cells remain (2-3 rounds usually). `inside(x, z, y)` limits it. Returns the number placed |
+| `b.darkSpots(min, max, { inside })` | mob-spawnable cells (feet positions) for checks: 2 tall no-collision space on a spawnable floor (full blocks, top slabs, upside-down stairs; not glass, leaves, ice, bottom slabs, carpets, paths) at block light 0 |
+
+The styles, from the street inward:
+
+- **pedestal**: stair skirt, a light inlay ring around the NPC on a glass inset lit from below,
+  corner blocks with lanterns (front) and potted plants (back), a ring inlaid in the floor and a
+  backdrop screen behind (`screen: false` to omit) with a glowing panel lit from behind.
+- **alcove**: built into an existing wall (it only fills empty cells around it); `pos` is 1 block in
+  from the wall's face. Pilasters with stair bases and capitals, entablature, cornice and crest
+  (proud), a trim reveal in the wall plane, a 3x4 niche with a stair-rounded head, a dark backdrop
+  (`backdrop`) with an arched halo window lit from behind, a floor plate, bracket lanterns.
+- **booth**: market stall 5 wide (`width`): log posts, stock on the back wall (barrels, chest,
+  shelf, bookshelves), a lectern, an upside-down-stair counter with a candle and a pot, a striped
+  awning (`awning: ['mangrove', 'birch']`, any two stair families) sloping to the front with a valance
+  and eave lanterns, and a framed `board` over the awning, recorded as `board: { center, facing }`.
+- **kiosk**: 7x7 deck with a stair skirt, log posts on bases with knee braces, rails with potted
+  plants on three sides, a lectern, a hipped roof level with the beams (`roof`, `pitch`), eave lanterns,
+  a finial and a lantern over the NPC.
+- **leaderboard board**: stiles with bases and capitals, cornice, a sill over a lit pane strip on the
+  plinth; a reveal 1 larger than the display with stair bevels; the display 1 deeper on a dark
+  backdrop; a footlight trough behind the bottom bevel; piers with bracket lanterns between boards.
+- **crate station**: stair skirt, glass corner tiles lit from below with tier candles, a slab
+  collar, the crate; an arch (piers on stair bases, stair shoulders, tier keystone, frieze, cornice)
+  onto a reveal panel 1 deeper in the tier's terracotta with a glowing glass slot.
+- **portal**: plinth, 2-wide pilasters with stair bases and capitals, an outer arch ring with a
+  glazed keystone, the inner reveal stepped 1 deeper with glass strips lit from inside, impost band,
+  entablature and cornice, a threshold inset that glows.
+
+```js
+// north: three boards with a podium; west: five crates; a framed sign on the arcade wall
+b.leaderboards([42, 4, 12], 'south', { ids: ['kills', 'money', 'playtime'], labels: ['Top Kills', 'Richest', 'Playtime'], podium: true })
+b.crateRow([13, 6, 54], 'east', [
+  { id: 'common', tier: 'common' }, { id: 'rare', tier: 'rare' }, { id: 'legendary', tier: 'legendary', block: 'ender_chest' },
+  { id: 'epic', tier: 'epic', block: 'barrel' }, { id: 'vote', tier: 'vote', block: 'shulker' },
+])
+b.sign('CRATES', [10, 21, 44], 'east', { font: 'small', align: 'center', board: 'polished_blackstone' })
+b.npcSpot([67, 4, 44], 'west', { id: 'shop', label: 'Shop', role: 'shop', style: 'alcove' })   // in the hall's west wall
+b.npcSpot([38, 4, 66], 'north', { id: 'market', label: 'Market', style: 'booth', awning: ['warped', 'birch'] })
+b.portal([10, 5, 17], [14, 9, 17], { id: 'rtp', label: 'Random Teleport', kind: 'rtp', facing: 'south' })
+b.spawnPoint([42, 4, 44], 'north')
+b.region('spawn', [0, 0, 0], [83, 37, 83], { pvp: 'deny', 'mob-spawning': 'deny', priority: 10 })
+return b.finish({ name: 'spawn', spawnProof: { min: [0, 5, 0], max: [83, 37, 83], inside: (x, z) => inPlaza(x, z) } })
+```
+
+Placement records (structure coordinates; shifted with the structure when `trim: true`):
+
+| type | record |
+| --- | --- |
+| `npc` | `{ id, label, role, style, pos: [x, y + 1, z] (the feet block), facing, yaw, hologram: [x + .5, y + 3.4, z + .5], board?, rank? }` |
+| `leaderboard` | `{ id, label, anchor: [x, y, z], facing, size }`: the hologram's top line, centred on the board, 0.5 in front of the backdrop; the recess fits 10-12 lines at 0.25-0.3 |
+| `crate` | `{ id, label, tier, block, pos: [crate block], facing, hologram: [x + .5, y + 1.6, z + .5] }` |
+| `portal` | `{ id, label, kind, min, max, facing }` (the trigger region) |
+| `region` | `{ id, min, max, flags }` |
+| `spawn` | `{ id: 'spawn', pos: [x, y + 1, z], facing, yaw }` |
+
+Yaw follows Minecraft (`kit.YAW`): south 0, west 90, north 180, east -90.
+
+**Export.** `node scripts/run-build.mjs recipe.mjs --origin x,y,z [--world name]` (`--origin` = where
+the structure's minimum corner is pasted, default 0,0,0; `--world` default `world`) writes, next to the
+`.nbt`:
+
+- `<name>.placements.json`: `{ name, size, origin, world, placements }`, each record with its local
+  coordinates and a `world` copy (origin + local);
+- `<name>.setup.md`: a placements table (id, label, type, local and world coordinates) and
+  ready-to-paste commands: `setworldspawn x y z yaw`; Citizens `npc create <label> --at x:y:z:world:yaw:0`;
+  FancyNpcs `npc create <id> --location x y z --world <w>` + `npc rotate` + `npc displayname`;
+  DecentHolograms `dh hologram create <name> -l:world:x:y:z <text>` (NPC name plates, leaderboard top
+  lines, crate titles); ExcellentCrates `Block.Positions` entries (`x,y,z,world`, no bind command
+  exists; or the editor's link tool); CrazyCrates `/tp` + `/crazycrates set <crate>` (player-only,
+  looking at the block); WorldEdit/WorldGuard `//pos1 x,y,z`, `//pos2`, `/rg define`, `/rg flag`,
+  `/rg setpriority`, plus the console form (`/world <w>` first, one slash fewer). Syntax was checked
+  against the plugin sources in October 2026: Citizens 2.0.44, FancyNpcs 2.12.1, DecentHolograms
+  2.10.3, ExcellentCrates 6.6.1, CrazyCrates 5.2.0, WorldEdit 7.4.7, WorldGuard 7.0.21.
+
+The JSON summary gains `placements: { count, types, origin, world, jsonPath, setupPath }` and
+`builder.spawnProof: { placed, remaining }`.
+
 ## Modules and stamping
 
 Author a detail once, stamp it anywhere, rotated and mirrored (block states rotate with it):
@@ -523,6 +629,11 @@ In order it:
    fence/pane/bars connections, fence gates in walls.
 5. Marks leaves `persistent=true` so they do not decay after placement.
 6. Builds the Lodestone `Structure` (`trim: true` shrinks it to the used bounds).
+
+Before that, `spawnProof: [min, max]` (or `{ min, max, inside, maxStep }`, or `true` for the whole
+canvas) runs `b.spawnProof`, and NPC stand-offs, crate standing areas and the spawn that a later edit
+filled are reported as warnings. After it, the spawn kit's placements are added as
+`metadata.placements` (see "Spawn & lobby kit").
 
 `run-build.mjs` applies steps 2–5 to raw-API recipes too.
 

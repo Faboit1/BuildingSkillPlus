@@ -30,7 +30,11 @@ const DEFAULT_DATA_VERSION = 3955
 
 function usage() {
   return `Usage:
-  node scripts/run-build.mjs <recipe.mjs> [--out-dir <dir>] [--name <name>] [--data-version <number>] [--compression gzip|zlib|none] [--no-block-state-updates] [--no-default-states] [--json]
+  node scripts/run-build.mjs <recipe.mjs> [--out-dir <dir>] [--name <name>] [--data-version <number>] [--compression gzip|zlib|none] [--no-block-state-updates] [--no-default-states] [--origin x,y,z] [--world <name>] [--json]
+
+  --origin x,y,z   where the build's minimum corner will be pasted in the world (default 0,0,0);
+                   used for the world coordinates in <name>.placements.json and <name>.setup.md
+  --world <name>   the world name used in the plugin commands of <name>.setup.md (default world)
 `
 }
 
@@ -45,6 +49,13 @@ function parseArgs(argv) {
     defaultStates: true,
     json: false,
     help: false,
+    origin: [0, 0, 0],
+    world: 'world',
+  }
+  const parseOrigin = value => {
+    const out = String(value).split(/[,\s]+/).filter(Boolean).map(Number)
+    if (out.length !== 3 || !out.every(Number.isInteger)) throw new Error('--origin must be three integers: x,y,z')
+    return out
   }
 
   const readValue = (arg, index) => {
@@ -83,6 +94,18 @@ function parseArgs(argv) {
       index += 1
     } else if (arg.startsWith('--compression=')) {
       options.compression = arg.slice('--compression='.length)
+    } else if (arg === '--origin') {
+      // negative coordinates look like flags to readValue, so read the next argument directly
+      if (argv[index + 1] === undefined) throw new Error('--origin requires a value')
+      options.origin = parseOrigin(argv[index + 1])
+      index += 1
+    } else if (arg.startsWith('--origin=')) {
+      options.origin = parseOrigin(arg.slice('--origin='.length))
+    } else if (arg === '--world') {
+      options.world = readValue(arg, index)
+      index += 1
+    } else if (arg.startsWith('--world=')) {
+      options.world = arg.slice('--world='.length)
     } else if (!options.recipe) {
       options.recipe = arg
     } else {
@@ -367,6 +390,160 @@ function updateStructureConnections(structure) {
   return count
 }
 
+// ---------------------------------------------------------------- spawn kit placements export
+// Placements come from the kit's spawn module (b.npcSpot, b.leaderboards, b.crate, b.portal,
+// b.region, b.spawnPoint) in structure coordinates. They are written as <name>.placements.json
+// (local + world coordinates) and <name>.setup.md (a table and ready-to-paste plugin commands).
+// Command syntax verified against the plugins' source (October 2026): Citizens 2.0.44 (--at
+// x:y:z:world:yaw:pitch, console-safe), FancyNpcs 2.12.1 (--location x y z --world w; its docs
+// page says --position), DecentHolograms 2.10.3 (-l:world:x:y:z, console-safe, names
+// [a-zA-Z0-9_-]+, pages from 1), ExcellentCrates 6.6.1 (no bind command: editor link tool or
+// Block.Positions "x,y,z,world"), CrazyCrates 5.2.0 (/crazycrates set <crate>, player looking at
+// the block within 5), WorldEdit 7.4.7 (//pos1 x,y,z; console: /world <w> first), WorldGuard 7.0.21
+// (/rg define [-w world] <id>, /rg flag <id> <flag> <value>, /rg setpriority <id> <n>), and vanilla
+// Java 1.21.1 /setworldspawn <pos> <angle>.
+const YAW_OF = { south: 0, west: 90, north: 180, east: -90 }
+const OPPOSITE_OF = { north: 'south', south: 'north', east: 'west', west: 'east' }
+const STEP_OF = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0] }
+const round2 = v => Math.round(v * 100) / 100
+const addOrigin = (p, origin) => p.map((v, i) => round2(v + origin[i]))
+const fmt = p => p.map(v => round2(v)).join(' ')
+const slugId = value => String(value).replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'spot'
+
+function worldPlacements(placements, origin) {
+  return placements.map(p => {
+    const world = {}
+    for (const key of ['pos', 'hologram', 'anchor', 'min', 'max']) if (p[key]) world[key] = addOrigin(p[key], origin)
+    if (p.board) world.board = { center: addOrigin(p.board.center, origin) }
+    return { ...p, world }
+  })
+}
+
+// An NPC's feet go on the block centre; the record's pos is the integer feet block.
+const feetOf = p => [p.world.pos[0] + 0.5, p.world.pos[1], p.world.pos[2] + 0.5]
+
+function setupSheet({ name, origin, world, size, placements }) {
+  const L = []
+  const code = (lines, lang = '') => {
+    L.push('```' + lang)
+    L.push(...lines)
+    L.push('```', '')
+  }
+  const of = type => placements.filter(p => p.type === type)
+  L.push(`# ${name}: server setup`, '')
+  L.push(`Paste the structure (${size.join(' x ')}) with its minimum corner at **${origin.join(' ')}** in world \`${world}\``)
+  L.push(`(\`run-build --origin x,y,z --world name\` changes both), e.g. \`/place template <namespace>:${name} ${origin.join(' ')}\` from a`)
+  L.push('datapack, or a WorldEdit paste whose minimum corner lands there. *Local* coordinates are inside the')
+  L.push('structure (minimum corner 0 0 0); *world* = origin + local. NPCs and holograms stand on block centres (.5).', '')
+  L.push('Commands are written for the server console (no leading slash; type `/` first in game). Syntax checked')
+  L.push('against the plugin sources in October 2026: Citizens 2.0.44, FancyNpcs 2.12.1, DecentHolograms 2.10.3,')
+  L.push('ExcellentCrates 6.6.1, CrazyCrates 5.2.0, WorldEdit 7.4.7, WorldGuard 7.0.21, vanilla Java 1.21.1.', '')
+
+  L.push('## Placements', '', '| id | label | type | local | world |', '| --- | --- | --- | --- | --- |')
+  for (const p of placements) {
+    const local = p.min ? `${fmt(p.min)} → ${fmt(p.max)}` : fmt(p.pos ?? p.anchor)
+    const wpos = p.min ? `${fmt(p.world.min)} → ${fmt(p.world.max)}` : fmt(p.world.pos ?? p.world.anchor)
+    const type = p.type === 'npc' && p.role ? `npc (${p.role})` : p.type === 'crate' ? `crate (${p.tier})` : p.type === 'portal' ? `portal (${p.kind})` : p.type
+    L.push(`| ${p.id} | ${String(p.label ?? '').replace(/\|/g, '/')} | ${type} | ${local} | ${wpos} |`)
+  }
+  L.push('')
+
+  const spawn = of('spawn')[0]
+  if (spawn) {
+    L.push('## World spawn', '')
+    code([`setworldspawn ${fmt(spawn.world.pos)} ${spawn.yaw}`])
+  }
+
+  const npcs = of('npc')
+  if (npcs.length) {
+    L.push('## NPCs', '')
+    L.push('Each NPC faces its spot\'s `facing` (the yaw below). `statue` spots stand on the leaderboard podium.', '')
+    L.push('### Citizens', '')
+    L.push('`npc create` selects the new NPC, so its skin and traits can follow each line (`npc skin <player>`,')
+    L.push('`npc lookclose`). The nameplate is hidden because the hologram lines below carry the label; drop')
+    L.push('`--nameplate false` to keep the NPC\'s own name (player NPC names are cut at 16 characters).', '')
+    code(npcs.map(p => `npc create ${p.label} --at ${feetOf(p).join(':')}:${world}:${p.yaw}:0 --nameplate false`))
+    L.push('### FancyNpcs', '')
+    code(npcs.flatMap(p => {
+      const id = slugId(p.id)
+      return [`npc create ${id} --location ${fmt(feetOf(p))} --world ${world}`, `npc rotate ${id} ${p.yaw} 0`, `npc displayname ${id} ${p.label}`]
+    }))
+  }
+
+  const boards = of('leaderboard')
+  if (npcs.length || boards.length || of('crate').length) {
+    L.push('## Holograms (DecentHolograms)', '')
+    if (npcs.length) {
+      L.push('Name plates over the NPCs (2.4 above their feet):', '')
+      code(npcs.map(p => `dh hologram create npc-${slugId(p.id)} -l:${world}:${p.world.hologram.join(':')} ${p.label}`))
+    }
+    if (boards.length) {
+      L.push('Leaderboards: the location is the top line, centred on the board and 0.5 in front of its backdrop.')
+      L.push('Add one line per rank with your leaderboard plugin\'s placeholders (`dh line add <hologram> 1 <text>`).', '')
+      code(boards.flatMap(p => [`dh hologram create lb-${slugId(p.id)} -l:${world}:${p.world.anchor.join(':')} &6&l${p.label}`, `dh line add lb-${slugId(p.id)} 1 &7#1 ...`]))
+    }
+    if (of('crate').length) {
+      L.push('Crate titles (ExcellentCrates and CrazyCrates can also draw their own over a linked block: use one):', '')
+      code(of('crate').map(p => `dh hologram create crate-${slugId(p.id)} -l:${world}:${p.world.hologram.join(':')} ${p.label}`))
+    }
+  }
+
+  const crates = of('crate')
+  if (crates.length) {
+    // where to stand: the middle of the clear area in front of the station, looking at the crate
+    const standAt = p => {
+      const [dx, dz] = STEP_OF[p.facing]
+      return [p.world.pos[0] + 0.5 + dx * 4, p.world.pos[1] - 1, p.world.pos[2] + 0.5 + dz * 4]
+    }
+    L.push('## Crates', '')
+    L.push('Crate blocks (local → world): ' + crates.map(p => `\`${p.id}\` ${fmt(p.world.pos)}`).join(', ') + '.', '')
+    L.push('### ExcellentCrates', '')
+    L.push('No command binds a block. Either add the positions to each crate\'s file and reload:', '')
+    for (const p of crates) code([`# plugins/ExcellentCrates/crates/${slugId(p.id)}.yml`, 'Block:', '  Positions:', `  - ${p.world.pos.join(',')},${world}`], 'yaml')
+    L.push('then `crates reload`; or in game open `/crates editor`, pick the crate, click **Linked Block** to get the')
+    L.push('link tool and click the crate block (teleport lines below).', '')
+    L.push('### CrazyCrates', '')
+    L.push('Player only: stand in front of the crate looking at it (within 5 blocks) and run the set command.', '')
+    code(crates.flatMap(p => [`/tp @s ${fmt(standAt(p))} ${YAW_OF[OPPOSITE_OF[p.facing]]} 5`, `/crazycrates set ${p.id}`]))
+  }
+
+  const regions = [...of('region'), ...of('portal').map(p => ({ ...p, id: `portal-${slugId(p.id)}`, flags: {} }))]
+  if (regions.length) {
+    L.push('## Regions (WorldEdit + WorldGuard)', '')
+    L.push('Portals are listed as trigger regions (`portal-<id>`): point your portal, warp or RTP plugin at them.', '')
+    L.push('In game:', '')
+    code(regions.flatMap(r => {
+      const flags = Object.entries(r.flags ?? {}).filter(([k]) => k !== 'priority')
+      return [
+        `//pos1 ${r.world.min.join(',')}`,
+        `//pos2 ${r.world.max.join(',')}`,
+        `/rg define ${r.id}`,
+        ...flags.map(([k, v]) => `/rg flag ${r.id} ${k} ${v}`),
+        ...(r.flags?.priority !== undefined ? [`/rg setpriority ${r.id} ${r.flags.priority}`] : []),
+      ]
+    }))
+    L.push('From the console, set the WorldEdit world first and drop one slash from the WorldEdit commands:', '')
+    code([`/world ${world}`, ...regions.flatMap(r => {
+      const flags = Object.entries(r.flags ?? {}).filter(([k]) => k !== 'priority')
+      return [
+        `/pos1 ${r.world.min.join(',')}`,
+        `/pos2 ${r.world.max.join(',')}`,
+        `rg define -w ${world} ${r.id}`,
+        ...flags.map(([k, v]) => `rg flag -w ${world} ${r.id} ${k} ${v}`),
+        ...(r.flags?.priority !== undefined ? [`rg setpriority -w ${world} ${r.id} ${r.flags.priority}`] : []),
+      ]
+    })])
+  }
+  const boardsWithSigns = npcs.filter(p => p.board)
+  if (boardsWithSigns.length) {
+    L.push('## Sign boards', '')
+    L.push('Booths leave a framed board for a wall sign or item frames (centre of its front face):', '')
+    for (const p of boardsWithSigns) L.push(`- \`${p.id}\`: ${fmt(p.world.board.center)}, facing ${p.board.facing}`)
+    L.push('')
+  }
+  return `${L.join('\n')}\n`
+}
+
 function summarize(structure) {
   const blocks = structure.getBlocks()
   return {
@@ -441,6 +618,29 @@ async function main() {
     throw new Error('Generated NBT failed Lodestone round-trip validation')
   }
 
+  // spawn kit placements: NPC spots, hologram anchors, crates, portals, regions, the world spawn
+  const placements = Array.isArray(metadata.placements) ? metadata.placements : []
+  let placementsOut
+  if (placements.length) {
+    const counts = {}
+    for (const p of placements) counts[p.type] = (counts[p.type] ?? 0) + 1
+    if ((counts.spawn ?? 0) > 1) throw new Error('placements: more than one world spawn')
+    const size = outputStructure.getSize()
+    const list = worldPlacements(placements, options.origin)
+    const jsonPath = path.join(outDir, `${name}.placements.json`)
+    const setupPath = path.join(outDir, `${name}.setup.md`)
+    await fs.writeFile(jsonPath, `${JSON.stringify({
+      name,
+      size,
+      origin: options.origin,
+      world: options.world,
+      note: 'local = structure coordinates (minimum corner 0,0,0); world = origin + local. npc pos = the block the feet are in; hologram/anchor = hologram location (top line); crate pos = the crate block; portal and region min/max = inclusive block corners.',
+      placements: list,
+    }, null, 2)}\n`)
+    await fs.writeFile(setupPath, setupSheet({ name, origin: options.origin, world: options.world, size, placements: list }))
+    placementsOut = { count: placements.length, types: counts, origin: options.origin, world: options.world, jsonPath, setupPath }
+  }
+
   const summary = {
     name,
     dataVersion: options.dataVersion,
@@ -454,7 +654,9 @@ async function main() {
       leavesPersisted: builderReport.leavesPersisted,
       problems: builderReport.problems,
       ...(builderReport.warnings?.length ? { warnings: builderReport.warnings } : {}),
+      ...(builderReport.spawnProof ? { spawnProof: builderReport.spawnProof } : {}),
     } } : {}),
+    ...(placementsOut ? { placements: placementsOut } : {}),
     nbtPath,
     summaryPath: path.join(outDir, 'summary.json'),
     ...stats,
@@ -470,6 +672,10 @@ async function main() {
     console.log(`  Size: ${summary.size.join(' x ')}`)
     console.log(`  Blocks: ${summary.blockCount}`)
     console.log(`  Palette: ${summary.paletteCount}`)
+    if (placementsOut) {
+      console.log(`  Placements: ${placementsOut.count} (${Object.entries(placementsOut.types).map(([k, v]) => `${v} ${k}`).join(', ')})`)
+      console.log(`  Setup: ${placementsOut.setupPath}`)
+    }
   }
 }
 

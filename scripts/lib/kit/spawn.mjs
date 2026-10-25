@@ -369,7 +369,9 @@ export function sign(b, text, at, facing = 'south', opts = {}) {
   let stairId = null
   if (smooth) {
     try {
-      stairId = stairs ? (/_stairs$/.test(parseBlock(stairs).name) ? parseBlock(stairs).name : fam(stairs).stairs) : fam(parseBlock(block).name).stairs
+      // the block's own stair family only: a substitute (sandstone stairs on gold) would show a
+      // different colour in every diagonal
+      stairId = stairs ? (/_stairs$/.test(parseBlock(stairs).name) ? parseBlock(stairs).name : fam(stairs).stairs) : material(parseBlock(block).name).stairs ?? null
     } catch {
       stairId = null
     }
@@ -582,7 +584,8 @@ function screen(b, L, M, d0, hw) {
     b.set(...L.at(u, d0 + 1, 0), stair(M.B, L.back))
     b.set(...L.at(u, d0, 6), 'minecraft:lantern[hanging=false]')
   }
-  b.set(...L.at(0, d0, 5), M.A)
+  b.set(...L.at(0, d0, 5), M.P.block)
+  for (const u of [-1, 1]) b.set(...L.at(u, d0, 5), stair(M.P, sideFacing(L, -u)))
 }
 
 // Alcove: an arched niche cut into the wall behind the NPC. Layers from the street inward:
@@ -839,6 +842,14 @@ export function leaderboards(b, pos, facing = 'south', opts = {}) {
   }
   // piers between and beside the boards: base, shaft, capital, a lantern on a bracket
   const piers = style === 'wall' ? [ua, ub, ...units.slice(0, -1).map(un => un.fr + 1 + Math.floor(gap / 2))] : []
+  // the back of a freestanding wall: pilasters behind the piers and the board centres
+  if (style === 'wall' && opts.back !== false) {
+    for (const u of [...piers, ...units.map(un => Math.round((un.cl + un.cr) / 2))]) {
+      const top = units.some(un => un.hero && u >= un.fl - 1 && u <= un.fr + 1) ? crown(units[hero]) + 1 : baseTop
+      for (let h = 1; h < top; h += 1) b.set(...L.at(u, -4, h), h <= 2 ? M.B.block : M.T.block)
+      b.set(...L.at(u, -5, 1), stair(M.B, L.facing))
+    }
+  }
   for (const u of piers) {
     b.set(...L.at(u, 1, 1), M.B.block)
     b.set(...L.at(u, 1, 2), M.B.block)
