@@ -733,6 +733,182 @@ export default function build(api) {
     b.ffaGate = rec
   }
 
+  // ============================================================================ GROUND FINISH
+  // The lawn must not be the main read: formal areas get raked gravel inside andesite kerbs,
+  // routes get worn paths (flagstone centre, gravel shoulders, a fringe of coarse dirt), the
+  // gardens keep grass and moss under trees.
+  const SOFT = /grass_block|moss_block|coarse_dirt|minecraft:dirt$|podzol/
+  const isSoft = (x, z) => {
+    const gy = G(x, z)
+    return gy >= 0 && SOFT.test(b.nameAt(x, gy, z) ?? '') && !b.has(x, gy + 1, z)
+  }
+  const paintTop = (x, z, p) => { const gy = G(x, z); if (gy >= 0) b.set(x, gy, z, p) }
+  // raked fields: a rounded rectangle, furrows along the long side, a kerb round it
+  const rakeField = (cx, cz, hx, hz, r, alongX) => {
+    for (let x = Math.floor(cx - hx - 1); x <= Math.ceil(cx + hx + 1); x += 1)
+      for (let z = Math.floor(cz - hz - 1); z <= Math.ceil(cz + hz + 1); z += 1) {
+        const qx = Math.abs(x - cx) - (hx - r)
+        const qz = Math.abs(z - cz) - (hz - r)
+        const sd = Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0) - r
+        if (sd > 0.5 || !isSoft(x, z) || G(x, z) !== M) continue
+        paintTop(x, z, sd > -0.5 ? 'minecraft:polished_andesite' : alongX ? GRAVEL_Z(x, z) : GRAVEL_X(x, z))
+      }
+  }
+  rakeField(20, 50, 14, 7, 3, true) // hall of fame reading court
+  rakeField(78, 56, 10, 4.5, 2, true) // crate court (the crowd at key-alls)
+  // the temple's drip apron: gravel round the kidan foot
+  for (let x = TK.x0 - 3; x <= TK.x1 + 3; x += 1) for (let z = TK.z0 - 2; z <= TK.z1 + 3; z += 1) {
+    if (x >= TK.x0 && x <= TK.x1 && z >= TK.z0 && z <= TK.z1) continue
+    if (isSoft(x, z) && G(x, z) === M) paintTop(x, z, GRAVEL_X(x, z))
+  }
+  // worn paths
+  const wornPath = (pts, w, seed = 0) => {
+    const line = kit.catmullRom(pts.map(([x, z]) => [x, 0, z]), { samplesPerBlock: 3 })
+    const done = new Set()
+    for (const [px, , pz] of line) {
+      for (let x = Math.floor(px - w); x <= Math.ceil(px + w); x += 1)
+        for (let z = Math.floor(pz - w); z <= Math.ceil(pz + w); z += 1) {
+          const k = `${x},${z}`
+          const d = Math.hypot(x - px, z - pz)
+          if (d > w / 2 + 0.8 || !isSoft(x, z)) continue
+          const prev = done.has(k)
+          if (d <= 1.0) { paintTop(x, z, FLAG(x, z)); done.add(k) } else if (!prev && d <= w / 2) paintTop(x, z, hash(x, z, seed) < 0.75 ? 'minecraft:gravel' : 'minecraft:andesite')
+          else if (!prev && hash(x, z, seed + 1) < 0.45) paintTop(x, z, 'minecraft:coarse_dirt')
+        }
+    }
+  }
+  wornPath([[31, 63], [28, 61], [24, 58], [21, 57]], 4, 1) // court → hall of fame
+  wornPath([[69, 63], [72, 61], [76, 60], [78, 61]], 4, 2) // court → crates
+  wornPath([[86, 59], [88, 63], [90, 67]], 3, 3) // crates → parkour start
+  wornPath([[70, 45], [74, 47], [77, 52]], 3, 4) // FFA gate → crates
+  wornPath([[33, 33], [28, 33], [25, 35]], 3, 5) // rim → bell stair
+  wornPath([[67, 30], [72, 31], [76, 33]], 3, 6) // rim → NE crag foot
+
+  // ============================================================================ PLANTING
+  // Hand-shaped cherries in three size classes. A trunk line with a kink and a lean, 3-5 limbs
+  // from the upper trunk, each ending in a flat-bottomed leaf pad (a dome cut level at its base),
+  // a pad over the crown, a few drips, petals on the soil below.
+  const CHERRY = {
+    L: { h: 9, limbs: 5, reach: 5, rise: 2.2, pad: 3.0, padH: 1.7, trunk: t => 1.3 - 0.4 * t, flare: 2 },
+    M: { h: 7, limbs: 4, reach: 3.8, rise: 1.8, pad: 2.5, padH: 1.5, trunk: 0, flare: 1 },
+    S: { h: 5, limbs: 3, reach: 2.6, rise: 1.3, pad: 2.0, padH: 1.2, trunk: 0, flare: 1 },
+  }
+  const leafPad = (c, r, h, leaves, seed) => {
+    const R = Math.ceil(r * 1.3) + 1
+    for (let x = Math.floor(c[0] - R); x <= Math.ceil(c[0] + R); x += 1)
+      for (let y = Math.floor(c[1]); y <= Math.ceil(c[1] + h + 1); y += 1)
+        for (let z = Math.floor(c[2] - R); z <= Math.ceil(c[2] + R); z += 1) {
+          const d = Math.hypot((x - c[0]) / r, (y - c[1]) / h, (z - c[2]) / r)
+          const wob = 1 + 0.28 * kit.noise.fbm3(x, y, z, { scale: 2.6, seed })
+          if (d > wob) continue
+          if (d > wob - 0.3 && kit.noise.hash01(x, y, z, seed + 5) < 0.18) continue
+          const old = b.get(x, y, z)
+          if (old && !/_leaves$/.test(old.name)) continue
+          b.set(x, y, z, Array.isArray(leaves) ? leaves[Math.floor(kit.noise.hash01(x, y, z, seed + 9) * leaves.length)] : leaves)
+        }
+  }
+  const cherry = (x, z, size, seed, lean = [0, 0]) => {
+    const S = CHERRY[size]
+    const rng = kit.rng(seed)
+    const y0 = G(x, z) + 1
+    const at = t => [x + lean[0] * S.h * t + (t > 0.3 ? rng.range(-0.15, 0.15) : 0), y0 + (S.h - 1) * t, z + lean[1] * S.h * t]
+    const top = at(1)
+    const mid = [x + lean[0] * S.h * 0.45 + rng.range(-0.8, 0.8), y0 + S.h * 0.45, z + lean[1] * S.h * 0.45 + rng.range(-0.8, 0.8)]
+    b.curve([[x, y0 - 1, z], [x, y0, z], mid, top], 'minecraft:cherry_wood', { radius: S.trunk })
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (rng.chance(0.6)) b.set(x + dx * S.flare, y0, z + dz * S.flare, 'minecraft:cherry_wood', { keep: true })
+    const pads = []
+    const a0 = rng.range(0, Math.PI * 2)
+    for (let i = 0; i < S.limbs; i += 1) {
+      const a = a0 + (i / S.limbs) * Math.PI * 2 + rng.range(-0.4, 0.4)
+      const start = at(rng.range(0.55, 0.85))
+      const reach = S.reach * rng.range(0.75, 1.15)
+      const end = [start[0] + Math.cos(a) * reach, start[1] + S.rise * rng.range(0.5, 1.2), start[2] + Math.sin(a) * reach]
+      const bend = [(start[0] + end[0]) / 2 + rng.range(-0.5, 0.5), Math.max(start[1], end[1]) + 0.4, (start[2] + end[2]) / 2 + rng.range(-0.5, 0.5)]
+      b.curve([start, bend, end], 'minecraft:cherry_wood', { radius: 0 })
+      pads.push(end)
+    }
+    pads.push([top[0], top[1] + 0.4, top[2]])
+    for (const p of pads) leafPad([p[0], p[1] + 0.3, p[2]], S.pad * rng.range(0.85, 1.15), S.padH, 'minecraft:cherry_leaves[persistent=true]', seed * 31 + Math.round(p[0] * 7 + p[2] * 3))
+    // drips: single leaves hanging under the pad rims; petals on the soil under the crown
+    const R = S.reach + S.pad
+    for (let dx = -Math.ceil(R); dx <= Math.ceil(R); dx += 1) for (let dz = -Math.ceil(R); dz <= Math.ceil(R); dz += 1) {
+      const px = Math.round(x + lean[0] * S.h) + dx
+      const pz = Math.round(z + lean[1] * S.h) + dz
+      const lowest = (() => { for (let y = y0 + 1; y < y0 + S.h + 6; y += 1) if (b.nameAt(px, y, pz) === 'minecraft:cherry_leaves') return y; return -1 })()
+      if (lowest > y0 + 2 && hash(px, pz, seed + 3) < 0.12 && !b.has(px, lowest - 1, pz)) b.set(px, lowest - 1, pz, 'minecraft:cherry_leaves[persistent=true]')
+      if (Math.hypot(dx, dz) < R * 0.8 && isSoft(px, pz) && hash(px, pz, seed + 4) < 0.35) b.set(px, G(px, pz) + 1, pz, `minecraft:pink_petals[facing=${['north', 'east', 'south', 'west'][Math.floor(hash(px, pz, 9) * 4)]},flower_amount=${1 + Math.floor(hash(pz, px, 9) * 4)}]`)
+    }
+  }
+  // Japanese black pine (niwaki): a crooked thin trunk and flat cloud pads of dark needles.
+  const pine = (x, z, h, seed, dir = [1, 0]) => {
+    const rng = kit.rng(seed)
+    const y0 = G(x, z) + 1
+    const pts = [[x, y0, z], [x + dir[0] * 0.6, y0 + h * 0.35, z + dir[1] * 0.6], [x + dir[0] * 1.8 + rng.range(-0.4, 0.4), y0 + h * 0.7, z + dir[1] * 1.8], [x + dir[0] * 1.2, y0 + h, z + dir[1] * 1.2]]
+    b.curve(pts, 'minecraft:spruce_wood', { radius: 0.3 })
+    const tiers = [[0.55, 2.2, -1], [0.75, 1.8, 1], [1.0, 1.6, 0]]
+    for (const [t, r, side] of tiers) {
+      const c = [x + dir[0] * (1.6 * t + side * 1.4) + dir[1] * side * 0.8, y0 + h * t, z + dir[1] * (1.6 * t + side * 1.4) + dir[0] * side * 0.8]
+      b.line([x + dir[0] * 1.2 * t, y0 + h * t - 0.5, z + dir[1] * 1.2 * t], c, 'minecraft:spruce_wood', { connect: 6 })
+      leafPad([c[0], c[1] + 0.2, c[2]], r * rng.range(0.9, 1.15), 0.9, ['minecraft:spruce_leaves[persistent=true]', 'minecraft:dark_oak_leaves[persistent=true]'], seed * 17 + Math.round(t * 10))
+    }
+  }
+  const bambooClump = (cx, cz, r, seed) => {
+    for (let x = Math.floor(cx - r); x <= Math.ceil(cx + r); x += 1) for (let z = Math.floor(cz - r); z <= Math.ceil(cz + r); z += 1) {
+      if (Math.hypot(x - cx, z - cz) > r || !isSoft(x, z) || hash(x, z, seed) > 0.42) continue
+      const gy = G(x, z)
+      b.set(x, gy, z, kit.noise.hash01(x, 1, z, seed) < 0.5 ? 'minecraft:podzol' : 'minecraft:moss_block')
+      const h = 7 + Math.floor(hash(x, z, seed + 1) * 6)
+      for (let k = 1; k <= h; k += 1) b.set(x, gy + k, z, `minecraft:bamboo[age=${hash(x, z, seed + 2) < 0.5 ? 1 : 0},stage=0,leaves=${k >= h - 1 ? 'large' : k === h - 2 ? 'small' : 'none'}]`)
+    }
+  }
+  const karikomi = (x, z, r, seed) => leafPad([x, G(x, z) + 1, z], r, r * 0.75, ['minecraft:azalea_leaves[persistent=true]', 'minecraft:azalea_leaves[persistent=true]', 'minecraft:flowering_azalea_leaves[persistent=true]'], seed)
+
+  // groups: two cherries flank the temple in the first view (L west, M east, not mirrored)
+  cherry(27, 31, 'L', 1, [0.08, 0.04])
+  cherry(23, 35, 'S', 2)
+  cherry(74, 31, 'M', 3, [-0.06, 0])
+  cherry(78, 35, 'S', 4)
+  // south-west garden grove: L, M, S with a clearing for the stone lantern
+  cherry(16, 72, 'L', 5, [0.05, -0.05])
+  cherry(23, 79, 'M', 6)
+  cherry(11, 82, 'S', 7)
+  // south-east garden: M and S by the parkour start, L on the terrace
+  cherry(83, 75, 'L', 8, [-0.05, -0.04])
+  cherry(77, 84, 'S', 9)
+  cherry(89, 82, 'M', 10)
+  // by the arrival hall and the crates
+  cherry(36, 91, 'M', 11)
+  cherry(65, 92, 'S', 12)
+  cherry(90, 52, 'S', 13)
+  // pines on the crags and at the court corners
+  pine(31, 80, 7, 21, [1, -0.3])
+  pine(69, 80, 6, 22, [-1, -0.2])
+  pine(8, 22, 6, 23, [0.6, 0.8])
+  pine(20, 12, 5, 24, [0.8, 0.5])
+  pine(91, 22, 6, 25, [-0.8, 0.6])
+  pine(34, 4, 6, 26, [0.3, 1])
+  pine(70, 4, 5, 27, [-0.4, 1])
+  pine(9, 48, 5, 28, [1, 0.3])
+  // bamboo backdrops on the west cliff and behind the crates
+  bambooClump(5, 58, 3.5, 31)
+  bambooClump(6, 66, 3, 32)
+  bambooClump(94, 40, 3, 33)
+  bambooClump(92, 46, 2.5, 34)
+  // clipped azalea mounds at path corners and building feet
+  for (const [x, z, r] of [[33, 58, 1.6], [67, 58, 1.5], [30, 66, 1.4], [71, 70, 1.6], [27, 56, 1.3], [74, 58, 1.4], [38, 88, 1.6], [62, 87, 1.5], [29, 26, 1.5], [71, 27, 1.4], [86, 60, 1.3], [12, 57, 1.5]]) karikomi(x, z, r, x * 7 + z)
+
+  // ============================================================================ LANTERNS AND BANNERS
+  bigToro(39, M + 1, 58) // kasuga lanterns flank the torii (not mirrored: one big, one small)
+  smallToro(61, M + 1, 58)
+  for (const [x, z] of [[44, 32], [56, 32], [33, 46], [33, 42], [67, 50], [52, 59]]) smallToro(x, G(x, z) + 1, z)
+  for (const [x, z] of [[24, 56], [16, 56], [74, 60], [82, 60], [88, 64], [20, 66], [86, 80], [12, 76]]) if (isSoft(x, z) || /gravel|andesite|concrete/.test(b.nameAt(x, G(x, z), z) ?? '')) smallToro(x, G(x, z) + 1, z)
+  bigToro(30, G(30, 30) + 1, 30)
+  bigToro(70, G(70, 30) + 1, 30)
+  // nobori round the arena rim in pairs and a three, never evenly spaced
+  for (const [x, z, rot] of [[47, 31, 8], [53, 31, 8], [35, 40, 4], [35, 48, 4], [65, 39, 12], [65, 49, 12], [63, 54, 10]]) {
+    if (!b.has(x, M + 1, z)) nobori(x, M + 1, z, rot)
+  }
+
   return finishUp()
 
   function finishUp() {

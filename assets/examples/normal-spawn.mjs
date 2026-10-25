@@ -88,7 +88,7 @@ export default function build(api) {
     h += 6 * Math.max(0, N.ridged2(x, z, { scale: 36, seed: 5 }) - 0.6) * (1 - south * 0.6)
     // the diorama edge rolls off on the three high sides, so the cut faces stay modest
     const edge = Math.min(x, W - 1 - x, z)
-    h -= 7 * smooth((10 - edge) / 10)
+    h -= 17 * smooth((27 - edge) / 27) ** 1.3
     return Math.min(h, P + 32 + 2 * fbm(x, z, 18, 4))
   }
   // Cliff profile out from the shelf edge: scree bed, then two tiers whose heights and ledge
@@ -434,8 +434,13 @@ export default function build(api) {
     }
     b.coneRoof([cx, top + 2, cz], 4, { material: 'deepslate_tile', pitch: 1.4, overhang: 0, flare: true })
   }
-  roundTower(57, 82, P + 9)
-  roundTower(75, 82, P + 10)
+  roundTower(55, 82, P + 10)
+  roundTower(77, 82, P + 11)
+  for (const xs of [[59, 60], [72, 73]]) for (const x of xs) for (let z = 79; z <= 84; z += 1) {   // short curtains to the gate tower
+    foundation(x, z)
+    for (let y = P + 1; y <= P + 8; y += 1) b.set(x, y, z, MASON)
+    b.set(x, P + 9, z, z === 79 || z === 84 ? MASON : sl(SB))
+  }
 
   // curtain walls to the cliffs: a waist-high crenellated parapet seen from the plaza, a
   // battered retaining wall seen from the valley
@@ -452,8 +457,8 @@ export default function build(api) {
       if (h < P - 1) b.set(x, h + 1, 83, st(SB, 'north'))                    // batter at the foot
     }
   }
-  wallSpan(42, 53)
-  wallSpan(79, 91)
+  wallSpan(42, 51)
+  wallSpan(81, 91)
   // the culvert: the pool's overflow runs under the plaza and leaves through an arch in the
   // east wall, where the stream starts (water stays level: contained sources only)
   for (let x = 82; x <= 84; x += 1)
@@ -561,11 +566,9 @@ export default function build(api) {
   b.sign('CRATES', [43, P + 17, 58], 'east', { font: 'small', align: 'center', block: 'quartz_block', board: 'polished_blackstone', frame: 'polished_deepslate' })
   // story at the shrine: chains and lanterns, a strongbox and a little spilled gold by the
   // legendary crate, supplies stacked at the stage ends
-  for (const z of [52, 58, 64]) { b.set(44, P + 19, z, 'chain[axis=y]'); b.set(44, P + 18, z, 'chain[axis=y]'); b.set(44, P + 17, z, 'lantern[hanging=true]') }
-  b.set(44, P + 20, 52, st(SB, 'west', 'top')); b.set(44, P + 20, 58, st(SB, 'west', 'top')); b.set(44, P + 20, 64, st(SB, 'west', 'top'))
   b.set(51, P + 2, 45, 'barrel[facing=up,open=false]'); b.set(52, P + 2, 45, 'chest[facing=south]'); b.set(51, P + 3, 45, 'barrel[facing=up,open=false]')
   b.set(50, P + 2, 44, 'decorated_pot'); b.set(52, P + 2, 44, 'barrel[facing=east,open=false]')
-  b.set(44, P + 2, 46, 'raw_gold_block'); b.set(44, P + 3, 46, 'gold_ore'.replace('gold_ore', 'chest[facing=east]'))
+  b.set(44, P + 2, 46, 'raw_gold_block'); b.set(43, P + 2, 46, 'chest[facing=east]')
   b.set(51, P + 2, 71, 'barrel[facing=up,open=false]'); b.set(52, P + 2, 71, 'composter[level=7]'); b.set(51, P + 3, 71, 'potted_fern')
 
   // ------------------------------------------------------------------ auction hall (east)
@@ -667,7 +670,6 @@ export default function build(api) {
       put(u, -1, 5, 'spruce_planks')
     }
     put(-1, 1, 2, 'melon'); put(1, 1, 2, 'carved_pumpkin[facing=north]')
-    put(1, -1, 2.0 + 0, sl('spruce', 'top'))
     b.set(...L.at(-1, -1, 2).map((v, i) => (i === 1 ? v + 1 : v)), 'potted_red_tulip')
     for (let u = -3; u <= 3; u += 1) {                                      // the striped awning sags to the front
       const c = (u + 9) % 2 ? 'white_wool' : 'red_wool'
@@ -822,7 +824,7 @@ export default function build(api) {
   for (const [x, z, s] of [[45, 41, 2], [98, 70, 5], [36, 76, 9]]) b.tree([x, b.groundY(x, z) + 1, z], 'spruce', { seed: s, height: 8, radius: 2.6, roots: 0 })
 
   // ------------------------------------------------------------------ lamps and seats
-  lampPost(61, P + 1, 59); lampPost(71, P + 1, 59)                     // the avenue's head
+  lampPost(61, P + 1, 59); armLamp(71, P + 1, 59, 'west')              // the avenue's head (two designs)
   armLamp(54, P + 1, 45, 'east'); armLamp(54, P + 1, 72, 'east')        // crate apron
   lampPost(86, P + 1, 48); armLamp(86, P + 1, 65, 'west')               // auction hall
   armLamp(90, P + 1, 46, 'south')                                       // pool
@@ -833,7 +835,7 @@ export default function build(api) {
 
   // ------------------------------------------------------------------ forest
   const nearStream = (x, z) => STREAM.near(x, z).d < 5 || tarnD(x, z) < 1.8
-  const forestAvoid = (x, z) => shelfD[id2(x, z)] < 4 || TRAIL.near(x, z).d < 3.5 || nearStream(x, z) || slope(x, z) >= 3 || (x > 40 && x < 92 && z > 76 && z < 92)
+  const forestAvoid = (x, z) => shelfD[id2(x, z)] < 4 || TRAIL.near(x, z).d < 3.5 || nearStream(x, z) || slope(x, z) >= 3 || (Math.abs(x - 68) < 24 + (z - 80) * 0.35 && z > 76 && z < 104)
   b.forest({
     x0: 1, z0: 78, x1: W - 2, z1: D - 2, seed: 7,
     ground: (x, z) => b.groundY(x, z),
@@ -848,12 +850,14 @@ export default function build(api) {
     species: [[6, 'spruce'], [3, 'forester_cone'], [2, 'birch'], [2, 'oak']],
     density: 0.6, minSpacing: 7, sizes: [0, 0.55, 0.45],
     clearings: [[30, 40, 8], [104, 50, 7], [60, 14, 8]],
-    avoid: (x, z) => forestAvoid(x, z) || height(x, z) > 47 || (x > 44 && x < 92 && z > 20 && z < 37),
+    avoid: (x, z) => forestAvoid(x, z) || height(x, z) > 50 || (x > 44 && x < 92 && z > 20 && z < 37),
   })
   b.scatter({ on: ['minecraft:grass_block'], density: 0.3, seed: 3, clump: 7, paints: [[12, 'short_grass'], [3, 'tall_grass'], [3, 'fern'], [1, 'oxeye_daisy'], [1, 'azure_bluet'], [1, 'cornflower'], [1, 'poppy']] })
 
   // ------------------------------------------------------------------ ageing
   b.overgrow([28, P + 2, 18], [106, P + 36, 84], { amount: 0.3, maxLength: 5, moss: false, seed: 11, only: ['minecraft:stone', 'minecraft:andesite', 'minecraft:tuff', 'minecraft:cobblestone', 'minecraft:calcite'] })
+  for (const [a, c] of [[[44, P + 18, 33], [90, P + 36, 38]], [[41, P + 8, 42], [46, P + 24, 74]]])
+    for (let x = a[0]; x <= c[0]; x += 1) for (let y = a[1]; y <= c[1]; y += 1) for (let z = a[2]; z <= c[2]; z += 1) if (b.nameAt(x, y, z) === 'minecraft:vine') b.remove(x, y, z)
   b.weather([30, P, 30], [104, P + 30, 92], {
     share: 0.25, scale: 3, seed: 9,
     variants: {
