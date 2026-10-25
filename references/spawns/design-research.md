@@ -315,7 +315,7 @@ Atmospheric](https://mcmodels.net/products/9026/atmospheric-survival-lifesteal-s
 | **Crates** | every source | core (a crate row or alcove) | own building: crate vault or plaza |
 | **Auction house** (AxAuctions `/ah`) | DonutSMP, remakes, Lifesteal Network | core on economy SMPs | own building: exchange |
 | **RTP / wild** | DonutSMP, remakes ("RTP zone", biome portals) | core: a gate or portal on the main axis | own place: travel gate or portal hall |
-| **Store / ranks** (webstore) | Space Station listing, most networks | common (1 NPC) | small kiosk near spawn |
+| **Store / ranks** (webstore) | Space Station listing [?]; every server sells ranks and keys (DonutSMP, Torrent `/buy`) | common (1 NPC) | small kiosk near spawn |
 | **Leaderboards / tops** | every source | core: one board wall | own place: hall of fame |
 | **Duels / PvP** | DonutSMP remakes, lifesteal warzones, practice | optional | own place: arena entrance |
 | **AFK** | DonutSMP (former), Torrent, netherite, BoxPvP | optional: pool or pit | own place, or a portal to an AFK area |
@@ -462,7 +462,7 @@ Atmospheric](https://mcmodels.net/products/9026/atmospheric-survival-lifesteal-s
 | Name label height | about hitbox top + 0.5, so about 2.3 above a player NPC's feet | [calc, from vanilla client rendering; the wiki doesn't document it] |
 | Vanilla name-label render limit | 64 blocks | [calc, vanilla client; unverified on the wiki] |
 | Walk / sprint speed | 4.317 / 5.612 blocks per second | [doc] |
-| Default FOV | 70 (vertical) | [doc] |
+| Default FOV | 70 ("Normal"), vertical | general knowledge, not re-checked this session |
 
 **Design consequences** [calc]:
 
@@ -707,7 +707,7 @@ spans about 771/d pixels.
 A starting template:
 
 ```
-/rg define spawn                     (select the hub first; use a polygon or -g global-height cuboid)
+/rg define spawn                     (select the hub first: a polygon or cuboid, //expand vert for full height)
 /rg setpriority spawn 10
 /rg flag spawn pvp deny
 /rg flag spawn mob-spawning deny
@@ -740,6 +740,11 @@ A starting template:
 - A child region inherits flags from its parent.
 - At equal priority a state flag resolves to `deny` if any region denies it.
 - Protection flags without a value follow `build`.
+- Non-members are therefore already denied `use`, `interact` and `chest-access`; setting them
+  explicitly just documents the intent.
+- Crate clicks still work in ExcellentCrates: its `PlayerInteractEvent` handler runs at HIGH
+  priority and does not skip cancelled events [src].
+- Test every NPC and crate click with a non-op account after setting flags.
 
 **Folia caveat:**
 
