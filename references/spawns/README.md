@@ -133,6 +133,41 @@ NORMAL SPAWN (crescent)           SPAWN+ (hub and spokes)            PVP LOBBY (
   a parkour line). Queue NPCs stand in a short arc between the deck and the arena; leaderboards
   face the deck.
 
+### Reference: an autumn lifesteal spawn (normal spawn, user-supplied)
+
+![Plaza](../../docs/spawns/reference/autumn-spawn-plaza.jpg)
+![PvP ruin](../../docs/spawns/reference/autumn-spawn-pvp-ruin.jpg)
+
+A good, simple **normal spawn** the user pointed to as the target level. What makes it work:
+
+- **One plaza, one idea.** A floating island whose centre is a big *target*: concentric
+  rounded-square rings of orange terracotta stair/slab borders, filled with a patchwork of grass,
+  coarse dirt, rooted dirt and path. The rings point every player at the spawn and give the flat
+  floor structure without clutter.
+- **NPCs are simple and many** (~14): each on a **1-block white quartz plinth**, a hologram above
+  (name, info, "click"), 4-6 apart, in an arc around the target and a row along the back, all
+  facing the centre. The architecture doesn't fight them; the holograms carry the labels.
+- **Four big feature trees** stand at the quadrants of the target: the season's colour masses
+  (red, orange, yellow, a little green). They frame the plaza and read from anywhere. (The user
+  found their blocky mixed-block canopies "a little weird": shape canopies as real crowns with
+  branches, use real leaves as the base and the coloured blocks as clumps, see `nature.md`.)
+- **Neutral buildings at the rim.** Timber cottages with steep A-frame roofs on stone bases line
+  the back edge: warm, calm, and lower than the trees, so the colour stays in the foliage.
+- **The PvP zone is a set piece:** a ruined colonnade (stone and chiseled stone bricks, broken
+  arches, vines and autumn "leaves" hanging from the lintels) on a stepped stone pad, with a
+  **red line on the ground** at the boundary and a big rules hologram at the line ("Beyond this
+  line PvP will be enabled", what is on and off).
+- **Information is holograms, not blocks:** the donation goal, the PvP rules, NPC labels, all
+  floating text at reading spots. No block-letter signs at all.
+- **One theme, everywhere:** autumn hues in the foliage, the paths and the accents; stone and wood
+  for everything structural.
+
+Recipe for this type with the kit: `b.spawnPoint` at the target centre; ring paving drawn with
+`b.disc`/rounded-square loops; NPCs with `b.npcSpot(pos, facing, { style: 'none' })` on a
+hand-placed 1×1 `chiseled_quartz_block` or `quartz_pillar` plinth (or `style: 'pedestal'` with
+`size: 3` for fewer, more important NPCs); 4 hand-shaped feature trees; `b.region` for the PvP
+zone and a contrasting ground line at its edge.
+
 ## 3. The program: places and numbers
 
 Use the spawn kit for every gameplay place (`scripts/lib/kit/spawn.mjs`; each function is also a
@@ -257,6 +292,7 @@ Lessons from this skill's own spawns (CheeseSMP v2 → v3):
 | Fantasy / elven | calcite, diorite, mossy stone | birch, stripped birch, prismarine roofs | amethyst, cyan terracotta | cherry, azalea, glow lichen, end rods |
 | Japanese | white terracotta / calcite walls | dark oak frames, deepslate tile roofs, spruce | red (crimson) torii, cherry pink | cherry, bamboo; lanterns, paper glow |
 | Modern / sci-fi | smooth stone, light grey concrete, white concrete | polished blackstone, tinted glass, iron | one neon (cyan or orange concrete) | flowering azalea; sea lantern strips under glass |
+| Autumn | grass, coarse dirt, rooted dirt, path patchwork; stone bricks | spruce / dark oak timber, stone bases, orange terracotta borders | red, orange, yellow foliage masses (leaves + red/orange/yellow blocks in clumps) | big feature trees at the plaza quadrants; lanterns |
 | Winter | snow, packed ice, calcite | spruce, dark oak, deepslate | red (wool / terracotta) ribbons | spruce with snow; lanterns, shroomlight |
 | Desert / oasis | smooth sandstone, cut sandstone | terracotta, acacia, mud bricks | teal / cyan glazed terracotta | palms (jungle), cactus; lanterns |
 | Nether / dark | blackstone, deepslate | crimson/warped wood, basalt | gold only as points, magma glow | crimson fungi; shroomlight |
