@@ -543,8 +543,8 @@ function npcPedestal(b, L, M, opts) {
       } else if (rim(u, d)) {
         b.set(...L.at(u, d, 0), stair(M.B, inwardOf(L, u, d)))
       } else {
-        // the inlay ring around the NPC: trim with accent corners
-        b.set(...L.at(u, d, 0), Math.abs(u) === 1 && Math.abs(d) === 1 ? M.A : M.T.block)
+        // the inlay ring around the NPC: the light field against the dark skirt
+        b.set(...L.at(u, d, 0), M.P.block)
       }
     }
   // ring inlaid in the floor around the plinth (only where there is a floor)
@@ -561,7 +561,7 @@ function npcPedestal(b, L, M, opts) {
 // glass lit from behind (the light sits in a third layer), a cornice, a slab cap with the accent,
 // and lanterns on the posts.
 function screen(b, L, M, d0, hw) {
-  const halo = [[0, 2], [0, 3], [-1, 3], [1, 3]]
+  const halo = [[-1, 2], [0, 2], [1, 2], [-1, 3], [0, 3], [1, 3]]
   for (let u = -hw; u <= hw; u += 1)
     for (const d of [d0, d0 - 1]) {
       b.set(...L.at(u, d, -1), M.B.block, { keep: true })
