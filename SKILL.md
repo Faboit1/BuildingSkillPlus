@@ -1,12 +1,18 @@
 ---
-name: minecraft-builder-skill
+name: minecraft-builder
 description: Design and generate high-quality Minecraft builds — above all server spawns and lobbies (SMP spawns with NPC places, leaderboards and crates, DonutSMP-style multi-building hubs, FreshSMP-style terrain spawns, PvP lobbies), plus houses, castles, cathedrals, towers, villages, temples, ships, statues, trees, terrain and whole scenes — as vanilla structure .nbt (or .schem/.litematic, or ready-to-paste region files) using a JavaScript building kit, then render them headlessly to critique and iterate. Use for any request to build, design, generate, export, preview, import or improve a Minecraft build, spawn, lobby, hub, schematic or structure.
 ---
 
-# Minecraft Builder Skill
+# Minecraft Builder
 
-**Server spawn, lobby or hub?** Follow the five steps in the next section: an interview, a JSON
-brief, one command (`scripts/make-spawn.mjs`), a look at the renders, delivery.
+**Paths.** Everything this skill mentions (`scripts/`, `references/`, `assets/`) is inside this
+skill's own folder, `${CLAUDE_SKILL_DIR}` (the folder holding this SKILL.md; in the plugin it is the
+plugin root, `${CLAUDE_PLUGIN_ROOT}`). Read files and run scripts with that prefix, e.g.
+`node "${CLAUDE_SKILL_DIR}/scripts/make-spawn.mjs"`. Builds are written to `minecraft-builds/` in the
+user's current folder.
+
+**Server spawn, lobby or hub?** Follow the five steps in the next section: an interview, a brief,
+one tool call (`make_spawn`), a look at the images, delivery.
 
 **Anything else:** you write a JavaScript **recipe** with the building kit, export a vanilla structure
 `.nbt`, then **render it and look at the PNGs**. Quality comes from that loop. The building craft itself —
@@ -16,29 +22,27 @@ proportions, depth, palettes, roofs, styles, landscaping, lighting — lives in
 ## Server spawns and lobbies: use the generator (the main use)
 
 For a server spawn, lobby or hub, **do not hand-write a recipe**. Follow these five steps exactly.
-`scripts/make-spawn.mjs` builds the whole spawn from a short JSON brief: island terrain, the plaza,
-NPC places, leaderboards with the server name, crates, the RTP gate, the PvP zone, themed buildings,
-trees and lighting, already spawn-proofed, plus the plugin setup sheet and renders.
+The generator builds the whole spawn from a short brief: island terrain, the plaza, NPC places,
+leaderboards with the server name, crates, the RTP gate, the PvP zone, themed buildings, trees and
+lighting, already spawn-proofed, plus the plugin setup sheet and renders.
 
-### Step 0: check the tools
+### Step 0: pick your tools
 
-```bash
-node scripts/make-spawn.mjs --help
-```
-
-It must print a usage text. Needs Node 20.19+ (`node --version`). If `scripts/` or `node_modules/`
-is missing, or the command fails with "Cannot find module", install the full skill from its repo and
-work from there:
-
-```bash
-git clone https://github.com/Faboit1/BuildingSkillPlus && cd BuildingSkillPlus
-npm ci --omit=dev        # or: npm install --omit=dev
-node scripts/make-spawn.mjs --help
-```
+- **Plugin tools (preferred).** This plugin's MCP server `minecraft` gives you `spawn_options`,
+  `make_spawn`, `rebuild_spawn`, `render_build`, `inspect_build`, `convert_build` and `build_recipe`
+  (in Claude Code they are named like `mcp__plugin_minecraft-builder_minecraft__make_spawn`). Their
+  results include the renders as images, so you see the spawn straight away.
+- **Scripts (same results, when the tools are not listed, e.g. in claude.ai chat).** Check with
+  `node "${CLAUDE_SKILL_DIR}/scripts/make-spawn.mjs" --help` (Node 20.19+; the dependencies are
+  bundled in `scripts/node_modules`, nothing to install). Only if that fails because the folder is
+  incomplete: `git clone https://github.com/Faboit1/BuildingSkillPlus` and use its `scripts/`.
 
 ### Step 1: interview (never skip, never build from a one-line request)
 
 Use the `AskUserQuestion` tool. Mark the option you recommend with "(Recommended)".
+
+Call `spawn_options` first (scripts: read `assets/spawn-briefs/*.json` and the table in Step 2):
+it lists the themes, settings, NPC ids and the recommended size for an NPC count.
 
 **Round 1** (one call, four questions):
 1. **Type**: *Normal spawn* (FreshSMP-like: one beautiful round plaza on good terrain, the NPCs in a
@@ -63,8 +67,9 @@ Then show the brief as JSON and ask "Build this?". Build only after a yes.
 
 ### Step 2: write the brief
 
-Save it as `minecraft-builds/<slug>/brief.json`. Only `name` and `type` are required; leave out what
-the user did not decide (good defaults fill it). Examples: `assets/spawn-briefs/*.json`.
+The brief is a small JSON object (the `brief` argument of `make_spawn`; with the scripts, save it as
+`minecraft-builds/<slug>/brief.json`). Only `name` and `type` are required; leave out what the user
+did not decide (good defaults fill it). Examples: `assets/spawn-briefs/*.json`.
 
 | Field | Values | Default |
 | --- | --- | --- |
@@ -92,26 +97,26 @@ tutorial, afk, vote, duels, enchanter`; pvp: `unranked, ranked, ffa, kits, event
 
 ### Step 3: generate
 
+Call `make_spawn` with `{ "brief": { ... } }`. With the scripts:
+
 ```bash
-node scripts/make-spawn.mjs minecraft-builds/<slug>/brief.json
+node "${CLAUDE_SKILL_DIR}/scripts/make-spawn.mjs" minecraft-builds/<slug>/brief.json
 ```
 
-It prints every file it wrote (`.recipe.mjs`, `.nbt`, `.schem`, `.litematic`, `.placements.json`,
+Either way it reports every file it wrote (`.recipe.mjs`, `.nbt`, `.schem`, `.litematic`, `.placements.json`,
 `.setup.md`, `renders/*.png`), the world spawn, the NPC list and any warnings. A warning that the size
 is small: raise `size` (or leave it out) and run again.
 
 ### Step 4: look at the renders, fix, rebuild
 
-Open every PNG in `minecraft-builds/<slug>/renders/` with the Read tool (overviews from two sides, the
-plaza close-up and, if Playwright is installed, the eye-level spawn view). Check: the name sign reads;
+Look at the images `make_spawn` returned, and open the other PNGs in `minecraft-builds/<slug>/renders/`
+with the Read tool (overviews from two sides, the plaza close-up and, if Playwright is installed, the
+eye-level spawn view); `render_build` makes more views (another corner, `px` 6-8 with a `box` crop). Check: the name sign reads;
 the plaza, the NPC places, the boards and the crates are visible and not buried in trees; nothing
 floats or overlaps. Leaderboard text, NPC names and crate titles are holograms set up from
 `setup.md`, so renders show only the dark board backdrops, the plinths and the chests: that is
-expected. Then lint it:
-
-```bash
-node scripts/inspect.mjs minecraft-builds/<slug>/<slug>.nbt --checks
-```
+expected. Then lint it with `inspect_build` (mode `checks`) on `minecraft-builds/<slug>/<slug>.nbt`,
+or `node "${CLAUDE_SKILL_DIR}/scripts/inspect.mjs" minecraft-builds/<slug>/<slug>.nbt --checks`.
 
 Only `flat-walls` and `palette-size` notes are normal for a spawn; anything else (floating blocks,
 support, plant-soil, fluids) is worth fixing in `after(ctx)`. (In `--score`, "base columns over air"
@@ -120,8 +125,10 @@ is always high for a floating island; ignore it.) To change something:
   run Step 3 again.
 - Hand additions (a statue, an extra tree, a fountain...): edit `after(ctx)` in
   `minecraft-builds/<slug>/<slug>.recipe.mjs` (it has the builder `ctx.b`, `ctx.FY` = plaza floor
-  level, `ctx.C` = spawn column, `ctx.layout` = every slot) and rebuild with
-  `node scripts/make-spawn.mjs --recipe minecraft-builds/<slug>/<slug>.recipe.mjs`.
+  level, `ctx.C` = spawn column, `ctx.layout` = every slot) and rebuild with `rebuild_spawn`
+  (`node "${CLAUDE_SKILL_DIR}/scripts/make-spawn.mjs" --recipe minecraft-builds/<slug>/<slug>.recipe.mjs`).
+- A second opinion: the plugin's `spawn-critic` agent reviews the renders and lint against the
+  spawn handbook and returns ranked fixes.
 
 ### Step 5: deliver
 
@@ -133,17 +140,21 @@ To go beyond the generator (a hand-built spawn, a custom layout), read `referenc
 (the spawn handbook: interview, program, measured numbers, anti-AI checklist) and use the spawn kit
 (`references/kit-api.md` → "Spawn & lobby kit"); `assets/examples/spawn-kit-demo.mjs` uses every part.
 
-## Setup (once, for hand-written builds)
+## Setup (only for the browser renderer)
 
-Building, inspecting, converting and `scripts/isorender.mjs` need only `@mattzh72/lodestone`
-(`npm ci --omit=dev`). `scripts/render.mjs` and `preview.mjs` also need Playwright + Chromium (it finds
-a global install too); if missing: `npm install --no-save playwright && npx playwright install chromium`.
+Building, inspecting, converting, `make-spawn` and `scripts/isorender.mjs` work out of the box: their
+one dependency (`@mattzh72/lodestone`) is bundled in `scripts/node_modules`. Only `scripts/render.mjs`
+and `preview.mjs` (perspective renders, the eye-level spawn view, the interactive viewer) need more:
+run `npm install` in the skill folder, then `npx playwright install chromium` if no Chromium is found.
 
 ## The loop
 
+With the plugin tools: `build_recipe` builds a recipe and shows an overview, `render_build` renders any
+view, `inspect_build` lints and scores, `convert_build` exports. With the scripts:
+
 ```bash
-node scripts/run-build.mjs path/to/recipe.mjs --out-dir minecraft-builds/NAME --json
-node scripts/render.mjs --nbt minecraft-builds/NAME/NAME.nbt          # → renders/sheet.png (se, nw, south, top)
+node "${CLAUDE_SKILL_DIR}/scripts/run-build.mjs" path/to/recipe.mjs --out-dir minecraft-builds/NAME --json
+node "${CLAUDE_SKILL_DIR}/scripts/render.mjs" --nbt minecraft-builds/NAME/NAME.nbt          # → renders/sheet.png (se, nw, south, top)
 # read sheet.png, critique, edit the recipe, repeat
 ```
 
@@ -154,13 +165,13 @@ node scripts/render.mjs --nbt minecraft-builds/NAME/NAME.nbt          # → rend
 - More views: `--views se,sw,ne,nw,south,north,east,west,top,hero,low`; close-up:
   `--yaw 30 --pitch 20 --target X,Y,Z --distance 14 --fov 40 --view-name door`; interiors: `--clip-y Y`;
   `--lighting night` (or `both`).
-- Text checks: `node scripts/inspect.mjs FILE --checks` (flat walls, floating blocks, bad states,
+- Text checks: `node "${CLAUDE_SKILL_DIR}/scripts/inspect.mjs" FILE --checks` (flat walls, floating blocks, bad states,
   dark spots), `--slice y=N` (ASCII plan) and `--score --style medieval` (a 0–100 scorecard against
   1,212 human builds: palette breadth, partial blocks, upside-down stairs, lights, contrast, relief,
   overhangs — each out-of-band metric comes with a fix). Aim for 85+ with nothing far out of band.
-- Interactive viewer for the user: `node scripts/preview.mjs --nbt FILE` (`--no-open` when headless).
+- Interactive viewer for the user: `node "${CLAUDE_SKILL_DIR}/scripts/preview.mjs" --nbt FILE` (`--no-open` when headless).
 - Big builds (whole spawns, islands, cities; `render.mjs` crashes above ~1M visible blocks):
-  `node scripts/isorender.mjs FILE --out OUT.png --px 4 [--from se|sw|ne|nw] [--box x0,z0,x1,z1]
+  `node "${CLAUDE_SKILL_DIR}/scripts/isorender.mjs" FILE --out OUT.png --px 4 [--from se|sw|ne|nw] [--box x0,z0,x1,z1]
   [--ymin Y] [--half]` draws every block as a textured isometric cube on the CPU, any size, one image.
   `--px 2` overview, `--px 8` district close-up.
 
@@ -275,9 +286,9 @@ exact numbers.
 ## Export to other formats
 
 ```bash
-node scripts/convert.mjs minecraft-builds/NAME/NAME.nbt --out NAME.schem       # WorldEdit
-node scripts/convert.mjs minecraft-builds/NAME/NAME.nbt --out NAME.litematic   # Litematica
-node scripts/convert.mjs some-download.litematic --out study.nbt               # import to study/render/remix
+node "${CLAUDE_SKILL_DIR}/scripts/convert.mjs" minecraft-builds/NAME/NAME.nbt --out NAME.schem       # WorldEdit
+node "${CLAUDE_SKILL_DIR}/scripts/convert.mjs" minecraft-builds/NAME/NAME.nbt --out NAME.litematic   # Litematica
+node "${CLAUDE_SKILL_DIR}/scripts/convert.mjs" some-download.litematic --out study.nbt               # import to study/render/remix
 ```
 
 Stamp an existing schematic into a recipe (study, remix or reuse it), rotated or mirrored:

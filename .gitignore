@@ -1,5 +1,7 @@
 # Node dependencies and generated Minecraft Builder outputs
 node_modules/
+# the plugin's bundled runtime dependency (lodestone + its deps), so it works without npm
+!scripts/node_modules/
 package-lock.json
 .vite/
 minecraft-builds/

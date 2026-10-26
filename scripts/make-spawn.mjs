@@ -16,7 +16,7 @@
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { resolveBrief } from './lib/spawngen/index.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -55,7 +55,12 @@ let recipePath = opt('--recipe')
 let brief
 if (recipePath) {
   recipePath = path.resolve(recipePath)
-  const mod = await import(`file://${recipePath}`)
+  // point the recipe's import at this copy of the generator (the plugin may have moved or updated)
+  const src = fs.readFileSync(recipePath, 'utf8')
+  const lib = pathToFileURL(path.join(root, 'scripts/lib/spawngen/index.mjs')).href
+  const fixed = src.replace(/(import\s*\{\s*generateSpawn\s*\}\s*from\s*)(['"])[^'"]*\2/, `$1'${lib}'`)
+  if (fixed !== src) fs.writeFileSync(recipePath, fixed)
+  const mod = await import(pathToFileURL(recipePath).href)
   brief = resolveBrief(mod.brief ?? {}).brief
 } else {
   const inline = opt('--brief')
@@ -76,7 +81,7 @@ if (recipePath) {
   brief = norm.brief
   for (const w of norm.warnings) console.log(`brief: ${w}`)
 }
-const outDir = path.resolve(opt('--out-dir') ?? path.join(root, 'minecraft-builds', brief.slug))
+const outDir = path.resolve(opt('--out-dir') ?? path.join(process.cwd(), 'minecraft-builds', brief.slug))
 fs.mkdirSync(outDir, { recursive: true })
 if (!recipePath) {
   recipePath = path.join(outDir, `${brief.slug}.recipe.mjs`)

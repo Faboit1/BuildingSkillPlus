@@ -1,6 +1,6 @@
 {
   "name": "minecraft-builder-skill",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Agent skill for designing high-quality Minecraft builds: a JavaScript building kit, vanilla structure/schematic export, headless renders and a builder's handbook.",
   "license": "Apache-2.0",
   "type": "module",
@@ -13,7 +13,10 @@
     "README.md",
     "LICENSE",
     "package.json",
-    "npm-shrinkwrap.json"
+    ".claude-plugin/",
+    ".mcp.json",
+    "mcp/",
+    "commands/"
   ],
   "repository": {
     "type": "git",
@@ -47,10 +50,10 @@
     "data:materials": "node scripts/dev/gen-materials.mjs",
     "docs:sync": "node scripts/sync-lodestone-docs.mjs --from ../lodestone",
     "docs:check": "node scripts/sync-lodestone-docs.mjs --from ../lodestone --check",
-    "pack:dry-run": "npm pack --dry-run",
     "gallery": "node scripts/dev/gallery.mjs",
     "test:spawns": "node scripts/dev/spawngen-smoke.mjs",
-    "spawn": "node scripts/make-spawn.mjs"
+    "spawn": "node scripts/make-spawn.mjs",
+    "package:plugin": "bash scripts/dev/package-plugin.sh"
   },
   "dependencies": {
     "@mattzh72/lodestone": "0.6.0",

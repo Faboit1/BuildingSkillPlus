@@ -10,9 +10,40 @@ agent writes a JavaScript recipe with a building kit, exports a vanilla structur
 iterates. A builder's handbook in `references/building/` teaches it the craft: proportions, depth,
 palettes, roofs, styles, landscaping, interiors, lighting and composition.
 
+## Install (Claude plugin)
+
+This repo is a Claude plugin (`minecraft-builder`) and its own marketplace. The plugin bundles the
+skill, a tool server (`make_spawn`, `spawn_options`, `render_build`, `inspect_build`,
+`convert_build`, `build_recipe`, `rebuild_spawn`), a `/minecraft-builder:spawn` command and a
+`spawn-critic` review agent. Its only dependency ships inside it: install it and it works.
+
+**Claude Code** (needs Node 20.19+ on your machine):
+
+```
+/plugin marketplace add Faboit1/BuildingSkillPlus
+/plugin install minecraft-builder@buildingskillplus
+```
+
+(on Claude Code 2.1.275+ in one step: `/plugin install minecraft-builder --marketplace Faboit1/BuildingSkillPlus`;
+from a shell: `claude plugin marketplace add Faboit1/BuildingSkillPlus && claude plugin install minecraft-builder@buildingskillplus`).
+The repository must be reachable with your GitHub login if it is private.
+
+**Claude Cowork / claude.ai:** build the zip with `bash scripts/dev/package-plugin.sh` (or take it
+from a release) and upload it under **Customize > Plugins > Add > Upload plugin**. Cowork runs the
+tool server when the session runs on your computer; claude.ai chat uses the skill and its scripts.
+
+Then just ask, or run the command:
+
+```
+/minecraft-builder:spawn lifesteal smp called Crimson SMP, about 10 npcs, dark red vibe
+```
+
+It interviews you (type, size, NPC count, theme, then the program, then follow-ups), shows the
+brief, and after your yes generates the spawn into `minecraft-builds/<name>/` in your current folder.
+
 ## Server spawns in one command
 
-Interview the server owner, write a short brief, run one command:
+Interview the server owner, write a short brief, make one call (`make_spawn`), or from a shell:
 
 ```bash
 node scripts/make-spawn.mjs assets/spawn-briefs/autumn-lifesteal.json
@@ -25,6 +56,8 @@ NPC/hologram/crate/WorldGuard setup commands and the renders. Three layouts: **n
 plaza, NPCs in a ring), **spawn+** (DonutSMP-like town, one building per NPC) and **PvP lobby**;
 seven themes (autumn, medieval, white-town, japanese, winter, fantasy, crimson); five island settings.
 `SKILL.md` gives the agent the five-step workflow; the briefs below are in `assets/spawn-briefs/`.
+From a clone of this repo the scripts work as they are (the dependency is bundled in
+`scripts/node_modules`); `npm install` is only needed for the browser renderer and the viewer.
 
 | | |
 | --- | --- |
@@ -117,14 +150,13 @@ Restart or reload your agent. On first use the skill installs its Node dependenc
 ## Use
 
 ```text
-Use minecraft-builder-skill to build a timber-framed medieval inn on a hillside with a garden,
-export it as .schem, and show me renders from all sides plus a night view.
+Build a timber-framed medieval inn on a hillside with a garden, export it as .schem, and show me
+renders from all sides plus a night view.
 ```
 
-Manual commands, run from the skill directory:
+Manual commands, run from the plugin directory (`npm install` only for `render.mjs` and `preview.mjs`):
 
 ```bash
-npm install --omit=dev
 node scripts/run-build.mjs assets/examples/medieval-house.mjs --out-dir minecraft-builds/medieval-house
 node scripts/render.mjs --nbt minecraft-builds/medieval-house/medieval-house.nbt --lighting both
 node scripts/convert.mjs minecraft-builds/medieval-house/medieval-house.nbt --out medieval-house.schem
