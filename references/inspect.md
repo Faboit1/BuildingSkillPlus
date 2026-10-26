@@ -12,7 +12,7 @@ node scripts/inspect.mjs minecraft-builds/my-build/my-build.nbt --style medieval
 node scripts/inspect.mjs minecraft-builds/my-build/my-build.nbt --layers 0-6 --range 0,0,20,20
 ```
 
-It needs only Node and the installed `@mattzh72/lodestone` package. The bundled default resource
+It needs only Node and Lodestone, which is bundled in `scripts/node_modules/lodestone`. The bundled default resource
 pack provides block-id validation, property-value validation and model-based full-cube detection.
 It reads gzip, zlib or uncompressed files of 500k+ blocks in about a second.
 

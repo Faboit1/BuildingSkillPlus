@@ -8,7 +8,9 @@
 //   render_build    an isometric render of any .nbt/.schem/.litematic, returned as an image
 //   inspect_build   lint checks / human-build score / block info
 //   convert_build   .nbt ⇄ .schem ⇄ .litematic
-// Everything runs the skill's own scripts (../scripts) with the bundled dependencies.
+// Everything runs the skill's own scripts (../scripts) with the bundled dependency. Registered in
+// .claude-plugin/plugin.json (mcpServers), not a root .mcp.json, so opening this repo as a project does
+// not try to start it without a plugin root.
 
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'

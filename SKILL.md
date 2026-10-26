@@ -143,7 +143,7 @@ To go beyond the generator (a hand-built spawn, a custom layout), read `referenc
 ## Setup (only for the browser renderer)
 
 Building, inspecting, converting, `make-spawn` and `scripts/isorender.mjs` work out of the box: their
-one dependency (`@mattzh72/lodestone`) is bundled in `scripts/node_modules`. Only `scripts/render.mjs`
+one dependency (Lodestone) is bundled in `scripts/node_modules/lodestone`. Only `scripts/render.mjs`
 and `preview.mjs` (perspective renders, the eye-level spawn view, the interactive viewer) need more:
 run `npm install` in the skill folder, then `npx playwright install chromium` if no Chromium is found.
 

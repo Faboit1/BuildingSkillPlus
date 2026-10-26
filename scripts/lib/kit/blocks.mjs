@@ -4,6 +4,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { LODESTONE_ROOT } from '../lodestone.mjs'
 
 // ------------------------------------------------------------------ directions
 
@@ -194,8 +195,7 @@ export function mirrorBlock(block, axis = 'x') {
 let packCache
 
 function lodestoneRoot() {
-  const indexPath = fileURLToPath(import.meta.resolve('@mattzh72/lodestone'))
-  return path.resolve(path.dirname(indexPath), '..')
+  return LODESTONE_ROOT
 }
 
 // Loads block ids, valid property values and render flags from Lodestone's default pack

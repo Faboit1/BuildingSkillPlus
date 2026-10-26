@@ -3,7 +3,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import * as lodestone from '@mattzh72/lodestone'
+import * as lodestone from './lib/lodestone.mjs'
 import { withDefaults } from './lib/kit/blocks.mjs'
 import { persistLeaves, updateConnections } from './lib/kit/connect.mjs'
 import { completeBlocks } from './lib/kit/fixups.mjs'

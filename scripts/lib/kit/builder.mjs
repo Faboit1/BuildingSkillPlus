@@ -6,7 +6,7 @@
 //   b.roof({ ... })
 //   return b.finish({ name: 'my-build' })
 
-import { Structure } from '@mattzh72/lodestone'
+import { Structure } from '../lodestone.mjs'
 import { isAir, mirrorBlock, parseBlock, rotateBlock, stateString, validateBlock, vanillaStates, withDefaults, withProps } from './blocks.mjs'
 import { persistLeaves, updateConnections } from './connect.mjs'
 import { completeBlocks } from './fixups.mjs'

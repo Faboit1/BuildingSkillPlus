@@ -16,6 +16,9 @@ rm -rf "$plugin/docs/gallery" "$plugin/.github"
 # smoke check from the packaged copy (no root node_modules there: only the bundled one)
 (cd "$work" && node "$plugin/scripts/make-spawn.mjs" --brief '{"name":"Pack Check","type":"pvp","npcs":3}' --out-dir "$work/check" --no-convert --no-render --quiet >/dev/null)
 if command -v claude >/dev/null 2>&1; then claude plugin validate "$plugin" >/dev/null; fi
+# plugin uploads reject paths with anything but letters, digits, dot, dash, underscore and slash
+bad="$(cd "$plugin" && find . -mindepth 1 | sed 's|^\./||' | grep -E '[^A-Za-z0-9._/-]' || true)"
+if [ -n "$bad" ]; then echo "package-plugin: paths with characters uploads reject:"; echo "$bad" | head; exit 1; fi
 rm -f "$out/minecraft-builder-plugin.zip"
 (cd "$plugin" && zip -qr "$out/minecraft-builder-plugin.zip" .)
 rm -rf "$work"

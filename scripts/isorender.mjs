@@ -9,6 +9,7 @@ import path from 'node:path'
 import zlib from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import { readAnyStructure } from './lib/formats.mjs'
+import { LODESTONE_ROOT } from './lib/lodestone.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const repo = path.resolve(here, '..')
@@ -89,7 +90,7 @@ function encodePng(W, H, rgb) {
 // Each texture is stored as relative luminance (texel / mean) plus alpha; faces are coloured with the
 // measured average colour of the block (block-colors.json, biome tint included) times that luminance.
 // resolved directly (not via viewer-server.mjs, which needs vite): isorender only needs Lodestone
-const packRoot = path.join(path.dirname(fileURLToPath(import.meta.resolve('@mattzh72/lodestone'))), '..', 'assets', 'default-pack')
+const packRoot = path.join(LODESTONE_ROOT, 'assets', 'default-pack')
 const assets = JSON.parse(fs.readFileSync(path.join(packRoot, 'assets.json'), 'utf8'))
 const atlas = decodePng(fs.readFileSync(path.join(packRoot, 'atlas.png')))
 const texCache = new Map()
