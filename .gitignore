@@ -230,6 +230,4 @@ __marimo__/
 !scripts/node_modules/**/dist/
 !scripts/node_modules/**/build/
 
-# spawn generator app: only the standalone page is kept
-apps/spawn-generator/dist/*
-!apps/spawn-generator/dist/spawn-generator.html
+# apps/spawn-generator/dist/ is ignored by dist/ below; its spawn-generator.html is tracked (git add -f)
