@@ -15,12 +15,15 @@ import * as paint from './paint.mjs'
 import * as plan from './plan.mjs'
 import { ROOFPLAN_METHODS } from './roofplan.mjs'
 import { EROSION_PRESETS, SCULPT_METHODS, centripetalCatmullRom, sdEllipsoid, sdTaper } from './sculpt.mjs'
+import * as spawn from './spawn.mjs'
 
-for (const [name, fn] of Object.entries({ ...ARCH_METHODS, ...ROOFPLAN_METHODS, ...EASTROOF_METHODS, ...NATURE_METHODS, ...FOREST_METHODS, ...plan.PLAN_METHODS, ...SCULPT_METHODS, ...IMPORT_METHODS })) {
+for (const [name, fn] of Object.entries({ ...ARCH_METHODS, ...ROOFPLAN_METHODS, ...EASTROOF_METHODS, ...NATURE_METHODS, ...FOREST_METHODS, ...plan.PLAN_METHODS, ...SCULPT_METHODS, ...IMPORT_METHODS, ...spawn.SPAWN_METHODS })) {
   Builder.prototype[name] = function method(...args) {
     return fn(this, ...args)
   }
 }
+// finish() also spawn-proofs on request and exports the spawn kit's placements
+spawn.installFinishHook(Builder)
 
 // Signed distance functions (negative inside) for b.sdf(min, max, fn, paint).
 const len3 = (x, y, z) => Math.sqrt(x * x + y * y + z * z)
@@ -112,6 +115,13 @@ export function createKit() {
     hash01: noise.hash01,
     // settlement planning (roads, lots, curtain walls, plazas, skyline report): composition.md
     plan,
+    // spawn & lobby kit (signs, NPC spots, leaderboards, crates, portals, spawn-proofing)
+    spawn,
+    signWidth: spawn.signWidth,
+    signHeight: spawn.signHeight,
+    SIGN_FONTS: spawn.SIGN_FONTS,
+    CRATE_TIERS: spawn.CRATE_TIERS,
+    YAW: spawn.YAW,
     // shapes
     sdf,
     catmullRom: centripetalCatmullRom,

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "minecraft-builder",
+  "displayName": "Minecraft Builder: spawns, lobbies and builds",
+  "version": "1.0.0",
+  "description": "Generate Minecraft server spawns, hubs and PvP lobbies from a short interview with one tool call (themed island, plaza, NPC places, leaderboards with the server name, crates, RTP gate, PvP zone, plugin setup commands, renders), and design any other build with a JavaScript building kit, headless renders and .nbt/.schem/.litematic export.",
+  "author": {
+    "name": "Faboit1",
+    "url": "https://github.com/Faboit1"
+  },
+  "homepage": "https://github.com/Faboit1/BuildingSkillPlus",
+  "repository": "https://github.com/Faboit1/BuildingSkillPlus",
+  "license": "Apache-2.0",
+  "keywords": [
+    "minecraft",
+    "spawn",
+    "lobby",
+    "smp",
+    "schematic",
+    "worldedit",
+    "litematica",
+    "building"
+  ],
+  "skills": [
+    "./"
+  ],
+  "mcpServers": {
+    "minecraft": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/mcp/server.mjs"
+      ],
+      "env": {
+        "MC_PROJECT_DIR": "${CLAUDE_PROJECT_DIR}"
+      }
+    }
+  }
+}

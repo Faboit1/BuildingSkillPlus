@@ -1,0 +1,14 @@
+{
+  "name": "buildingskillplus",
+  "owner": { "name": "Faboit1", "url": "https://github.com/Faboit1" },
+  "description": "Minecraft building plugins: server spawns, lobbies and builds generated, rendered and exported for you.",
+  "plugins": [
+    {
+      "name": "minecraft-builder",
+      "source": "./",
+      "description": "Minecraft server spawns, hubs and PvP lobbies from a short interview with one tool call, plus a building kit for any other build.",
+      "category": "games",
+      "tags": ["minecraft", "spawn", "lobby", "schematic"]
+    }
+  ]
+}

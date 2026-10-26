@@ -10,6 +10,68 @@ agent writes a JavaScript recipe with a building kit, exports a vanilla structur
 iterates. A builder's handbook in `references/building/` teaches it the craft: proportions, depth,
 palettes, roofs, styles, landscaping, interiors, lighting and composition.
 
+## Install (Claude plugin)
+
+This repo is a Claude plugin (`minecraft-builder`) and its own marketplace. The plugin bundles the
+skill, a tool server (`make_spawn`, `spawn_options`, `render_build`, `inspect_build`,
+`convert_build`, `build_recipe`, `rebuild_spawn`), a `/minecraft-builder:spawn` command and a
+`spawn-critic` review agent. Its only dependency ships inside it: install it and it works.
+
+**Claude Code** (needs Node 20.19+ on your machine):
+
+```
+/plugin marketplace add Faboit1/BuildingSkillPlus
+/plugin install minecraft-builder@buildingskillplus
+```
+
+(on Claude Code 2.1.275+ in one step: `/plugin install minecraft-builder --marketplace Faboit1/BuildingSkillPlus`;
+from a shell: `claude plugin marketplace add Faboit1/BuildingSkillPlus && claude plugin install minecraft-builder@buildingskillplus`).
+The repository must be reachable with your GitHub login if it is private.
+
+**Claude Cowork / claude.ai:** build the zip with `bash scripts/dev/package-plugin.sh` (or take it
+from a release) and upload it under **Customize > Plugins > Add > Upload plugin**. Cowork runs the
+tool server when the session runs on your computer; claude.ai chat uses the skill and its scripts.
+
+Then just ask, or run the command:
+
+```
+/minecraft-builder:spawn lifesteal smp called Crimson SMP, about 10 npcs, dark red vibe
+```
+
+It interviews you (type, size, NPC count, theme, then the program, then follow-ups), shows the
+brief, and after your yes generates the spawn into `minecraft-builds/<name>/` in your current folder.
+
+## Server spawns in one command
+
+Interview the server owner, write a short brief, make one call (`make_spawn`), or from a shell:
+
+```bash
+node scripts/make-spawn.mjs assets/spawn-briefs/autumn-lifesteal.json
+```
+
+`scripts/make-spawn.mjs` generates the whole spawn on a floating island: plaza, NPC places, the
+leaderboard hall with the server name in quartz letters, crates, the RTP gate, a PvP ruin, themed
+cottages, trees and lamps, all spawn-proofed. It writes `.nbt` / `.schem` / `.litematic`, the
+NPC/hologram/crate/WorldGuard setup commands and the renders. Three layouts: **normal** (FreshSMP-like
+plaza, NPCs in a ring), **spawn+** (DonutSMP-like town, one building per NPC) and **PvP lobby**;
+seven themes (autumn, medieval, white-town, japanese, winter, fantasy, crimson); five island settings.
+`SKILL.md` gives the agent the five-step workflow; the briefs below are in `assets/spawn-briefs/`.
+From a clone of this repo the scripts work as they are (the dependency is bundled in
+`scripts/node_modules`); `npm install` is only needed for the browser renderer and the viewer.
+
+| | |
+| --- | --- |
+| <img src="docs/gallery/spawngen-autumn-lifesteal.jpg" width="400" alt="Autumn normal spawn, spawn view"> | <img src="docs/gallery/spawngen-autumn-lifesteal-overview.jpg" width="400" alt="Autumn normal spawn, overview"> |
+| **Ember SMP**: normal spawn, autumn, 12 NPCs | overview |
+| <img src="docs/gallery/spawngen-donut-style-plus.jpg" width="400" alt="Medieval spawn+, spawn view"> | <img src="docs/gallery/spawngen-donut-style-plus-overview.jpg" width="400" alt="Medieval spawn+, overview"> |
+| **Glaze SMP**: spawn+, medieval valley, 16 NPCs in their own buildings | overview |
+| <img src="docs/gallery/spawngen-practice-pvp.jpg" width="400" alt="Japanese PvP lobby, spawn view"> | <img src="docs/gallery/spawngen-practice-pvp-overview.jpg" width="400" alt="Japanese PvP lobby, overview"> |
+| **Sakura PvP**: PvP lobby, japanese, 6 queue NPCs | overview |
+| <img src="docs/gallery/spawngen-cheese-smp.jpg" width="400" alt="White-town spawn, spawn view"> | <img src="docs/gallery/spawngen-winter-smp-overview.jpg" width="400" alt="Winter mountain spawn, overview"> |
+| **CheeseSMP**: normal spawn, white-town, blue accent, coast | **Frost SMP**: normal spawn, winter, mountain ridge |
+| <img src="docs/gallery/spawngen-crimson-lifesteal.jpg" width="400" alt="Crimson lifesteal spawn, spawn view"> | <img src="docs/gallery/spawngen-crimson-lifesteal-overview.jpg" width="400" alt="Crimson lifesteal spawn, overview"> |
+| **Crimson SMP**: normal spawn, crimson (nether-style), 10 NPCs | overview |
+
 ## What's inside
 
 - **Builder's handbook** (`references/building/`, about 15k lines): 25 laws and a staged workflow,
@@ -88,14 +150,13 @@ Restart or reload your agent. On first use the skill installs its Node dependenc
 ## Use
 
 ```text
-Use minecraft-builder-skill to build a timber-framed medieval inn on a hillside with a garden,
-export it as .schem, and show me renders from all sides plus a night view.
+Build a timber-framed medieval inn on a hillside with a garden, export it as .schem, and show me
+renders from all sides plus a night view.
 ```
 
-Manual commands, run from the skill directory:
+Manual commands, run from the plugin directory (`npm install` only for `render.mjs` and `preview.mjs`):
 
 ```bash
-npm install --omit=dev
 node scripts/run-build.mjs assets/examples/medieval-house.mjs --out-dir minecraft-builds/medieval-house
 node scripts/render.mjs --nbt minecraft-builds/medieval-house/medieval-house.nbt --lighting both
 node scripts/convert.mjs minecraft-builds/medieval-house/medieval-house.nbt --out medieval-house.schem

@@ -1,0 +1,10 @@
+{
+  "name": "CheeseSMP",
+  "type": "normal",
+  "theme": "white-town",
+  "accent": "blue",
+  "npcs": 8,
+  "leaderboards": ["Money", "Kills", "Playtime"],
+  "crates": 4,
+  "seed": 3
+}

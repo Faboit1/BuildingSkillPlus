@@ -4,11 +4,11 @@
 // MCEdit/Schematica .schematic files into a Lodestone `Structure`, and writes structures back out
 // as vanilla .nbt, Sponge v2 .schem (WorldEdit) and single-region .litematic (Litematica).
 //
-// Only Node built-ins and '@mattzh72/lodestone' are used. See references/formats.md.
+// Only Node built-ins and Lodestone (bundled, see lodestone.mjs) are used. See references/formats.md.
 
 import zlib from 'node:zlib'
 import path from 'node:path'
-import * as lodestone from '@mattzh72/lodestone'
+import * as lodestone from './lodestone.mjs'
 
 const {
   BlockState,

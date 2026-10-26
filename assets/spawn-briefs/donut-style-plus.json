@@ -1,0 +1,17 @@
+{
+  "name": "Glaze SMP",
+  "type": "plus",
+  "theme": "medieval",
+  "setting": "valley",
+  "npcs": ["shop", "auction", "store", "rtp", "kits", "quests", "sell", "warps", "events", "bounties", "teams", "tutorial", "afk", "vote", "duels", "enchanter"],
+  "leaderboards": ["Money", "Kills", "Playtime", "Blocks Mined"],
+  "crates": [
+    { "id": "vote", "label": "Vote", "tier": "vote" },
+    { "id": "common", "label": "Common", "tier": "common" },
+    { "id": "rare", "label": "Rare", "tier": "rare" },
+    { "id": "epic", "label": "Epic", "tier": "epic" },
+    { "id": "legendary", "label": "Legendary", "tier": "legendary" }
+  ],
+  "features": { "afk": true },
+  "seed": 11
+}

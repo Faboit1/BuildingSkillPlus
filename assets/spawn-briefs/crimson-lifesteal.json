@@ -1,0 +1,9 @@
+{
+  "name": "Crimson SMP",
+  "type": "normal",
+  "theme": "crimson",
+  "npcs": ["shop", "auction", "rtp", "store", "kits", "sell", "warps", "events", "bounties", "teams"],
+  "leaderboards": ["Kills", "Playtime"],
+  "crates": ["vote", "rare", "legendary"],
+  "seed": 7
+}

@@ -3,9 +3,15 @@
 // Fast invariant checks for the building kit. Run: npm test (or node scripts/dev/kit-selftest.mjs)
 // Each case builds a tiny scene in memory and asserts exact blocks/states; no rendering needed.
 
+import { execFileSync } from 'node:child_process'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { createKit } from '../lib/kit/index.mjs'
 
 const kit = createKit()
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 let failures = 0
 let passes = 0
 
@@ -231,6 +237,200 @@ const stateAt = (b, x, y, z) => {
   check('texture keeps others', b.nameAt(5, 10, 3) === 'minecraft:stone_brick_stairs')
   const bottom = b.nameAt(10, 0, 2)
   check('texture darker base', ['minecraft:tuff_bricks', 'minecraft:deepslate_bricks', 'minecraft:cracked_stone_bricks'].includes(bottom), bottom)
+}
+
+// --- spawn kit: block-letter signs -------------------------------------------------------
+{
+  check('signWidth medium', kit.signWidth('ABC') === 14, String(kit.signWidth('ABC')))
+  check('signWidth small', kit.signWidth('ABC', 'small') === 11, String(kit.signWidth('ABC', 'small')))
+  check('signWidth large', kit.signWidth('ABC', 'large') === 17, String(kit.signWidth('ABC', 'large')))
+  check('signWidth widest line', kit.signWidth('AB\nABCD') === kit.signWidth('ABCD'))
+  const g = kit.SIGN_FONTS.medium.glyphs
+  check('font wide T, square U', g.T[0] === '#####' && g.U[4] === '####')
+  // 'OBAD' facing south: reads east from x = 2, top row y = 8, letters in the z = 2 plane
+  const b = kit.builder([30, 12, 6])
+  const r = b.sign('OBAD', [2, 8, 2], 'south')
+  const at = (c, row) => b.get(2 + c, 8 - row, 2)
+  check('sign size', r.width === kit.signWidth('OBAD') && r.height === 5, `${r.width}x${r.height}`)
+  const counters = [[1, 1], [2, 1], [1, 2], [2, 2], [1, 3], [2, 3], [6, 1], [7, 1], [6, 3], [7, 3], [11, 1], [12, 1], [16, 1], [16, 2], [16, 3]]
+  check('sign counters open', counters.every(([c, row]) => !at(c, row)), counters.filter(([c, row]) => at(c, row)).map(p => p.join(',')).join(' '))
+  check('sign diagonal step is a stair', at(10, 0)?.name === 'minecraft:quartz_stairs' && at(10, 0).props.half === 'bottom', kit.state(at(10, 0) ?? { name: 'air' }))
+  check('sign convex corner stays square', at(15, 0)?.name === 'minecraft:quartz_block' && at(5, 0)?.name === 'minecraft:quartz_block')
+  check('sign gap columns empty', [4, 9, 14].every(c => [0, 1, 2, 3, 4].every(row => !at(c, row))))
+  // centre alignment, reading direction and the framed board behind the letters
+  const c = kit.builder([12, 16, 40])
+  const rc = c.sign('HI', [5, 10, 20], 'west', { align: 'center', board: 'polished_blackstone' })
+  check('sign west reads south', c.nameAt(5, 10, 20 - Math.floor(rc.width / 2)) === 'minecraft:quartz_block')
+  check('sign board 1 behind', c.nameAt(6, 9, 20) === 'minecraft:polished_blackstone' && c.nameAt(7, 9, 20) === 'minecraft:polished_blackstone')
+  check('sign frame + cornice', c.nameAt(5, 12, 20) === 'minecraft:polished_deepslate' && c.nameAt(4, 12, 20) === 'minecraft:polished_deepslate_stairs')
+}
+
+// --- spawn kit: every component stands on its floor (no floating blocks) ------------------
+{
+  // blocks not face-connected to the floor (y <= floorY); invisible light blocks are exempt
+  const floating = (b, floorY) => {
+    const key = (x, y, z) => `${x},${y},${z}`
+    const seen = new Set()
+    const stack = []
+    for (const [x, y, z] of b.entries()) if (y <= floorY) {
+      seen.add(key(x, y, z))
+      stack.push([x, y, z])
+    }
+    while (stack.length) {
+      const [x, y, z] = stack.pop()
+      for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]) {
+        const k = key(x + dx, y + dy, z + dz)
+        if (seen.has(k) || !b.get(x + dx, y + dy, z + dz)) continue
+        seen.add(k)
+        stack.push([x + dx, y + dy, z + dz])
+      }
+    }
+    return b.entries().filter(([x, y, z, blk]) => !seen.has(key(x, y, z)) && blk.name !== 'minecraft:light')
+  }
+  const scene = (build, size = [48, 34, 48]) => {
+    const b = kit.builder(size)
+    b.box([0, 0, 0], [size[0] - 1, 1, size[2] - 1], 'stone')
+    build(b)
+    return b
+  }
+  const cases = {
+    'pedestal': b => b.npcSpot([24, 2, 24], 'south', { style: 'pedestal' }),
+    'pedestal round': b => b.npcSpot([24, 2, 24], 'east', { style: 'pedestal', shape: 'round' }),
+    'alcove': b => {
+      b.box([14, 2, 20], [34, 14, 22], 'stone_bricks')
+      b.npcSpot([24, 1, 21], 'north', { style: 'alcove' })
+    },
+    'booth': b => b.npcSpot([24, 1, 24], 'west', { style: 'booth' }),
+    'kiosk': b => b.npcSpot([24, 2, 24], 'north', { style: 'kiosk' }),
+    'leaderboards': b => b.leaderboards([24, 1, 10], 'south', { podium: true }),
+    'leaderboard row': b => b.leaderboards([24, 1, 10], 'south', { style: 'row', count: 2 }),
+    'crate row': b => b.crateRow([10, 3, 24], 'east', [{ tier: 'common' }, { tier: 'legendary', block: 'ender_chest' }, { tier: 'vote', block: 'shulker' }]),
+    'portal rtp': b => b.portal([22, 2, 24], [26, 6, 24], { kind: 'rtp' }),
+    'portal pvp': b => b.portal([24, 2, 20], [24, 5, 23], { kind: 'pvp' }),
+    'portal nether': b => b.portal([22, 2, 24], [24, 5, 24], { kind: 'nether' }),
+    'framed sign': b => {
+      b.box([8, 2, 20], [40, 16, 21], 'stone_bricks')
+      b.sign('SPAWN', [24, 13, 22], 'south', { align: 'center', board: 'polished_blackstone' })
+    },
+  }
+  for (const [name, build] of Object.entries(cases)) {
+    const b = scene(build)
+    const loose = floating(b, 1)
+    check(`${name}: no floating blocks`, loose.length === 0, loose.slice(0, 3).map(([x, y, z, blk]) => `${x},${y},${z} ${blk.name}`).join('; '))
+    check(`${name}: inside the canvas`, b.clipped === 0, String(b.clipped))
+    const report = b.finish({ name }).metadata.builderReport
+    check(`${name}: valid states`, report.problems.length === 0 && report.warnings.length === 0, [...report.problems, ...report.warnings].slice(0, 2).join('; '))
+  }
+}
+
+// --- spawn kit: placements -----------------------------------------------------------------
+{
+  const b = kit.builder([60, 30, 60])
+  b.box([0, 0, 0], [59, 1, 59], 'stone')
+  const npc = b.npcSpot([10, 2, 30], 'west', { id: 'shop', label: 'Shop', role: 'shop', style: 'pedestal' })
+  check('npc record', npc.type === 'npc' && npc.pos.join() === '10,3,30' && npc.hologram.join() === '10.5,5.4,30.5' && npc.yaw === 90 && npc.facing === 'west', JSON.stringify(npc))
+  check('npc head room and stand-off clear', !b.get(10, 3, 30) && !b.get(10, 5, 30) && !b.get(9, 3, 30) && !b.get(8, 4, 31))
+  const boards = b.leaderboards([30, 1, 12], 'south', { count: 3, ids: ['kills', 'money', 'time'], podium: true })
+  check('leaderboard records', boards.length === 3 && boards.map(r => r.id).join() === 'kills,money,time')
+  // the anchor is centred on the board, 0.5 in front of the backdrop
+  const a = boards[0].anchor
+  check('leaderboard anchor', b.nameAt(Math.floor(a[0]), Math.floor(a[1]), Math.floor(a[2]) - 1) === 'minecraft:polished_blackstone' && a[2] % 1 === 0.5 && !b.get(Math.floor(a[0]), Math.floor(a[1]), Math.floor(a[2])), a.join())
+  const statues = b.placements.filter(p => p.role === 'statue')
+  check('podium statues', statues.length === 3 && statues.find(p => p.rank === 1).pos[1] > statues.find(p => p.rank === 2).pos[1] && statues.find(p => p.rank === 2).pos[1] > statues.find(p => p.rank === 3).pos[1])
+  const crates = b.crateRow([45, 4, 30], 'west', [{ id: 'a', tier: 'rare' }, { id: 'b', tier: 'legendary', block: 'ender_chest' }])
+  check('crate records', crates.length === 2 && b.nameAt(...crates[1].pos) === 'minecraft:ender_chest' && crates[1].hologram[1] === 5.6 && crates[1].pos[2] === 35, JSON.stringify(crates[1]))
+  check('crate standing area clear', [1, 2, 3].every(k => !b.get(45 - 3 - k + 1, 3, 30) && !b.get(45 - 3 - k + 1, 4, 30)))
+  b.spawnPoint([30, 1, 40], 'north')
+  b.spawnPoint([31, 1, 40], 'north')
+  check('one world spawn', b.placements.filter(p => p.type === 'spawn').length === 1 && b.placements.find(p => p.type === 'spawn').pos.join() === '31,2,40' && b.warnings.some(w => /spawnPoint/.test(w)))
+  b.portal([20, 2, 50], [22, 5, 50], { id: 'rtp', kind: 'rtp' })
+  const portalRec = b.placements.find(p => p.type === 'portal')
+  check('portal record and opening', portalRec.min.join() === '20,2,50' && portalRec.max.join() === '22,5,50' && !b.get(21, 3, 50) && !b.get(20, 5, 50))
+  b.region('spawn', [0, 0, 0], [59, 29, 59], { pvp: 'deny', priority: 5 })
+  const done = b.finish({ name: 'placements', trim: true })
+  const meta = done.metadata.placements
+  check('finish exports placements', meta.length === b.placements.length && meta.every(p => p.type))
+  const offset = b.bounds().min
+  check('trim shifts placements', meta.find(p => p.id === 'shop').pos.join() === [10 - offset[0], 3 - offset[1], 30 - offset[2]].join())
+}
+
+// --- spawn kit: spawn-proofing -------------------------------------------------------------
+{
+  // a walled plaza with a covered corner, a kiosk and a pillar shadow; no lights of its own
+  const b = kit.builder([44, 16, 44])
+  b.box([0, 0, 0], [43, 1, 43], 'stone')
+  b.box([2, 2, 2], [41, 2, 41], 'polished_andesite')
+  b.walls([1, 3, 1], [42, 7, 42], 'stone_bricks')
+  b.box([2, 7, 2], [12, 7, 12], 'spruce_planks') // a roofed corner
+  b.box([20, 3, 20], [21, 8, 30], 'stone_bricks') // a wall casting a shadow
+  b.npcSpot([30, 2, 12], 'south', { style: 'booth' })
+  b.set(34, 3, 34, 'tall_grass')
+  b.set(36, 3, 34, 'oak_door[facing=north,half=lower]')
+  const min = [2, 3, 2]
+  const max = [41, 12, 41]
+  const before = b.darkSpots(min, max).length
+  const solid = b.entries().filter(([, , , blk]) => blk.name !== 'minecraft:light').length
+  const placed = b.spawnProof(min, max)
+  const after = b.darkSpots(min, max)
+  check('spawnProof finds dark cells', before > 100, String(before))
+  check('spawnProof lights them all', placed > 0 && after.length === 0, `${placed} placed, ${after.length} left: ${after.slice(0, 3).map(p => p.join(',')).join(' ')}`)
+  check('spawnProof replaces nothing', b.entries().filter(([, , , blk]) => blk.name !== 'minecraft:light').length === solid)
+  check('spawnProof spares plant and door tops', !b.get(34, 4, 34) && !b.get(36, 4, 34))
+  // the light model: mobs never spawn on bottom slabs, glass or carpets; they do on top slabs
+  const m = kit.builder([20, 6, 20])
+  m.box([0, 0, 0], [3, 0, 19], 'stone_slab[type=bottom]')
+  m.box([4, 0, 0], [7, 0, 19], 'glass')
+  m.box([8, 0, 0], [11, 0, 19], 'stone')
+  m.box([8, 1, 0], [11, 1, 19], 'white_carpet')
+  m.box([12, 0, 0], [15, 0, 19], 'stone_slab[type=top]')
+  const dark = m.darkSpots([0, 1, 0], [19, 4, 19])
+  check('dark spots only on spawnable floors', dark.length === 80 && dark.every(([x]) => x >= 12 && x <= 15), `${dark.length}`)
+  // a lantern lights a 14-block radius (taxicab); a light under a bottom slab does not escape upward
+  m.set(13, 1, 2, 'lantern')
+  check('lantern lights its area', m.darkSpots([12, 1, 0], [15, 4, 10]).length === 0 && m.darkSpots([12, 1, 17], [15, 4, 19]).length > 0)
+  // finish({ spawnProof }) runs it and reports
+  const f = kit.builder([20, 8, 20])
+  f.box([0, 0, 0], [19, 0, 19], 'stone')
+  const report = f.finish({ name: 'sp', spawnProof: [[0, 1, 0], [19, 7, 19]] }).metadata.builderReport.spawnProof
+  check('finish spawnProof', report.placed > 0 && report.remaining === 0, JSON.stringify(report))
+}
+
+// --- spawn kit: the placements export (run-build) ------------------------------------------
+{
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'spawnkit-'))
+  const recipe = path.join(dir, 'export-test.mjs')
+  fs.writeFileSync(recipe, `export default function build(api) {
+  const b = api.builder([32, 16, 32])
+  b.box([0, 0, 0], [31, 1, 31], 'stone')
+  b.spawnPoint([16, 1, 16], 'north')
+  b.npcSpot([8, 2, 8], 'south', { id: 'guide', label: 'Guide', style: 'pedestal' })
+  b.crate([24, 3, 10], 'west', { id: 'vote', label: 'Vote Crate', tier: 'vote' })
+  b.leaderboards([16, 1, 26], 'north', { count: 1, ids: ['kills'] })
+  b.region('spawn', [0, 0, 0], [31, 15, 31], { pvp: 'deny' })
+  return b.finish({ name: 'export-test', spawnProof: [[0, 2, 0], [31, 15, 31]] })
+}
+`)
+  let out = ''
+  try {
+    out = execFileSync(process.execPath, [path.join(repoRoot, 'scripts', 'run-build.mjs'), recipe, '--out-dir', dir, '--origin', '100,-60,-200', '--world', 'lobby', '--json'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+  } catch (error) {
+    out = String(error.stdout ?? '') + String(error.stderr ?? '')
+  }
+  const jsonPath = path.join(dir, 'export-test.placements.json')
+  const setupPath = path.join(dir, 'export-test.setup.md')
+  check('export: files written', fs.existsSync(jsonPath) && fs.existsSync(setupPath), out.slice(0, 300))
+  if (fs.existsSync(jsonPath) && fs.existsSync(setupPath)) {
+    const data = JSON.parse(fs.readFileSync(jsonPath, 'utf8'))
+    const spawn = data.placements.find(p => p.type === 'spawn')
+    check('export: world = origin + local', spawn.world.pos.join() === [116, -58, -184].join() && data.origin.join() === '100,-60,-200', JSON.stringify(spawn))
+    const md = fs.readFileSync(setupPath, 'utf8')
+    for (const needle of ['| guide | Guide |', 'setworldspawn 116 -58 -184 180', 'npc create Guide --at 108.5:-57:-191.5:lobby:0:0', 'npc create guide --location 108.5 -57 -191.5 --world lobby', 'dh hologram create lb-kills -l:lobby:', '/crazycrates set vote', '- 124,-57,-190,lobby', '//pos1 100,-60,-200', 'rg define -w lobby spawn', 'rg flag spawn pvp deny']) {
+      check(`export: setup has ${needle}`, md.includes(needle))
+    }
+    const summary = JSON.parse(out.slice(out.indexOf('{')))
+    check('export: summary', summary.placements?.count === data.placements.length && summary.builder.spawnProof.remaining === 0)
+  }
+  fs.rmSync(dir, { recursive: true, force: true })
 }
 
 console.log(`kit self-test: ${passes} passed, ${failures} failed`)

@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import zlib from 'node:zlib'
 import { fileURLToPath } from 'node:url'
-import { NbtFile } from '@mattzh72/lodestone'
+import { LODESTONE_ROOT, NbtFile } from './lib/lodestone.mjs'
 
 const DENSE_LIMIT = 48_000_000 // max grid cells for typed-array storage; larger grids use a Map
 const DEFAULT_FIND_LIMIT = 200
@@ -481,8 +481,7 @@ function soilRule(n, p) {
 
 async function loadPack() {
   try {
-    const entry = fileURLToPath(import.meta.resolve('@mattzh72/lodestone'))
-    const root = path.resolve(path.dirname(entry), '..')
+    const root = LODESTONE_ROOT
     const json = JSON.parse(await fs.readFile(path.join(root, 'assets', 'default-pack', 'assets.json'), 'utf8'))
     return { blockstates: json.blockstates ?? {}, models: json.models ?? {}, modelCache: new Map(), blockCache: new Map() }
   } catch {
