@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Smoke test for the hand-built example spawns (assets/examples/spawns/) and the new-spawn scaffold:
 // every example builds with valid block states, no part failing, no clipped blocks, a world spawn and
-// its NPCs placed; a fresh scaffold (and one started from an example) builds too.
+// its NPCs placed; fresh scaffolds (the normal and spawn+ templates, the blank skeleton) build too.
 //   npm run test:examples   (about two minutes)
 
 import { spawnSync } from 'node:child_process'
@@ -52,8 +52,8 @@ for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.mjs')).sort()) {
 }
 // the scaffold: a blank skeleton and a copy of an example, each in its own folder
 if (!only.length) {
-  for (const [label, extra] of [['new-spawn (skeleton)', []], ['new-spawn --from frost-smp', ['--from', 'frost-smp']]]) {
-    const out = path.join(tmp, `scaffold-${extra.length ? 'from' : 'blank'}`)
+  for (const [label, extra] of [['new-spawn (normal template)', []], ['new-spawn --type plus', ['--type', 'plus']], ['new-spawn --from blank', ['--from', 'blank']]]) {
+    const out = path.join(tmp, `scaffold-${extra[1] ?? 'default'}`)
     const r = node([path.join(root, 'scripts/new-spawn.mjs'), 'Scaffold Test', '--out-dir', out, ...extra])
     if (r.status !== 0) {
       console.log(`FAIL ${label}: ${(r.stderr || r.stdout).slice(-400)}`)
