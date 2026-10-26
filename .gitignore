@@ -225,3 +225,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# keep the bundled dependency whole (the Python rules above would drop its dist/ and build/ folders)
+!scripts/node_modules/**/dist/
+!scripts/node_modules/**/build/
