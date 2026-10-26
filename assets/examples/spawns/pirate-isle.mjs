@@ -87,13 +87,14 @@ export default function build(api) {
   // palms in sand beds between the rings, a cluster of three at each, not one per diagonal
   const palmBeds = [50, 140, 220, 310].map(a => polar(ctx, a + rng.range(-8, 8), 17).map(Math.round))
 
-  // the landmarks go first (diagonals behind the plaza, in view from the spawn but never on its
-  // axis), then the huts fill round them
-  const kinds = [['volcano', 315], ['statue', 45], ['ship', 110], ['lighthouse', 200], ['giant-palm', 240], ['giant-palm', 150]]
+  // the landmarks go first, on the diagonals behind the hut ring (the huts take 42-58 from the
+  // middle): in view from the spawn, never on its axis, and on the diagonals the square spawn has
+  // the most room (127 to its corners against 90 to its sides)
+  const kinds = [['volcano', 315], ['statue', 45], ['ship', 135], ['lighthouse', 225]]
   const marks = []
   for (const [kind, a] of kinds) {
     const r = LANDMARKS[kind].r
-    const spot = findSpot(ctx, { r: r + 2, ring: [Rp + 12 + r, SPAWN / 2 + 20 - r], angles: [a, a - 12, a + 12], tag: kind })
+    const spot = findSpot(ctx, { r: r + 2, ring: [Rp + 24 + r, Math.max(Rp + 24 + r, 112 - r)], angles: [a, a - 8, a + 8], tag: kind })
     if (!spot) {
       ctx.warn(`no room for the ${kind}`)
       continue
@@ -120,6 +121,12 @@ export default function build(api) {
       huts.push(s)
       a += ((Math.max(w, d) / 2 + 6) / R) * (180 / Math.PI) * 1.7
     } else a += 4
+  }
+  // two giant palms in the gaps of the hut ring, framing the views out
+  for (const a of [160, 250]) {
+    const r = LANDMARKS['giant-palm'].r
+    const spot = findSpot(ctx, { r: 4, ring: [Rp + 9, Rp + 26], angles: [a, a - 10, a + 10, a - 20, a + 20], tag: 'giant-palm', pad: 1 })
+    if (spot) marks.push({ kind: 'giant-palm', x: spot.x, z: spot.z, r })
   }
   // the warzone's pit and hill: the middle of the band, north-west and south
   const pit = { x: Math.round(cx - SPAWN / 4), z: Math.round(lo / 2), r: 12 }

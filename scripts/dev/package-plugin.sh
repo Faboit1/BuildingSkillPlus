@@ -15,6 +15,10 @@ git -C "$root" archive HEAD | tar -x -C "$plugin"
 rm -rf "$plugin/docs/gallery" "$plugin/.github"
 # smoke check from the packaged copy (no root node_modules there: only the bundled one)
 (cd "$work" && node "$plugin/scripts/make-spawn.mjs" --brief '{"name":"Pack Check","type":"pvp","npcs":3}' --out-dir "$work/check" --no-convert --no-render --quiet >/dev/null)
+# and the hand-built path: a scaffolded spawn folder builds, and it can be photographed
+(cd "$work" && node "$plugin/scripts/new-spawn.mjs" "Pack Hand" --out-dir "$work/hand" >/dev/null \
+  && node --max-old-space-size=4096 "$plugin/scripts/run-build.mjs" "$work/hand/spawn.mjs" --out-dir "$work/hand" --json >/dev/null \
+  && node "$plugin/scripts/screenshot.mjs" "$work/hand/pack-hand.nbt" --spawn --width 320 --height 180 --out "$work/hand/shot.png" >/dev/null 2>&1)
 if command -v claude >/dev/null 2>&1; then claude plugin validate "$plugin" >/dev/null; fi
 # plugin uploads reject paths with anything but letters, digits, dot, dash, underscore and slash
 bad="$(cd "$plugin" && find . -mindepth 1 | sed 's|^\./||' | grep -E '[^A-Za-z0-9._/-]' || true)"

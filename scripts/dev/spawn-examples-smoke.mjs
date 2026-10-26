@@ -34,7 +34,7 @@ function check(recipe, out, label) {
     if (!placements.some(p => p.type === 'spawn')) problems.push('no world spawn')
     const npcs = placements.filter(p => p.type === 'npc' && p.role !== 'statue').length
     const src = fs.readFileSync(recipe, 'utf8')
-    const want = (src.match(/const NPCS = \[([\s\S]*?)\n\]/)?.[1].match(/\bid:/g) ?? []).length
+    const want = (src.match(/const NPCS = \[([\s\S]*?)\n\]/)?.[1].split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n').match(/\bid:/g) ?? []).length
     if (want && npcs !== want) problems.push(`${npcs} NPCs placed, ${want} in NPCS`)
   }
   console.log(`${problems.length ? 'FAIL' : 'ok  '} ${label} ${secs}s${problems.length ? `\n     ${problems.join('\n     ')}` : ''}`)

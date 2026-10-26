@@ -202,6 +202,38 @@ const TOOLS = [
     },
   },
   {
+    name: 'screenshot',
+    description: 'First-person screenshots of a build: what a player sees standing in it (CPU renderer, textured, shadows, fog; a few seconds per view). Use it after every build_recipe to check the spawn like a player: from the spawn point (spawn: true), in front of the crates, at the boards, at the plaza rim looking back, at the gate looking out, from high above. Positions are build coordinates (x east, y up, z south); pos [x, z] stands on the ground there. Yaw 0 looks south, 90 west, 180 north, -90 east; pitch > 0 looks down. Returns the images.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', description: 'The .nbt/.schem/.litematic (for spawn: true, its .placements.json must sit next to it, as build_recipe writes it)' },
+        shots: {
+          type: 'array', maxItems: 6,
+          description: 'One entry per view, e.g. [{"name":"spawn","spawn":true},{"name":"crates","pos":[80,110],"lookAt":[70,36,110]},{"name":"above","eye":[110,80,190],"yaw":180,"pitch":35}]',
+          items: { type: 'object', properties: { name: { type: 'string' }, spawn: { type: 'boolean' }, pos: { type: 'array', items: { type: 'number' }, description: '[x, z] (on the ground) or [x, y, z] (feet block)' }, eye: { type: 'array', items: { type: 'number' }, description: 'exact camera point [x, y, z]' }, lookAt: { type: 'array', items: { type: 'number' } }, yaw: { type: 'number' }, pitch: { type: 'number' }, fov: { type: 'number' } } },
+        },
+        width: { type: 'integer', description: 'Default 1280' },
+        height: { type: 'integer', description: 'Default 720' },
+      },
+      required: ['file'],
+    },
+    run: async ({ file, shots, width, height }) => {
+      const f = outPath(file)
+      if (!fs.existsSync(f)) return fail(`no such file: ${f}`)
+      const list = shots?.length ? shots : [{ name: 'spawn-view', spawn: true }]
+      const r = await run('screenshot.mjs', [f, '--shots', JSON.stringify(list), ...(width ? ['--width', String(width)] : []), ...(height ? ['--height', String(height)] : [])], { heap: 6144 })
+      if (r.code !== 0) return fail(`screenshot failed:\n${(r.err || r.out).slice(-3000)}`)
+      const files = r.out.split('\n').map(l => l.split('  (')[0].trim()).filter(l => l.endsWith('.png'))
+      const content = []
+      for (const [i, png] of files.entries()) {
+        const abs = path.resolve(projectDir(), png)
+        if (fs.existsSync(abs)) content.push(text(`${r.out.split('\n')[i]}`), image(abs))
+      }
+      return content.length ? { content } : fail(`no image written:\n${r.out}\n${r.err}`)
+    },
+  },
+  {
     name: 'render_build',
     description: 'Render a .nbt/.schem/.litematic as an isometric image (any size, CPU only) and return it. Use from: se|sw|ne|nw for the camera corner, px for zoom (2 overview .. 8 close), box to crop columns, ymin to cut away everything below a level.',
     inputSchema: { type: 'object', properties: { file: { type: 'string' }, from: { type: 'string', enum: ['se', 'sw', 'ne', 'nw'] }, px: { type: 'integer', minimum: 1, maximum: 12 }, box: { type: 'string', description: 'x0,z0,x1,z1' }, ymin: { type: 'integer' } }, required: ['file'] },

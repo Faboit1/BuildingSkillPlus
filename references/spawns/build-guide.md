@@ -216,9 +216,13 @@ Pave a walk from each `door` to the street. Vary sizes, storeys and set-backs al
   here and there (find room with `findSpot`).
 
 ### Landmarks (big set pieces round the spawn)
-`landmark(ctx, kind, { x, z, y, seed, facing })` → `{ r, top }`; kinds and ground radius in
-`LANDMARKS` (parts/landmarks.mjs): volcano, lighthouse, ship, statue (parrot / knight / lion),
-giant-tree, giant-palm, rock-spires, rock-arch. Place them with
+`landmark(ctx, kind, { x, z, y, seed, facing })` → `{ r, top }`; kinds (ground radius r, height):
+volcano (26, ~32: a crater with a contained lava pool, magma rivulets, smoke), lighthouse (8, ~36:
+striped in `stripe`, gallery, lantern room), ship (22: a galleon or `kind: 'sloop'` moored in its own
+basin, broadside to `facing`, with a jetty), statue (9, ~20: `subject: 'parrot'` or `'knight'`),
+giant-tree (16, ~30: the theme's tree with buttress roots; a giant palm for tropical), giant-palm
+(12, ~25), rock-spires (10, ~28), rock-arch (12, ~14: you look through it from `facing`). All of them
+side by side: `assets/examples/spawn-parts/landmarks.mjs`. Place them with
 `findSpot(ctx, { r: LANDMARKS[kind].r + 3, ring: [Rp + 9, S / 2 - r - 8] })` before the
 buildings so the town fills round them; `facing` toward the spawn; level a pad under them. 1-3
 landmarks per spawn, on the sightlines from the plaza (diagonals behind the building ring), never
@@ -310,10 +314,16 @@ After every section:
    "must stay clear" warning means something blocks an NPC or a crate; a part that failed is
    logged as `spawn: <part> failed`).
 2. Look at the overview and the spawn-point screenshot it returns.
-3. `screenshot` for what you just built: stand where a player would (eye height = floor + 1.6),
-   e.g. in front of the crates looking at them, at the plaza rim looking back at the spawn, at the
-   gate looking out. `render_build` for close-ups from above (`px` 6-8, `box` round the area,
-   `ymin` to cut away the island underneath) and the other corners.
+3. `screenshot` for what you just built, like a player standing there. Each shot is
+   `{ name, pos: [x, z] }` (stands on the ground at that column; `[x, y, z]` = the feet block) with
+   `lookAt: [x, y, z]` or `yaw`/`pitch` (yaw 0 south, 90 west, 180 north, -90 east; pitch > 0 looks
+   down), `{ spawn: true }` for the join view, or `{ eye: [x, y, z], yaw, pitch }` for a camera in
+   the air (over the plaza: 40 up, 60 back, pitch 30-35). A good set per pass: the spawn view; in
+   front of the crates looking at them; at the boards; the plaza rim looking back at the spawn; the
+   gate looking out; one high view. Scripts:
+   `node scripts/screenshot.mjs <build.nbt> --shots '[{"name":"crates","pos":[80,110],"lookAt":[70,36,110]}]'`.
+   `render_build` gives isometric close-ups from above (`px` 6-8, `box` round the area, `ymin` to
+   cut away the island underneath) and the other corners.
 4. `inspect_build` (`checks`) before delivering: floating blocks, plants on stone, fluids.
 
 What to check in every picture:

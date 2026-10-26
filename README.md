@@ -67,16 +67,21 @@ spawn handbook (`references/spawns/README.md`: real spawns measured, the don't-l
 Eight themes (autumn, medieval, white-town, japanese, winter, fantasy, crimson, tropical), five
 island settings, any other look built from the closest theme.
 
-Example spawns (`assets/examples/spawns/`), each a recipe Claude reads and learns from:
+Example spawns (`assets/examples/spawns/`), each a recipe Claude reads and learns from. Left the
+overview, right the `screenshot` from the spawn point (what a player sees on joining):
 
 | | |
 | --- | --- |
-| <img src="docs/gallery/hand-ember-smp-overview.jpg" width="400" alt="Ember SMP, a round autumn plaza"> | <img src="docs/gallery/hand-frost-smp-overview.jpg" width="400" alt="Frost SMP, a square winter plaza"> |
-| `ember-smp.mjs`: normal spawn, round plaza, autumn, 10 NPCs in rings, 220 x 220 | `frost-smp.mjs`: normal spawn, square plaza, winter, a hand-built Christmas spruce, snowfall |
-| <img src="docs/gallery/hand-oakhaven-hub-overview.jpg" width="400" alt="Oakhaven, a spawn+ town"> | <img src="docs/gallery/hand-kirin-practice-overview.jpg" width="400" alt="Kirin Practice, a PvP lobby"> |
-| `oakhaven-hub.mjs`: spawn+ town, medieval, 14 NPCs each in its own building, the name in quartz letters | `kirin-practice.mjs`: PvP lobby, japanese, queue arc, FFA arena |
-| <img src="docs/gallery/hand-pirate-isle-overview.jpg" width="400" alt="Tortuga SMP, a tropical island with a warzone"> | |
-| `pirate-isle.mjs`: tropical island, volcano, ship, lighthouse, giant palms, warzone with moshpit and KOTH | |
+| <img src="docs/gallery/hand-ember-smp-overview.jpg" width="400" alt="Ember SMP, overview"> | <img src="docs/gallery/hand-ember-smp-view.jpg" width="400" alt="Ember SMP, spawn view"> |
+| **Ember SMP** (`ember-smp.mjs`): normal spawn, round plaza, autumn, 10 NPCs in rings, top-3 pillars, 220 x 220 | |
+| <img src="docs/gallery/hand-frost-smp-overview.jpg" width="400" alt="Frost SMP, overview"> | <img src="docs/gallery/hand-frost-smp-view.jpg" width="400" alt="Frost SMP, spawn view"> |
+| **Frost SMP** (`frost-smp.mjs`): normal spawn, square plaza, winter, a hand-built Christmas spruce, snowfall | |
+| <img src="docs/gallery/hand-oakhaven-hub-overview.jpg" width="400" alt="Oakhaven, overview"> | <img src="docs/gallery/hand-oakhaven-hub-view.jpg" width="400" alt="Oakhaven, spawn view"> |
+| **Oakhaven** (`oakhaven-hub.mjs`): spawn+ town, medieval, 14 NPCs each in its own building, the name in quartz letters | |
+| <img src="docs/gallery/hand-kirin-practice-overview.jpg" width="400" alt="Kirin Practice, overview"> | <img src="docs/gallery/hand-kirin-practice-view.jpg" width="400" alt="Kirin Practice, spawn view"> |
+| **Kirin Practice** (`kirin-practice.mjs`): PvP lobby, japanese, queue NPCs in an arc, FFA arena | |
+| <img src="docs/gallery/hand-pirate-isle-overview.jpg" width="400" alt="Tortuga SMP, overview"> | <img src="docs/gallery/hand-pirate-isle-view.jpg" width="400" alt="Tortuga SMP, spawn view"> |
+| **Tortuga SMP** (`pirate-isle.mjs`): tropical island: volcano, ship, lighthouse, parrot statue, giant palms, a warzone with a moshpit and KOTH, colourful signs | |
 
 ### The generator (when you want one call)
 
@@ -133,6 +138,10 @@ Generator output:
   stair corners, wall posts, and fence and pane connections are computed the way the game does.
 - **Headless renders** (`scripts/render.mjs`): multi-angle PNGs and contact sheets, close-ups,
   cutaways and night lighting with colour-neutral daylight.
+- **First-person screenshots** (`scripts/screenshot.mjs`, the `screenshot` tool): what a player
+  sees standing anywhere in a build, rendered on the CPU (textures, shadows, fog, plant sprites,
+  water and glass; a few seconds a view), so Claude can check a spawn from the spawn point and
+  every section. `scripts/isorender.mjs` draws whole builds isometrically, any size.
 - **Inspector** (`scripts/inspect.mjs`): palette stats, ASCII slices, lint checks, and a 0–100
   scorecard against the human-build norms with a fix for every out-of-band metric.
 - **Converter** (`scripts/convert.mjs`): `.nbt` ⇄ `.schem` ⇄ `.litematic`, plus legacy `.schematic`.

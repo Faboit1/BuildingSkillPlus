@@ -136,9 +136,27 @@ export const THEMES = {
     flowers: [[5, 'short_grass'], [2, 'crimson_roots'], [1, 'red_tulip'], [1, 'poppy'], [1, 'crimson_fungus']],
     kit: { primary: 'polished_blackstone_bricks', trim: 'polished_blackstone', base: 'blackstone', wood: 'crimson', roof: 'nether_brick', accent: 'red_nether_bricks', colour: 'red' },
   },
+  tropical: {
+    ...base,
+    label: 'Tropical island',
+    setting: 'coast',
+    // grass with sandy patches; a warm sandstone plaza with teal borders and light-blue inlay (the
+    // sea colour), jungle-wood huts under bamboo thatch, palms everywhere
+    ground: { grass_block: 9, moss_block: 1, coarse_dirt: 1 },
+    paving: { field: { smooth_sandstone: 4, sandstone: 2, cut_sandstone: 1 }, border: 'cyan_terracotta', path: { sand: 3, coarse_dirt: 1, packed_mud: 1 }, inlay: 'light_blue_terracotta' },
+    wall: { field: { white_terracotta: 4, smooth_sandstone: 2, birch_planks: 1 }, quoin: 'stripped_jungle_log', base: 'mossy_cobblestone' },
+    timber: 'stripped_jungle_log', wood: 'jungle', plaster: 'white_terracotta',
+    roof: 'bamboo', roofStyle: 'steep-gable',
+    trim: 'smooth_sandstone',
+    accent: 'light_blue',
+    plinth: 'chiseled_quartz_block',
+    trees: { feature: 'palm', forest: [[6, 'palm'], [2, 'azalea'], [1, 'oak']] },
+    flowers: [[6, 'short_grass'], [2, 'fern'], [1, 'blue_orchid'], [1, 'dandelion'], [1, 'allium']],
+    kit: { primary: 'smooth_sandstone', trim: 'smooth_sandstone', base: 'cut_sandstone', wood: 'jungle', roof: 'bamboo', accent: 'light_blue_terracotta', colour: 'light_blue' },
+  },
 }
 
-export const THEME_ALIASES = { fall: 'autumn', halloween: 'autumn', town: 'medieval', castle: 'medieval', white: 'white-town', classic: 'white-town', modern: 'white-town', greek: 'white-town', asian: 'japanese', japan: 'japanese', sakura: 'japanese', snow: 'winter', christmas: 'winter', elven: 'fantasy', magic: 'fantasy', nether: 'crimson', hell: 'crimson', lifesteal: 'crimson', red: 'crimson', dark: 'crimson', blood: 'crimson' }
+export const THEME_ALIASES = { fall: 'autumn', halloween: 'autumn', town: 'medieval', castle: 'medieval', white: 'white-town', classic: 'white-town', modern: 'white-town', greek: 'white-town', asian: 'japanese', japan: 'japanese', sakura: 'japanese', snow: 'winter', christmas: 'winter', elven: 'fantasy', magic: 'fantasy', nether: 'crimson', hell: 'crimson', lifesteal: 'crimson', red: 'crimson', dark: 'crimson', blood: 'crimson', beach: 'tropical', pirate: 'tropical', island: 'tropical', caribbean: 'tropical', tiki: 'tropical', jungle: 'tropical', summer: 'tropical' }
 
 export function resolveTheme(name, accent) {
   const key = THEMES[name] ? name : THEME_ALIASES[name] ?? 'medieval'

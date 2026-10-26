@@ -54,7 +54,8 @@
     "spawn": "node scripts/make-spawn.mjs",
     "package:plugin": "bash scripts/dev/package-plugin.sh",
     "test:examples": "node scripts/dev/spawn-examples-smoke.mjs",
-    "new-spawn": "node scripts/new-spawn.mjs"
+    "new-spawn": "node scripts/new-spawn.mjs",
+    "test:screenshot": "node scripts/dev/screenshot-selftest.mjs"
   },
   "dependencies": {
     "@mattzh72/lodestone": "0.6.0",
