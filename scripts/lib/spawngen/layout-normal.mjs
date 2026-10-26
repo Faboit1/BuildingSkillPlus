@@ -11,11 +11,12 @@
 //   round the plaza a street ring, then a ring of big buildings (2-3 storey houses, halls, a tower)
 //   facing it; trees beyond. Flat ground everywhere in town, no block-letter signs.
 
-import { building } from './buildings.mjs'
-import { afkPark, bench, bushAt, clutter, featureTree, lamp, pvpArena } from './landscape.mjs'
-import { boardsPlaza, crateCourt } from './features.mjs'
-import { paveRound, pavePath } from './site.mjs'
+import { building } from '../../../assets/spawn-parts/buildings.mjs'
+import { afkPark, bench, bushAt, clutter, featureTree, lamp, pvpArena } from '../../../assets/spawn-parts/landscape.mjs'
+import { boardsPlaza, crateCourt, top3Pillars } from '../../../assets/spawn-parts/features.mjs'
+import { paveRound, pavePath } from '../../../assets/spawn-parts/site.mjs'
 import { facingToward, polar, yawToward } from './index.mjs'
+import { buildExtras, extrasRoom, planExtras, planGround, signStand } from './extras.mjs'
 
 const SPACING = 6 // blocks of arc between NPCs
 const MOUTH = 9 // a path mouth through a ring
@@ -32,15 +33,19 @@ export function ringsOf(N) {
   const Rp = Math.max(40, R2 + 14)
   return { n1, n2, R1, R2, Rp }
 }
-export const recommendSize = brief => 2 * (ringsOf(brief.npcs.length).Rp + 70)
+export const recommendSize = brief => {
+  const { Rp } = ringsOf(brief.npcs.length)
+  const big = extrasRoom(brief)
+  return 2 * Math.max(Rp + 70, big ? Rp + 14 + 2 * big : 0)
+}
 
 export function plan(ctx) {
   const { brief, S, FY, C, rng, grid } = ctx
   const [cx, cz] = C
   const N = brief.npcs.length
   const { n1, n2, R2, Rp } = ringsOf(N)
-  const islandR = S / 2 - 3
-  if (islandR - Rp < 40) ctx.warn(`size ${S} leaves little room round a ${Rp}-radius plaza for buildings; ${Math.ceil(recommendSize(brief) / 4) * 4} is recommended`)
+  const islandR = ctx.spawnS / 2 - 3 // the spawn square (a warzone may surround it)
+  if (islandR - Rp < 40) ctx.warn(`size ${ctx.spawnS} leaves little room round a ${Rp}-radius plaza for buildings; ${Math.ceil(recommendSize(brief) / 4) * 4} is recommended`)
   const L = { type: 'normal', plaza: { cx, cz, r: Rp + 5 }, Rp, R1, R2, islandR, pads: [], slots: [], paths: [], spawn: [cx, FY, cz] }
   const reserve = (s, pad = 1) => {
     grid.reserve(s.x0, s.z0, s.x1, s.z1, s.kind, pad)
@@ -107,6 +112,12 @@ export function plan(ctx) {
       return { crate: c, x: Math.round(x), z: Math.round(z), facing: facingToward([x, z], C) }
     })
   }
+  // top-3 pillar sets either side of the leaderboards, facing the spawn
+  L.top3 = brief.top3.map((t, i) => {
+    const ang = [-34, 34, -52, 52][i] ?? 0
+    const [x, z] = polar(ctx, ang, Rp - 6)
+    return { ...t, x: Math.round(x), z: Math.round(z), facing: facingToward([x, z], C) }
+  }).filter((t, i) => i < 4)
   if (brief.features.rtp) L.rtp = reserve({ kind: 'rtp', x0: cx - 7, x1: cx + 7, z0: cz + Rp + 1, z1: cz + Rp + 7, y: FY, z: cz + Rp + 3 })
   const aw = Math.max(22, Math.min(32, Math.round(islandR - Rp - 18)))
   if (brief.features.pvp) {
@@ -130,6 +141,8 @@ export function plan(ctx) {
     }
   }
 
+  // landmarks and giant trees first (right behind the street ring), so the buildings fill round them
+  planExtras(ctx, L, { ring: Rp + 9 })
   // the ring of big buildings round the street, facing the plaza, varied in size and height
   const Rb = Rp + 7
   const houses = []
@@ -168,6 +181,7 @@ export function plan(ctx) {
     if (onIsland(ctx, s, islandR - 6) && grid.free(s.x0 - 4, s.z0 - 4, s.x1 + 4, s.z1 + 4)) houses.push(reserve(s, 2))
   }
   L.houses = houses
+  planGround(ctx, L)
   for (const s of L.slots) L.pads.push({ x0: s.x0, z0: s.z0, x1: s.x1, z1: s.z1, y: s.y, blend: 5 })
   // the whole town is flat; the land rolls a little only out by the rim
   L.flat = (x, z) => Math.hypot(x - cx, z - cz) < Rp + 34
@@ -226,12 +240,19 @@ export function build(ctx) {
 
   // ---------------------------------------------------------------- the open-air sections
   if (L.boards) ctx.place(boardsPlaza, { cx: L.boards.cx, z: L.boards.z, facing: 'south', boards: brief.leaderboards })
+  for (const t of L.top3) ctx.place(top3Pillars, { x: t.x, z: t.z, facing: t.facing, id: t.id, label: t.label })
   if (L.crates) ctx.place(crateCourt, { points: L.crates.map(c => [c.x, c.z]), facings: L.crates.map(c => c.facing), crates: L.crates.map(c => c.crate) })
   if (L.rtp) b.portal([cx - 2, FY + 1, L.rtp.z], [cx + 2, FY + 5, L.rtp.z], { ...M, id: 'rtp', label: 'Random Teleport', kind: 'rtp', facing: 'north' })
   if (L.pvp) ctx.place(pvpArena, L.pvp)
   if (L.afk) ctx.place(afkPark, L.afk)
 
   // ---------------------------------------------------------------- the buildings
+  buildExtras(ctx, L)
+  if (brief.features.signs) {
+    if (L.crates) ctx.place(signStand, 'CRATES', [cx - (Rp - 2), cz], 'east')
+    if (L.boards) ctx.place(signStand, kit.signWidth('LEADERBOARDS', 'small') <= 44 ? 'LEADERBOARDS' : 'TOP', [cx, cz - (Rp - 1)], 'south')
+    if (L.pvp) ctx.place(signStand, 'PVP', [L.pvp.x0 - 3, cz + 9], 'west')
+  }
   for (const h of L.houses) {
     const res = ctx.place(building, h)
     if (res?.door) L.paths.push(res.door)

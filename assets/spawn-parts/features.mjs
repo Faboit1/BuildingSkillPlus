@@ -134,3 +134,46 @@ export function crateYard(ctx, { x0, z0, x1, z1, y = ctx.FY, facing, crates }, {
   if (lamp) for (const u of [a0 + 1, a1 - 1]) lamp(ctx, alongX ? [u, y, line] : [line, y, u], { kind: 'post' })
   return recs
 }
+
+// Top-3 pillars (top spenders, baltop...): 2nd, 1st, 3rd side by side, the 1st tallest, each a carved
+// column on a stepped base with the rank block on top where a statue NPC (the player's skin) stands,
+// its hologram over it, and the title floating above the 1st. [x, z] = the middle pillar; players
+// stand on the `facing` side.
+export function top3Pillars(ctx, { x, z, y = ctx.FY, facing = 'south', id, label }) {
+  const { b, kit, theme, M } = ctx
+  const trim = kit.material(theme.trim)
+  const shaft = /log|stem/.test(theme.wall.quoin) ? `minecraft:${theme.wall.quoin.replace(/^minecraft:/, '')}[axis=y]` : theme.wall.quoin
+  const [fx, fz] = DV[facing]
+  const [rx, rz] = [-fz, fx]
+  const recs = []
+  for (const [u, h, rank] of [[-4, 4, 2], [0, 6, 1], [4, 3, 3]]) {
+    const px = x + rx * u
+    const pz = z + rz * u
+    // base: a 3x3 course with stair nosing all round
+    for (let du = -1; du <= 1; du += 1)
+      for (let dd = -1; dd <= 1; dd += 1) {
+        const bx = px + rx * du + fx * dd
+        const bz = pz + rz * du + fz * dd
+        if (du === 0 && dd === 0) b.set(bx, y + 1, bz, theme.paving.border)
+        else if (trim.stairs) {
+          const f = dd === 1 ? facing : dd === -1 ? kit.opposite(facing) : (rx * du > 0 || rz * du > 0) ? dirOf(rx, rz) : kit.opposite(dirOf(rx, rz))
+          b.set(bx, y + 1, bz, `${trim.stairs}[facing=${kit.opposite(f)}]`)
+        }
+        ctx.site.paved[bx + ctx.S * bz] = 1
+      }
+    // the column and its capital: stairs flaring out under the rank block
+    for (let k = 2; k < h; k += 1) b.set(px, y + k, pz, shaft)
+    const cap = rank === 1 ? 'minecraft:chiseled_quartz_block' : rank === 2 ? 'minecraft:iron_block' : 'minecraft:waxed_copper_block'
+    b.set(px, y + h, pz, cap)
+    if (trim.stairs)
+      for (const f of ['north', 'south', 'east', 'west']) {
+        const [ox, oz] = DV[f]
+        b.set(px + ox, y + h - 1, pz + oz, `${trim.stairs}[facing=${kit.opposite(f)},half=top]`)
+      }
+    const rec = b.npcSpot([px, y + h, pz], facing, { ...M, id: `${id}-top${rank}`, label: `#${rank} ${label}`, role: 'statue', style: 'none', rank })
+    recs.push(rec)
+  }
+  ctx.hologram(`${id}-title`, label.toUpperCase(), [x, y + 6 + 4.4, z])
+  return recs
+}
+const dirOf = (dx, dz) => (dx > 0 ? 'east' : dx < 0 ? 'west' : dz > 0 ? 'south' : 'north')

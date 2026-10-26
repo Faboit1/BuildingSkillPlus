@@ -1,23 +1,27 @@
 ---
-description: Build a Minecraft server spawn, hub or PvP lobby. Interview first, then generate it with one tool call and deliver the schematic and setup commands.
+description: Design and build a Minecraft server spawn, hub or PvP lobby by hand. Interview first, plan it, build it with the spawn parts, look at screenshots, fix, then deliver the schematic and setup commands.
 ---
 
 Make a Minecraft server spawn for this request: $ARGUMENTS
 
-Follow the minecraft-builder skill's "Server spawns and lobbies" steps exactly:
+Follow the minecraft-builder skill's "Server spawns and lobbies: build them yourself" steps:
 
-1. Call the `spawn_options` tool (this plugin's `minecraft` MCP server) to get the themes, settings,
-   NPC ids and recommended sizes.
-2. Interview the user with AskUserQuestion in three rounds (round 1: type, size, NPC count, theme;
-   round 2: server name, which NPCs, leaderboards, crates; round 3: setting, accent colour, extras,
-   where it is pasted). Skip any question the request above already answers. Then show the brief as
-   JSON and ask "Build this?".
-3. After a yes, call `make_spawn` with the brief. Look at the images it returns.
-4. If something looks wrong, change the brief (seed, theme, setting, accent, size) and call
-   `make_spawn` again, or add details in the recipe's `after(ctx)` and call `rebuild_spawn`. Run
-   `inspect_build` (mode "checks") on the .nbt; only flat-walls and palette-size notes are expected.
-5. Deliver: the .schem and .litematic paths, the setup.md (world spawn, NPCs, holograms, crates,
-   regions), the paste corner and the world spawn from the report, and the renders.
+1. Interview the user with AskUserQuestion (skip what the request above already answers). Every
+   question has a "Let Claude decide" option; round 1 has "Surprise me". Round 1: type, size, NPC
+   count, theme. Round 2: server name, which NPCs, leaderboards, crates. Round 3: top-3 pillars,
+   warzone (moshpit, KOTH), big things (giant trees, landmarks, raised areas and rocks), section
+   signs. Round 4: setting, accent, extras, paste corner, sign outline/thickness.
+2. Read `references/spawns/build-guide.md` and the closest example in `assets/examples/spawns/`.
+   Write the plan (answers, your decisions, canvas size, a top-view sketch with the main numbers)
+   and ask "Build this?".
+3. After a yes: `new_spawn` (this plugin's `minecraft` MCP server), then write `spawn.mjs` section
+   by section, calling `build_recipe` after each and looking at the images it returns.
+4. Look and fix: `screenshot` from the player's spots, `render_build` close-ups, `inspect_build`
+   (mode "checks"); at least two rounds of fixes after it is "done". The `spawn-critic` agent can
+   review it.
+5. Deliver: `build_recipe` with `export: true`; the .schem and .litematic, setup.md, screenshots,
+   the paste corner and the world spawn.
 
-If the MCP tools are not available, run the same steps with the scripts:
-`node "${CLAUDE_PLUGIN_ROOT}/scripts/make-spawn.mjs" brief.json` (see the skill).
+Only if the user asks for the quick generator: `make_spawn` with a brief (see the skill).
+If the MCP tools are not available, use the scripts (`node "${CLAUDE_PLUGIN_ROOT}/scripts/new-spawn.mjs"`,
+`run-build.mjs`, `screenshot.mjs`, `isorender.mjs`; see the skill).

@@ -13,9 +13,10 @@ palettes, roofs, styles, landscaping, interiors, lighting and composition.
 ## Install (Claude plugin)
 
 This repo is a Claude plugin (`minecraft-builder`) and its own marketplace. The plugin bundles the
-skill, a tool server (`make_spawn`, `spawn_options`, `render_build`, `inspect_build`,
-`convert_build`, `build_recipe`, `rebuild_spawn`), a `/minecraft-builder:spawn` command and a
-`spawn-critic` review agent. Its only dependency ships inside it: install it and it works.
+skill, a tool server (`new_spawn`, `build_recipe`, `screenshot`, `render_build`, `inspect_build`,
+`convert_build`, and the generator's `make_spawn` / `rebuild_spawn` / `spawn_options`), a
+`/minecraft-builder:spawn` command and a `spawn-critic` review agent. Its only dependency ships
+inside it: install it and it works.
 
 **Claude Code** (needs Node 20.19+ on your machine):
 
@@ -38,27 +39,54 @@ Then just ask, or run the command:
 /minecraft-builder:spawn lifesteal smp called Crimson SMP, about 10 npcs, dark red vibe
 ```
 
-It interviews you (type, size, NPC count, theme, then the program, then follow-ups), shows the
-brief, and after your yes generates the spawn into `minecraft-builds/<name>/` in your current folder.
+It interviews you (type, size, NPC count, theme; the program; options like top-3 pillars, a
+warzone with a moshpit and KOTH, landmarks, giant trees, raised areas and rocks, block-letter signs;
+every question has "Let Claude decide", and "Surprise me" picks everything), shows the plan, and
+after your yes **builds the spawn itself** in `minecraft-builds/<name>/`, looking at screenshots and
+fixing it as it goes. Ask for changes the same way: "make a winter version", "add more stuff".
 
-## Server spawns in one command
+## Server spawns, built by Claude
 
-Interview the server owner, write a short brief, make one call (`make_spawn`), or from a shell:
+Claude designs and builds every spawn by hand, like a build team:
 
-```bash
-node scripts/make-spawn.mjs assets/spawn-briefs/autumn-lifesteal.json
-```
+1. **Interview** the server owner, then **plan** the layout (a sketch with the numbers).
+2. **`new_spawn`** makes a folder with `spawn.mjs` (the recipe Claude writes), its own copy of the
+   **spawn parts** (`assets/spawn-parts/`: island terrain, plaza paving, NPC plinths and rings,
+   hologram boards with a podium, top-3 pillars, crates, themed buildings, hand-shaped trees,
+   lamps and props, the PvP ruin, the AFK pond, a warzone with a moshpit and KOTH, landmarks,
+   block-letter signs, snowfall), and complete **example spawns** to learn from.
+3. Claude writes the spawn section by section, **builds it** (`build_recipe`), looks at the
+   isometric overview and **first-person screenshots** (`screenshot`, a CPU renderer: what a
+   player sees from the spawn point or any spot), and fixes what it sees.
+4. It delivers `.schem` / `.litematic` and a setup sheet with the NPC, hologram, crate and
+   WorldGuard commands.
 
-`scripts/make-spawn.mjs` generates the whole spawn on a floating island: a big flat plaza, NPC places
-on plinths, hologram leaderboards with a top-3 podium, open-air crates, the RTP gate, a PvP ruin, a
-ring of big themed buildings, trees and lamps, all spawn-proofed, labelled with holograms (no
-block-letter signs). It writes `.nbt` / `.schem` / `.litematic`, the
-NPC/hologram/crate/WorldGuard setup commands and the renders. Three layouts: **normal** (FreshSMP-like
-flat plaza ringed by buildings, NPCs in rings), **spawn+** (DonutSMP-like town, one building per NPC) and **PvP lobby**;
-seven themes (autumn, medieval, white-town, japanese, winter, fantasy, crimson); five island settings.
-`SKILL.md` gives the agent the five-step workflow; the briefs below are in `assets/spawn-briefs/`.
-From a clone of this repo the scripts work as they are (the dependency is bundled in
+The craft is written down in `references/spawns/build-guide.md` (the layouts that work with their
+numbers, every part, themes, how to do "a winter version" or "more stuff", testing) on top of the
+spawn handbook (`references/spawns/README.md`: real spawns measured, the don't-look-AI checklist).
+Eight themes (autumn, medieval, white-town, japanese, winter, fantasy, crimson, tropical), five
+island settings, any other look built from the closest theme.
+
+Example spawns (`assets/examples/spawns/`), each a recipe Claude reads and learns from:
+
+| | |
+| --- | --- |
+| <img src="docs/gallery/hand-ember-smp-overview.jpg" width="400" alt="Ember SMP, a round autumn plaza"> | <img src="docs/gallery/hand-frost-smp-overview.jpg" width="400" alt="Frost SMP, a square winter plaza"> |
+| `ember-smp.mjs`: normal spawn, round plaza, autumn, 10 NPCs in rings, 220 x 220 | `frost-smp.mjs`: normal spawn, square plaza, winter, a hand-built Christmas spruce, snowfall |
+| <img src="docs/gallery/hand-oakhaven-hub-overview.jpg" width="400" alt="Oakhaven, a spawn+ town"> | <img src="docs/gallery/hand-kirin-practice-overview.jpg" width="400" alt="Kirin Practice, a PvP lobby"> |
+| `oakhaven-hub.mjs`: spawn+ town, medieval, 14 NPCs each in its own building, the name in quartz letters | `kirin-practice.mjs`: PvP lobby, japanese, queue arc, FFA arena |
+| <img src="docs/gallery/hand-pirate-isle-overview.jpg" width="400" alt="Tortuga SMP, a tropical island with a warzone"> | |
+| `pirate-isle.mjs`: tropical island, volcano, ship, lighthouse, giant palms, warzone with moshpit and KOTH | |
+
+### The generator (when you want one call)
+
+The older one-call generator is still there: `make_spawn` with a JSON brief (or
+`node scripts/make-spawn.mjs assets/spawn-briefs/autumn-lifesteal.json`) builds a whole spawn from
+fixed layouts (normal, spawn+, PvP lobby) with the same parts. Ask for it by name ("use the
+generator"). From a clone of this repo the scripts work as they are (the dependency is bundled in
 `scripts/node_modules`); `npm install` is only needed for the browser renderer and the viewer.
+
+Generator output:
 
 | | |
 | --- | --- |

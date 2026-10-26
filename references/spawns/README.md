@@ -5,17 +5,17 @@ leaderboard section and a crates section, a DonutSMP-style hub, or a PvP lobby. 
 the building handbook (`references/building/README.md`): every law there still applies; this file
 adds the spawn program, the numbers and the workflow.
 
-**The fast path is the generator** (`SKILL.md` → "Server spawns and lobbies"): the interview below
-fills a JSON brief and `node scripts/make-spawn.mjs brief.json` builds the whole spawn with the
-layouts, numbers and checklist of this handbook already applied (`scripts/lib/spawngen/`: `brief.mjs`
-defaults, `themes.mjs` palettes, `site.mjs` island terrain and paving, `layout-normal.mjs` /
-`layout-plus.mjs` / `layout-pvp.mjs` plans, `buildings.mjs`, `landscape.mjs`). Read on to understand
-or extend it, or to hand-build a spawn the generator cannot.
+**How spawns are made:** you design and build each one by hand (`SKILL.md` → "Server spawns and
+lobbies"): this handbook says what a good spawn is; `build-guide.md` says exactly how to build one
+with the spawn parts (`assets/spawn-parts/`), with the layouts and numbers that work; the example
+spawns (`assets/examples/spawns/`) show it done. The one-call generator (`scripts/make-spawn.mjs`,
+built from the same parts) is there for when the user asks for it.
 
 Companion files in this folder:
 
 | File | What it holds |
 | --- | --- |
+| `build-guide.md` | How to build a spawn by hand: the workflow, the layouts with their numbers, every part, themes, variations, testing |
 | `corpus-study.md` | Real human-built spawns, lobbies and hubs, measured: sizes, layouts, set pieces, palettes, techniques |
 | `design-research.md` | How popular servers lay out spawns, the plugin facts (NPC, hologram, crate, region), and why builds look AI vs human |
 | `case-studies.md` | Critiques of earlier spawns made with this skill and the user's own spawns, with ranked lessons |

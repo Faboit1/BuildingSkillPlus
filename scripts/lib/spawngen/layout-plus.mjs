@@ -9,10 +9,11 @@
 //   corners landmark halls (the first NPCs: shop, auction...), the AFK park outside the town
 // The plaza grows with the NPC count until every NPC has a lot; spare lots become plain houses.
 
-import { building, heroWall } from './buildings.mjs'
-import { crateYard } from './features.mjs'
-import { afkPark, bench, bushAt, featureTree, hedge, lamp, planter, pvpArena, stall, clutter } from './landscape.mjs'
-import { paveRect, paveRound, pavePath } from './site.mjs'
+import { building, heroWall } from '../../../assets/spawn-parts/buildings.mjs'
+import { crateYard, top3Pillars } from '../../../assets/spawn-parts/features.mjs'
+import { buildExtras, extrasRoom, planExtras, planGround, signStand } from './extras.mjs'
+import { afkPark, bench, bushAt, featureTree, hedge, lamp, planter, pvpArena, stall, clutter } from '../../../assets/spawn-parts/landscape.mjs'
+import { paveRect, paveRound, pavePath } from '../../../assets/spawn-parts/site.mjs'
 
 const ROAD = 5 // ring road width
 const BAND = 16 // lot band depth (building depth + setback)
@@ -36,7 +37,11 @@ export function hubOf(brief) {
   while (capacity(P) < N && P < 200) P += 2
   return { P, heroW, crateW, half: P / 2 + ROAD + BAND }
 }
-export const recommendSize = brief => 2 * (hubOf(brief).half + 40)
+export const recommendSize = brief => {
+  const { half } = hubOf(brief)
+  const big = extrasRoom(brief)
+  return 2 * Math.max(half + 40, big ? half + 10 + 2 * big : 0)
+}
 
 export function plan(ctx) {
   const { brief, S, FY, C, rng, grid } = ctx
@@ -44,7 +49,7 @@ export function plan(ctx) {
   const N = brief.npcs.length
   const nc = brief.crates.length
   const { P, heroW, crateW, half } = hubOf(brief)
-  const islandR = S / 2 - 3
+  const islandR = ctx.spawnS / 2 - 3 // the spawn square (a warzone may surround it)
   if (half + 12 > islandR) ctx.warn(`a spawn+ with ${N} NPCs needs a size of about ${Math.ceil(2 * (half + 34))}; ${S} is tight`)
   const L = { type: 'plus', P, islandR, pads: [], slots: [], paths: [], lots: [], spawn: [cx, FY, cz] }
   const px0 = cx - P / 2
@@ -161,6 +166,8 @@ export function plan(ctx) {
     }
   }
   L.spoke = spoke
+  planExtras(ctx, L, { ring: half + 6 })
+  planGround(ctx, L)
   for (const s of L.slots) L.pads.push({ x0: s.x0, z0: s.z0, x1: s.x1, z1: s.z1, y: s.y, blend: 5 })
   // the whole town (plaza, road, lots) is level; the land rolls outside it
   const T = { x0: R.x0 - BAND - 1, x1: R.x1 + BAND + 1, z0: R.z0 - BAND - 1, z1: R.z1 + BAND + 1 }
@@ -246,6 +253,12 @@ export function build(ctx) {
     pavePath(ctx, [[fromX, az < cz ? R.z0 : R.z1], [ax, az]], { width: 3 })
   }
 
+  buildExtras(ctx, L)
+  if (brief.features.signs && L.crates) {
+    const c = L.crates
+    ctx.place(signStand, 'CRATES', [c.x0 + 1, Math.round((c.z0 + c.z1) / 2)], 'east')
+  }
+
   // ---------------------------------------------------------------- plaza dressing
   // a quarter-round garden in every plaza corner (grass, a feature tree, flower drifts, bushes, a
   // bench facing the rose, a lamp), so the hub has no dead floor; planters round the rose
@@ -281,6 +294,8 @@ export function build(ctx) {
     ctx.place(bench, [bx, FY, bz], Math.abs(bx - cx) > Math.abs(bz - cz) ? (sx > 0 ? 'east' : 'west') : (sz > 0 ? 'south' : 'north'), { length: 3, seed: i })
     ctx.place(lamp, [gx + sx * (ba + 3), FY, gz + sz * (ba - 1)], { kind: 'post', seed: i })
   })
+  // top-3 pillar sets inside the rose ring, north, either side of the walk, facing the spawn
+  brief.top3.slice(0, 2).forEach((t, i) => ctx.place(top3Pillars, { x: cx + (i === 0 ? -11 : 11), z: cz - rr + 2, facing: 'south', id: t.id, label: t.label }))
   // planters round the rose on the diagonals
   const pr = Math.round(rr * 0.62)
   ;[[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz], i) => ctx.place(planter, [cx + sx * pr, FY, cz + sz * pr], { r: 2, tree: L.P >= 50, seed: ctx.seed + 60 + i }))
