@@ -9,8 +9,9 @@
 //   corners landmark halls (the first NPCs: shop, auction...), the AFK park outside the town
 // The plaza grows with the NPC count until every NPC has a lot; spare lots become plain houses.
 
-import { building, crateHall, heroWall } from './buildings.mjs'
-import { afkPark, bench, bushAt, featureTree, lamp, planter, pvpArena, stall, clutter } from './landscape.mjs'
+import { building, heroWall } from './buildings.mjs'
+import { crateYard } from './features.mjs'
+import { afkPark, bench, bushAt, featureTree, hedge, lamp, planter, pvpArena, stall, clutter } from './landscape.mjs'
 import { paveRect, paveRound, pavePath } from './site.mjs'
 
 const ROAD = 5 // ring road width
@@ -207,7 +208,7 @@ export function build(ctx) {
 
   // ---------------------------------------------------------------- the town
   ctx.place(heroWall, { ...L.hero, facing: 'south', boards: brief.leaderboards, name: brief.features.signs ? brief.name : null })
-  if (L.crates) ctx.place(crateHall, { ...L.crates, crates: brief.crates })
+  if (L.crates) ctx.place(crateYard, { ...L.crates, crates: brief.crates }, { hedge, lamp })
   if (L.rtp) b.portal([cx - 2, FY + 1, L.rtp.z], [cx + 2, FY + 5, L.rtp.z], { ...M, id: 'rtp', label: 'Random Teleport', kind: 'rtp', facing: 'north' })
   for (const lot of L.lots) {
     const res = ctx.place(building, lot)

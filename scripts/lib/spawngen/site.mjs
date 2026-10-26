@@ -41,7 +41,7 @@ export function buildSite(ctx) {
   const cove = setting === 'coast' ? { x: cx + R * 0.52, z: cz + R * 0.5, r: R * 0.3 } : null
   // the mountain: a ridge round the north-west rim, behind the hero's shoulder, highest at its middle
   const ridgeDir = (-35 * Math.PI) / 180
-  const peak = setting === 'mountain' ? { dir: ridgeDir, height: S * 0.3 } : null
+  const peak = setting === 'mountain' ? { dir: ridgeDir, height: Math.min(S * 0.3, ctx.H - FY - 26) } : null
 
   const relief = (x, z) => {
     const e = edgeE(x, z)

@@ -61,6 +61,7 @@ export function createContext(api, input) {
   const { brief, warnings } = resolveBrief(input)
   const theme = resolveTheme(brief.theme, brief.accent)
   if (brief.setting) theme.setting = brief.setting
+  else if (brief.type === 'normal') theme.setting = 'plains' // normal spawns sit on flat ground
   const { kit } = api
   const S = brief.size
   const H = brief.height

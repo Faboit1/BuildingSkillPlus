@@ -45,10 +45,12 @@ Call `spawn_options` first (scripts: read `assets/spawn-briefs/*.json` and the t
 it lists the themes, settings, NPC ids and the recommended size for an NPC count.
 
 **Round 1** (one call, four questions):
-1. **Type**: *Normal spawn* (FreshSMP-like: one beautiful round plaza on good terrain, the NPCs in a
-   ring; best for most SMPs) / *Spawn+* (DonutSMP-like: a town where every NPC has its own building) /
+1. **Type**: *Normal spawn* (FreshSMP-like: a big flat plaza with the NPCs on plinths in rings round
+   the spawn, trees in grass beds, big buildings all round, crates and leaderboards out in the open;
+   best for most SMPs) / *Spawn+* (DonutSMP-like: a town where every NPC has its own building) /
    *PvP lobby* (queue NPCs in an arc, an FFA arena).
-2. **Size** in blocks: *Recommended for the NPC count* / 100 x 100 / 150 x 150 / 220 x 220.
+2. **Size** in blocks: *Recommended for the NPC count* (about 220 for a normal spawn) / 160 x 160 /
+   220 x 220 / 300 x 300.
 3. **How many NPCs**: e.g. 6 / 8 / 12 / 16 (the user can type any number).
 4. **Theme**: autumn / medieval / white-town / japanese / winter / fantasy / crimson (dark red,
    nether-like; good for lifesteal). One question shows at most 4 options: offer the 3 that fit their
@@ -82,7 +84,7 @@ did not decide (good defaults fill it). Examples: `assets/spawn-briefs/*.json`.
 | `accent` | a dye colour: `blue`, `red`, `orange`, `purple`, `cyan`, `lime`... | the theme's |
 | `leaderboards` | a number or labels: `["Money", "Kills", "Playtime"]` | 3 (plus: 4) |
 | `crates` | a number, labels, or `[{ "id", "label", "tier" }]` (tiers: common, uncommon, rare, epic, legendary, mythic, vote, seasonal) | 4 (pvp: 2) |
-| `features` | `{ "rtp": true, "pvp": true, "afk": false, "signs": true }` | rtp; pvp zone except in a pvp lobby; afk in spawn+; signs |
+| `features` | `{ "rtp": true, "pvp": true, "afk": false, "signs": false }` | rtp; pvp zone except in a pvp lobby; afk in spawn+; no block-letter signs (real spawns label everything with holograms; `signs: true` puts the server name in quartz letters on the spawn+ town hall) |
 | `seed` | any number: a different variation of the same brief | 7 |
 | `origin` | `[x, y, z]` where the minimum corner is pasted | centred on 0, 0 at y 64 |
 | `world` | the world name used in the setup commands | `"world"` |

@@ -8,8 +8,9 @@
 //   east    a pavilion with a store/kits corner, a tower behind it
 // The rest of the island is landscaped; the theme dresses the gates (torii for japanese).
 
-import { building, crateHall, heroWall } from './buildings.mjs'
-import { bench, featureTree, lamp, pvpArena } from './landscape.mjs'
+import { building } from './buildings.mjs'
+import { boardsPlaza, crateYard } from './features.mjs'
+import { bench, featureTree, hedge, lamp, pvpArena } from './landscape.mjs'
 import { paveRound, pavePath } from './site.mjs'
 import { facingToward, polar, yawToward } from './index.mjs'
 import { treeBed } from './layout-normal.mjs'
@@ -45,11 +46,11 @@ export function plan(ctx) {
   // order so the first NPCs (unranked, ranked) stand in the middle of the arc
   const mid = [...L.npcRing].sort((p, q) => Math.abs(p.ang) - Math.abs(q.ang))
   brief.npcs.forEach((npc, i) => { mid[i].npc = npc })
-  // hero wall behind the arc
-  const nb = Math.max(1, brief.leaderboards.length)
-  const heroW = Math.max(nb * 9 + (nb - 1) * 3 + 14, 30)
-  const hz = cz - Math.max(Rp + 13, 34)
-  L.hero = reserve({ kind: 'hero', x0: cx - Math.ceil(heroW / 2), x1: cx + Math.ceil(heroW / 2), z0: hz - 9, z1: hz + 7, y: FY, cx, z: hz, width: heroW })
+  // hologram leaderboards behind the arc (open air, a podium in front of the middle board)
+  const nb = brief.leaderboards.length
+  const heroW = Math.max(nb * 7 + 6, 20)
+  const hz = cz - Rp - 5
+  L.hero = reserve({ kind: 'hero', x0: cx - Math.ceil(heroW / 2), x1: cx + Math.ceil(heroW / 2), z0: hz - 3, z1: hz + 5, y: FY, cx, z: hz, width: heroW })
   // the arena to the south
   const aw = Math.max(20, Math.min(34, Math.round(islandR - Rp - 8)))
   const az0 = cz + Rp + 4
@@ -116,9 +117,12 @@ export function build(ctx) {
     const rec = b.npcSpot([x, FY + 1, z], face, { ...M, ...npc, style: 'pedestal', size: 3, screen: true })
     rec.yaw = yawToward([x, z], C)
   }
-  ctx.place(heroWall, { ...L.hero, facing: 'south', boards: brief.leaderboards, name: brief.features.signs ? brief.name : null })
+  if (brief.leaderboards.length) {
+    for (let x = L.hero.x0; x <= L.hero.x1; x += 1) for (let z = L.hero.z0; z <= L.hero.z1; z += 1) b.set(x, FY, z, (x + z) % 7 === 0 ? theme.paving.inlay : ctx.paint.field)
+    ctx.place(boardsPlaza, { cx, z: L.hero.z, facing: 'south', boards: brief.leaderboards })
+  }
   ctx.place(pvpArena, L.pvp)
-  if (L.crates) ctx.place(crateHall, { ...L.crates, crates: brief.crates })
+  if (L.crates) ctx.place(crateYard, { ...L.crates, crates: brief.crates }, { hedge, lamp })
   ctx.place(building, { ...L.pavilion, kind: 'pavilion' })
   if (L.tower) ctx.place(building, { ...L.tower, kind: 'tower' })
   for (const t of L.trees) {

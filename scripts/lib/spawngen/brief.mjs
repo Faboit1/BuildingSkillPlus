@@ -6,7 +6,7 @@
 import { THEMES, THEME_ALIASES } from './themes.mjs'
 
 export const TYPES = {
-  normal: { size: 120, min: 80, max: 180, height: 90 },
+  normal: { size: 200, min: 120, max: 320, height: 100 },
   plus: { size: 220, min: 160, max: 320, height: 110 },
   pvp: { size: 96, min: 60, max: 140, height: 90 },
 }
@@ -89,7 +89,7 @@ export function normalizeBrief(input = {}) {
   npcs = npcs.map(n => { let id = n.id, k = 2; while (seen.has(id)) id = `${n.id}_${k++}`; seen.add(id); return { ...n, id } })
 
   // capacity: a normal spawn's NPC ring holds about 14; more needs a spawn+ layout
-  const cap = { normal: 16, plus: 30, pvp: 10 }[type]
+  const cap = { normal: 28, plus: 30, pvp: 10 }[type]
   if (npcs.length > cap) warnings.push(`${npcs.length} NPCs is a lot for a ${type} spawn (comfortable up to ${cap}); consider type "plus" or fewer NPCs`)
 
   let boards = raw.leaderboards ?? raw.boards ?? BOARD_DEFAULTS[type]
@@ -119,7 +119,7 @@ export function normalizeBrief(input = {}) {
     rtp: true,
     pvp: type !== 'pvp',          // a PvP zone (ruin arena) next to the plaza; the pvp type has its own arena
     afk: type === 'plus',
-    signs: true,                  // block-letter name sign (and, in a spawn+, 3 district titles)
+    signs: false,                 // block-letter name sign over the leaderboards; real spawns use holograms, so off
     ...(raw.features ?? {}),
   }
 
