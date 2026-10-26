@@ -229,3 +229,7 @@ __marimo__/
 # keep the bundled dependency whole (the Python rules above would drop its dist/ and build/ folders)
 !scripts/node_modules/**/dist/
 !scripts/node_modules/**/build/
+
+# spawn generator app: only the standalone page is kept
+apps/spawn-generator/dist/*
+!apps/spawn-generator/dist/spawn-generator.html

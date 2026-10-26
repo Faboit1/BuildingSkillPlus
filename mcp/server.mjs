@@ -106,7 +106,7 @@ const TOOLS = [
     description: GEN_NOTE + 'Everything the generator\'s brief can take: types, themes (with what they look like), island settings, accent colours, the NPC ids each type knows, crate tiers, and the recommended size for a number of NPCs. Call it before the generator\'s interview.',
     inputSchema: { type: 'object', properties: { npcs: { type: 'integer', description: 'Optional: also return the recommended size for this many NPCs per type' } } },
     run: async ({ npcs } = {}) => {
-      const { THEMES } = await import(pathToFileURL(path.join(scripts, 'lib/spawngen/themes.mjs')).href)
+      const { THEMES } = await import(pathToFileURL(path.join(scripts, '../assets/spawn-parts/themes.mjs')).href)
       const { TYPES, NPC_LABELS } = await import(pathToFileURL(path.join(scripts, 'lib/spawngen/brief.mjs')).href)
       const { resolveBrief } = await import(pathToFileURL(path.join(scripts, 'lib/spawngen/index.mjs')).href)
       const rec = n => Object.fromEntries(Object.keys(TYPES).map(t => [t, resolveBrief({ type: t, npcs: n }).brief.size]))
