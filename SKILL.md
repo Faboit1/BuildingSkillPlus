@@ -97,16 +97,27 @@ Then write the plan: the answers (and what you decided for "Let Claude decide"),
 and a top-view sketch with the main numbers (the plaza radius, the rings or rows, where each
 section, landmark and the warzone go, the first view from the spawn). Show it and ask "Build this?".
 
-### Step 3: build it, section by section
+### Step 3: build it — the template first, then make it theirs
 
-1. `new_spawn` with the name and the plan (`brief`): it makes `minecraft-builds/<slug>/` with
-   `spawn.mjs` (a skeleton), `parts/` (your own copy of the spawn parts, editable), `examples/` and
-   `brief.md`. (`from: "<example>"` starts from an example instead, only when the brief is close to
-   it; then reshape every section.)
-2. Write `spawn.mjs` in this order, **building with `build_recipe` after each step and looking at
-   the images**: plan + site + plaza + spawn point → NPCs, boards, crates, gates → buildings and
-   walks → set pieces, planting, props, `landscapePass` → seasonal passes and details.
-3. Fix every `problems`, `clipped` and warning line `build_recipe` reports before going on.
+1. `new_spawn` with the name, the **type** (`normal`, `plus` or `pvp`) and the plan (`brief`). It
+   makes `minecraft-builds/<slug>/` with `spawn.mjs` = **the template for that type**: the
+   generator's own layout written out as a recipe (normal: `ember-smp`, spawn+: `oakhaven-hub`, PvP:
+   `kirin-practice`), plus `parts/` (your own editable copy of the spawn parts), `examples/` and
+   `brief.md`.
+2. **Set the `BRIEF` block** at the top of `spawn.mjs` to the interview answers: theme, accent,
+   setting, seed, NPCs, boards, crates, top-3 sets, RTP / PvP / AFK, landmarks, giant trees, raised
+   areas, rocks, warzone, signs (the comments list every value). Build it with `build_recipe`: this
+   is already as good as the generator. The layout adapts to the brief (ring sizes, the town's
+   plaza, the canvas), so do not hand-edit the layout numbers to fit a different program.
+3. **Then make it theirs**, below the `BRIEF`, building after each change: what the theme or
+   their answers call for that the template does not have (a centrepiece, their mascot statue, a
+   seasonal pass, market stalls, a fountain, more trees, another ring of houses...; guide §6-7),
+   and what the screenshots show is wrong. Keep what works: the template is a tested base.
+4. Fix every `problems`, `clipped` and warning line `build_recipe` reports before going on.
+
+`from: "<example>"` starts from another example instead (`frost-smp`: a square winter plaza with a
+hand-made hero; `pirate-isle`: a tropical island with landmarks and a warzone); `from: "blank"` is an
+empty skeleton, only for a layout none of them has.
 
 ### Step 4: look, critique, fix (at least two rounds after it is "done")
 

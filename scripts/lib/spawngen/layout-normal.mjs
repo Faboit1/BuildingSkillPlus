@@ -36,7 +36,7 @@ export function ringsOf(N) {
 export const recommendSize = brief => {
   const { Rp } = ringsOf(brief.npcs.length)
   const big = extrasRoom(brief)
-  return 2 * Math.max(Rp + 70, big ? Rp + 14 + 2 * big : 0)
+  return 2 * Math.max(Rp + 70, big ? Rp + 16 + 2 * big : 0)
 }
 
 export function plan(ctx) {
@@ -113,8 +113,10 @@ export function plan(ctx) {
     })
   }
   // top-3 pillar sets either side of the leaderboards, facing the spawn
+  // the 3rd/4th sets at +-52 degrees, unless the crate arc (west) reaches there: then east at 70
+  const crateEnd = 270 + ((nc - 1) / 2) * ((SPACING / (Rp - 6)) * (180 / Math.PI)) + 18
   L.top3 = brief.top3.map((t, i) => {
-    const ang = [-34, 34, -52, 52][i] ?? 0
+    const ang = [-34, 34, 360 - 52 < crateEnd ? 70 : -52, 52][i] ?? 0
     const [x, z] = polar(ctx, ang, Rp - 6)
     return { ...t, x: Math.round(x), z: Math.round(z), facing: facingToward([x, z], C) }
   }).filter((t, i) => i < 4)

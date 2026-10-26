@@ -55,9 +55,13 @@ Claude designs and builds every spawn by hand, like a build team:
    hologram boards with a podium, top-3 pillars, crates, themed buildings, hand-shaped trees,
    lamps and props, the PvP ruin, the AFK pond, a warzone with a moshpit and KOTH, landmarks,
    block-letter signs, snowfall), and complete **example spawns** to learn from.
-3. Claude writes the spawn section by section, **builds it** (`build_recipe`), looks at the
-   isometric overview and **first-person screenshots** (`screenshot`, a CPU renderer: what a
-   player sees from the spawn point or any spot), and fixes what it sees.
+3. `spawn.mjs` starts as the **template for the spawn type**: the generator's own layout
+   (normal, spawn+ or PvP) written out as a recipe with a `BRIEF` block at the top. Claude sets the
+   brief to the interview answers and **builds it** (`build_recipe`): generator quality from the
+   first build. Then it makes the spawn theirs (the theme's touches, their extra asks, custom
+   structures), looking at the isometric overview and **first-person screenshots** after every
+   change (`screenshot`, a CPU renderer: what a player sees from the spawn point or any spot) and
+   fixing what it sees.
 4. It delivers `.schem` / `.litematic` and a setup sheet with the NPC, hologram, crate and
    WorldGuard commands.
 

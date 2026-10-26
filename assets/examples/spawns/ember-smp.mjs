@@ -1,60 +1,101 @@
-// Ember SMP — a hand-built NORMAL spawn (FreshSMP-style), autumn theme, 220 x 220.
-//
-// What the user asked for (the interview):
-//   type normal, 10 NPCs, autumn, accent orange, leaderboards Money / Kills / Playtime,
-//   crates Vote / Common / Rare / Legendary, top-3 pillars for Top Spenders and Baltop,
-//   an RTP gate, a PvP ruin, raised areas and rocks "here and there", no block-letter signs.
+// Ember SMP — the NORMAL spawn template (FreshSMP-style): a big flat plaza with the NPCs on quartz
+// plinths in rings round the spawn, trees in grass beds, the boards and crates out in the open, a ring
+// of big buildings, woodland beyond. This is the generator's normal layout written out as a recipe:
+// change the BRIEF block and the whole layout follows (ring sizes, plaza, canvas, extras); then make it
+// yours below it (the theme's touches, the user's extra asks, anything the screenshots say).
 //
 // The plan (top view, north up; players spawn in the middle facing north):
 //
 //                 street ring, then a ring of big buildings facing the plaza
 //            [top3]   (boards + podium)   [top3]
 //                  .   o  o  o  o  o   .              o = NPC on a quartz plinth
-//     (crates)   tree   o   SPAWN   o   tree          inner ring r 12 (6 NPCs)
-//     arc of 4          o         o          ===> PvP ruin behind a red line
-//                  tree   o  o  o   tree              outer ring r 22 (4 NPCs)
+//     (crates)   tree   o   SPAWN   o   tree          inner ring r 12 (up to 6 NPCs)
+//     arc               o         o          ===> PvP ruin behind a red line
+//                  tree   o  o  o   tree              outer ring r 22+ (the rest)
 //                        (RTP gate)
 //                    path south to the wild
 //
-// Numbers (references/spawns/build-guide.md §3): NPCs 6 apart along a ring, the inner ring r 12, the
-// outer r 22, path mouths 9 wide; the paved plaza r 40 (Rp), its kerb, a 5-wide street ring to r 45,
-// the buildings from r 47; feature trees between the rings on the diagonals; boards 6 in from the
-// plaza rim to the north, crates 6 in from the rim to the west. Everything in town is flat.
+// The numbers (references/spawns/build-guide.md §4a): NPCs 6 apart along a ring, the inner ring r 12
+// broken by four 9-wide path mouths, the outer ring wide enough for the rest (r >= 22); the paved plaza
+// Rp = max(40, R2 + 14) with a 5-wide street ring; the buildings from Rp + 7; feature trees between
+// the rings on the diagonals; boards 6 in from the rim north, crates 6 in from the rim west, top-3
+// pillars either side of the boards; canvas = 2 x (Rp + 70). Everything in town is flat.
 //
-// Build:  node scripts/run-build.mjs assets/examples/spawns/ember-smp.mjs --out-dir minecraft-builds/ember-smp
+// Build: node scripts/run-build.mjs assets/examples/spawns/ember-smp.mjs --out-dir minecraft-builds/ember-smp
 // (in a spawn folder made with new_spawn the imports read './parts/...').
 
-import { startSpawn, finishSpawn, polar, facingToward, findSpot } from '../../spawn-parts/spawn.mjs'
+import { startSpawn, finishSpawn, polar, facingToward } from '../../spawn-parts/spawn.mjs'
 import { buildSite, paveRound, pavePath } from '../../spawn-parts/site.mjs'
 import { ringPoints, npcPlinth, grassBed } from '../../spawn-parts/plaza.mjs'
 import { boardsPlaza, crateCourt, top3Pillars } from '../../spawn-parts/features.mjs'
 import { building } from '../../spawn-parts/buildings.mjs'
-import { featureTree, lamp, bench, bushAt, clutter, pvpArena, rockOutcrop, landscapePass } from '../../spawn-parts/landscape.mjs'
+import { featureTree, lamp, bench, bushAt, clutter, pvpArena, afkPark, landscapePass } from '../../spawn-parts/landscape.mjs'
+import { buildExtras, extrasRoom, planGround, planLandmarks } from '../../spawn-parts/extras.mjs'
+import { koth, moshpit, warzoneBand } from '../../spawn-parts/warzone.mjs'
+import { signStand } from '../../spawn-parts/signs.mjs'
 
-// ------------------------------------------------------------------ the brief, as answered
-const NPCS = [
-  { id: 'shop', label: 'Shop' }, { id: 'auction', label: 'Auction House' }, { id: 'kits', label: 'Kits' },
-  { id: 'store', label: 'Store' }, { id: 'quests', label: 'Quests' }, { id: 'sell', label: 'Sell' },
-  { id: 'warps', label: 'Warps' }, { id: 'events', label: 'Events' }, { id: 'vote', label: 'Vote' },
-  { id: 'tutorial', label: 'Start Here' },
-]
-const BOARDS = [{ id: 'money', label: 'Money' }, { id: 'kills', label: 'Kills' }, { id: 'playtime', label: 'Playtime' }]
-const CRATES = [
-  { id: 'vote', label: 'Vote', tier: 'vote' }, { id: 'common', label: 'Common', tier: 'common' },
-  { id: 'rare', label: 'Rare', tier: 'rare' }, { id: 'legendary', label: 'Legendary', tier: 'legendary' },
-]
-const TOP3 = [{ id: 'spenders', label: 'Top Spenders' }, { id: 'baltop', label: 'Baltop' }]
+// ================================================================== the brief (edit this block)
+const BRIEF = {
+  name: 'Ember SMP',
+  theme: 'autumn', // autumn, medieval, white-town, japanese, winter, fantasy, crimson, tropical
+  accent: 'orange', // one dye colour, never gold
+  setting: 'plains', // plains (flat, best for normal spawns), island, valley, mountain, coast
+  seed: 7, // another number = another variation
+  size: null, // blocks across the spawn; null = recommended for the program
+  npcs: [
+    { id: 'shop', label: 'Shop' }, { id: 'auction', label: 'Auction House' }, { id: 'kits', label: 'Kits' },
+    { id: 'store', label: 'Store' }, { id: 'quests', label: 'Quests' }, { id: 'sell', label: 'Sell' },
+    { id: 'warps', label: 'Warps' }, { id: 'events', label: 'Events' }, { id: 'vote', label: 'Vote' },
+    { id: 'tutorial', label: 'Start Here' },
+  ],
+  boards: [{ id: 'money', label: 'Money' }, { id: 'kills', label: 'Kills' }, { id: 'playtime', label: 'Playtime' }],
+  crates: [
+    { id: 'vote', label: 'Vote', tier: 'vote' }, { id: 'common', label: 'Common', tier: 'common' },
+    { id: 'rare', label: 'Rare', tier: 'rare' }, { id: 'legendary', label: 'Legendary', tier: 'legendary' },
+  ],
+  top3: [{ id: 'spenders', label: 'Top Spenders' }, { id: 'baltop', label: 'Baltop' }], // 0-4 pillar sets
+  rtp: true, // the RTP gate south
+  pvp: true, // the PvP ruin east
+  afk: false, // an AFK garden pool outside the town
+  landmarks: [], // 'volcano', 'lighthouse', 'ship', 'statue', 'giant-tree', 'giant-palm', 'rock-spires', 'rock-arch'
+  bigTrees: 0, // giant trees round the town
+  terraces: 4, // raised areas (1-4 blocks, smooth) in the free ground
+  rocks: 8, // rock outcrops here and there
+  warzone: null, // e.g. { width: 56, moshpit: true, koth: true, label: 'Warzone' }
+  signs: null, // block-letter titles, e.g. { style: 'classic', outline: true, thick: false }; null = holograms only
+}
+
+// ================================================================== the layout's numbers
+const SPACING = 6 // blocks of arc between NPCs
+const MOUTH = 9 // a path mouth through a ring
+const R1 = 12 // the inner NPC ring
+// the inner ring takes what fits between the 4 mouths; the outer ring the rest (it also skips the
+// boards' and the crates' sectors); the plaza reaches 14 past the outer ring
+function ringsOf(N) {
+  const c1 = Math.floor((2 * Math.PI * R1 - 4 * MOUTH) / SPACING)
+  const n1 = Math.min(N, c1)
+  const n2 = N - n1
+  const outerShare = (360 - 2 * 44 - 2 * 12) / 360
+  const R2 = n2 ? Math.max(22, Math.ceil((n2 * SPACING) / (2 * Math.PI * outerShare))) : 22
+  return { n1, n2, R2, Rp: Math.max(40, R2 + 14) }
+}
 
 export default function build(api) {
-  const ctx = startSpawn(api, { name: 'Ember SMP', size: 220, height: 100, theme: 'autumn', accent: 'orange', setting: 'plains', seed: 7 })
-  const { b, kit, theme, FY, C, S, grid, rng, M } = ctx
+  const B = BRIEF
+  const N = B.npcs.length
+  const { n1, n2, R2, Rp } = ringsOf(N)
+  const kinds = [...B.landmarks, ...Array.from({ length: B.bigTrees }, () => (B.theme === 'tropical' ? 'giant-palm' : 'giant-tree'))]
+  const big = extrasRoom(kinds)
+  const recommended = Math.ceil((2 * Math.max(Rp + 70, big ? Rp + 16 + 2 * big : 0)) / 4) * 4
+  const spawnS = Math.max(120, Math.min(320, B.size ?? recommended))
+  const W = B.warzone ? B.warzone.width ?? 56 : 0 // a warzone band round the spawn square
+  const ctx = startSpawn(api, { name: B.name, size: spawnS + 2 * W, height: 100, theme: B.theme, accent: B.accent, setting: B.setting, seed: B.seed })
+  const { b, theme, FY, C, S, grid, rng, M } = ctx
   const [cx, cz] = C
+  if (B.size && B.size < recommended - 8) ctx.warn(`size ${B.size} is small for ${N} NPCs; ${recommended} is recommended`)
 
   // ================================================================ 1. plan (no blocks yet)
-  const R1 = 12 // inner NPC ring
-  const R2 = 22 // outer NPC ring
-  const Rp = 40 // the paved plaza
-  const islandR = S / 2 - 3
+  const islandR = spawnS / 2 - 3 // the spawn square (the warzone, if any, lies outside it)
   ctx.layout.plaza = { cx, cz, r: Rp + 5 } // the plaza plus the street ring stays flat at FY
   grid.reserveDisc(cx, cz, Rp + 5.5, 'plaza')
   // the four corridors out stay free of buildings
@@ -69,47 +110,61 @@ export default function build(api) {
     pads.push({ x0: s.x0, z0: s.z0, x1: s.x1, z1: s.z1, y: FY, blend: 5 })
     return s
   }
+  const onIsland = (s, r) => [[s.x0, s.z0], [s.x1, s.z0], [s.x0, s.z1], [s.x1, s.z1]].every(([x, z]) => Math.hypot(x - cx, z - cz) < r)
 
-  // NPC rings. 6 fit on the inner ring between the 4 path mouths (9 wide = 21 degrees each at r 12);
-  // the other 4 go on the outer ring, which also skips the boards (north, 44 degrees each side)
-  // and the crates (west). The first NPCs in the list land nearest north, in the first view.
-  const mouth = (9 / (2 * Math.PI * R1)) * 180
-  const inner = ringPoints(ctx, { r: R1, n: 6, skips: [[0, mouth], [90, mouth], [180, mouth], [270, mouth]] })
-  const outer = ringPoints(ctx, { r: R2, n: 4, skips: [[0, 44], [90, 12], [180, 12], [270, 44]] })
+  // NPC rings: the first NPCs in the list land nearest north, in the first view
+  const mouth1 = (MOUTH / (2 * Math.PI * R1)) * 180
+  const inner = ringPoints(ctx, { r: R1, n: n1, skips: [[0, mouth1], [90, mouth1], [180, mouth1], [270, mouth1]] })
+  const outer = ringPoints(ctx, { r: R2, n: n2, skips: [[0, 44], [90, 12], [180, 12], [270, 44]] })
   const npcSpots = [...inner, ...outer]
 
-  // the leaderboards: a row of hologram plinths 6 in from the plaza rim, north, facing the spawn
+  // the open-air sections on the plaza: boards north, crates in an arc west, top-3 sets beside the boards
   const boardsZ = cz - (Rp - 6)
-  // the crates: an arc 6 in from the rim, west, 6 blocks apart along the arc, facing the spawn
   const crateR = Rp - 6
-  const crateStep = (6 / crateR) * (180 / Math.PI)
-  const crates = CRATES.map((crate, i) => {
-    const [x, z] = polar(ctx, 270 + (i - (CRATES.length - 1) / 2) * crateStep, crateR)
+  const crateStep = (SPACING / crateR) * (180 / Math.PI)
+  const crates = B.crates.map((crate, i) => {
+    const [x, z] = polar(ctx, 270 + (i - (B.crates.length - 1) / 2) * crateStep, crateR)
     return { crate, x: Math.round(x), z: Math.round(z), facing: facingToward([x, z], C) }
   })
-  // top-3 pillar sets either side of the boards, on the plaza, facing the spawn
-  const top3 = TOP3.map((t, i) => {
-    const [x, z] = polar(ctx, i === 0 ? -34 : 34, Rp - 6)
+  // top-3 sets beside the boards (+-34 degrees), then +-52; a set that would land on the crate arc
+  // (west, 270 +- its half span, plus a set's own half width of ~9 degrees) moves east instead
+  const crateEnd = 270 + ((B.crates.length - 1) / 2) * crateStep + 18
+  const top3Angles = [-34, 34, 360 - 52 < crateEnd ? 70 : -52, 52]
+  const top3 = B.top3.slice(0, 4).map((t, i) => {
+    const [x, z] = polar(ctx, top3Angles[i], Rp - 6)
     return { ...t, x: Math.round(x), z: Math.round(z), facing: facingToward([x, z], C) }
   })
-  // the RTP gate on the south axis just outside the plaza, the PvP ruin east beyond the street
-  const rtp = slot({ kind: 'rtp', x0: cx - 7, x1: cx + 7, z0: cz + Rp + 1, z1: cz + Rp + 7 })
-  const pvp = slot({ kind: 'pvp', x0: cx + Rp + 8, x1: cx + Rp + 36, z0: cz - 14, z1: cz + 14 }, 3)
+  const rtp = B.rtp ? slot({ kind: 'rtp', x0: cx - 7, x1: cx + 7, z0: cz + Rp + 1, z1: cz + Rp + 7 }) : null
+  const aw = Math.max(22, Math.min(32, Math.round(islandR - Rp - 18)))
+  const pvp = B.pvp ? slot({ kind: 'pvp', x0: cx + Rp + 8, x1: cx + Rp + 8 + aw, z0: cz - Math.floor(aw / 2), z1: cz + Math.ceil(aw / 2) }, 3) : null
   // feature trees on the diagonals between the rings, a little off the exact 45s (hand-placed look)
   const trees = [45, 135, 225, 315].map((a, i) => {
     const [x, z] = polar(ctx, a + rng.range(-6, 6), Math.round((R1 + R2) / 2) + 1)
     return { x: Math.round(x), z: Math.round(z), seed: ctx.seed + i }
   })
+  let afk = null
+  if (B.afk)
+    for (const a of [225, 135, 315, 45]) {
+      const [x, z] = polar(ctx, a, Rp + 36)
+      const s = { kind: 'afk', x0: Math.round(x) - 8, x1: Math.round(x) + 8, z0: Math.round(z) - 8, z1: Math.round(z) + 8 }
+      if (onIsland(s, islandR - 3) && grid.free(s.x0 - 2, s.z0 - 2, s.x1 + 2, s.z1 + 2)) {
+        afk = slot(s, 2)
+        break
+      }
+    }
+  // landmarks and giant trees right behind the street ring, before the buildings (they fill round them)
+  const landmarks = planLandmarks(ctx, { kinds, ring: Rp + 9, islandR })
+  for (const m of landmarks) pads.push({ x0: m.x - m.r, z0: m.z - m.r, x1: m.x + m.r, z1: m.z + m.r, y: FY, blend: 5 })
 
-  // The ring of big buildings round the street (r 47 and out), all facing the plaza. Walk round the
-  // circle placing a house, a hall or now and then a tower, each as big as its kind allows, and step
-  // on by its width plus a gap; when a spot is taken (a corridor, the PvP ruin), push it out or skip.
+  // The ring of big buildings round the street (Rp + 7 and out), all facing the plaza: walk round the
+  // circle placing a hall every third, now and then a tower (never two side by side), houses between,
+  // each as big as its kind allows, stepping on by its width plus a gap; a taken spot (a corridor, the
+  // PvP ruin, a landmark) is pushed out or skipped.
   const houses = []
   let a = rng.range(0, 8)
   for (let k = 0; a < 360; k += 1) {
-    // every third a hall; now and then a tower, never two side by side (cloned neighbours read AI)
     const prev = houses[houses.length - 1]?.kind
-    const kind = k % 3 === 1 ? 'hall' : prev !== 'tower' && rng() < 0.12 ? 'tower' : 'house'
+    const kind = k % 3 === 1 ? 'hall' : prev !== 'tower' && rng() < 0.1 ? 'tower' : 'house'
     const [w, d] = kind === 'hall' ? [19 + 2 * rng.int(0, 2), 13 + 2 * rng.int(0, 1)] : kind === 'tower' ? [9, 9] : [13 + 2 * rng.int(0, 1), 11 + 2 * rng.int(0, 1)]
     let placed = false
     for (const extra of [0, 3, 6]) {
@@ -120,8 +175,7 @@ export default function build(api) {
       const s = { kind, x0: Math.round(x - fw / 2), z0: Math.round(z - fd / 2), facing, y: FY, seed: ctx.seed * 31 + k, storeys: kind === 'hall' ? 2 : kind === 'tower' ? 1 : rng.chance(0.3) ? 3 : 2 }
       s.x1 = s.x0 + fw - 1
       s.z1 = s.z0 + fd - 1
-      const corners = [[s.x0, s.z0], [s.x1, s.z0], [s.x0, s.z1], [s.x1, s.z1]]
-      if (corners.some(([px, pz]) => Math.hypot(px - cx, pz - cz) > islandR - 6) || !grid.free(s.x0 - 3, s.z0 - 3, s.x1 + 3, s.z1 + 3)) continue
+      if (!onIsland(s, islandR - 6) || !grid.free(s.x0 - 3, s.z0 - 3, s.x1 + 3, s.z1 + 3)) continue
       houses.push(slot(s, 2))
       a += ((Math.max(w, d) / 2 + 4) / R) * (180 / Math.PI) * 1.6
       placed = true
@@ -129,35 +183,32 @@ export default function build(api) {
     }
     if (!placed) a += 3
   }
-  // a few one-storey cottages further out where there is room: the town thins toward the wild
+  // one-storey cottages further out where there is room: the town thins toward the wild
   for (const a0 of [20, 70, 110, 160, 200, 250, 290, 340]) {
+    const w = 9 + 2 * rng.int(0, 1)
     const [x, z] = polar(ctx, a0 + rng.range(-8, 8), Rp + 40)
     const facing = facingToward([x, z], C)
-    const s = { kind: 'house', x0: Math.round(x - 5), z0: Math.round(z - 4), facing, y: FY, seed: ctx.seed * 53 + a0, storeys: 1 }
-    s.x1 = s.x0 + 8 + 2 * rng.int(0, 1)
+    const s = { kind: 'house', x0: Math.round(x - w / 2), z0: Math.round(z - 4.5), facing, y: FY, seed: ctx.seed * 53 + a0, storeys: 1 }
+    s.x1 = s.x0 + w - 1
     s.z1 = s.z0 + 8
-    if (Math.hypot(x - cx, z - cz) < islandR - 14 && grid.free(s.x0 - 4, s.z0 - 4, s.x1 + 4, s.z1 + 4)) houses.push(slot(s, 2))
+    if (onIsland(s, islandR - 6) && grid.free(s.x0 - 4, s.z0 - 4, s.x1 + 4, s.z1 + 4)) houses.push(slot(s, 2))
   }
-  // raised areas (1-4 blocks, smooth) and rocks in the ground that is still free: they break up the
-  // flat land between the town and the shore without blocking anything
-  const mounds = []
-  for (let i = 0; i < 4; i += 1) {
-    const r = rng.int(8, 14)
-    const spot = findSpot(ctx, { r: r + 2, ring: [Rp + 14, islandR - r - 4], tag: 'mound', pad: 3 })
-    if (spot) mounds.push({ x: spot.x, z: spot.z, r, h: rng.int(1, 4) })
-  }
-  const rocks = []
-  for (let i = 0; i < 8; i += 1) {
-    const spot = findSpot(ctx, { r: 3, ring: [Rp + 10, islandR - 6], tag: 'rock' })
-    if (spot) rocks.push(spot)
-  }
+  // the warzone's pit and hill: the middle of the band, north-west and south (planned before the band
+  // so its cover keeps clear of them)
+  const lo = W
+  const hi = W + spawnS - 1
+  const pit = B.warzone?.moshpit !== false && W ? { x: Math.round(cx - spawnS / 4), z: Math.round(lo - W / 2), r: Math.min(12, Math.floor(W / 2 - 6)) } : null
+  const hill = B.warzone?.koth !== false && W ? { x: cx + Math.round(spawnS / 6), z: Math.round(hi + W / 2), r: 8 } : null
+  for (const p of [pit, hill]) if (p) pads.push({ x0: p.x - p.r - 3, z0: p.z - p.r - 3, x1: p.x + p.r + 3, z1: p.z + p.r + 3, y: FY, blend: 4 })
+  // raised areas and rocks in what is left (the woodland still grows on the raised areas)
+  const ground = planGround(ctx, { terraces: B.terraces, rocks: B.rocks, islandR, inner: 20 })
 
   // ================================================================ 2. the site
   buildSite(ctx, {
-    plaza: ctx.layout.plaza,
     pads,
-    mounds,
+    mounds: ground.mounds,
     flat: (x, z) => Math.hypot(x - cx, z - cz) < Rp + 34, // the whole town is flat; it rolls only by the rim
+    ...(W ? { shape: 'square', radius: S / 2 - 3 } : {}),
   })
 
   // ================================================================ 3. the plaza
@@ -169,7 +220,7 @@ export default function build(api) {
     cx, cz, r: Rp, kerb: border, wobble: 0.6,
     rings: [
       { r0: 0, r1: 1.5, paint: 'minecraft:chiseled_quartz_block' }, // the rose the players land on
-      { r0: 1.5, r1: 3.5, paint: 'minecraft:smooth_quartz' },
+      { r0: 1.5, r1: 3.5, paint: theme.plinth.includes('quartz') ? 'minecraft:smooth_quartz' : 'minecraft:polished_diorite' },
       { r0: 3.5, r1: 4.6, paint: border },
       { r0: 7.4, r1: 8.4, paint: inlay },
       { r0: R1 - 1.6, r1: R1 + 1.6, paint: border }, // a band under each NPC ring
@@ -181,24 +232,29 @@ export default function build(api) {
   b.spawnPoint([cx, FY, cz], 'north')
 
   // NPCs on quartz plinths, every one facing the spawn
-  NPCS.forEach((npc, i) => npcPlinth(ctx, npc, [npcSpots[i].x, npcSpots[i].z]))
-  // feature trees in grass beds, a bench in front of each bed facing the spawn
+  B.npcs.forEach((npc, i) => npcSpots[i] && npcPlinth(ctx, npc, [npcSpots[i].x, npcSpots[i].z]))
+  // feature trees in grass beds, crowns kept below the boards' line of sight
   for (const t of trees) {
     grassBed(ctx, t.x, t.z, 4)
     ctx.place(featureTree, [t.x, FY, t.z], { size: 'large', seed: t.seed, maxRadius: 8, maxHeight: 16 })
-    const [x, z] = [t.x + Math.sign(cx - t.x) * 6, t.z + Math.sign(cz - t.z) * 6]
-    ctx.place(bench, [x, FY, z], facingToward([x, z], C), { length: 3 })
   }
 
   // ================================================================ 4. the open-air sections
-  ctx.place(boardsPlaza, { cx, z: boardsZ, facing: 'south', boards: BOARDS })
+  if (B.boards.length) ctx.place(boardsPlaza, { cx, z: boardsZ, facing: 'south', boards: B.boards })
   for (const t of top3) ctx.place(top3Pillars, { x: t.x, z: t.z, facing: t.facing, id: t.id, label: t.label })
-  ctx.place(crateCourt, { points: crates.map(c => [c.x, c.z]), facings: crates.map(c => c.facing), crates: crates.map(c => c.crate) })
-  b.portal([cx - 2, FY + 1, cz + Rp + 3], [cx + 2, FY + 5, cz + Rp + 3], { ...M, id: 'rtp', label: 'Random Teleport', kind: 'rtp', facing: 'north' })
-  ctx.place(pvpArena, { ...pvp, y: FY, entrance: 'west' })
-  b.region('pvp', [pvp.x0, FY - 2, pvp.z0], [pvp.x1, FY + 20, pvp.z1], { pvp: 'allow', priority: 20 })
+  if (crates.length) ctx.place(crateCourt, { points: crates.map(c => [c.x, c.z]), facings: crates.map(c => c.facing), crates: crates.map(c => c.crate) })
+  if (rtp) b.portal([cx - 2, FY + 1, cz + Rp + 3], [cx + 2, FY + 5, cz + Rp + 3], { ...M, id: 'rtp', label: 'Random Teleport', kind: 'rtp', facing: 'north' })
+  if (pvp) ctx.place(pvpArena, { ...pvp, y: FY, entrance: 'west' })
+  if (afk) ctx.place(afkPark, { ...afk, y: FY })
+  // block-letter titles only when the user asked for them
+  if (B.signs) {
+    if (crates.length) ctx.place(signStand, 'CRATES', [cx - (Rp - 2), cz], 'east', B.signs)
+    if (B.boards.length) ctx.place(signStand, ctx.kit.signWidth('LEADERBOARDS', 'small') <= 44 ? 'LEADERBOARDS' : 'TOP', [cx, cz - (Rp - 1)], 'south', B.signs)
+    if (pvp) ctx.place(signStand, 'PVP', [pvp.x0 - 3, cz + 9], 'west', B.signs)
+  }
 
-  // ================================================================ 5. the buildings
+  // ================================================================ 5. landmarks, buildings, walks
+  buildExtras(ctx, { landmarks, rocks: ground.rocks, mounds: ground.mounds })
   const doors = []
   for (const h of houses) {
     const res = ctx.place(building, h)
@@ -210,15 +266,25 @@ export default function build(api) {
     const len = Math.hypot(dx, dz)
     pavePath(ctx, [[door[0], door[2]], [cx - (dx / len) * (Rp + 4), cz - (dz / len) * (Rp + 4)]], { width: 3, fray: false })
   }
-  // the corridors out of town (east goes to the PvP ruin's entrance)
+  // the corridors out of town (east goes to the PvP ruin's entrance when there is one)
   const far = islandR - 6
-  pavePath(ctx, [[cx + Rp + 5, cz], [pvp.x0 - 1, cz]], { width: 5 })
-  for (const [dx, dz] of [[0, -1], [0, 1], [-1, 0]])
+  for (const [dx, dz] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
+    if (dx === 1 && pvp) {
+      pavePath(ctx, [[cx + Rp + 5, cz], [pvp.x0 - 1, cz]], { width: 5 })
+      continue
+    }
     pavePath(ctx, [[cx + dx * (Rp + 5), cz + dz * (Rp + 5)], [cx + dx * far + rng.range(-3, 3) * Math.abs(dz), cz + dz * far + rng.range(-3, 3) * Math.abs(dx)]], { width: 5 })
+  }
 
-  // ================================================================ 6. set pieces and life
-  for (const r of rocks) ctx.place(rockOutcrop, [r.x, ctx.site.groundY(r.x, r.z), r.z], { r: rng.range(1.8, 3.2), seed: r.x * 7 + r.z })
-  for (const m of mounds) if (m.r >= 11) ctx.place(featureTree, [m.x, ctx.site.groundY(m.x, m.z), m.z], { size: 'medium', seed: m.x + m.z, maxRadius: 6, maxHeight: 12 })
+  // ================================================================ 6. the warzone (optional)
+  if (W) {
+    if (pit) ctx.place(moshpit, [pit.x, pit.z], { r: pit.r })
+    if (hill) ctx.place(koth, [hill.x, hill.z])
+    ctx.place(warzoneBand, { spawn: [lo, lo, hi, hi], label: B.warzone.label ?? 'Warzone', keepClear: [pit, hill && { ...hill, r: 12 }].filter(Boolean) })
+    b.region('warzone', [0, 0, 0], [S - 1, ctx.H - 1, S - 1], { pvp: 'allow', 'mob-spawning': 'deny', priority: 5 })
+  }
+
+  // ================================================================ 7. lamps, benches, life
   // lamps on the street ring every ~13 blocks, never in a path mouth
   const nLamps = Math.round((2 * Math.PI * (Rp + 2.5)) / 13)
   for (let i = 0; i < nLamps; i += 1) {
@@ -226,6 +292,11 @@ export default function build(api) {
     if ([0, 90, 180, 270].some(m => Math.abs(((ang - m + 540) % 360) - 180) > 174)) continue
     const [x, z] = polar(ctx, ang, Rp + 2.5)
     ctx.place(lamp, [Math.round(x), FY, Math.round(z)], { kind: 'post', seed: i })
+  }
+  // a bench facing the spawn by each tree bed
+  for (const t of trees) {
+    const [x, z] = [t.x + Math.sign(cx - t.x) * 6, t.z + Math.sign(cz - t.z) * 6]
+    ctx.place(bench, [x, FY, z], facingToward([x, z], C), { length: 3 })
   }
   // bushes on the plaza rim between the sections, props beside the houses
   for (const ang of [30, 60, 120, 150, 210, 240, 300, 330]) {
@@ -239,5 +310,5 @@ export default function build(api) {
   // woodland, flowers and path lamps on every column nobody reserved
   ctx.place(landscapePass)
 
-  return finishSpawn(ctx)
+  return finishSpawn(ctx, { safeZone: [lo, lo, hi, hi] })
 }

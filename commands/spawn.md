@@ -14,8 +14,11 @@ Follow the minecraft-builder skill's "Server spawns and lobbies: build them your
 2. Read `references/spawns/build-guide.md` and the closest example in `assets/examples/spawns/`.
    Write the plan (answers, your decisions, canvas size, a top-view sketch with the main numbers)
    and ask "Build this?".
-3. After a yes: `new_spawn` (this plugin's `minecraft` MCP server), then write `spawn.mjs` section
-   by section, calling `build_recipe` after each and looking at the images it returns.
+3. After a yes: `new_spawn` with the type (this plugin's `minecraft` MCP server) gives `spawn.mjs`
+   = that type's template (the generator's layout as a recipe). Set its `BRIEF` block to the answers
+   and `build_recipe` it: that is the generator-quality base. Then make it theirs below the `BRIEF`
+   (the theme's and their extras, custom structures), calling `build_recipe` after each change and
+   looking at the images it returns.
 4. Look and fix: `screenshot` from the player's spots, `render_build` close-ups, `inspect_build`
    (mode "checks"); at least two rounds of fixes after it is "done". The `spawn-critic` agent can
    review it.

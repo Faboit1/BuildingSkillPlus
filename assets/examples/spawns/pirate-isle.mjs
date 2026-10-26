@@ -33,6 +33,7 @@ import { bench, lamp, rockOutcrop, landscapePass } from '../../spawn-parts/lands
 import { LANDMARKS, landmark, palmTree } from '../../spawn-parts/landmarks.mjs'
 import { warzoneBand, moshpit, koth } from '../../spawn-parts/warzone.mjs'
 import { signStand } from '../../spawn-parts/signs.mjs'
+import { planGround } from '../../spawn-parts/extras.mjs'
 
 const NPCS = [
   { id: 'shop', label: 'Shop' }, { id: 'auction', label: 'Auction House' }, { id: 'kits', label: 'Kits' },
@@ -132,18 +133,9 @@ export default function build(api) {
   const pit = { x: Math.round(cx - SPAWN / 4), z: Math.round(lo / 2), r: 12 }
   const hill = { x: Math.round(cx + SPAWN / 6), z: Math.round(hi + W / 2), r: 8 }
   for (const p of [pit, hill]) padFor(p.x - p.r - 2, p.z - p.r - 2, p.x + p.r + 2, p.z + p.r + 2)
-  // raised areas and rocks in the free ground that is left inside the spawn square
-  const mounds = []
-  for (let i = 0; i < 3; i += 1) {
-    const r = rng.int(8, 12)
-    const s = findSpot(ctx, { r: r + 2, ring: [Rp + 14, SPAWN / 2 + 10], tag: 'mound', pad: 3 })
-    if (s) mounds.push({ x: s.x, z: s.z, r, h: rng.int(2, 4) })
-  }
-  const rocks = []
-  for (let i = 0; i < 7; i += 1) {
-    const s = findSpot(ctx, { r: 3, ring: [Rp + 10, SPAWN / 2 + 25], tag: 'rock' })
-    if (s) rocks.push(s)
-  }
+  // raised areas and rocks in the free ground that is left inside the spawn square (the raised areas
+  // are not reserved: the woodland still grows on them)
+  const { mounds, rocks } = planGround(ctx, { terraces: 3, rocks: 7, islandR: SPAWN / 2 + 12, inner: Rp + 12 })
 
   // ================================================================ 2. the site: a rounded-square island
   buildSite(ctx, { shape: 'square', pads, mounds, flat: (x, z) => Math.hypot(x - cx, z - cz) < Rp + 26 })
@@ -198,7 +190,7 @@ export default function build(api) {
   b.region('warzone', [0, 0, 0], [S - 1, ctx.H - 1, S - 1], { pvp: 'allow', 'mob-spawning': 'deny', priority: 5 })
 
   // ================================================================ 7. life
-  for (const r of rocks) ctx.place(rockOutcrop, [r.x, ctx.site.groundY(r.x, r.z), r.z], { r: rng.range(1.8, 3), seed: r.x * 5 + r.z })
+  for (const r of rocks) ctx.place(rockOutcrop, [r.x, ctx.site.groundY(r.x, r.z), r.z], { r: r.r, seed: r.x * 5 + r.z })
   for (let i = 0; i < 16; i += 1) {
     const ang = (i / 16) * 360 + 11
     if ([0, 90, 180, 270].some(m => Math.abs(((ang - m + 540) % 360) - 180) > 172)) continue

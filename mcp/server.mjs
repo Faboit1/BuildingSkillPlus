@@ -149,14 +149,14 @@ const TOOLS = [
   },
   {
     name: 'new_spawn',
-    description: 'Start a hand-built server spawn (the default way to make a spawn, after the interview): creates minecraft-builds/<slug>/ with spawn.mjs (a skeleton recipe to write, or a copy of an example with from), parts/ (your own editable copy of the spawn parts: terrain, plaza pieces, buildings, trees, crates, boards, warzone, landmarks, signs, seasons), examples/ (complete example spawns to read and copy from) and brief.md (write the interview answers and your plan there). Then write spawn.mjs section by section, building with build_recipe and looking at screenshot/render_build after each.',
-    inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'The server name' }, from: { type: 'string', description: 'Optional: start from an example spawn (ember-smp, frost-smp, oakhaven-hub, kirin-practice, pirate-isle...) when the brief is close to it; otherwise leave out and write the layout yourself' }, brief: { type: 'string', description: 'The interview answers and the plan, saved as brief.md' }, out_dir: { type: 'string' }, force: { type: 'boolean', description: 'Overwrite an existing spawn.mjs' } }, required: ['name'] },
-    run: async ({ name, from, brief, out_dir, force }) => {
-      const args = [name, ...(from ? ['--from', from] : []), ...(brief ? ['--brief', brief] : []), ...(out_dir ? ['--out-dir', outPath(out_dir)] : []), ...(force ? ['--force'] : [])]
+    description: 'Start a hand-built server spawn (the default way to make a spawn, after the interview): creates minecraft-builds/<slug>/ with spawn.mjs = the template for the spawn type (normal: ember-smp, plus: oakhaven-hub, pvp: kirin-practice; the generator\'s layout as a recipe, driven by a BRIEF block at its top), parts/ (your own editable copy of the spawn parts), examples/ (every example spawn) and brief.md. Set the BRIEF block to the interview answers and build it with build_recipe: that is the generator-quality base. Then make it the user\'s own (theme touches, their extra asks, custom structures), screenshot, fix, repeat.',
+    inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'The server name' }, type: { type: 'string', enum: ['normal', 'plus', 'pvp'], description: 'The spawn type: picks the template (default normal)' }, from: { type: 'string', description: 'Instead of type: start from any example (ember-smp, frost-smp, oakhaven-hub, kirin-practice, pirate-isle), or "blank" for an empty skeleton (only for a layout none of them has)' }, brief: { type: 'string', description: 'The interview answers and the plan, saved as brief.md' }, out_dir: { type: 'string' }, force: { type: 'boolean', description: 'Overwrite an existing spawn.mjs' } }, required: ['name'] },
+    run: async ({ name, type, from, brief, out_dir, force }) => {
+      const args = [name, ...(type ? ['--type', type] : []), ...(from ? ['--from', from] : []), ...(brief ? ['--brief', brief] : []), ...(out_dir ? ['--out-dir', outPath(out_dir)] : []), ...(force ? ['--force'] : [])]
       const r = await run('new-spawn.mjs', args)
       if (r.code !== 0) return fail((r.err || r.out).slice(-3000))
       const guide = path.join(root, 'references/spawns/build-guide.md')
-      return { content: [text(`${r.out.trim()}\n\nNext: read ${guide} (how every part is built, the numbers) and the closest file in examples/, write the plan in brief.md, then write spawn.mjs and build it with build_recipe after each section.`)] }
+      return { content: [text(`${r.out.trim()}\n\nNext: set the BRIEF block at the top of spawn.mjs to the interview answers and build it with build_recipe (the generator-quality base). Then read ${guide} §7 and make it theirs: the theme touches, their extra asks, custom structures; screenshot after each change.`)] }
     },
   },
   {

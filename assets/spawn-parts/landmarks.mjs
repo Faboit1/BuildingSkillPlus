@@ -27,13 +27,15 @@ import { palmTree, plantTree } from './landscape.mjs'
 
 export { palmTree }
 
+// r is the GROUND a landmark needs (its base, roots, basin): a giant tree's crown spreads wider, but
+// up above the rooftops, so the buildings may stand under its edge
 export const LANDMARKS = {
   volcano: { r: 26 },
   lighthouse: { r: 8 },
   ship: { r: 22 },
-  statue: { r: 9 },
-  'giant-tree': { r: 16 },
-  'giant-palm': { r: 12 },
+  statue: { r: 7 },
+  'giant-tree': { r: 12 },
+  'giant-palm': { r: 8 },
   'rock-spires': { r: 10 },
   'rock-arch': { r: 12 },
 }
@@ -366,8 +368,10 @@ export function ship(ctx, { x, z, y, seed = 1, facing = 'south', kind = 'galleon
 // (body, head, folded wings, a long tail, the hooked beak) with flat colour zones, like the
 // reference parrot: scarlet body, a white face patch, yellow and blue bands on the wings, a long
 // red-and-blue tail hanging below the perch. It looks toward `facing`.
-export function statue(ctx, { x, z, y, seed = 1, facing = 'south', subject = 'parrot' } = {}) {
+export function statue(ctx, { x, z, y, seed = 1, facing = 'south', subject } = {}) {
   const { b, kit } = ctx
+  // a parrot on a tropical island, a knight anywhere else (or say which)
+  subject ??= ctx.theme?.key === 'tropical' ? 'parrot' : 'knight'
   // the plinth: a stepped stone base with a stair skirt and a lantern at each front corner
   const P = 3
   for (let dx = -4; dx <= 4; dx += 1)
@@ -457,7 +461,7 @@ export function giantTree(ctx, { x, z, y, seed = 1, style, height } = {}) {
   const { b, kit } = ctx
   const H = Math.min(height ?? 30 + (seed % 5), ctx.H - y - 6)
   // (a broadleaf crown is ~0.62 of its height in radius: maxR 18 lets it grow to ~29)
-  const res = plantTree(ctx, style, [x, y, z], { size: 'large', seed, height: H, maxR: LANDMARKS['giant-tree'].r + 2 })
+  const res = plantTree(ctx, style, [x, y, z], { size: 'large', seed, height: H, maxR: 18 })
   // buttress roots: 5-7 tapering flanges from the trunk foot down and out into the soil
   const log = /cherry/.test(style) ? 'minecraft:cherry_wood' : /spruce|pine/.test(style) ? 'minecraft:spruce_wood' : /crimson/.test(style) ? 'minecraft:crimson_hyphae' : /oak|autumn/.test(style) ? 'minecraft:dark_oak_wood' : 'minecraft:oak_wood'
   const rng = kit.rng(seed * 7 + 3)

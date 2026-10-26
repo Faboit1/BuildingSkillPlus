@@ -2,15 +2,23 @@
 
 // Start a hand-built spawn: a folder of its own with everything the recipe needs.
 //
-//   node scripts/new-spawn.mjs "Ember SMP"                       → minecraft-builds/ember-smp/
-//   node scripts/new-spawn.mjs "Ember SMP" --from frost-smp      start from an example spawn
+//   node scripts/new-spawn.mjs "Ember SMP"                      → minecraft-builds/ember-smp/ (normal template)
+//   node scripts/new-spawn.mjs "Ember SMP" --type plus          start from the spawn+ template
+//   node scripts/new-spawn.mjs "Ember SMP" --from pirate-isle   start from any example spawn
+//   node scripts/new-spawn.mjs "Ember SMP" --from blank         an empty skeleton (a layout no template has)
+//
+// The templates are the generator's layouts written out as recipes, driven by a BRIEF block at the top
+// (name, theme, NPCs, boards, crates, top-3 sets, landmarks, warzone, signs...): set the brief, build
+// it, and you have the generator's quality; then make it the user's own below the brief.
+//   --type normal → ember-smp      (a big flat plaza, NPC rings, a ring of buildings)
+//   --type plus   → oakhaven-hub   (a town, a building per NPC)
+//   --type pvp    → kirin-practice (a PvP lobby)
 //
 // Writes:
-//   spawn.mjs        the recipe you write (a skeleton with the frame, the imports and the sections;
-//                    with --from, a copy of that example to reshape to the brief)
+//   spawn.mjs        the recipe (a copy of the template, its BRIEF named after the server)
 //   parts/           your own copy of the spawn parts (assets/spawn-parts): edit them freely, e.g.
 //                    snow on a roof style, another crate plinth; they belong to this spawn only
-//   examples/        the example spawns, for reading (their imports point at ../parts)
+//   examples/        every example spawn, for reading (their imports point at ../parts)
 //   brief.md         the interview answers and the plan (--brief "text" fills it)
 // Then build it with run-build (or the plugin's build_recipe tool) and look at the renders.
 
@@ -30,14 +38,21 @@ const opt = name => {
 }
 const examples = fs.readdirSync(EXAMPLES).filter(f => f.endsWith('.mjs')).map(f => f.replace(/\.mjs$/, ''))
 if (!argv.length || argv.includes('--help') || argv.includes('-h')) {
-  console.log(`Usage: node scripts/new-spawn.mjs "<server name>" [--from ${examples.join('|')}] [--out-dir DIR] [--brief "text"] [--force]`)
+  console.log(`Usage: node scripts/new-spawn.mjs "<server name>" [--type normal|plus|pvp] [--from ${examples.join('|')}|blank] [--out-dir DIR] [--brief "text"] [--force]`)
   process.exit(argv.length ? 0 : 1)
 }
-const name = argv.find((a, i) => !a.startsWith('--') && !['--from', '--out-dir', '--brief'].includes(argv[i - 1])) ?? 'Spawn'
+const name = argv.find((a, i) => !a.startsWith('--') && !['--from', '--out-dir', '--brief', '--type'].includes(argv[i - 1])) ?? 'Spawn'
 const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'spawn'
-const from = opt('--from')
+const TEMPLATES = { normal: 'ember-smp', plus: 'oakhaven-hub', pvp: 'kirin-practice' }
+const type = opt('--type')
+if (type && !TEMPLATES[type]) {
+  console.error(`new-spawn: --type is normal, plus or pvp (got "${type}")`)
+  process.exit(1)
+}
+let from = opt('--from') ?? TEMPLATES[type ?? 'normal']
+if (from === 'blank') from = null
 if (from && !examples.includes(from)) {
-  console.error(`new-spawn: no example "${from}" (examples: ${examples.join(', ')})`)
+  console.error(`new-spawn: no example "${from}" (examples: ${examples.join(', ')}, or blank)`)
   process.exit(1)
 }
 const dir = path.resolve(opt('--out-dir') ?? path.join(process.cwd(), 'minecraft-builds', slug))
@@ -55,7 +70,10 @@ for (const ex of examples) fs.writeFileSync(path.join(dir, 'examples', `${ex}.mj
 
 if (from) {
   let src = relink(fs.readFileSync(path.join(EXAMPLES, `${from}.mjs`), 'utf8'), './parts/')
-  src = `// ${name}: started from the example ${from}.mjs. Reshape every section to this server's brief\n// (brief.md): the program, the layout, the theme, the details. Build: see brief.md.\n\n${src}`
+  // the template's brief carries the new server's name
+  src = src.replace(/(const BRIEF = \{\s*\n\s*name: )'[^']*'/, `$1${JSON.stringify(name).replace(/^"|"$/g, "'")}`)
+  const templ = Object.values(TEMPLATES).includes(from)
+  src = `// ${name}: started from the ${templ ? 'template' : 'example'} ${from}.mjs. ${templ ? 'Set the BRIEF block to the interview answers and build: that is the\n// generator-quality base. Then make it this server\'s own below the brief' : 'Reshape every section to this server\'s brief'} (brief.md).\n\n${src}`
   fs.writeFileSync(recipe, src)
 } else fs.writeFileSync(recipe, skeleton(name))
 const briefFile = path.join(dir, 'brief.md')
@@ -63,7 +81,7 @@ if (!fs.existsSync(briefFile) || opt('--brief')) fs.writeFileSync(briefFile, `# 
 
 const rel = p => path.relative(process.cwd(), p) || '.'
 console.log(`${name}: ${rel(dir)}/
-  spawn.mjs   ${from ? `a copy of ${from}.mjs to reshape` : 'the skeleton to write'}
+  spawn.mjs   ${from ? `${from}.mjs: set its BRIEF, build, then make it yours` : 'the skeleton to write'}
   parts/      ${fs.readdirSync(path.join(dir, 'parts')).length} part files (yours to edit)
   examples/   ${examples.join(', ')}
   brief.md    the brief and the plan`)

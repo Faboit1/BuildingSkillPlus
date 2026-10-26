@@ -17,10 +17,10 @@ Read with it:
 
 | Example | Type | Shows |
 | --- | --- | --- |
-| `ember-smp.mjs` | normal, round plaza, autumn, 220 | NPC rings on plinths, trees in grass beds, open-air boards + podium, top-3 pillars, crate arc, RTP gate, PvP ruin, a ring of big buildings, raised areas, rocks |
+| `ember-smp.mjs` | **the normal template** (BRIEF-driven): round plaza, autumn, 220 | NPC rings on plinths, trees in grass beds, open-air boards + podium, top-3 pillars, crate arc, RTP gate, PvP ruin, a ring of big buildings, raised areas, rocks; options: landmarks, giant trees, AFK pool, warzone, signs |
 | `frost-smp.mjs` | normal, square plaza, winter, 180 | NPC lines along an aisle, a hand-written hero (a decorated spruce), cabins round a square, an AFK pond, `snowfall` |
-| `oakhaven-hub.mjs` | spawn+ town, medieval, 192 | ring road, lot bands, a building per NPC, hero wall with the name in quartz letters, crate yard with a CRATES sign, corner gardens, stalls |
-| `kirin-practice.mjs` | PvP lobby, japanese, 112 | spawn dais, queue NPCs on pedestals in an arc, boards with top-3 pillars, FFA arena, pavilion and pagoda |
+| `oakhaven-hub.mjs` | **the spawn+ template** (BRIEF-driven): town, medieval | ring road, lot bands, a building per NPC, hero wall with the name in quartz letters, crate yard with a CRATES sign, corner gardens, stalls; the same options |
+| `kirin-practice.mjs` | **the PvP template** (BRIEF-driven): lobby, japanese, 112 | spawn dais, queue NPCs on pedestals in an arc, boards with top-3 pillars, FFA arena, pavilion and pagoda; landmarks, signs |
 | `pirate-isle.mjs` | normal + warzone, tropical | landmarks (volcano, ship, lighthouse, giant palms, statue), a warzone band with a moshpit and a KOTH hill, colourful block-letter signs |
 
 ## 1. The workflow
@@ -29,14 +29,18 @@ Read with it:
 2. **Plan on paper first.** Write `brief.md`: the answers, then a top-view sketch with the main
    coordinates (the plaza radius, the rings, where each section goes, the canvas size). Most bad
    spawns are bad plans; fixing a plan costs nothing.
-3. **`new_spawn`** makes the folder (`spawn.mjs` skeleton, `parts/`, `examples/`, `brief.md`).
-4. **Write `spawn.mjs` in sections, building after each one** (`build_recipe`): site and plaza →
-   NPCs, boards, crates → buildings → set pieces and planting → seasons/details. Look at what it
-   returns (the overview and the spawn-point screenshot) every time, and take more screenshots of
-   whatever you just built.
-5. **Critique** (§10) and fix, at least two rounds after it is "done". The `spawn-critic` agent
+3. **`new_spawn` with the type** makes the folder with `spawn.mjs` = the type's template (the
+   generator's layout as a recipe: normal `ember-smp`, spawn+ `oakhaven-hub`, PvP `kirin-practice`),
+   `parts/`, `examples/` and `brief.md`.
+4. **Set its `BRIEF` block and build it** (`build_recipe`): that is the generator-quality base; the
+   layout adapts to the program by itself.
+5. **Make it theirs below the `BRIEF`**, building after each change: the theme's and the user's
+   extras (§6-7), and whatever the screenshots show. Look at what `build_recipe` returns (the
+   overview and the spawn-point screenshot) every time, and take more screenshots of whatever you
+   just changed.
+6. **Critique** (§9) and fix, at least two rounds after it is "done". The `spawn-critic` agent
    gives a second opinion.
-6. **Deliver**: `build_recipe` with `export: true`, the setup sheet, the screenshots.
+7. **Deliver**: `build_recipe` with `export: true`, the setup sheet, the screenshots.
 
 ## 2. The canvas and the frame
 

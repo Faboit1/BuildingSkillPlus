@@ -34,13 +34,15 @@ export function hubOf(brief) {
     return Object.values(centre).reduce((s, w) => s + 2 * Math.max(0, Math.floor(((Lb - w) / 2 - 3 + 2) / 13)), 0) + 4
   }
   let P = 36
-  while (capacity(P) < N && P < 200) P += 2
+  // (2 spare: the lot widths are random, a band can come out one lot short)
+  while (capacity(P) < N + 2 && P < 200) P += 2
   return { P, heroW, crateW, half: P / 2 + ROAD + BAND }
 }
 export const recommendSize = brief => {
   const { half } = hubOf(brief)
   const big = extrasRoom(brief)
-  return 2 * Math.max(half + 40, big ? half + 10 + 2 * big : 0)
+  // the town is square: its corners reach half x 1.42, and landmarks go on the diagonals beyond them
+  return 2 * Math.max(half + 40, big ? Math.round(half * 1.42) + 8 + 2 * big : 0)
 }
 
 export function plan(ctx) {
@@ -166,7 +168,7 @@ export function plan(ctx) {
     }
   }
   L.spoke = spoke
-  planExtras(ctx, L, { ring: half + 6 })
+  planExtras(ctx, L, { ring: Math.round(half * 1.42) + 2 })
   planGround(ctx, L)
   for (const s of L.slots) L.pads.push({ x0: s.x0, z0: s.z0, x1: s.x1, z1: s.z1, y: s.y, blend: 5 })
   // the whole town (plaza, road, lots) is level; the land rolls outside it
