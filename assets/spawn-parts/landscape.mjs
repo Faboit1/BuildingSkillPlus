@@ -3,7 +3,7 @@
 // Contract (see index.mjs for ctx). Every position is [x, y, z] with y = the GROUND block level (the
 // block you stand on); things start at y + 1.
 //   featureTree(ctx, [x, y, z], { size: 'large' | 'medium' | 'small', seed, style, maxRadius, maxHeight }) → { radius, height }
-//     styles: autumn | oak | cherry | snowy_spruce | spruce | blossom | pine | birch | dark_oak | azalea
+//     styles: autumn | oak | cherry | snowy_spruce | spruce | blossom | pine | birch | dark_oak | azalea | palm
 //     (default theme.trees.feature). The crown stays within maxRadius (default large 10, medium 7,
 //     small 4.5): in a tight spot a smaller tree of the same shape is planted; maxHeight caps the
 //     height (e.g. the pair framing the hero, so their crowns stay below the name sign in the spawn
@@ -496,6 +496,99 @@ const SIZE_H = { large: [15, 19], medium: [9, 12], small: [6, 8] }
 const HUES = ['red', 'orange', 'gold', 'mixed', 'orange']
 const WOOD_HUES = ['red', 'orange', 'gold', 'rust', 'late', 'orange', 'red', 'rust']
 
+// A palm: a curved, ringed trunk leaning away from a random side, a crown of drooping fronds, cocoa
+// "coconuts" under the crown. height 7-12 for a landscape palm; giant: true (20-28) is the landmark
+// version, with a thick tapering trunk, a root flare and broad 3-wide fronds.
+//   palmTree(ctx, [x, y, z], { height, lean, seed, giant }) → { radius, top, cells }
+// The trunk bends more near the top (palms lean, then turn up toward the light); fronds rise a
+// little from the crown, then fall away in an arc whose tips hang 2-6 below it.
+export function palmTree(ctx, [x, y, z], { height, lean, seed = 0, giant = false } = {}) {
+  const { b, kit } = ctx
+  const rng = kit.rng(seed * 53 + 11)
+  const H = height ?? (giant ? rng.int(21, 27) : rng.int(7, 11))
+  const ang = rng.range(0, TAU)
+  const L = lean ?? H * rng.range(giant ? 0.16 : 0.18, giant ? 0.26 : 0.34)
+  // the trunk line: an offset growing with the square of the height (the bend sits up top), and a
+  // slight turn back toward vertical in the last fifth
+  const pts = []
+  const N = Math.max(4, Math.round(H / 2))
+  for (let i = 0; i <= N; i += 1) {
+    const t = i / N
+    const off = L * (t * t * 1.15 - 0.15 * Math.max(0, t - 0.8) * 5 * t)
+    pts.push([x + 0.5 + Math.cos(ang) * off, y + 1 + t * H, z + 0.5 + Math.sin(ang) * off])
+  }
+  const top = pts[pts.length - 1].map(Math.floor)
+  // ringed bark: jungle log with a band of wood every 2-3 blocks reads as the palm's leaf scars
+  const ring = (px, py, pz) => (py % 3 === 0 ? 'minecraft:jungle_wood' : py % 3 === 1 ? 'minecraft:jungle_log[axis=y]' : 'minecraft:stripped_jungle_log[axis=y]')
+  if (giant) {
+    b.tubeAlong(pts, s => 1.75 - 0.85 * s, ring)
+    // the root flare: short stubby roots splaying from the base into the ground
+    for (let k = 0; k < 6; k += 1) {
+      const a = ang + (k / 6) * TAU + rng.range(-0.3, 0.3)
+      const r = rng.range(2.5, 3.6)
+      b.tubeAlong([[x + 0.5, y + 2.2, z + 0.5], [x + 0.5 + Math.cos(a) * r * 0.6, y + 1.2, z + 0.5 + Math.sin(a) * r * 0.6], [x + 0.5 + Math.cos(a) * r, y, z + 0.5 + Math.sin(a) * r]], s => 0.95 - 0.1 * s, 'minecraft:jungle_wood')
+    }
+  } else {
+    // one block thick: walk the line finely and set every cell it passes, face-connected
+    let prev = null
+    for (let i = 1; i < pts.length; i += 1) {
+      const [a, c] = [pts[i - 1], pts[i]]
+      const steps = Math.ceil(Math.hypot(c[0] - a[0], c[1] - a[1], c[2] - a[2]) * 3)
+      for (let k = 0; k <= steps; k += 1) {
+        const q = [a[0] + ((c[0] - a[0]) * k) / steps, a[1] + ((c[1] - a[1]) * k) / steps, a[2] + ((c[2] - a[2]) * k) / steps].map(Math.floor)
+        if (prev && prev[0] !== q[0] && prev[2] !== q[2]) b.set(q[0], prev[1], prev[2], ring(q[0], prev[1], prev[2]))
+        if (prev && prev[1] !== q[1] && (prev[0] !== q[0] || prev[2] !== q[2])) b.set(q[0], prev[1], q[2], ring(q[0], prev[1], q[2]))
+        b.set(q[0], q[1], q[2], ring(...q))
+        prev = q
+      }
+    }
+  }
+  // the crown: fronds of jungle leaves (a few darker acacia/oak leaves for depth), 3 wide at the
+  // base on a giant, 1 wide on a normal palm, rising then drooping
+  const cells = []
+  const leaf = (px, py, pz, k) => {
+    const id = k < 0.12 ? 'minecraft:oak_leaves' : k < 0.2 ? 'minecraft:acacia_leaves' : 'minecraft:jungle_leaves'
+    if (!b.get(px, py, pz) || /leaves/.test(b.nameAt(px, py, pz) ?? '')) {
+      b.set(px, py, pz, `${id}[persistent=true]`)
+      cells.push([px, py, pz])
+    }
+  }
+  const nF = giant ? rng.int(9, 11) : rng.int(6, 8)
+  const Lf = giant ? rng.range(10, 12.5) : rng.range(4, 5.8)
+  const rise = giant ? 2.4 : 1.1
+  const droop = giant ? 6.5 : 3.2
+  const [tx, ty, tz] = [top[0] + 0.5, top[1] + 0.5, top[2] + 0.5]
+  for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1) if (Math.abs(dx) + Math.abs(dz) <= (giant ? 2 : 1)) leaf(top[0] + dx, top[1] + 1, top[2] + dz, 0.5)
+  for (let f = 0; f < nF; f += 1) {
+    const a = (f / nF) * TAU + rng.range(-0.25, 0.25)
+    const len = Lf * rng.range(0.85, 1.12)
+    const [ux, uz] = [Math.cos(a), Math.sin(a)]
+    for (let s = 0; s <= len; s += 0.33) {
+      const t = s / len
+      const h = rise * Math.sin(Math.PI * Math.min(1, t * 1.4)) * (1 - t) - droop * t * t
+      const px = tx + ux * s
+      const py = ty + 1 + h
+      const pz = tz + uz * s
+      const k = kit.hash01(Math.floor(px), Math.floor(py), Math.floor(pz), seed + f)
+      leaf(Math.floor(px), Math.floor(py), Math.floor(pz), k)
+      // broad at the base, narrowing to the tip; a giant's frond also gets a lower edge row
+      const w = giant ? (t < 0.55 ? 1.6 : t < 0.8 ? 1 : 0) : t > 0.2 && t < 0.6 ? 0.7 : 0
+      if (w > 0)
+        for (const side of [-1, 1]) {
+          const qx = Math.floor(px - uz * side * w)
+          const qz = Math.floor(pz + ux * side * w)
+          leaf(qx, Math.floor(py - (giant && t > 0.3 ? 1 : 0)), qz, k)
+        }
+    }
+  }
+  // coconuts: cocoa pods on the trunk just under the crown, facing the log they hang on
+  for (const [dx, dz, f] of [[1, 0, 'west'], [-1, 0, 'east'], [0, 1, 'north'], [0, -1, 'south']]) {
+    if (kit.hash01(top[0] + dx, top[1], top[2] + dz, seed + 7) < (giant ? 0.75 : 0.5) && !b.get(top[0] + dx, top[1] - 1, top[2] + dz) && /jungle/.test(b.nameAt(top[0], top[1] - 1, top[2]) ?? ''))
+      b.set(top[0] + dx, top[1] - 1, top[2] + dz, `minecraft:cocoa[age=2,facing=${f}]`)
+  }
+  return { radius: Lf + L * 0.5, top: top[1] + 3, cells }
+}
+
 // Plant one tree of a named style. Returns { radius, top, cells } (cells = foliage, for snow/litter).
 export function plantTree(ctx, name, [x, y, z], { size = 'medium', seed = 0, height, maxR, maxH, hues = HUES } = {}) {
   const { b, kit } = ctx
@@ -581,6 +674,8 @@ export function plantTree(ctx, name, [x, y, z], { size = 'medium', seed = 0, hei
       if (snow) snowOn(ctx, cells)
       return { radius: 4, top: t.top[1] + 3, cells }
     }
+    case 'palm':
+      return palmTree(ctx, [x, y, z], { seed, height: big ? Math.round(H * 1.1) : small ? Math.max(6, Math.round(H * 0.7)) : H })
     case 'azalea': {
       const t = b.tree(base, 'azalea', { seed, height: Math.max(4, Math.round(H * 0.6)) })
       return { radius: 3.5, top: t.top[1] + 3, cells: [] }
@@ -711,6 +806,7 @@ const PROP_STYLE = {
   winter: { lamp: 'wood', stone: 'cobblestone', brick: 'stone_brick', rim: 'log', soil: { podzol: 2, coarse_dirt: 1, snow_block: 1 } },
   fantasy: { lamp: 'birch', stone: 'mossy_cobblestone', brick: 'mossy_stone_brick', rim: 'mossy', soil: { moss_block: 2, grass_block: 2, rooted_dirt: 1 } },
   crimson: { lamp: 'wood', stone: 'blackstone', brick: 'polished_blackstone_brick', rim: 'brick', soil: { crimson_nylium: 3, podzol: 1, rooted_dirt: 1 } },
+  tropical: { lamp: 'wood', stone: 'sandstone', brick: 'sandstone', rim: 'log', soil: { grass_block: 3, sand: 1, coarse_dirt: 1 } },
 }
 
 function mats(ctx) {
@@ -897,7 +993,7 @@ export function planter(ctx, [x, y, z], { r = 2, tree = true, seed = 0, style } 
 }
 function smallTreeFor(ctx) {
   const f = ctx.theme?.trees?.feature
-  return { autumn: 'autumn', cherry: 'cherry', blossom: 'blossom', snowy_spruce: 'spruce', oak: 'azalea', pine: 'pine', crimson: 'crimson' }[f] ?? 'azalea'
+  return { autumn: 'autumn', cherry: 'cherry', blossom: 'blossom', snowy_spruce: 'spruce', oak: 'azalea', pine: 'pine', crimson: 'crimson', palm: 'palm' }[f] ?? 'azalea'
 }
 
 // A round fountain: a stone rim around a basin, a column carrying a small bowl of water, sea
@@ -940,6 +1036,8 @@ export function well(ctx, [x, y, z], { facing = 'south' } = {}) {
   const { b, kit } = ctx
   const m = mats(ctx)
   const roof = kit.material(ctx.theme?.roof && kit.material(ctx.theme.roof).stairs ? ctx.theme.roof : m.wood)
+  // the rim: the stone with a few mossy blocks, when the stone has a mossy variant (not every one does)
+  const mossy = kit.material(m.S.block)?.mossy
   for (let dx = -2; dx <= 2; dx += 1)
     for (let dz = -2; dz <= 2; dz += 1) {
       if (Math.abs(dx) === 2 && Math.abs(dz) === 2) continue
@@ -949,7 +1047,7 @@ export function well(ctx, [x, y, z], { facing = 'south' } = {}) {
       if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
         for (let k = 3; k >= 1; k -= 1) b.set(px, y - k, pz, k === 3 ? 'minecraft:gravel' : 'minecraft:water')
         b.set(px, y, pz, 'minecraft:water')
-      } else b.set(px, y + 1, pz, kit.hash01(px, y, pz, 6) < 0.3 ? `minecraft:mossy_${bare(m.S.block).replace(/^mossy_/, '')}` : m.S.block)
+      } else b.set(px, y + 1, pz, mossy && kit.hash01(px, y, pz, 6) < 0.3 ? mossy : m.S.block)
     }
   const [ax, az] = across(facing)
   for (const s of [-2, 2]) {
@@ -1636,6 +1734,7 @@ const BUSH_LEAVES = {
   fantasy: [['flowering_azalea_leaves', 3], ['azalea_leaves', 2], ['cherry_leaves', 1]],
   'white-town': [['oak_leaves', 3], ['azalea_leaves', 2], ['flowering_azalea_leaves', 1]],
   crimson: [['dark_oak_leaves', 3], ['oak_leaves', 1]],
+  tropical: [['jungle_leaves', 3], ['azalea_leaves', 1], ['flowering_azalea_leaves', 1]],
 }
 
 // A bush: a squat leaf lobe around a log heart, the theme's leaf mix in clumps.
@@ -1883,7 +1982,7 @@ export function landscapePass(ctx) {
   let forestArea = 0
   for (let i = 0; i < N; i += 1) if (canopy[i] && cls[i] === 0) forestArea += 1
   const nLogs = Math.round(forestArea / 450)
-  const logId = { autumn: 'dark_oak_log', japanese: 'spruce_log', winter: 'spruce_log', fantasy: 'birch_log', 'white-town': 'oak_log', crimson: 'crimson_stem' }[key] ?? 'oak_log'
+  const logId = { autumn: 'dark_oak_log', japanese: 'spruce_log', winter: 'spruce_log', fantasy: 'birch_log', 'white-town': 'oak_log', crimson: 'crimson_stem', tropical: 'jungle_log' }[key] ?? 'oak_log'
   for (let tries = 0, made = 0; tries < nLogs * 30 && made < nLogs; tries += 1) {
     const x = rng.int(4, S - 5)
     const z = rng.int(4, S - 5)

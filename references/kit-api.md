@@ -464,7 +464,7 @@ The functions that take the builder are also Builder methods (`b.paintRoad(path,
 ## Spawn & lobby kit
 
 Server spawns, hubs and PvP lobbies (`scripts/lib/kit/spawn.mjs`; full example
-`minecraft-builds/spawnkit-demo/spawnkit-demo.mjs`). Each component is built with depth (plinths,
+`assets/examples/spawn-kit-demo.mjs`). Each component is built with depth (plinths,
 stair skirts, reveals, cornices) and lights itself with a fixture or a light set behind tinted glass,
 never a bare light block in view. Components that a plugin has to finish **record a placement**
 (NPC spots, hologram anchors, crate blocks, portal triggers, regions, the world spawn); `finish()`

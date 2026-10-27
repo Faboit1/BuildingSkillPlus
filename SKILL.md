@@ -8,141 +8,163 @@ description: Design and generate high-quality Minecraft builds — above all ser
 **Paths.** Everything this skill mentions (`scripts/`, `references/`, `assets/`) is inside this
 skill's own folder, `${CLAUDE_SKILL_DIR}` (the folder holding this SKILL.md; in the plugin it is the
 plugin root, `${CLAUDE_PLUGIN_ROOT}`). Read files and run scripts with that prefix, e.g.
-`node "${CLAUDE_SKILL_DIR}/scripts/make-spawn.mjs"`. Builds are written to `minecraft-builds/` in the
+`node "${CLAUDE_SKILL_DIR}/scripts/run-build.mjs"`. Builds are written to `minecraft-builds/` in the
 user's current folder.
 
-**Server spawn, lobby or hub?** Follow the five steps in the next section: an interview, a brief,
-one tool call (`make_spawn`), a look at the images, delivery.
+**What kind of job is it?**
 
-**Anything else:** you write a JavaScript **recipe** with the building kit, export a vanilla structure
-`.nbt`, then **render it and look at the PNGs**. Quality comes from that loop. The building craft itself —
-proportions, depth, palettes, roofs, styles, landscaping, lighting — lives in
-`references/building/`. Read `references/building/README.md` (the handbook) before every build.
+| The user wants | You do |
+| --- | --- |
+| A server spawn, lobby or hub | build it yourself from a template: the six steps below. This is the main use |
+| "Use the generator", "a quick one" | `make_spawn` with a brief (the end of the next section) |
+| Any other build (a house, a castle, a statue, terrain...) | write a recipe with the building kit, render, critique, repeat ("The loop" below); read `references/building/README.md` first |
 
-## Server spawns and lobbies: use the generator (the main use)
+## Server spawns and lobbies: build them yourself
 
-For a server spawn, lobby or hub, **do not hand-write a recipe**. Follow these five steps exactly.
-The generator builds the whole spawn from a short brief: island terrain, the plaza, NPC places,
-leaderboards with the server name, crates, the RTP gate, the PvP zone, themed buildings, trees and
-lighting, already spawn-proofed, plus the plugin setup sheet and renders.
+You are the build team. The spawn manual, `references/spawns/build-guide.md`, holds everything:
+what makes a spawn great (with the numbers), the templates and how to change them safely, every
+part, tested code for what users ask for ("a winter version", "add a market", "their own theme"),
+how to look at your build like a player, and delivery. Read its §1-§4 before your first spawn and
+keep it open while you work.
 
-### Step 0: pick your tools
+**The templates.** `new_spawn` starts every spawn from the template for its type: the generator's
+own layout written out as a recipe, so the first build is already as good as the generator. Each has
+a **BRIEF** block (what this server is: theme, NPCs, boards, crates, options) and a **CUSTOM** block
+(what you add: `plan`, `build`, `finish`). You change those two, and the layout adapts by itself.
 
-- **Plugin tools (preferred).** This plugin's MCP server `minecraft` gives you `spawn_options`,
-  `make_spawn`, `rebuild_spawn`, `render_build`, `inspect_build`, `convert_build` and `build_recipe`
-  (in Claude Code they are named like `mcp__plugin_minecraft-builder_minecraft__make_spawn`). Their
-  results include the renders as images, so you see the spawn straight away.
-- **Scripts (same results, when the tools are not listed, e.g. in claude.ai chat).** Check with
-  `node "${CLAUDE_SKILL_DIR}/scripts/make-spawn.mjs" --help` (Node 20.19+; the dependencies are
-  bundled in `scripts/node_modules`, nothing to install). Only if that fails because the folder is
-  incomplete: `git clone https://github.com/Faboit1/BuildingSkillPlus` and use its `scripts/`.
-
-### Step 1: interview (never skip, never build from a one-line request)
-
-Use the `AskUserQuestion` tool. Mark the option you recommend with "(Recommended)".
-
-Call `spawn_options` first (scripts: read `assets/spawn-briefs/*.json` and the table in Step 2):
-it lists the themes, settings, NPC ids and the recommended size for an NPC count.
-
-**Round 1** (one call, four questions):
-1. **Type**: *Normal spawn* (FreshSMP-like: one beautiful round plaza on good terrain, the NPCs in a
-   ring; best for most SMPs) / *Spawn+* (DonutSMP-like: a town where every NPC has its own building) /
-   *PvP lobby* (queue NPCs in an arc, an FFA arena).
-2. **Size** in blocks: *Recommended for the NPC count* / 100 x 100 / 150 x 150 / 220 x 220.
-3. **How many NPCs**: e.g. 6 / 8 / 12 / 16 (the user can type any number).
-4. **Theme**: autumn / medieval / white-town / japanese / winter / fantasy / crimson (dark red,
-   nether-like; good for lifesteal). One question shows at most 4 options: offer the 3 that fit their
-   server best plus "Other", and list all seven in the question text.
-
-**Round 2** (one call): the **server name** (block letters on the hero wall), **which NPCs**
-(multiSelect from the type's list below, or they type their own), **which leaderboards**
-(multiSelect: Money, Kills, Playtime, Blocks Mined, Deaths, Votes / for PvP: Elo, Wins, Streak),
-**which crates** (multiSelect: Vote, Common, Rare, Epic, Legendary, Seasonal).
-
-**Round 3** (one call, follow-ups): the **setting** (island / valley / mountain / coast / plains),
-an **accent colour** (blue, red, orange, purple, cyan...; never gold), **extras** (PvP zone, AFK
-area, RTP gate; multiSelect), and **where it goes** (paste corner and world name, or "centred on 0,0").
-
-Then show the brief as JSON and ask "Build this?". Build only after a yes.
-
-### Step 2: write the brief
-
-The brief is a small JSON object (the `brief` argument of `make_spawn`; with the scripts, save it as
-`minecraft-builds/<slug>/brief.json`). Only `name` and `type` are required; leave out what the user
-did not decide (good defaults fill it). Examples: `assets/spawn-briefs/*.json`.
-
-| Field | Values | Default |
+| Type | Template | The idea |
 | --- | --- | --- |
-| `name` | the server name | `"Spawn"` |
-| `type` | `"normal"`, `"plus"`, `"pvp"` | `"normal"` |
-| `size` | blocks across (square) | recommended for the NPC count |
-| `npcs` | a number, or a list of ids/labels: `["shop", "auction", "rtp"]` or `[{ "id": "crates_guy", "label": "Crate Keys" }]` | 7 / 12 / 6 |
-| `theme` | `autumn`, `medieval`, `white-town`, `japanese`, `winter`, `fantasy`, `crimson` | `medieval` (pvp: `japanese`) |
-| `setting` | `island`, `plains`, `valley`, `mountain`, `coast` | the theme's |
-| `accent` | a dye colour: `blue`, `red`, `orange`, `purple`, `cyan`, `lime`... | the theme's |
-| `leaderboards` | a number or labels: `["Money", "Kills", "Playtime"]` | 3 (plus: 4) |
-| `crates` | a number, labels, or `[{ "id", "label", "tier" }]` (tiers: common, uncommon, rare, epic, legendary, mythic, vote, seasonal) | 4 (pvp: 2) |
-| `features` | `{ "rtp": true, "pvp": true, "afk": false, "signs": true }` | rtp; pvp zone except in a pvp lobby; afk in spawn+; signs |
-| `seed` | any number: a different variation of the same brief | 7 |
-| `origin` | `[x, y, z]` where the minimum corner is pasted | centred on 0, 0 at y 64 |
-| `world` | the world name used in the setup commands | `"world"` |
+| `normal` | `ember-smp` | FreshSMP-like: a big flat plaza, NPCs on plinths in rings round the spawn, boards and crates in the open, a ring of big buildings. Best for most SMPs |
+| `plus` | `oakhaven-hub` | DonutSMP-like: a town round a square hub, every NPC its own building, the name on a hero wall |
+| `pvp` | `kirin-practice` | a compact PvP lobby: queue NPCs in an arc facing the spawn dais, an FFA arena |
 
-A look that is not one of the themes (e.g. "ocean", "desert", "candy"): pick the closest theme, set
-`accent` to their colour, tell the user which theme you used, and add the missing touches in Step 4's
-`after(ctx)` (extra trees, statues, banners in their colour).
+Two showcases to borrow from: `frost-smp` (a square winter plaza with a hand-written Christmas tree
+and `snowfall`) and `pirate-isle` (a tropical island with landmarks and a warzone).
 
-NPC ids the generator knows (any other id works too and becomes its own label):
-normal/plus: `shop, auction, rtp, store, kits, quests, sell, warps, events, bounties, teams,
-tutorial, afk, vote, duels, enchanter`; pvp: `unranked, ranked, ffa, kits, events, store, duels, bots`.
+### Step 0: your tools
 
-### Step 3: generate
+- **Plugin tools (preferred).** This plugin's MCP server `minecraft`: `new_spawn` (the spawn folder),
+  `build_recipe` (build it; returns the report, the overview and the view from the spawn point),
+  `screenshot` (what a player sees, from any spot), `render_build` (isometric views and close-ups),
+  `inspect_build` (lint), `convert_build`. In Claude Code they are named like
+  `mcp__plugin_minecraft-builder_minecraft__build_recipe`. Their results include images: look at them.
+- **Scripts (the same results, when the tools are not listed, e.g. in claude.ai chat):**
+  `node "${CLAUDE_SKILL_DIR}/scripts/new-spawn.mjs" "<name>" --type normal|plus|pvp`,
+  `run-build.mjs <spawn.mjs> --out-dir <folder> --json`, `screenshot.mjs <file.nbt> --spawn` (or
+  `--shots '<json>'`), `isorender.mjs <file.nbt> --out x.png` (Node 20.19+; the dependencies are
+  bundled in `scripts/node_modules`, nothing to install). Read the PNGs with the Read tool. Only if the
+  folder is incomplete: `git clone https://github.com/Faboit1/BuildingSkillPlus` and use its `scripts/`.
 
-Call `make_spawn` with `{ "brief": { ... } }`. With the scripts:
+### Step 1: the interview (never skip it, never build from a one-line request)
 
-```bash
-node "${CLAUDE_SKILL_DIR}/scripts/make-spawn.mjs" minecraft-builds/<slug>/brief.json
-```
+Use the `AskUserQuestion` tool, up to 4 questions per call. **Every question has a "Let Claude
+decide" option** (then you choose what fits their server and say what you chose in the plan). Mark
+the option you recommend with "(Recommended)". The user can always type their own answer. Skip what
+their request already answered.
 
-Either way it reports every file it wrote (`.recipe.mjs`, `.nbt`, `.schem`, `.litematic`, `.placements.json`,
-`.setup.md`, `renders/*.png`), the world spawn, the NPC list and any warnings. A warning that the size
-is small: raise `size` (or leave it out) and run again.
+**Round 1** (one call):
+1. **Type**: *Normal spawn* (a big flat plaza, the NPCs on plinths in rings round the spawn, boards
+   and crates in the open, big buildings all round; best for most SMPs) / *Spawn+* (a town, every NPC
+   its own building) / *PvP lobby* (queue NPCs in an arc, an arena) / *Surprise me* (you pick everything).
+2. **Size** in blocks: *Let Claude decide* (from the NPC count: ~220 normal, ~190 spawn+, ~110 PvP) /
+   160 x 160 / 220 x 220 / 300 x 300.
+3. **How many NPCs**: 6 / 10 / 14 / Let Claude decide (they can type any number).
+4. **Theme**: the 3 themes that fit their server best + Let Claude decide; list all eight in the
+   question text: autumn, medieval, white-town, japanese, winter, fantasy, crimson (dark red,
+   nether-like; lifesteal), tropical (palms, sand; pirate islands). Any other look (desert, candy,
+   sci-fi) becomes your own theme built on the closest one (manual §9.2).
 
-### Step 4: look at the renders, fix, rebuild
+**Surprise me:** ask only the server name, then pick everything at random. Roll real dice
+(`node -e "console.log(Math.random())"` per choice, so two surprises differ): type, theme, setting,
+accent, NPC count and the options of rounds 3-4. Say what the dice picked in the plan.
 
-Look at the images `make_spawn` returned, and open the other PNGs in `minecraft-builds/<slug>/renders/`
-with the Read tool (overviews from two sides, the plaza close-up and, if Playwright is installed, the
-eye-level spawn view); `render_build` makes more views (another corner, `px` 6-8 with a `box` crop). Check: the name sign reads;
-the plaza, the NPC places, the boards and the crates are visible and not buried in trees; nothing
-floats or overlaps. Leaderboard text, NPC names and crate titles are holograms set up from
-`setup.md`, so renders show only the dark board backdrops, the plinths and the chests: that is
-expected. Then lint it with `inspect_build` (mode `checks`) on `minecraft-builds/<slug>/<slug>.nbt`,
-or `node "${CLAUDE_SKILL_DIR}/scripts/inspect.mjs" minecraft-builds/<slug>/<slug>.nbt --checks`.
+**Round 2** (one call): the **server name**, **which NPCs** (multiSelect: shop, auction, kits, store,
+quests, sell, warps, events, vote, tutorial / PvP: unranked, ranked, FFA, kit editor, duels, events),
+**which leaderboards** (multiSelect: Money, Kills, Playtime, Blocks Mined, Votes / PvP: Elo, Wins,
+Streak), **which crates** (multiSelect: Vote, Common, Rare, Epic, Legendary, Seasonal). Each with Let
+Claude decide.
 
-Only `flat-walls` and `palette-size` notes are normal for a spawn; anything else (floating blocks,
-support, plant-soil, fluids) is worth fixing in `after(ctx)`. (In `--score`, "base columns over air"
-is always high for a floating island; ignore it.) To change something:
-- Different look of the same plan: change `seed` (or `theme`, `setting`, `accent`) in the brief and
-  run Step 3 again.
-- Hand additions (a statue, an extra tree, a fountain...): edit `after(ctx)` in
-  `minecraft-builds/<slug>/<slug>.recipe.mjs` (it has the builder `ctx.b`, `ctx.FY` = plaza floor
-  level, `ctx.C` = spawn column, `ctx.layout` = every slot) and rebuild with `rebuild_spawn`
-  (`node "${CLAUDE_SKILL_DIR}/scripts/make-spawn.mjs" --recipe minecraft-builds/<slug>/<slug>.recipe.mjs`).
-- A second opinion: the plugin's `spawn-critic` agent reviews the renders and lint against the
-  spawn handbook and returns ranked fixes.
+**Round 3** (one call, the options; all optional):
+1. **Top-3 pillars** (the top 3 players as statues on pillars): *Top Spenders + Baltop* / *Baltop
+   only* / *None* / *Let Claude decide*.
+2. **Warzone** (a PvP band round the spawn behind a red line): *No* / *Warzone with a moshpit and a
+   KOTH hill* / *Warzone only* / *Let Claude decide*.
+3. **Big things round the spawn** (multiSelect): *Giant trees* / *Landmarks* (volcano, ship,
+   lighthouse, a giant statue, rock spires or an arch) / *Raised areas and rocks* / *Let Claude decide*.
+4. **Section signs** in block letters (real spawns mostly use holograms): *No, holograms only
+   (Recommended)* / *Short* (small quartz letters) / *Colourful* (concrete and terracotta) / *Let
+   Claude decide*.
 
-### Step 5: deliver
+**Round 4** (only what is still open): the **setting** (plains / island / valley / mountain / coast),
+the **accent colour** (one dye; never gold), **extras** (RTP gate, PvP ruin, AFK pool, anything of
+their own: a market, a statue of their mascot, a building for something; multiSelect), **where it
+goes** (the world and the paste corner, or "centred on 0, 0"). For signs: outline and thick text. For
+landmarks: which ones.
 
-Give the user: the `.schem` (WorldEdit/FAWE) and `.litematic` (Litematica), the `.setup.md` (world
-spawn, Citizens/FancyNpcs NPCs, DecentHolograms, crates, WorldGuard regions with ready commands), and
-the renders. Tell them the paste corner and the world spawn printed in Step 3.
+### Step 2: the plan (show it, get a yes)
 
-To go beyond the generator (a hand-built spawn, a custom layout), read `references/spawns/README.md`
-(the spawn handbook: interview, program, measured numbers, anti-AI checklist) and use the spawn kit
-(`references/kit-api.md` → "Spawn & lobby kit"); `assets/examples/spawn-kit-demo.mjs` uses every part.
+Write the plan into `brief.md` (manual §2 has an example): the answers and what you decided, which
+BRIEF field or CUSTOM piece each answer becomes, the canvas size, and a top-view sketch with the
+main numbers (the rings or the town, where each section, landmark and extra goes, the first view
+from the spawn). Show it and ask "Build this?".
+
+### Step 3: the base
+
+1. `new_spawn` with `name`, `type` (`normal`, `plus` or `pvp`) and `brief` (the plan). It makes
+   `minecraft-builds/<slug>/` with `spawn.mjs` (the template), `parts/` (your own editable copy of
+   the spawn parts), `examples/` and `brief.md`.
+2. **Set the BRIEF block** to the answers (manual §4.1 lists every field) and build with
+   `build_recipe`. The layout adapts to the BRIEF (the rings, the town's plaza, the canvas), so never
+   hand-edit layout numbers to fit a different program. Fix every `problems`, `clipped` and warning
+   line before going on.
+
+### Step 4: make it theirs
+
+Everything the BRIEF cannot say goes in the **CUSTOM block** (manual §4.3-§4.4):
+
+- `plan(ctx, L)`: reserve the ground of each piece (`findSpot`, `L.slot`); return what you planned.
+  In the normal template it runs before the buildings, so they fill round your pieces.
+- `build(ctx, L, mine)`: build them, before the landscape pass (the woodland grows round them).
+- `finish(ctx, L, mine)`: seasonal passes (`snowfall`, `leafLitter`) and last touches.
+
+The manual's cookbook (§8) maps every common request to its change, with tested code: a gateway
+arch framing the first view, a market square, a building of their own with its NPC, a statue, a
+winter version, the crates on the other side, a theme of their own. Add one piece at a time, build
+after each, look at the images every time.
+
+### Step 5: look like a player, fix, repeat
+
+`build_recipe` returns the overview and the spawn view. Take more with `screenshot` from the
+player's spots (manual §10.1: the positions come from `<slug>.placements.json`): in front of the
+crates, at the boards, at the plaza rim looking back, at the gate, each of your pieces, one high
+view; `render_build` close-ups (`px` 6-9 with a `box`, `ymin` to cut the island away). Check every
+picture against manual §10.2 and the handbook's don't-look-AI checklist (`references/spawns/README.md`
+§5), lint with `inspect_build` (`checks`), fix, rebuild. At least two rounds after you think it is
+done. The plugin's `spawn-critic` agent gives a second opinion with ranked fixes.
+
+Later requests ("make a winter version", "add more stuff", "move the crates", "bigger") are edits to
+the same `spawn.mjs`: the cookbook says which.
+
+### Step 6: deliver
+
+`build_recipe` with `export: true`, `origin` (the world block where the schematic's minimum corner
+goes) and `world` writes the `.schem` (WorldEdit/FAWE), `.litematic` (Litematica) and `.setup.md`
+(world spawn, NPCs, holograms, crates, WorldGuard regions, ready commands). Give them those files,
+3-4 screenshots, the paste corner and the world spawn (manual §12 has the note to send). Leaderboard
+text, NPC names and crate titles are holograms from `setup.md`, so the build shows only their
+plinths and boards: that is expected.
+
+### The quick generator (only when the user asks for it)
+
+`make_spawn` builds a whole spawn from a JSON brief in one call (fixed layouts: normal, spawn+,
+PvP), `rebuild_spawn` rebuilds its editable `<slug>.recipe.mjs`, `spawn_options` lists what the
+brief takes (themes, settings, NPC ids, top3, warzone, landmarks, bigTrees, terraces, rocks,
+surprise, signs). Scripts: `node "${CLAUDE_SKILL_DIR}/scripts/make-spawn.mjs" brief.json`. Examples of
+briefs are in `assets/spawn-briefs/`.
 
 ## Setup (only for the browser renderer)
 
-Building, inspecting, converting, `make-spawn` and `scripts/isorender.mjs` work out of the box: their
+Building, inspecting, converting, `new-spawn`, `make-spawn`, `screenshot.mjs` and `isorender.mjs` work out of the box: their
 one dependency (Lodestone) is bundled in `scripts/node_modules/lodestone`. Only `scripts/render.mjs`
 and `preview.mjs` (perspective renders, the eye-level spawn view, the interactive viewer) need more:
 run `npm install` in the skill folder, then `npx playwright install chromium` if no Chromium is found.
@@ -214,7 +236,7 @@ other chapters when the build needs them.
 | Task | Read |
 | --- | --- |
 | Any build | `references/building/README.md` (laws, workflow, scale tiers, cheat sheets) |
-| Server spawn, lobby, hub, PvP lobby | the five steps above (`scripts/make-spawn.mjs`); for hand-built spawns `references/spawns/README.md`, then `corpus-study.md`, `design-research.md`, `case-studies.md` |
+| Server spawn, lobby, hub, PvP lobby | the steps above, the spawn manual `references/spawns/build-guide.md`, the templates in `assets/examples/spawns/`, the spawn handbook `references/spawns/README.md`; research: `corpus-study.md`, `design-research.md`, `case-studies.md` |
 | Judging and fixing your renders | `references/building/quality-and-critique.md` |
 | Numeric targets (distinct ids, partial-block %, lights, contrast) per style and size | `references/building/benchmarks.md` |
 | What skilled community builders do differently (measured idioms, cross-sections) | `references/building/community-lessons.md` |
@@ -260,6 +282,11 @@ exact numbers.
 | `walled-village.mjs` | settlement planning with `kit.plan`: roads, lots, curtain wall, plaza, skyline |
 | `celestial-forge.mjs` | the original raw-API example (no kit) |
 | `spawn-kit-demo.mjs` | a compact SMP spawn using every spawn-kit component: leaderboard wall with podium, crate arcade, NPC pedestal/alcove/booth/kiosk, RTP gate, signs, spawn-proofing, placements export |
+| `spawns/ember-smp.mjs` | **the normal template** (round plaza, autumn): NPC rings, open-air boards and crates, top-3 pillars, a ring of buildings; BRIEF + CUSTOM |
+| `spawns/frost-smp.mjs` | hand-built normal spawn (square plaza, winter): a hand-written hero tree, cabins, `snowfall` |
+| `spawns/oakhaven-hub.mjs` | **the spawn+ template**: a town with a building per NPC, a hero wall with the name, a crate yard; BRIEF + CUSTOM |
+| `spawns/kirin-practice.mjs` | **the PvP template**: a dais, a queue arc, an FFA arena; BRIEF + CUSTOM |
+| `spawns/pirate-isle.mjs` | hand-built tropical island: landmarks, a warzone with a moshpit and KOTH, colourful signs |
 
 ## Facts that prevent most mistakes
 

@@ -111,7 +111,8 @@ const slug = brief.slug
 const node = process.execPath
 const stderrLines = []
 const run = (args, label) => {
-  const r = spawnSync(node, args, { cwd: root, encoding: 'utf8', maxBuffer: 1 << 28 })
+  // big spawns (a warzone canvas) hold millions of blocks: give the build steps room
+  const r = spawnSync(node, ['--max-old-space-size=6144', ...args], { cwd: root, encoding: 'utf8', maxBuffer: 1 << 28 })
   if (r.stderr) stderrLines.push(...r.stderr.split('\n').filter(Boolean))
   if (r.status !== 0) {
     console.error(`make-spawn: ${label} failed\n${(r.stderr || r.error?.message || '').slice(-4000)}`)

@@ -1,4 +1,7 @@
-// The spawn generator: one brief in, a finished server spawn out.
+// The spawn generator: one brief in, a finished server spawn out. It is the quick path, used when the
+// user asks for it; by default the AI hand-builds each spawn with the same parts
+// (assets/spawn-parts/, references/spawns/build-guide.md). The layouts and the brief live here; the
+// terrain, buildings, trees, crates, boards and set pieces are the shared parts.
 //
 //   import { generateSpawn } from './scripts/lib/spawngen/index.mjs'
 //   export default api => generateSpawn(api, { name: 'CheeseSMP', type: 'normal', npcs: 8, theme: 'autumn' })
@@ -32,10 +35,12 @@
 //   place(fn, ...)         run a module function and keep going if it throws (logs a warning)
 
 import { normalizeBrief, TYPES } from './brief.mjs'
-import { resolveTheme } from './themes.mjs'
-import { buildSite } from './site.mjs'
-import { landscapePass } from './landscape.mjs'
-import { cleanupSpawn } from './cleanup.mjs'
+import { resolveTheme } from '../../../assets/spawn-parts/themes.mjs'
+import { buildSite } from '../../../assets/spawn-parts/site.mjs'
+import { landscapePass } from '../../../assets/spawn-parts/landscape.mjs'
+import { cleanupSpawn } from '../../../assets/spawn-parts/cleanup.mjs'
+import { createGrid } from '../../../assets/spawn-parts/spawn.mjs'
+import { buildWarzone } from './warzone.mjs'
 import * as normal from './layout-normal.mjs'
 import * as plus from './layout-plus.mjs'
 import * as pvp from './layout-pvp.mjs'
@@ -49,7 +54,8 @@ export function resolveBrief(input) {
   if (raw?.size == null) {
     const T = TYPES[brief.type]
     brief.size = Math.max(T.min, Math.min(T.max, Math.ceil(LAYOUTS[brief.type].recommendSize(brief) / 4) * 4))
-    if (raw?.origin == null) brief.origin = [-Math.floor(brief.size / 2), 64, -Math.floor(brief.size / 2)]
+    const half = Math.floor(brief.size / 2) + (brief.warzone?.width ?? 0)
+    if (raw?.origin == null) brief.origin = [-half, 64, -half]
   } else {
     const rec = LAYOUTS[brief.type].recommendSize(brief)
     if (brief.size < rec - 8) warnings.push(`size ${brief.size} is small for ${brief.npcs.length} NPCs in a ${brief.type} spawn; ${Math.ceil(rec / 4) * 4} is recommended`)
@@ -61,8 +67,11 @@ export function createContext(api, input) {
   const { brief, warnings } = resolveBrief(input)
   const theme = resolveTheme(brief.theme, brief.accent)
   if (brief.setting) theme.setting = brief.setting
+  else if (brief.type === 'normal') theme.setting = 'plains' // normal spawns sit on flat ground
   const { kit } = api
-  const S = brief.size
+  // the canvas: the spawn square, plus the warzone band all round it when there is one
+  const W = brief.warzone ? brief.warzone.width : 0
+  const S = brief.size + 2 * W
   const H = brief.height
   const b = api.builder([S, H, S], { seed: brief.seed })
   const rng = kit.rng(brief.seed * 7919 + 13)
@@ -78,6 +87,8 @@ export function createContext(api, input) {
   }
   const ctx = {
     api, kit, b, brief, theme, rng, seed, S, H, FY, C,
+    spawnS: brief.size, // the spawn square's side (the layouts plan inside it)
+    W, // the warzone band's width (0 without one)
     M: { ...theme.kit, light: theme.light },
     paint,
     warnings: [...warnings],
@@ -102,75 +113,25 @@ export function createContext(api, input) {
   return ctx
 }
 
-// Occupancy grid: one tag per column. Layouts reserve the footprint of every slot (plus a pad), so
-// the woodland, flowers and later slots keep off them.
-export function createGrid(S) {
-  const cells = new Array(S * S).fill(null)
-  const clamp = v => Math.max(0, Math.min(S - 1, v))
-  const each = (x0, z0, x1, z1, fn) => {
-    const [ax, bx] = [clamp(Math.min(x0, x1)), clamp(Math.max(x0, x1))]
-    const [az, bz] = [clamp(Math.min(z0, z1)), clamp(Math.max(z0, z1))]
-    for (let x = ax; x <= bx; x += 1) for (let z = az; z <= bz; z += 1) if (fn(x, z) === false) return false
-    return true
-  }
-  return {
-    S,
-    reserve(x0, z0, x1, z1, tag = 'used', pad = 0) {
-      each(Math.round(x0) - pad, Math.round(z0) - pad, Math.round(x1) + pad, Math.round(z1) + pad, (x, z) => {
-        cells[x + S * z] ??= tag
-      })
-    },
-    reserveDisc(cx, cz, r, tag = 'used') {
-      each(Math.floor(cx - r), Math.floor(cz - r), Math.ceil(cx + r), Math.ceil(cz + r), (x, z) => {
-        if (Math.hypot(x - cx, z - cz) <= r) cells[x + S * z] ??= tag
-      })
-    },
-    reserveCell(x, z, tag = 'used') {
-      if (x >= 0 && z >= 0 && x < S && z < S) cells[x + S * z] ??= tag
-    },
-    free(x0, z0, x1, z1) {
-      return each(Math.round(x0), Math.round(z0), Math.round(x1), Math.round(z1), (x, z) => (cells[x + S * z] === null ? true : false))
-    },
-    tag(x, z) {
-      if (x < 0 || z < 0 || x >= S || z >= S) return 'outside'
-      return cells[x + S * z]
-    },
-  }
-}
-
-// Local frames for anything placed at an angle around the spawn: angle 0 = north (forward, the way
-// players look when they spawn), clockwise in degrees, so 90 = east, 180 = south, 270 = west.
-export function polar(ctx, angleDeg, r) {
-  const a = (angleDeg * Math.PI) / 180
-  return [ctx.C[0] + Math.sin(a) * r, ctx.C[1] - Math.cos(a) * r]
-}
-export function facingToward(from, to) {
-  const dx = to[0] - from[0]
-  const dz = to[1] - from[1]
-  if (Math.abs(dx) >= Math.abs(dz)) return dx > 0 ? 'east' : 'west'
-  return dz > 0 ? 'south' : 'north'
-}
-// Minecraft yaw that looks from `from` to `to` (south 0, west 90, north 180, east -90)
-export function yawToward(from, to) {
-  const dx = to[0] - from[0]
-  const dz = to[1] - from[1]
-  let yaw = (Math.atan2(-dx, dz) * 180) / Math.PI
-  if (yaw <= -180) yaw += 360
-  return Math.round(yaw * 10) / 10
-}
+// the grid and the angle helpers are the shared frame's (assets/spawn-parts/spawn.mjs)
+export { createGrid, polar, facingToward, yawToward } from '../../../assets/spawn-parts/spawn.mjs'
 
 export function generateSpawn(api, input, opts = {}) {
   const ctx = createContext(api, input)
   const { b, brief, S, H } = ctx
   const L = LAYOUTS[brief.type]
   ctx.layout = L.plan(ctx)
+  if (ctx.W) Object.assign(ctx.layout, { siteR: S / 2 - 3, shape: 'square' }) // the island carries the warzone too
   ctx.site = buildSite(ctx)
   L.build(ctx)
+  if (brief.warzone) ctx.place(buildWarzone)
   ctx.place(landscapePass)
   if (opts.after) opts.after(ctx)
   const cleaned = ctx.place(cleanupSpawn) ?? 0
   // gameplay regions: the whole spawn is safe; layouts add pvp / afk regions with a higher priority
-  b.region('spawn', [0, 0, 0], [S - 1, H - 1, S - 1], { pvp: 'deny', 'mob-spawning': 'deny', 'fall-damage': 'deny', 'item-drop': 'deny', priority: 10 })
+  const W = ctx.W
+  b.region('spawn', [W, 0, W], [W + ctx.spawnS - 1, H - 1, W + ctx.spawnS - 1], { pvp: 'deny', 'mob-spawning': 'deny', 'fall-damage': 'deny', 'item-drop': 'deny', priority: 10 })
+  if (W) b.region('warzone', [0, 0, 0], [S - 1, H - 1, S - 1], { pvp: 'allow', 'mob-spawning': 'deny', priority: 5 })
   const land = ctx.site.land
   for (const w of ctx.warnings) b.warnings.push(`spawngen: ${w}`)
   const result = b.finish({

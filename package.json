@@ -1,6 +1,6 @@
 {
   "name": "minecraft-builder-skill",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Agent skill for designing high-quality Minecraft builds: a JavaScript building kit, vanilla structure/schematic export, headless renders and a builder's handbook.",
   "license": "Apache-2.0",
   "type": "module",
@@ -52,7 +52,10 @@
     "gallery": "node scripts/dev/gallery.mjs",
     "test:spawns": "node scripts/dev/spawngen-smoke.mjs",
     "spawn": "node scripts/make-spawn.mjs",
-    "package:plugin": "bash scripts/dev/package-plugin.sh"
+    "package:plugin": "bash scripts/dev/package-plugin.sh",
+    "test:examples": "node scripts/dev/spawn-examples-smoke.mjs",
+    "new-spawn": "node scripts/new-spawn.mjs",
+    "test:screenshot": "node scripts/dev/screenshot-selftest.mjs"
   },
   "dependencies": {
     "@mattzh72/lodestone": "0.6.0",

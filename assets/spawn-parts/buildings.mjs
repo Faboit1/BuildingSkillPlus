@@ -139,6 +139,20 @@ const STYLES = {
     flowers: ['crimson_fungus', 'crimson_roots', 'red_tulip', 'poppy'],
     props: ['barrel', 'logs', 'pots', 'composter'], rug: ['red_carpet', 'black_carpet'],
   },
+  // tropical: jungle-wood frames over white plaster on a mossy stone plinth, steep bamboo thatch with
+  // jungle bargeboards and a deep overhang (shade), shutters in the accent, porches common
+  tropical: {
+    system: 'timber', ground2: 'timber', single: 'timber', quoin: 'frame',
+    infill: { white_terracotta: 5, calcite: 2, birch_planks: 1 },
+    plinth: { mossy_cobblestone: 3, cobblestone: 1, sandstone: 1 }, plinthH: 1, skirt: 'sandstone',
+    postEvery: 3, jetty: 0, porch: 0.6,
+    roof: { type: 'gable', profile: 'steep', material: 'bamboo', barge: 'jungle', overhang: 2 },
+    gable: { kind: 'boards', field: 'bamboo_planks' },
+    win: { shutters: 0.7, box: 0.4, mullion: 'jungle_fence' },
+    door: 'jungle', floor: 'jungle_planks', chimney: null,
+    flowers: ['blue_orchid', 'dandelion', 'allium', 'oxeye_daisy'],
+    props: ['barrel', 'pots', 'bamboo', 'hay'], rug: ['light_blue_carpet', 'yellow_carpet'],
+  },
   fantasy: {
     system: 'timber', single: 'timber', ground2: 'stone',
     infill: { calcite: 5, polished_diorite: 1 },

@@ -8,18 +8,24 @@
 //   east    a pavilion with a store/kits corner, a tower behind it
 // The rest of the island is landscaped; the theme dresses the gates (torii for japanese).
 
-import { building, crateHall, heroWall } from './buildings.mjs'
-import { bench, featureTree, lamp, pvpArena } from './landscape.mjs'
-import { paveRound, pavePath } from './site.mjs'
+import { building } from '../../../assets/spawn-parts/buildings.mjs'
+import { boardsPlaza, crateYard, top3Pillars } from '../../../assets/spawn-parts/features.mjs'
+import { bench, featureTree, hedge, lamp, pvpArena } from '../../../assets/spawn-parts/landscape.mjs'
+import { paveRound, pavePath } from '../../../assets/spawn-parts/site.mjs'
 import { facingToward, polar, yawToward } from './index.mjs'
 import { treeBed } from './layout-normal.mjs'
+import { buildExtras, extrasRoom, planExtras, planGround, signStand } from './extras.mjs'
 
 const ARC = 150 // degrees of the NPC arc, centred on north
 export const arcOf = N => {
   const Rn = Math.max(11, Math.ceil((7 * Math.max(N, 1) * 180) / (Math.PI * ARC)))
   return { Rn, Rp: Rn + 5 }
 }
-export const recommendSize = brief => 2 * (arcOf(brief.npcs.length).Rp + 36)
+export const recommendSize = brief => {
+  const { Rp } = arcOf(brief.npcs.length)
+  const big = extrasRoom(brief)
+  return 2 * Math.max(Rp + 36, big ? Rp + 16 + 2 * big : 0)
+}
 
 export function plan(ctx) {
   const { brief, S, FY, C, grid, rng } = ctx
@@ -27,7 +33,7 @@ export function plan(ctx) {
   const N = brief.npcs.length
   const arc = ARC
   const { Rn, Rp } = arcOf(N)
-  const islandR = S / 2 - 3
+  const islandR = ctx.spawnS / 2 - 3 // the spawn square (a warzone may surround it)
   if (Rp + 30 > islandR) ctx.warn(`a PvP lobby with ${N} queue NPCs wants a size of about ${2 * (Rp + 34)}`)
   const L = { type: 'pvp', plaza: { cx, cz, r: Rp }, Rn, Rp, islandR, pads: [], slots: [], spawn: [cx, FY + 1, cz] }
   grid.reserveDisc(cx, cz, Rp + 1.5, 'plaza')
@@ -45,11 +51,11 @@ export function plan(ctx) {
   // order so the first NPCs (unranked, ranked) stand in the middle of the arc
   const mid = [...L.npcRing].sort((p, q) => Math.abs(p.ang) - Math.abs(q.ang))
   brief.npcs.forEach((npc, i) => { mid[i].npc = npc })
-  // hero wall behind the arc
-  const nb = Math.max(1, brief.leaderboards.length)
-  const heroW = Math.max(nb * 9 + (nb - 1) * 3 + 14, 30)
-  const hz = cz - Math.max(Rp + 13, 34)
-  L.hero = reserve({ kind: 'hero', x0: cx - Math.ceil(heroW / 2), x1: cx + Math.ceil(heroW / 2), z0: hz - 9, z1: hz + 7, y: FY, cx, z: hz, width: heroW })
+  // hologram leaderboards behind the arc (open air, a podium in front of the middle board)
+  const nb = brief.leaderboards.length
+  const heroW = Math.max(nb * 7 + 6, 20)
+  const hz = cz - Rp - 5
+  L.hero = reserve({ kind: 'hero', x0: cx - Math.ceil(heroW / 2), x1: cx + Math.ceil(heroW / 2), z0: hz - 3, z1: hz + 5, y: FY, cx, z: hz, width: heroW })
   // the arena to the south
   const aw = Math.max(20, Math.min(34, Math.round(islandR - Rp - 8)))
   const az0 = cz + Rp + 4
@@ -74,6 +80,8 @@ export function plan(ctx) {
     grid.reserveDisc(x, z, 4.5, 'tree')
     return { x: Math.round(x), z: Math.round(z), seed: ctx.seed + i }
   })
+  planExtras(ctx, L, { ring: Rp + 10 })
+  planGround(ctx, L)
   for (const s of L.slots) L.pads.push({ x0: s.x0, z0: s.z0, x1: s.x1, z1: s.z1, y: s.y, blend: 5 })
   L.flat = (x, z) => Math.abs(x - cx) <= 4 && z > cz && z < L.pvp.z0 + 2
   return L
@@ -116,9 +124,18 @@ export function build(ctx) {
     const rec = b.npcSpot([x, FY + 1, z], face, { ...M, ...npc, style: 'pedestal', size: 3, screen: true })
     rec.yaw = yawToward([x, z], C)
   }
-  ctx.place(heroWall, { ...L.hero, facing: 'south', boards: brief.leaderboards, name: brief.features.signs ? brief.name : null })
+  brief.top3.slice(0, 2).forEach((t, i) => {
+    const x = cx + (i === 0 ? -1 : 1) * (Math.ceil(L.hero.width / 2) + 8)
+    ctx.place(top3Pillars, { x, z: L.hero.z, facing: 'south', id: t.id, label: t.label })
+  })
+  if (brief.leaderboards.length) {
+    for (let x = L.hero.x0; x <= L.hero.x1; x += 1) for (let z = L.hero.z0; z <= L.hero.z1; z += 1) b.set(x, FY, z, (x + z) % 7 === 0 ? theme.paving.inlay : ctx.paint.field)
+    ctx.place(boardsPlaza, { cx, z: L.hero.z, facing: 'south', boards: brief.leaderboards })
+  }
   ctx.place(pvpArena, L.pvp)
-  if (L.crates) ctx.place(crateHall, { ...L.crates, crates: brief.crates })
+  buildExtras(ctx, L)
+  if (brief.features.signs && brief.leaderboards.length) ctx.place(signStand, 'LEADERBOARDS', [cx, L.hero.z0 - 2], 'south')
+  if (L.crates) ctx.place(crateYard, { ...L.crates, crates: brief.crates }, { hedge, lamp })
   ctx.place(building, { ...L.pavilion, kind: 'pavilion' })
   if (L.tower) ctx.place(building, { ...L.tower, kind: 'tower' })
   for (const t of L.trees) {

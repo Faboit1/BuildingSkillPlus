@@ -229,3 +229,5 @@ __marimo__/
 # keep the bundled dependency whole (the Python rules above would drop its dist/ and build/ folders)
 !scripts/node_modules/**/dist/
 !scripts/node_modules/**/build/
+
+# apps/spawn-generator/dist/ is ignored by dist/ below; its spawn-generator.html is tracked (git add -f)

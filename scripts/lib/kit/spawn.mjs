@@ -193,9 +193,9 @@ const lineWidth = (line, font) => {
 }
 
 // Width in blocks of a sign's text (the widest line; lines split on '\n').
-export function signWidth(text, font = 'medium') {
+export function signWidth(text, font = 'medium', { bold = false, outline = false } = {}) {
   const f = fontOf(font)
-  return Math.max(0, ...String(text).toUpperCase().split('\n').map(line => lineWidth(line, f)))
+  return Math.max(0, ...String(text).toUpperCase().split('\n').map(line => lineWidth(line, f) + (bold ? line.length : 0))) + (outline ? 2 : 0)
 }
 
 // Height in blocks of a sign's text (all lines, with the font's leading between them).
@@ -323,7 +323,7 @@ const r2 = v => Math.round(v * 100) / 100
 // reach (the counters of O, A, B, D...) are never filled, so letters keep their holes.
 // Returns { width, height, min, max } (min/max cover letters and board).
 export function sign(b, text, at, facing = 'south', opts = {}) {
-  const { font: fontName = 'medium', block = 'minecraft:quartz_block', stairs, board = null, boardEdge = null, pad = 1, depth = 1, align = 'left', smooth = true, leading, boardDepth = 2, cap = true } = opts
+  const { font: fontName = 'medium', block = 'minecraft:quartz_block', stairs, board = null, boardEdge = null, pad = 1, depth = 1, align = 'left', smooth = true, leading, boardDepth = 2, cap = true, bold = false, outline = null } = opts
   const font = fontOf(fontName)
   const lines = String(text).toUpperCase().split('\n')
   const unknown = [...new Set([...lines.join('')].filter(ch => !font.glyphs[ch]))]
@@ -331,16 +331,23 @@ export function sign(b, text, at, facing = 'south', opts = {}) {
   const H = font.height
   const gap = leading ?? font.leading
   const totalH = lines.length * H + (lines.length - 1) * gap
-  const W = Math.max(0, ...lines.map(line => lineWidth(line, font)))
-  const bmp = Array.from({ length: totalH }, () => new Uint8Array(W + 1))
+  // bold: every stroke one column wider (each glyph grows by 1)
+  const lineW = line => lineWidth(line, font) + (bold ? line.length : 0)
+  const W = Math.max(0, ...lines.map(lineW))
+  const bmp = Array.from({ length: totalH }, () => new Uint8Array(W + 2))
   lines.forEach((line, li) => {
-    const lw = lineWidth(line, font)
+    const lw = lineW(line)
     let col = align === 'center' ? Math.floor((W - lw) / 2) : align === 'right' ? W - lw : 0
     const top = li * (H + gap)
     for (const ch of line) {
       const g = glyphOf(font, ch)
-      for (let r = 0; r < H; r += 1) for (let c = 0; c < g[r].length; c += 1) if (g[r][c] === '#') bmp[top + r][col + c] = 1
-      col += g[0].length + 1
+      for (let r = 0; r < H; r += 1)
+        for (let c = 0; c < g[r].length; c += 1)
+          if (g[r][c] === '#') {
+            bmp[top + r][col + c] = 1
+            if (bold) bmp[top + r][col + c + 1] = 1
+          }
+      col += g[0].length + 1 + (bold ? 1 : 0)
     }
   })
   const lit = (r, c) => (r >= 0 && r < totalH && c >= 0 && c <= W ? bmp[r][c] : 0)
@@ -451,6 +458,21 @@ export function sign(b, text, at, facing = 'south', opts = {}) {
       if (!p) continue
       for (let e = 0; e < depth; e += 1) put(...cell(r, c, e), p)
     }
+  // outline: a 1-block ring round the outside of the letters (counters stay open), in the letters'
+  // plane, behind any stair fill
+  if (outline) {
+    const outlineBlock = parseBlock(outline).name
+    for (let r = -1; r <= totalH; r += 1)
+      for (let c = -2; c <= W + 1; c += 1) {
+        if (lit(r, c) || !outside.has(r * 4096 + c)) continue
+        let near = false
+        for (let dr = -1; dr <= 1 && !near; dr += 1) for (let dc = -1; dc <= 1; dc += 1) if (lit(r + dr, c + dc)) { near = true; break }
+        if (!near) continue
+        const [x, y, z] = cell(r, c, 0)
+        if (b.get(x, y, z) && /_stairs$/.test(b.get(x, y, z).name)) continue
+        for (let e = 0; e < depth; e += 1) put(...cell(r, c, e), outlineBlock)
+      }
+  }
   return { width: W, height: totalH, min, max }
 }
 

@@ -6,6 +6,6 @@
   "npcs": ["shop", "auction", "rtp", "store", "kits", "quests", "sell", "warps", "events", "bounties", "teams", "tutorial"],
   "leaderboards": ["Money", "Kills", "Playtime"],
   "crates": ["vote", "common", "rare", "legendary"],
-  "features": { "rtp": true, "pvp": true, "afk": false, "signs": true },
+  "features": { "rtp": true, "pvp": true, "afk": false },
   "seed": 7
 }

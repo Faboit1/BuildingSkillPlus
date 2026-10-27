@@ -1,0 +1,213 @@
+<div class="app" id="app">
+  <header class="bar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <path class="bm-top" d="M16 3 29 10 16 17 3 10Z"/>
+        <path class="bm-left" d="M3 10 16 17V30L3 23Z"/>
+        <path class="bm-right" d="M29 10 16 17V30L29 23Z"/>
+        <path class="bm-grass" d="M3 10 16 17 29 10V13.5L26 15 24 14 21 16.5 19 15.5 16 18.5 13 15.5 11 16.5 8 14 6 15 3 13.5Z"/>
+      </svg>
+      <div>
+        <h1>Spawn Generator</h1>
+        <p class="sub">Server spawns for Minecraft Java, built in your browser</p>
+      </div>
+    </div>
+    <label class="preset" for="preset">
+      <span>Start from</span>
+      <select id="preset"></select>
+    </label>
+  </header>
+
+  <section class="stage" aria-label="3D preview">
+    <div class="viewport" id="viewport">
+      <canvas id="view" tabindex="0" aria-label="3D view of the spawn. Drag to turn, scroll to zoom."></canvas>
+      <div class="hud" id="hud" hidden>
+        <strong id="hud-name"></strong>
+        <span id="hud-stats"></span>
+      </div>
+      <div class="overlay" id="overlay">
+        <div class="overlay-card">
+          <div class="spinner" aria-hidden="true"></div>
+          <p class="overlay-title" id="overlay-title">Loading the generator</p>
+          <p class="overlay-detail" id="overlay-detail">Unpacking block models and textures</p>
+          <button type="button" class="ghost small" id="cancel" hidden>Cancel</button>
+        </div>
+      </div>
+      <p class="fly-hint" id="fly-hint" hidden>Drag to look · <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>Space</kbd> up · <kbd>Shift</kbd> down · scroll for speed</p>
+      <div class="toolbar" role="toolbar" aria-label="Preview controls">
+        <div class="seg" role="group" aria-label="Camera">
+          <button type="button" data-view="orbit" aria-pressed="true">Overview</button>
+          <button type="button" data-view="top" aria-pressed="false">Top</button>
+          <button type="button" data-view="spawn" aria-pressed="false">Spawn point</button>
+          <button type="button" data-view="fly" aria-pressed="false">Fly</button>
+        </div>
+        <button type="button" class="tool" id="light-toggle" aria-pressed="false">Night</button>
+        <button type="button" class="tool" id="shot">Screenshot</button>
+        <button type="button" class="tool" id="fullscreen">Full screen</button>
+      </div>
+    </div>
+  </section>
+
+  <form class="brief" id="brief" novalidate>
+    <fieldset>
+      <legend>Server</legend>
+      <label class="field" for="f-name"><span>Server name</span>
+        <input id="f-name" name="name" type="text" maxlength="40" autocomplete="off" spellcheck="false">
+      </label>
+      <div class="field">
+        <span id="l-type">Spawn type</span>
+        <div class="seg wide" role="radiogroup" aria-labelledby="l-type" id="f-type"></div>
+        <p class="hint" id="type-hint"></p>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Look</legend>
+      <div class="field">
+        <span id="l-theme">Theme</span>
+        <div class="themes" role="radiogroup" aria-labelledby="l-theme" id="f-theme"></div>
+      </div>
+      <label class="field" for="f-setting"><span>Ground</span>
+        <select id="f-setting"></select>
+      </label>
+      <div class="field">
+        <span id="l-accent">Accent colour</span>
+        <div class="swatches" role="radiogroup" aria-labelledby="l-accent" id="f-accent"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Gameplay</legend>
+      <div class="field">
+        <span class="row-label"><span id="l-npcs">NPCs</span><output id="npc-count"></output></span>
+        <div class="chips" role="group" aria-labelledby="l-npcs" id="f-npcs"></div>
+        <div class="add-row">
+          <input id="f-npc-add" type="text" maxlength="24" placeholder="Add your own, e.g. Jobs" aria-label="Add a custom NPC">
+          <button type="button" class="ghost small" id="npc-add">Add</button>
+        </div>
+      </div>
+      <label class="field" for="f-boards"><span>Leaderboards</span>
+        <input id="f-boards" type="text" autocomplete="off" spellcheck="false" aria-describedby="boards-hint">
+        <small class="hint" id="boards-hint">Comma separated. Each gets a hologram board with the server name.</small>
+      </label>
+      <div class="pair">
+        <div class="field"><span id="l-crates">Crates</span><div class="stepper" data-min="0" data-max="6" id="f-crates" aria-labelledby="l-crates"></div></div>
+        <div class="field"><span id="l-top3">Top-3 podiums</span><div class="stepper" data-min="0" data-max="4" id="f-top3" aria-labelledby="l-top3"></div></div>
+      </div>
+      <div class="field">
+        <span>Areas</span>
+        <div class="checks" id="f-features">
+          <label><input type="checkbox" id="f-rtp" data-feature="rtp"> Random-TP gate</label>
+          <label><input type="checkbox" id="f-pvp" data-feature="pvp"> PvP zone</label>
+          <label><input type="checkbox" id="f-afk" data-feature="afk"> AFK park</label>
+          <label><input type="checkbox" id="f-signs" data-feature="signs"> Block-letter signs</label>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Scenery</legend>
+      <div class="field">
+        <span id="l-landmarks">Landmarks</span>
+        <div class="chips" role="group" aria-labelledby="l-landmarks" id="f-landmarks"></div>
+      </div>
+      <div class="pair">
+        <div class="field"><span id="l-trees">Giant trees</span><div class="stepper" data-min="0" data-max="8" id="f-trees" aria-labelledby="l-trees"></div></div>
+        <div class="field"><span id="l-terraces">Raised terraces</span><div class="stepper" data-min="0" data-max="10" id="f-terraces" aria-labelledby="l-terraces"></div></div>
+      </div>
+      <div class="field">
+        <span id="l-rocks">Boulders</span>
+        <div class="seg wide" role="radiogroup" aria-labelledby="l-rocks" id="f-rocks"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Warzone</legend>
+      <label class="switch" for="f-warzone"><input type="checkbox" id="f-warzone"> A PvP band all round the spawn</label>
+      <div class="warzone-opts" id="warzone-opts">
+        <label class="field" for="f-wz-width"><span class="row-label"><span>Band width</span><output id="wz-width-out"></output></span>
+          <input type="range" id="f-wz-width" min="40" max="120" step="4">
+        </label>
+        <div class="checks">
+          <label><input type="checkbox" id="f-moshpit"> Moshpit</label>
+          <label><input type="checkbox" id="f-koth"> King of the hill</label>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Size and seed</legend>
+      <label class="switch" for="f-size-auto"><input type="checkbox" id="f-size-auto"> <span id="size-auto-label">Pick the size for me</span></label>
+      <label class="field" for="f-size" id="size-row"><span class="row-label"><span>Spawn square</span><output id="size-out"></output></span>
+        <input type="range" id="f-size" step="4">
+      </label>
+      <div class="field">
+        <label for="f-seed">Seed</label>
+        <div class="add-row">
+          <input id="f-seed" type="number" min="0" max="999999" step="1" inputmode="numeric">
+          <button type="button" class="ghost small" id="new-seed">New seed</button>
+        </div>
+        <small class="hint">Same brief and seed, same spawn. A new seed shuffles the details.</small>
+      </div>
+    </fieldset>
+
+    <details class="more">
+      <summary>Server placement</summary>
+      <label class="field" for="f-world"><span>World</span>
+        <input id="f-world" type="text" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="switch" for="f-origin-auto"><input type="checkbox" id="f-origin-auto"> Centre the spawn on 0, 0 at y 64</label>
+      <div class="field" id="origin-row">
+        <span id="l-origin">Paste corner (x y z)</span>
+        <div class="xyz" role="group" aria-labelledby="l-origin">
+          <input id="f-ox" type="number" aria-label="x">
+          <input id="f-oy" type="number" aria-label="y">
+          <input id="f-oz" type="number" aria-label="z">
+        </div>
+        <small class="hint">The world block the schematic's minimum corner goes on. Every command in the setup sheet uses it.</small>
+      </div>
+    </details>
+
+    <details class="more">
+      <summary>Brief as JSON</summary>
+      <textarea id="f-json" rows="12" spellcheck="false" aria-label="The brief as JSON"></textarea>
+      <div class="add-row">
+        <button type="button" class="ghost small" id="json-apply">Use this JSON</button>
+        <button type="button" class="ghost small" id="json-copy">Copy</button>
+      </div>
+      <small class="hint" id="json-hint">Paste a brief from Claude here, or copy this one to Claude to keep editing the spawn there.</small>
+    </details>
+
+    <div class="brief-actions">
+      <button type="submit" class="primary" id="generate">Generate spawn</button>
+      <button type="button" class="ghost" id="surprise">Surprise me</button>
+    </div>
+  </form>
+
+  <section class="results" id="results" aria-live="polite">
+    <div class="res-empty" id="res-empty">
+      <p>Your spawn's files and server setup appear here once it is built.</p>
+    </div>
+    <div id="res-body" hidden>
+      <div class="res-head">
+        <div class="res-title">
+          <h2 id="res-name"></h2>
+          <p class="res-meta" id="res-meta"></p>
+        </div>
+        <dl class="res-numbers" id="res-numbers"></dl>
+      </div>
+      <div class="downloads" id="downloads">
+        <button type="button" class="primary" id="dl-zip">Download .zip</button>
+        <div class="dl-files" id="dl-files"></div>
+        <p class="hint" id="dl-note"></p>
+      </div>
+      <div class="warnings" id="warnings" hidden></div>
+      <details class="setup" id="setup-wrap" open>
+        <summary>Server setup <span class="hint">NPCs, holograms, crates and regions, with the commands</span></summary>
+        <div class="setup-body" id="setup"></div>
+      </details>
+    </div>
+  </section>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+</div>

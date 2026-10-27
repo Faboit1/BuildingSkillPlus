@@ -1,32 +1,46 @@
 // The site: a floating island (every setting is an island variant, so the spawn pastes into a void
-// world or the sky of any world), levelled pads under the layout's slots, and the plaza paving.
+// world or the sky of any world), levelled pads under your places, raised areas, and paving helpers.
 //
-// Settings (theme default, or brief.setting):
+//   ctx.site = buildSite(ctx, {
+//     plaza: { cx, cz, r } | { x0, z0, x1, z1 },   kept flat at FY, the relief blends back over 7 blocks
+//     pads: [{ x0, z0, x1, z1, y, blend }],         levelled ground under buildings and set pieces
+//     mounds: [{ x, z, r, h }],                     raised areas, 1-4 blocks, smooth edges
+//     flat: (x, z) => bool,                         more columns that must stay at FY (a walk, a lawn)
+//     setting: 'island' | 'plains' | 'valley' | 'mountain' | 'coast',   default the theme's
+//     shape: 'round' | 'square',                    square = a rounded square (a warzone band needs it)
+//     radius,                                       the shore's distance from the middle (default S/2 - 3)
+//     depth,                                        the underside's depth (default 24, max FY - 3)
+//   })
+// Any option left out is read from ctx.layout (plan into ctx.layout, then call buildSite(ctx)).
+//
+// Settings:
 //   island    gentle rolling ground, a soft shore, a deep rocky underside
-//   plains    nearly flat ground
+//   plains    nearly flat ground (most normal spawns)
 //   valley    hills rising toward the rim, the plaza in the hollow
-//   mountain  a rocky peak behind the hero (north), the plaza on its apron
+//   mountain  a rocky ridge round the north-west rim, behind the hero
 //   coast     a lake cove on the south-east side with sand beaches
 //
-// Layout input (ctx.layout): { plaza: { cx, cz, r } | { x0, z0, x1, z1, round }, pads: [{ x0, z0,
-// x1, z1, y, blend }], islandR, flat(x, z) → true for ground that must stay at FY }
-// Output (ctx.site): groundY(x, z) walking-surface block level (-1 off the island), land(x, z),
-// level(rect, y), heights.
+// Returns site: groundY(x, z) walking-surface block level (-1 off the island), land(x, z),
+// isWater(x, z), level(rect, y), top[] heights, paved[] (columns the landscape keeps off), edgeE(x, z)
+// (0 in the middle, 1 at the shore).
 
 const smooth = (a, b, v) => {
   const t = Math.max(0, Math.min(1, (v - a) / (b - a)))
   return t * t * (3 - 2 * t)
 }
 
-export function buildSite(ctx) {
-  const { b, kit, S, FY, C, theme, layout, seed } = ctx
+export function buildSite(ctx, opts = {}) {
+  const { b, kit, S, FY, C, theme, seed } = ctx
+  const layout = { ...(ctx.layout ?? {}), ...opts }
   const { noise } = kit
-  const setting = theme.setting ?? 'island'
-  const R = layout.islandR ?? S / 2 - 3
+  const setting = layout.setting ?? theme.setting ?? 'island'
+  const R = layout.radius ?? layout.siteR ?? layout.islandR ?? S / 2 - 3
+  const square = (layout.shape ?? 'round') === 'square'
   const [cx, cz] = C
   const plaza = layout.plaza
   // distance outside the plaza (0 inside)
   const plazaOut = (x, z) => {
+    if (!plaza) return 99
     if (plaza.r !== undefined) return Math.max(0, Math.hypot(x - plaza.cx, z - plaza.cz) - plaza.r)
     const dx = Math.max(plaza.x0 - x, 0, x - plaza.x1)
     const dz = Math.max(plaza.z0 - z, 0, z - plaza.z1)
@@ -36,12 +50,14 @@ export function buildSite(ctx) {
   const edgeE = (x, z) => {
     const a = Math.atan2(z - cz, x - cx)
     const wob = 1 + 0.07 * Math.sin(3 * a + seed) + 0.05 * Math.sin(5 * a + 2 * seed) + 0.06 * noise.fbm2(x, z, { scale: 14, seed: seed + 21 })
+    // a rounded square: the whole band round a square spawn (a warzone) is land
+    if (square) return Math.pow(Math.abs(x - cx) ** 5 + Math.abs(z - cz) ** 5, 1 / 5) / (R * (1 + 0.04 * Math.sin(3 * a + seed) + 0.04 * noise.fbm2(x, z, { scale: 14, seed: seed + 21 })))
     return Math.hypot(x - cx, z - cz) / (R * wob)
   }
   const cove = setting === 'coast' ? { x: cx + R * 0.52, z: cz + R * 0.5, r: R * 0.3 } : null
   // the mountain: a ridge round the north-west rim, behind the hero's shoulder, highest at its middle
   const ridgeDir = (-35 * Math.PI) / 180
-  const peak = setting === 'mountain' ? { dir: ridgeDir, height: S * 0.3 } : null
+  const peak = setting === 'mountain' ? { dir: ridgeDir, height: Math.min(S * 0.3, ctx.H - FY - 26) } : null
 
   const relief = (x, z) => {
     const e = edgeE(x, z)
@@ -61,7 +77,8 @@ export function buildSite(ctx) {
       h += peak.height * along * smooth(0.5, 0.93, e) * (0.7 + 0.45 * ridged + 0.15 * n1)
     }
     // the shore: the ground rolls down over the last stretch to the cliff (a mountain keeps its cliffs)
-    h -= (peak ? 3.5 * (1 - smooth(0.6, 0.9, h / 12)) : 3.5) * smooth(0.82, 1, e)
+    // (a square island keeps its band flat almost to the edge: it is fighting ground)
+    h -= (peak ? 3.5 * (1 - smooth(0.6, 0.9, h / 12)) : 3.5) * smooth(square ? 0.93 : 0.82, 1, e)
     return h
   }
 
@@ -69,7 +86,8 @@ export function buildSite(ctx) {
   const N = S * S
   const top = new Int16Array(N).fill(-1)
   const bottom = new Int16Array(N).fill(-1)
-  const D = FY - 3
+  // the underside: deep enough to read as a floating island, capped so big canvases stay light
+  const D = Math.min(FY - 3, layout.depth ?? (square ? 18 : 24))
   for (let x = 0; x < S; x += 1)
     for (let z = 0; z < S; z += 1) {
       const e = edgeE(x, z)
@@ -79,6 +97,11 @@ export function buildSite(ctx) {
       const out = plazaOut(x, z)
       const flatW = layout.flat?.(x, z) ? 0 : smooth(1, 8, out)
       h = h * flatW
+      // raised areas: smooth 1-4 block rises, full height in the middle, a soft organic edge
+      for (const m of layout.mounds ?? []) {
+        const d = Math.hypot(x - m.x, z - m.z) + 0.8 * noise.fbm2(x, z, { scale: 4, seed: seed + 35 })
+        if (d < m.r) h += m.h * smooth(m.r, m.r - Math.min(5, m.r * 0.45), d)
+      }
       top[x + S * z] = Math.round(FY + h)
       // the underside: deepest under the middle, lumpy, with hanging lobes
       const under = D * Math.pow(Math.max(0, 1 - e), 0.55) * (0.78 + 0.22 * noise.fbm2(x, z, { scale: 9, seed: seed + 41 }))
@@ -191,7 +214,7 @@ export function buildSite(ctx) {
   }
   // paved: every column the plaza, roads and paths cover (the landscape keeps off them)
   const paved = new Uint8Array(N)
-  return { setting, top, paved, groundY, land, level, isWater: (x, z) => land(x, z) && water[x + S * z] === 1, edgeE, plazaOut, ground, soil, rock }
+  return (ctx.site = { setting, top, paved, groundY, land, level, isWater: (x, z) => land(x, z) && water[x + S * z] === 1, edgeE, plazaOut, ground, soil, rock })
 }
 
 // ------------------------------------------------------------------ paving
