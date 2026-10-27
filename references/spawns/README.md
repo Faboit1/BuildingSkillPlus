@@ -15,7 +15,7 @@ Companion files in this folder:
 
 | File | What it holds |
 | --- | --- |
-| `build-guide.md` | How to build a spawn by hand: the workflow, the layouts with their numbers, every part, themes, variations, testing |
+| `build-guide.md` | The spawn manual: what makes a spawn great, the workflow, the templates (BRIEF and CUSTOM), the layouts with their numbers, every part, a cookbook of tested code, screenshots and fixes, delivery |
 | `corpus-study.md` | Real human-built spawns, lobbies and hubs, measured: sizes, layouts, set pieces, palettes, techniques |
 | `design-research.md` | How popular servers lay out spawns, the plugin facts (NPC, hologram, crate, region), and why builds look AI vs human |
 | `case-studies.md` | Critiques of earlier spawns made with this skill and the user's own spawns, with ranked lessons |

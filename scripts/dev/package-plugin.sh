@@ -11,8 +11,8 @@ work="$(mktemp -d)"
 plugin="$work/minecraft-builder"
 mkdir -p "$plugin"
 git -C "$root" archive HEAD | tar -x -C "$plugin"
-# what a plugin user never needs: the README gallery and the dev-only Codex metadata
-rm -rf "$plugin/docs/gallery" "$plugin/.github"
+# what a plugin user never needs: the README gallery, the dev-only Codex metadata and the browser app
+rm -rf "$plugin/docs/gallery" "$plugin/.github" "$plugin/apps"
 # smoke check from the packaged copy (no root node_modules there: only the bundled one)
 (cd "$work" && node "$plugin/scripts/make-spawn.mjs" --brief '{"name":"Pack Check","type":"pvp","npcs":3}' --out-dir "$work/check" --no-convert --no-render --quiet >/dev/null)
 # and the hand-built path: a scaffolded spawn folder builds, and it can be photographed

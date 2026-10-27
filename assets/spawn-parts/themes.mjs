@@ -158,7 +158,24 @@ export const THEMES = {
 
 export const THEME_ALIASES = { fall: 'autumn', halloween: 'autumn', town: 'medieval', castle: 'medieval', white: 'white-town', classic: 'white-town', modern: 'white-town', greek: 'white-town', asian: 'japanese', japan: 'japanese', sakura: 'japanese', snow: 'winter', christmas: 'winter', elven: 'fantasy', magic: 'fantasy', nether: 'crimson', hell: 'crimson', lifesteal: 'crimson', red: 'crimson', dark: 'crimson', blood: 'crimson', beach: 'tropical', pirate: 'tropical', island: 'tropical', caribbean: 'tropical', tiki: 'tropical', jungle: 'tropical', summer: 'tropical' }
 
+// A theme name, or a theme of your own built on one: { base: 'tropical', label: 'Desert oasis', ...roles }.
+// The roles you give replace the base's; paving, wall, trees, kit and buildings merge one level deep
+// ({ paving: { border: 'cut_red_sandstone' } } keeps the base's field, path and inlay), every other
+// role (ground, flowers, roof...) is replaced whole. The buildings and the landscape follow the base.
+const MERGED = ['paving', 'wall', 'trees', 'kit', 'buildings']
 export function resolveTheme(name, accent) {
+  if (name && typeof name === 'object') {
+    const { base = 'medieval', ...roles } = name
+    const key = THEMES[base] ? base : THEME_ALIASES[base] ?? 'medieval'
+    const t = { key, ...THEMES[key] }
+    for (const [role, value] of Object.entries(roles)) t[role] = MERGED.includes(role) && value && typeof value === 'object' ? { ...(t[role] ?? {}), ...value } : value
+    const colour = accent ?? roles.accent
+    if (colour && !roles.kit?.colour) {
+      t.accent = colour
+      t.kit = { ...t.kit, colour, accent: roles.kit?.accent ?? `${colour}_terracotta` }
+    }
+    return t
+  }
   const key = THEMES[name] ? name : THEME_ALIASES[name] ?? 'medieval'
   const t = { key, ...THEMES[key] }
   if (accent && accent !== t.accent) {

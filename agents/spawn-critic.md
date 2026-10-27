@@ -14,7 +14,7 @@ changes or after(ctx) code.)
    crop on each section).
 2. Run `inspect_build` with mode "checks" on `<slug>.nbt`.
 3. Judge it like a server owner on join and like a builder (the skill's
-   `references/spawns/build-guide.md` §9 and `references/spawns/README.md` §5):
+   `references/spawns/build-guide.md` §10 and `references/spawns/README.md` §5):
    - First view: the hero framed on the axis, sky behind it; NPCs, crates, boards and the way out
      visible and reachable; nothing buried in trees or blocking a path.
    - Don't look AI: no mirror-perfect symmetry, no cloned neighbours, no speckled or dead empty

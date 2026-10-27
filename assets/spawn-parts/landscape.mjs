@@ -1036,6 +1036,8 @@ export function well(ctx, [x, y, z], { facing = 'south' } = {}) {
   const { b, kit } = ctx
   const m = mats(ctx)
   const roof = kit.material(ctx.theme?.roof && kit.material(ctx.theme.roof).stairs ? ctx.theme.roof : m.wood)
+  // the rim: the stone with a few mossy blocks, when the stone has a mossy variant (not every one does)
+  const mossy = kit.material(m.S.block)?.mossy
   for (let dx = -2; dx <= 2; dx += 1)
     for (let dz = -2; dz <= 2; dz += 1) {
       if (Math.abs(dx) === 2 && Math.abs(dz) === 2) continue
@@ -1045,7 +1047,7 @@ export function well(ctx, [x, y, z], { facing = 'south' } = {}) {
       if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
         for (let k = 3; k >= 1; k -= 1) b.set(px, y - k, pz, k === 3 ? 'minecraft:gravel' : 'minecraft:water')
         b.set(px, y, pz, 'minecraft:water')
-      } else b.set(px, y + 1, pz, kit.hash01(px, y, pz, 6) < 0.3 ? `minecraft:mossy_${bare(m.S.block).replace(/^mossy_/, '')}` : m.S.block)
+      } else b.set(px, y + 1, pz, mossy && kit.hash01(px, y, pz, 6) < 0.3 ? mossy : m.S.block)
     }
   const [ax, az] = across(facing)
   for (const s of [-2, 2]) {

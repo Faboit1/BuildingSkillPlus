@@ -239,6 +239,8 @@ async function main() {
 }
 
 main().catch(err => {
-  console.error(`run-build: ${err.message}`)
+  // the message, then where it happened: the first frames outside Node itself (the recipe's line first)
+  const at = String(err?.stack ?? '').split('\n').filter(l => /^\s+at /.test(l) && !/node:internal|node_modules/.test(l)).slice(0, 3)
+  console.error(`run-build: ${err?.message ?? err}${at.length ? `\n${at.join('\n')}` : ''}`)
   process.exitCode = 1
 })

@@ -1,7 +1,7 @@
 // Oakhaven — the SPAWN+ template (DonutSMP-style town): every NPC gets its own building round a
 // square hub plaza. This is the generator's spawn+ layout written out as a recipe: change the BRIEF
 // block and the whole layout follows (the plaza grows until every NPC has a lot); then make it yours
-// below it.
+// in the CUSTOM block below it.
 //
 //                         HERO WALL (boards + the name)
 //        [hall]  [shop] [shop]   ===============   [shop] [shop]  [hall]
@@ -14,7 +14,7 @@
 //        [hall]  [shop] [house]    RTP gate     [shop] [house]  [hall]
 //    AFK park (outside the town)
 //
-// The numbers (references/spawns/build-guide.md §4c): lots 11-15 wide with 2-4 gaps, 11-13 deep, 1-2
+// The numbers (references/spawns/build-guide.md §5.3): lots 11-15 wide with 2-4 gaps, 11-13 deep, 1-2
 // back from the road; each side of the ring road has a centre piece (north the hero wall, west the
 // crate yard, south the RTP gate, east the spoke road) with lots either side; halls on the four
 // corners with forecourts; the first NPCs take the north corner halls, then the north lots (the first
@@ -22,11 +22,13 @@
 //
 // Build: node scripts/run-build.mjs assets/examples/spawns/oakhaven-hub.mjs --out-dir minecraft-builds/oakhaven
 
-import { startSpawn, finishSpawn } from '../../spawn-parts/spawn.mjs'
+import { startSpawn, finishSpawn, polar, facingToward, yawToward, findSpot } from '../../spawn-parts/spawn.mjs'
 import { buildSite, paveRect, paveRound, pavePath } from '../../spawn-parts/site.mjs'
 import { crateYard, top3Pillars } from '../../spawn-parts/features.mjs'
 import { building, heroWall } from '../../spawn-parts/buildings.mjs'
-import { afkPark, bench, bushAt, clutter, featureTree, hedge, lamp, planter, pvpArena, stall, landscapePass } from '../../spawn-parts/landscape.mjs'
+import { afkPark, bench, bushAt, clutter, featureTree, plantTree, fountain, well, hedge, lamp, planter, pvpArena, stall, rockOutcrop, stoneLantern, bambooClump, torii, landscapePass } from '../../spawn-parts/landscape.mjs'
+import { LANDMARKS, landmark, palmTree } from '../../spawn-parts/landmarks.mjs'
+import { snowfall, leafLitter } from '../../spawn-parts/seasons.mjs'
 import { buildExtras, extrasRoom, planGround, planLandmarks } from '../../spawn-parts/extras.mjs'
 import { koth, moshpit, warzoneBand } from '../../spawn-parts/warzone.mjs'
 import { signStand } from '../../spawn-parts/signs.mjs'
@@ -63,6 +65,31 @@ const BRIEF = {
   signs: { style: 'classic', outline: true, thick: false }, // the name on the hero wall + CRATES; null = holograms only
 }
 
+// ================================================================== your additions (edit these)
+// Everything this server gets beyond the template goes here, so the layout above keeps working when
+// the BRIEF changes. Every part is imported at the top. L is the plan (all build coordinates):
+//   L.cx, L.cz      the spawn column (players spawn there facing north)   L.FY  the plaza floor block
+//   L.S             the canvas side      L.islandR  the shore's distance from the middle
+//   L.P, L.plaza    the hub plaza's side and rectangle   L.road  the ring road's outer rectangle
+//   L.half          the town's half width (plaza + road + the lot band)
+//   L.hero, L.crates, L.rtp, L.spoke, L.pvp, L.afk   the planned places (rectangles)
+//   L.buildings     every lot with its kind and NPC (edit them in plan: kind, storeys, npc)
+//   L.doors         the doors (after build)
+//   L.slot({ x0, z0, x1, z1, kind }, pad)   reserve a rectangle and level a pad under it (plan only)
+// The lots are fixed by the bands round the road: put your pieces on the plaza or outside the town.
+// references/spawns/build-guide.md §4 shows how, with tested examples.
+const CUSTOM = {
+  // 1. while planning, after the town and before the landmarks and the raised areas: reserve the
+  //    ground of each piece (findSpot or L.slot) and return what you planned
+  plan(ctx, L) {
+    return {}
+  },
+  // 2. build your pieces, after the template's own and before the landscape pass
+  build(ctx, L, mine) {},
+  // 3. after the landscape pass: seasonal passes (snowfall, leafLitter) and last touches
+  finish(ctx, L, mine) {},
+}
+
 const ROAD = 5 // ring road width
 const BAND = 16 // the lot band: building depth + setback
 const FORE = 6 // the corner halls' forecourts at the ends of the west and east bands
@@ -84,7 +111,7 @@ function hubOf(B) {
 export default function build(api) {
   const B = BRIEF
   const { P, heroW, crateW, half } = hubOf(B)
-  const kinds = [...B.landmarks, ...Array.from({ length: B.bigTrees }, () => (B.theme === 'tropical' ? 'giant-palm' : 'giant-tree'))]
+  const kinds = [...B.landmarks, ...Array.from({ length: B.bigTrees }, () => ([B.theme, B.theme?.base].includes('tropical') ? 'giant-palm' : 'giant-tree'))]
   const big = extrasRoom(kinds)
   // the town is square: its corners reach half x 1.42 from the middle, and landmarks go on the
   // diagonals beyond them
@@ -196,6 +223,9 @@ export default function build(api) {
         break
       }
     }
+  // your pieces (CUSTOM.plan), before the landmarks and the raised areas
+  const L = { cx, cz, FY, S, spawnS, W, islandR, P, plaza, road: R, half, hero, crates, rtp, spoke, buildings, pvp, afk, pads, slot, doors: [] }
+  const mine = CUSTOM.plan(ctx, L) ?? {}
   const landmarks = planLandmarks(ctx, { kinds, ring: Math.round(half * 1.42) + 2, islandR })
   for (const m of landmarks) pads.push({ x0: m.x - m.r, z0: m.z - m.r, x1: m.x + m.r, z1: m.z + m.r, y: FY, blend: 5 })
   const lo = W
@@ -245,6 +275,7 @@ export default function build(api) {
   for (const s of buildings) {
     const res = ctx.place(building, s)
     if (!res?.door) continue
+    L.doors.push(res.door)
     // a 3-wide walk from the door straight to the road
     const [dx, dz] = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0] }[s.facing]
     let [x, , z] = res.door
@@ -326,6 +357,8 @@ export default function build(api) {
     b.region('warzone', [0, 0, 0], [S - 1, ctx.H - 1, S - 1], { pvp: 'allow', 'mob-spawning': 'deny', priority: 5 })
   }
 
+  CUSTOM.build(ctx, L, mine)
   ctx.place(landscapePass)
+  CUSTOM.finish(ctx, L, mine)
   return finishSpawn(ctx, { safeZone: [lo, lo, hi, hi] })
 }

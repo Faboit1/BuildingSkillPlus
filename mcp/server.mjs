@@ -156,7 +156,7 @@ const TOOLS = [
       const r = await run('new-spawn.mjs', args)
       if (r.code !== 0) return fail((r.err || r.out).slice(-3000))
       const guide = path.join(root, 'references/spawns/build-guide.md')
-      return { content: [text(`${r.out.trim()}\n\nNext: set the BRIEF block at the top of spawn.mjs to the interview answers and build it with build_recipe (the generator-quality base). Then read ${guide} §7 and make it theirs: the theme touches, their extra asks, custom structures; screenshot after each change.`)] }
+      return { content: [text(`${r.out.trim()}\n\nNext: set the BRIEF block at the top of spawn.mjs to the interview answers and build it with build_recipe (the generator-quality base). Then make it theirs in the CUSTOM block below the BRIEF (plan / build / finish): ${guide} §4 explains it with tested examples and §8 maps every common request to its change; build and screenshot after each change.`)] }
     },
   },
   {
@@ -277,7 +277,7 @@ const ORDER = ['new_spawn', 'build_recipe', 'screenshot', 'render_build', 'inspe
 // ---------------------------------------------------------------- JSON-RPC over stdio
 const send = msg => process.stdout.write(`${JSON.stringify(msg)}\n`)
 const serverInfo = { name: 'minecraft-builder', version: VERSION }
-const INSTRUCTIONS = 'Minecraft builds and server spawns. For a spawn/lobby/hub follow the minecraft-builder skill: interview the user, then build the spawn yourself: new_spawn makes the folder, you write spawn.mjs with the parts and the build guide (references/spawns/build-guide.md), build_recipe builds it, screenshot and render_build show it, you fix and rebuild until it is great, inspect_build lints it, then deliver the .schem/.litematic + setup.md. make_spawn (the generator) only when the user asks for it.'
+const INSTRUCTIONS = 'Minecraft builds and server spawns. For a spawn/lobby/hub follow the minecraft-builder skill: interview the user, then build the spawn yourself: new_spawn makes the folder with the type\'s template, you set its BRIEF and add the user\'s extras in its CUSTOM block (references/spawns/build-guide.md, the spawn manual), build_recipe builds it, screenshot and render_build show it, you fix and rebuild until it is great, inspect_build lints it, then deliver the .schem/.litematic + setup.md. make_spawn (the generator) only when the user asks for it.'
 
 async function handle(msg) {
   const { id, method, params } = msg

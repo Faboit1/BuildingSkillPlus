@@ -11,19 +11,19 @@ Follow the minecraft-builder skill's "Server spawns and lobbies: build them your
    count, theme. Round 2: server name, which NPCs, leaderboards, crates. Round 3: top-3 pillars,
    warzone (moshpit, KOTH), big things (giant trees, landmarks, raised areas and rocks), section
    signs. Round 4: setting, accent, extras, paste corner, sign outline/thickness.
-2. Read `references/spawns/build-guide.md` and the closest example in `assets/examples/spawns/`.
-   Write the plan (answers, your decisions, canvas size, a top-view sketch with the main numbers)
-   and ask "Build this?".
+2. Read the spawn manual `references/spawns/build-guide.md` (§1-§4 first). Write the plan into
+   brief.md (answers, your decisions, which BRIEF field or CUSTOM piece each answer becomes, canvas
+   size, a top-view sketch with the main numbers) and ask "Build this?".
 3. After a yes: `new_spawn` with the type (this plugin's `minecraft` MCP server) gives `spawn.mjs`
    = that type's template (the generator's layout as a recipe). Set its `BRIEF` block to the answers
-   and `build_recipe` it: that is the generator-quality base. Then make it theirs below the `BRIEF`
-   (the theme's and their extras, custom structures), calling `build_recipe` after each change and
-   looking at the images it returns.
-4. Look and fix: `screenshot` from the player's spots, `render_build` close-ups, `inspect_build`
-   (mode "checks"); at least two rounds of fixes after it is "done". The `spawn-critic` agent can
-   review it.
-5. Deliver: `build_recipe` with `export: true`; the .schem and .litematic, setup.md, screenshots,
-   the paste corner and the world spawn.
+   and `build_recipe` it: that is the generator-quality base. Then make it theirs in its `CUSTOM`
+   block (manual §4.3-§4.4, the cookbook §8), calling `build_recipe` after each change and looking at
+   the images it returns.
+4. Look and fix (manual §10): `screenshot` from the player's spots (positions from
+   `<slug>.placements.json`), `render_build` close-ups, `inspect_build` (mode "checks"); at least two
+   rounds of fixes after it is "done". The `spawn-critic` agent can review it.
+5. Deliver (manual §12): `build_recipe` with `export: true`, `origin` and `world`; the .schem and
+   .litematic, setup.md, screenshots, the paste corner and the world spawn.
 
 Only if the user asks for the quick generator: `make_spawn` with a brief (see the skill).
 If the MCP tools are not available, use the scripts (`node "${CLAUDE_PLUGIN_ROOT}/scripts/new-spawn.mjs"`,

@@ -56,20 +56,23 @@ Claude designs and builds every spawn by hand, like a build team:
    lamps and props, the PvP ruin, the AFK pond, a warzone with a moshpit and KOTH, landmarks,
    block-letter signs, snowfall), and complete **example spawns** to learn from.
 3. `spawn.mjs` starts as the **template for the spawn type**: the generator's own layout
-   (normal, spawn+ or PvP) written out as a recipe with a `BRIEF` block at the top. Claude sets the
-   brief to the interview answers and **builds it** (`build_recipe`): generator quality from the
-   first build. Then it makes the spawn theirs (the theme's touches, their extra asks, custom
-   structures), looking at the isometric overview and **first-person screenshots** after every
-   change (`screenshot`, a CPU renderer: what a player sees from the spawn point or any spot) and
-   fixing what it sees.
+   (normal, spawn+ or PvP) written out as a recipe. Claude sets its `BRIEF` block to the interview
+   answers and **builds it** (`build_recipe`): generator quality from the first build. Then it makes
+   the spawn theirs in the template's `CUSTOM` block (plan / build / finish): a gateway framing the
+   first view, a market, a building for their museum, their mascot, a winter version, a theme of
+   their own. After every change it looks at the isometric overview and **first-person
+   screenshots** (`screenshot`, a CPU renderer: what a player sees from the spawn point or any
+   spot) and fixes what it sees.
 4. It delivers `.schem` / `.litematic` and a setup sheet with the NPC, hologram, crate and
    WorldGuard commands.
 
-The craft is written down in `references/spawns/build-guide.md` (the layouts that work with their
-numbers, every part, themes, how to do "a winter version" or "more stuff", testing) on top of the
-spawn handbook (`references/spawns/README.md`: real spawns measured, the don't-look-AI checklist).
-Eight themes (autumn, medieval, white-town, japanese, winter, fantasy, crimson, tropical), five
-island settings, any other look built from the closest theme.
+The craft is written down in the **spawn manual**, `references/spawns/build-guide.md`: what makes a
+spawn great (with the numbers), the workflow, the templates and how to change them safely, every
+part, a cookbook of tested code for what server owners ask for, the screenshot-and-fix loop and
+delivery. It sits on the spawn handbook (`references/spawns/README.md`: real spawns measured, the
+don't-look-AI checklist). Eight themes (autumn, medieval, white-town, japanese, winter, fantasy,
+crimson, tropical) and five island settings; any other look is a theme of your own built on the
+closest one.
 
 Example spawns (`assets/examples/spawns/`), each a recipe Claude reads and learns from. Left the
 overview, right the `screenshot` from the spawn point (what a player sees on joining):

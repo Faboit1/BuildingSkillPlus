@@ -1,6 +1,6 @@
 // Kirin Practice — the PVP LOBBY template: compact, every game one glance away. This is the
 // generator's PvP layout written out as a recipe: change the BRIEF block and the layout follows (the
-// NPC arc widens with the count); then make it yours below it.
+// NPC arc widens with the count); then make it yours in the CUSTOM block below it.
 //
 //                 boards + podium     [top3]
 //         [top3]   . o  o  o  o  o  o .            o = queue NPC on a pedestal, an arc of 150
@@ -9,19 +9,21 @@
 //                          |
 //                   FFA arena (south, behind its red line)
 //
-// The numbers (references/spawns/build-guide.md §4d): the arc radius Rn grows with the count so the
+// The numbers (references/spawns/build-guide.md §5.4): the arc radius Rn grows with the count so the
 // NPCs stay 7 apart (Rn = max(11, 7N x 180 / (pi x 150))); the plaza Rp = Rn + 5; the boards 5 behind
 // the plaza rim; the arena starts 4 past the rim; canvas = 2 x (Rp + 36). Players spawn on a raised
 // dais facing north, straight at the queue NPCs.
 //
 // Build: node scripts/run-build.mjs assets/examples/spawns/kirin-practice.mjs --out-dir minecraft-builds/kirin-practice
 
-import { startSpawn, finishSpawn, polar, facingToward, yawToward } from '../../spawn-parts/spawn.mjs'
-import { buildSite, paveRound, pavePath } from '../../spawn-parts/site.mjs'
+import { startSpawn, finishSpawn, polar, facingToward, yawToward, findSpot } from '../../spawn-parts/spawn.mjs'
+import { buildSite, paveRound, paveRect, pavePath } from '../../spawn-parts/site.mjs'
 import { grassBed } from '../../spawn-parts/plaza.mjs'
 import { boardsPlaza, crateYard, top3Pillars } from '../../spawn-parts/features.mjs'
 import { building } from '../../spawn-parts/buildings.mjs'
-import { bench, featureTree, hedge, lamp, pvpArena, landscapePass } from '../../spawn-parts/landscape.mjs'
+import { bench, bushAt, clutter, featureTree, plantTree, fountain, well, stall, planter, hedge, lamp, pvpArena, rockOutcrop, stoneLantern, bambooClump, torii, landscapePass } from '../../spawn-parts/landscape.mjs'
+import { LANDMARKS, landmark, palmTree } from '../../spawn-parts/landmarks.mjs'
+import { snowfall, leafLitter } from '../../spawn-parts/seasons.mjs'
 import { buildExtras, extrasRoom, planGround, planLandmarks } from '../../spawn-parts/extras.mjs'
 import { signStand, signStyle } from '../../spawn-parts/signs.mjs'
 
@@ -47,6 +49,27 @@ const BRIEF = {
   signs: null, // e.g. { style: 'colorful', outline: true, thick: true } → a LEADERBOARDS title; null = holograms only
 }
 
+// ================================================================== your additions (edit these)
+// Everything this server gets beyond the template goes here, so the layout above keeps working when
+// the BRIEF changes. Every part is imported at the top. L is the plan (all build coordinates):
+//   L.cx, L.cz      the spawn column (the dais; players spawn on it facing north)   L.FY  the plaza floor
+//   L.S             the canvas side      L.islandR  the shore's distance from the middle
+//   L.Rn, L.Rp      the NPC arc's and the plaza's radius   L.arc  the NPC places
+//   L.hero (the boards' area), L.arena, L.crates, L.pavilion, L.tower, L.trees   the planned places
+//   L.slot({ x0, z0, x1, z1, kind }, pad)   reserve a rectangle and level a pad under it (plan only)
+// references/spawns/build-guide.md §4 shows how, with tested examples.
+const CUSTOM = {
+  // 1. while planning, after the lobby's places and before the landmarks and the raised areas:
+  //    reserve the ground of each piece (findSpot or L.slot) and return what you planned
+  plan(ctx, L) {
+    return {}
+  },
+  // 2. build your pieces, after the template's own and before the landscape pass
+  build(ctx, L, mine) {},
+  // 3. after the landscape pass: seasonal passes (snowfall, leafLitter) and last touches
+  finish(ctx, L, mine) {},
+}
+
 const ARC = 150 // degrees of the NPC arc, centred on north
 
 export default function build(api) {
@@ -54,7 +77,7 @@ export default function build(api) {
   const N = B.npcs.length
   const Rn = Math.max(11, Math.ceil((7 * Math.max(N, 1) * 180) / (Math.PI * ARC))) // the NPC arc
   const Rp = Rn + 5 // the plaza
-  const kinds = [...B.landmarks, ...Array.from({ length: B.bigTrees }, () => (B.theme === 'tropical' ? 'giant-palm' : 'giant-tree'))]
+  const kinds = [...B.landmarks, ...Array.from({ length: B.bigTrees }, () => ([B.theme, B.theme?.base].includes('tropical') ? 'giant-palm' : 'giant-tree'))]
   const big = extrasRoom(kinds)
   const recommended = Math.ceil((2 * Math.max(Rp + 36, big ? Rp + 16 + 2 * big : 0)) / 4) * 4
   const size = Math.max(60, Math.min(160, B.size ?? recommended))
@@ -104,6 +127,9 @@ export default function build(api) {
     grid.reserveDisc(x, z, 4.5, 'tree')
     return { x: Math.round(x), z: Math.round(z), seed: ctx.seed + i }
   })
+  // your pieces (CUSTOM.plan), before the landmarks and the raised areas
+  const L = { cx, cz, FY, S, islandR, Rn, Rp, arc, hero, arena, crates, pavilion, tower, trees, pads, slot }
+  const mine = CUSTOM.plan(ctx, L) ?? {}
   const landmarks = planLandmarks(ctx, { kinds, ring: Rp + 10, islandR })
   for (const m of landmarks) pads.push({ x0: m.x - m.r, z0: m.z - m.r, x1: m.x + m.r, z1: m.z + m.r, y: FY, blend: 5 })
   const ground = planGround(ctx, { terraces: B.terraces, rocks: B.rocks, islandR, inner: Rp + 6 })
@@ -168,6 +194,8 @@ export default function build(api) {
     ctx.place(bench, [Math.round(x), FY, Math.round(z)], facingToward([x, z], C), { length: 3 })
   }
 
+  CUSTOM.build(ctx, L, mine)
   ctx.place(landscapePass)
+  CUSTOM.finish(ctx, L, mine)
   return finishSpawn(ctx)
 }
