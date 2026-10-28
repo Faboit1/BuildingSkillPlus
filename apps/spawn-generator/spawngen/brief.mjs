@@ -1,7 +1,6 @@
 // The spawn brief: everything the user told you in the interview, as one JSON object.
 // normalizeBrief() fills defaults, clamps sizes and turns counts into named lists, so a brief can be
-// as short as { "name": "CheeseSMP", "type": "normal" }. See references/spawns/README.md §1 and
-// assets/spawn-briefs/*.json.
+// as short as { "name": "CheeseSMP", "type": "normal" }. Examples: apps/spawn-generator/briefs/*.json.
 
 import { THEMES, THEME_ALIASES } from '../../../assets/spawn-parts/themes.mjs'
 

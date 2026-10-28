@@ -1,5 +1,5 @@
 // The brief form: one state object, rendered into the static markup of page.html, turned into a
-// brief (the same JSON make_spawn and scripts/make-spawn.mjs take) and back.
+// brief (the JSON spawngen/brief.mjs normalizes) and back.
 
 const $ = id => document.getElementById(id)
 

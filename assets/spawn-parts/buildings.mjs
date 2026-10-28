@@ -1,4 +1,4 @@
-// Themed buildings for the spawn generator.
+// Themed buildings for spawns.
 //
 //   KINDS                                     footprint ranges { min: [w, d], max: [w, d] } per kind
 //                                             (w along the street; the arcade may run either way)

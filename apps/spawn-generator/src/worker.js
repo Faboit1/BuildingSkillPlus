@@ -1,5 +1,5 @@
-// The generator, in a Web Worker: the same code as scripts/make-spawn.mjs (spawngen + the spawn
-// parts + the kit + Lodestone), so the page stays responsive while a spawn builds. Messages:
+// The generator in a Web Worker (spawngen on the plugin's spawn parts, the kit and Lodestone), so the
+// page stays responsive while a spawn builds. Messages:
 //   init     { files }            the data files the kit reads (see shims/fs.js)
 //   options  {}                   what the brief form can offer: types, themes, NPCs, landmarks
 //   resolve  { brief }            the brief with every default filled in (size, NPC list...)
@@ -7,8 +7,8 @@
 //   export   { formats }          the .nbt/.schem/.litematic of the last spawn, and the zip
 
 import { createApi, fillDefaultStates, setupSheet, summarize, updateStructureConnections, worldPlacements } from '../../../scripts/lib/pipeline.mjs'
-import { generateSpawn, resolveBrief } from '../../../scripts/lib/spawngen/index.mjs'
-import { TYPES, NPC_LABELS, LANDMARK_KINDS } from '../../../scripts/lib/spawngen/brief.mjs'
+import { generateSpawn, resolveBrief } from '../spawngen/index.mjs'
+import { TYPES, NPC_LABELS, LANDMARK_KINDS } from '../spawngen/brief.mjs'
 import { THEMES } from '../../../assets/spawn-parts/themes.mjs'
 import { writeLitematic, writeSpongeSchem } from '../../../scripts/lib/formats.mjs'
 import { colorOf } from '../../../scripts/lib/kit/colors.mjs'
@@ -182,7 +182,7 @@ const HANDLERS = {
   },
 }
 
-// the brief as a user would write it (what make_spawn and make-spawn.mjs take back)
+// the brief as a user would write it (what the generator takes back)
 function briefForFile(brief) {
   const { slug, ...rest } = brief
   return rest
@@ -204,8 +204,8 @@ Files
                              plugin commands (Citizens, FancyNpcs, DecentHolograms, ExcellentCrates,
                              CrazyCrates, WorldEdit, WorldGuard) in world coordinates
   ${brief.slug}.placements.json   the same positions as data
-  ${brief.slug}.brief.json   the brief: open it in the generator again, or give it to Claude
-                             (minecraft-builder make_spawn) to rebuild or change this spawn
+  ${brief.slug}.brief.json   the brief: open it in the generator again (Brief as JSON), or give it to
+                             Claude (minecraft-builder) as the answers for a hand-built version
 
 The setup sheet assumes the minimum corner is pasted at ${brief.origin.join(' ')} in world "${brief.world}".
 Paste somewhere else? Change "Paste corner" in the generator (or the brief's origin) and download again.

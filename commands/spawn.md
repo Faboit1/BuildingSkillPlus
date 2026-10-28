@@ -15,8 +15,8 @@ Follow the minecraft-builder skill's "Server spawns and lobbies: build them your
    brief.md (answers, your decisions, which BRIEF field or CUSTOM piece each answer becomes, canvas
    size, a top-view sketch with the main numbers) and ask "Build this?".
 3. After a yes: `new_spawn` with the type (this plugin's `minecraft` MCP server) gives `spawn.mjs`
-   = that type's template (the generator's layout as a recipe). Set its `BRIEF` block to the answers
-   and `build_recipe` it: that is the generator-quality base. Then make it theirs in its `CUSTOM`
+   = that type's template (a tested layout). Set its `BRIEF` block to the answers and
+   `build_recipe` it: that is the base. Then make it theirs in its `CUSTOM`
    block (manual §4.3-§4.4, the cookbook §8), calling `build_recipe` after each change and looking at
    the images it returns.
 4. Look and fix (manual §10): `screenshot` from the player's spots (positions from
@@ -25,6 +25,5 @@ Follow the minecraft-builder skill's "Server spawns and lobbies: build them your
 5. Deliver (manual §12): `build_recipe` with `export: true`, `origin` and `world`; the .schem and
    .litematic, setup.md, screenshots, the paste corner and the world spawn.
 
-Only if the user asks for the quick generator: `make_spawn` with a brief (see the skill).
 If the MCP tools are not available, use the scripts (`node "${CLAUDE_PLUGIN_ROOT}/scripts/new-spawn.mjs"`,
 `run-build.mjs`, `screenshot.mjs`, `isorender.mjs`; see the skill).

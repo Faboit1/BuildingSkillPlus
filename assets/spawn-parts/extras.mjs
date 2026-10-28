@@ -1,4 +1,4 @@
-// Optional set pieces round a spawn, placed the way the generator places them: landmarks and giant
+// Optional set pieces round a spawn, placed the way the templates place them: landmarks and giant
 // trees on rings just outside the town, raised areas and rocks in the ground that is left.
 //
 //   planLandmarks(ctx, { kinds, ring, islandR, angles }) → [{ kind, x, z, r }]

@@ -7,8 +7,6 @@
 //   render_build    an isometric render of any .nbt/.schem/.litematic, returned as an image
 //   inspect_build   lint checks / human-build score / block info
 //   convert_build   .nbt ⇄ .schem ⇄ .litematic
-//   spawn_options / make_spawn / rebuild_spawn   the one-call spawn GENERATOR: only when the user
-//                   asks for it ("use the generator", "a quick one"); spawns are hand-built by default
 // Everything runs the skill's own scripts (../scripts) with the bundled dependency. Registered in
 // .claude-plugin/plugin.json (mcpServers), not a root .mcp.json, so opening this repo as a project does
 // not try to start it without a plugin root.
@@ -17,7 +15,7 @@ import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import readline from 'node:readline'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(here, '..')
@@ -53,110 +51,18 @@ const image = file => ({ type: 'image', data: fs.readFileSync(file).toString('ba
 const text = t => ({ type: 'text', text: t })
 const fail = msg => ({ content: [text(msg)], isError: true })
 
-// make-spawn prints a report; keep it, add the renders as images the model can look at right away
-async function spawnResult(args, { images = true } = {}) {
-  const r = await run('make-spawn.mjs', args)
-  if (r.code !== 0) return fail(`make_spawn failed:\n${(r.err || r.out).slice(-4000)}`)
-  const report = r.out.slice(Math.max(0, r.out.indexOf(': done') - 200)).trim()
-  const renders = [...r.out.matchAll(/render\s+(\S+\.png)/g)].map(m => path.resolve(projectDir(), m[1]))
-  const content = [text(`${r.out.split('\n').filter(l => /^brief: /.test(l)).join('\n')}\n${report}`.trim())]
-  if (images) {
-    // the overview and (when Playwright is installed) the eye-level spawn view; the others by path
-    for (const want of [/-spawn-view\.png$/, /-overview-se\.png$/]) {
-      const f = renders.find(p => want.test(p))
-      if (f && fs.existsSync(f)) content.push(text(path.basename(f)), image(f))
-    }
-  }
-  return { content }
-}
-
 // ---------------------------------------------------------------- tools
-const BRIEF_SCHEMA = {
-  type: 'object',
-  properties: {
-    name: { type: 'string', description: 'Server name, built in block letters on the hero wall' },
-    type: { type: 'string', enum: ['normal', 'plus', 'pvp'], description: 'normal = FreshSMP-like plaza with the NPCs in a ring; plus = DonutSMP-like town, every NPC its own building; pvp = PvP lobby' },
-    size: { type: 'integer', minimum: 60, maximum: 320, description: 'Blocks across (square). Leave out for the recommended size for the NPC count' },
-    npcs: { description: 'A count, or a list of NPC ids/labels (e.g. ["shop","auction","rtp"]) or objects {id,label,role}', anyOf: [{ type: 'integer', minimum: 0, maximum: 40 }, { type: 'array', items: { anyOf: [{ type: 'string' }, { type: 'object', properties: { id: { type: 'string' }, label: { type: 'string' }, role: { type: 'string' } } }] } }] },
-    theme: { type: 'string', enum: ['autumn', 'medieval', 'white-town', 'japanese', 'winter', 'fantasy', 'crimson', 'tropical'] },
-    setting: { type: 'string', enum: ['island', 'plains', 'valley', 'mountain', 'coast'], description: "Island terrain variant; leave out for the theme's" },
-    accent: { type: 'string', enum: ['white', 'light_gray', 'gray', 'black', 'brown', 'red', 'orange', 'yellow', 'lime', 'green', 'cyan', 'light_blue', 'blue', 'purple', 'magenta', 'pink'] },
-    leaderboards: { description: 'A count or labels, e.g. ["Money","Kills","Playtime"]', anyOf: [{ type: 'integer', minimum: 0, maximum: 6 }, { type: 'array', items: { type: 'string' } }] },
-    crates: { description: 'A count, labels, or objects {id,label,tier}; tiers: common, uncommon, rare, epic, legendary, mythic, vote, seasonal', anyOf: [{ type: 'integer', minimum: 0, maximum: 8 }, { type: 'array', items: { anyOf: [{ type: 'string' }, { type: 'object', properties: { id: { type: 'string' }, label: { type: 'string' }, tier: { type: 'string' } } }] } }] },
-    features: { type: 'object', properties: { rtp: { type: 'boolean' }, pvp: { type: 'boolean' }, afk: { type: 'boolean' }, signs: { description: 'false (default), true, or { style: slim|classic|colorful|auto, outline: true|false|auto, thick: true|false|auto }', anyOf: [{ type: 'boolean' }, { type: 'object', properties: { style: { type: 'string', enum: ['slim', 'classic', 'colorful', 'auto'] }, outline: { anyOf: [{ type: 'boolean' }, { type: 'string', enum: ['auto'] }] }, thick: { anyOf: [{ type: 'boolean' }, { type: 'string', enum: ['auto'] }] } } }] } }, description: 'RTP gate, PvP zone, AFK area; signs = block-letter section titles (CRATES, LEADERBOARDS...), off by default' },
-    top3: { description: 'Top-3 pillar sets (statues of the top 3 players): a count or titles, e.g. ["Top Spenders","Baltop"]', anyOf: [{ type: 'integer', minimum: 0, maximum: 4 }, { type: 'array', items: { type: 'string' } }] },
-    warzone: { description: 'A PvP band round the spawn behind a red concrete line: true or { width (40-120), moshpit, koth, label }', anyOf: [{ type: 'boolean' }, { type: 'object', properties: { width: { type: 'integer' }, moshpit: { type: 'boolean' }, koth: { type: 'boolean' }, label: { type: 'string' } } }] },
-    landmarks: { type: 'array', items: { type: 'string', enum: ['volcano', 'lighthouse', 'ship', 'statue', 'giant-tree', 'giant-palm', 'rock-spires', 'rock-arch'] }, description: 'Big set pieces round the spawn' },
-    bigTrees: { type: 'integer', minimum: 0, maximum: 8, description: 'Giant trees round the spawn' },
-    terraces: { description: 'Raised areas (1-4 blocks, smooth): true or a count', anyOf: [{ type: 'boolean' }, { type: 'integer' }] },
-    rocks: { description: 'Rock outcrops here and there: true, "few", "many" or a count', anyOf: [{ type: 'boolean' }, { type: 'integer' }, { type: 'string' }] },
-    surprise: { type: 'boolean', description: 'Pick everything the brief leaves out at random' },
-    seed: { type: 'integer', description: 'Another number = another variation of the same brief' },
-    origin: { type: 'array', items: { type: 'integer' }, minItems: 3, maxItems: 3, description: 'World [x,y,z] of the paste corner; default centres the spawn on 0,0 at y 64' },
-    world: { type: 'string', description: 'World name used in the setup commands' },
-  },
-  required: ['name', 'type'],
-}
-
-const GEN_NOTE = 'Spawn GENERATOR (one call, a fixed layout). Use it only when the user asks for the generator or a quick automatic spawn; by default build spawns by hand (new_spawn, then build_recipe). '
-
 const TOOLS = [
   {
-    name: 'spawn_options',
-    description: GEN_NOTE + 'Everything the generator\'s brief can take: types, themes (with what they look like), island settings, accent colours, the NPC ids each type knows, crate tiers, and the recommended size for a number of NPCs. Call it before the generator\'s interview.',
-    inputSchema: { type: 'object', properties: { npcs: { type: 'integer', description: 'Optional: also return the recommended size for this many NPCs per type' } } },
-    run: async ({ npcs } = {}) => {
-      const { THEMES } = await import(pathToFileURL(path.join(scripts, '../assets/spawn-parts/themes.mjs')).href)
-      const { TYPES, NPC_LABELS } = await import(pathToFileURL(path.join(scripts, 'lib/spawngen/brief.mjs')).href)
-      const { resolveBrief } = await import(pathToFileURL(path.join(scripts, 'lib/spawngen/index.mjs')).href)
-      const rec = n => Object.fromEntries(Object.keys(TYPES).map(t => [t, resolveBrief({ type: t, npcs: n }).brief.size]))
-      const info = {
-        types: { normal: 'Normal spawn (FreshSMP-like): a big flat plaza (about 220 blocks across) with the NPCs on plinths in rings round the spawn, trees in grass beds, hologram leaderboards over plinths with a top-3 podium north, open-air crates west, a PvP ruin behind a red line east, the RTP gate south, and a ring of big buildings all round. No block-letter signs. Best for most SMPs.', plus: 'Spawn+ (DonutSMP-like): a town around a square hub, every NPC gets its own building; corner halls, gardens, stalls, PvP arena and AFK park outside.', pvp: 'PvP lobby: queue NPCs in an arc facing the spawn dais, leaderboards behind, an FFA arena, crates and a store pavilion.' },
-        sizeRanges: TYPES,
-        themes: Object.fromEntries(Object.entries(THEMES).map(([k, t]) => [k, `${t.label}: ${t.kit.primary.replace(/_/g, ' ')} walls, ${t.roof.replace(/_/g, ' ')} roofs, ${t.trees.feature.replace(/_/g, ' ')} trees, ${t.accent} accent, default setting ${t.setting}`])),
-        settings: { island: 'gentle rolling floating island', plains: 'nearly flat', valley: 'hills rising round the rim', mountain: 'a rocky ridge behind the hero', coast: 'a lake cove with beaches' },
-        accents: BRIEF_SCHEMA.properties.accent.enum,
-        npcIds: { normal_and_plus: ['shop', 'auction', 'rtp', 'store', 'kits', 'quests', 'sell', 'warps', 'events', 'bounties', 'teams', 'tutorial', 'afk', 'vote', 'duels', 'enchanter'], pvp: ['unranked', 'ranked', 'ffa', 'kits', 'events', 'store', 'duels', 'bots'], labels: NPC_LABELS },
-        leaderboardIdeas: ['Money', 'Kills', 'Playtime', 'Blocks Mined', 'Deaths', 'Votes', 'Elo', 'Wins', 'Streak'],
-        crateTiers: ['vote', 'common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'seasonal'],
-        recommendedSize: Object.fromEntries([4, 6, 8, 10, 12, 16, 20, 24, 30].map(n => [n, rec(n)])),
-        ...(npcs ? { recommendedForYourCount: rec(npcs) } : {}),
-      }
-      return { content: [text(JSON.stringify(info, null, 2))] }
-    },
-  },
-  {
-    name: 'make_spawn',
-    description: GEN_NOTE + 'Generate a whole Minecraft server spawn from a brief: island terrain, plaza, NPC places, leaderboards with the server name, crates, RTP gate, PvP zone, themed buildings, trees, lighting, spawn-proofing. Writes <slug>.nbt/.schem/.litematic, <slug>.setup.md (NPC/hologram/crate/WorldGuard commands), <slug>.placements.json, an editable <slug>.recipe.mjs and renders into minecraft-builds/<slug>/ in the project, and returns the report with the overview (and eye-level spawn view when available) as images. Takes 10-90 s.',
-    inputSchema: { type: 'object', properties: { brief: BRIEF_SCHEMA, out_dir: { type: 'string', description: 'Output folder (default minecraft-builds/<slug> in the project)' }, renders: { type: 'boolean', description: 'Render images (default true)' } }, required: ['brief'] },
-    run: async ({ brief, out_dir, renders = true }) => {
-      if (!brief || typeof brief !== 'object') return fail('brief must be an object, e.g. {"name":"Crimson SMP","type":"normal","npcs":10,"theme":"crimson"}')
-      const args = ['--brief', JSON.stringify(brief)]
-      if (out_dir) args.push('--out-dir', outPath(out_dir))
-      if (!renders) args.push('--no-render')
-      return spawnResult(args, { images: renders })
-    },
-  },
-  {
-    name: 'rebuild_spawn',
-    description: GEN_NOTE + 'Rebuild a generated spawn from its edited recipe (minecraft-builds/<slug>/<slug>.recipe.mjs: change the brief in it, or add hand-made details in its after(ctx) hook). Returns the same report and images as make_spawn.',
-    inputSchema: { type: 'object', properties: { recipe: { type: 'string', description: 'Path to <slug>.recipe.mjs' }, renders: { type: 'boolean' } }, required: ['recipe'] },
-    run: async ({ recipe, renders = true }) => {
-      const file = outPath(recipe)
-      if (!fs.existsSync(file)) return fail(`no such recipe: ${file}`)
-      return spawnResult(['--recipe', file, '--out-dir', path.dirname(file), ...(renders ? [] : ['--no-render'])], { images: renders })
-    },
-  },
-  {
     name: 'new_spawn',
-    description: 'Start a hand-built server spawn (the default way to make a spawn, after the interview): creates minecraft-builds/<slug>/ with spawn.mjs = the template for the spawn type (normal: ember-smp, plus: oakhaven-hub, pvp: kirin-practice; the generator\'s layout as a recipe, driven by a BRIEF block at its top), parts/ (your own editable copy of the spawn parts), examples/ (every example spawn) and brief.md. Set the BRIEF block to the interview answers and build it with build_recipe: that is the generator-quality base. Then make it the user\'s own (theme touches, their extra asks, custom structures), screenshot, fix, repeat.',
+    description: 'Start a hand-built server spawn (the default way to make a spawn, after the interview): creates minecraft-builds/<slug>/ with spawn.mjs = the template for the spawn type (normal: ember-smp, plus: oakhaven-hub, pvp: kirin-practice; a tested layout driven by a BRIEF block at its top, with a CUSTOM block for your additions), parts/ (your own editable copy of the spawn parts), examples/ (every example spawn) and brief.md. Set the BRIEF block to the interview answers and build it with build_recipe: that is the base. Then make it the user\'s own in the CUSTOM block (theme touches, their extra asks, custom structures), screenshot, fix, repeat.',
     inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'The server name' }, type: { type: 'string', enum: ['normal', 'plus', 'pvp'], description: 'The spawn type: picks the template (default normal)' }, from: { type: 'string', description: 'Instead of type: start from any example (ember-smp, frost-smp, oakhaven-hub, kirin-practice, pirate-isle), or "blank" for an empty skeleton (only for a layout none of them has)' }, brief: { type: 'string', description: 'The interview answers and the plan, saved as brief.md' }, out_dir: { type: 'string' }, force: { type: 'boolean', description: 'Overwrite an existing spawn.mjs' } }, required: ['name'] },
     run: async ({ name, type, from, brief, out_dir, force }) => {
       const args = [name, ...(type ? ['--type', type] : []), ...(from ? ['--from', from] : []), ...(brief ? ['--brief', brief] : []), ...(out_dir ? ['--out-dir', outPath(out_dir)] : []), ...(force ? ['--force'] : [])]
       const r = await run('new-spawn.mjs', args)
       if (r.code !== 0) return fail((r.err || r.out).slice(-3000))
       const guide = path.join(root, 'references/spawns/build-guide.md')
-      return { content: [text(`${r.out.trim()}\n\nNext: set the BRIEF block at the top of spawn.mjs to the interview answers and build it with build_recipe (the generator-quality base). Then make it theirs in the CUSTOM block below the BRIEF (plan / build / finish): ${guide} §4 explains it with tested examples and §8 maps every common request to its change; build and screenshot after each change.`)] }
+      return { content: [text(`${r.out.trim()}\n\nNext: set the BRIEF block at the top of spawn.mjs to the interview answers and build it with build_recipe (the base). Then make it theirs in the CUSTOM block below the BRIEF (plan / build / finish): ${guide} §4 explains it with tested examples and §8 maps every common request to its change; build and screenshot after each change.`)] }
     },
   },
   {
@@ -272,12 +178,12 @@ const TOOLS = [
   },
 ]
 
-const ORDER = ['new_spawn', 'build_recipe', 'screenshot', 'render_build', 'inspect_build', 'convert_build', 'spawn_options', 'make_spawn', 'rebuild_spawn']
+const ORDER = ['new_spawn', 'build_recipe', 'screenshot', 'render_build', 'inspect_build', 'convert_build']
 
 // ---------------------------------------------------------------- JSON-RPC over stdio
 const send = msg => process.stdout.write(`${JSON.stringify(msg)}\n`)
 const serverInfo = { name: 'minecraft-builder', version: VERSION }
-const INSTRUCTIONS = 'Minecraft builds and server spawns. For a spawn/lobby/hub follow the minecraft-builder skill: interview the user, then build the spawn yourself: new_spawn makes the folder with the type\'s template, you set its BRIEF and add the user\'s extras in its CUSTOM block (references/spawns/build-guide.md, the spawn manual), build_recipe builds it, screenshot and render_build show it, you fix and rebuild until it is great, inspect_build lints it, then deliver the .schem/.litematic + setup.md. make_spawn (the generator) only when the user asks for it.'
+const INSTRUCTIONS = 'Minecraft builds and server spawns. For a spawn/lobby/hub follow the minecraft-builder skill: interview the user, then build the spawn yourself: new_spawn makes the folder with the type\'s template, you set its BRIEF and add the user\'s extras in its CUSTOM block (references/spawns/build-guide.md, the spawn manual), build_recipe builds it, screenshot and render_build show it, you fix and rebuild until it is great, inspect_build lints it, then deliver the .schem/.litematic + setup.md.'
 
 async function handle(msg) {
   const { id, method, params } = msg
@@ -287,7 +193,7 @@ async function handle(msg) {
   }
   if (method === 'server/discover') return { supportedVersions: SUPPORTED, capabilities: { tools: { listChanged: false } }, serverInfo, instructions: INSTRUCTIONS }
   if (method === 'ping') return {}
-  // the hand-building tools first, the generator last (it is only for when the user asks for it)
+  // in the order of the work
   if (method === 'tools/list') return { tools: [...TOOLS].sort((p, q) => ORDER.indexOf(p.name) - ORDER.indexOf(q.name)).map(({ name, description, inputSchema }) => ({ name, description, inputSchema })) }
   if (method === 'tools/call') {
     const tool = TOOLS.find(t => t.name === params?.name)

@@ -1,5 +1,5 @@
 // Kirin Practice — the PVP LOBBY template: compact, every game one glance away. This is the
-// generator's PvP layout written out as a recipe: change the BRIEF block and the layout follows (the
+// tested PvP layout written as a recipe: change the BRIEF block and the layout follows (the
 // NPC arc widens with the count); then make it yours in the CUSTOM block below it.
 //
 //                 boards + podium     [top3]

@@ -1,4 +1,4 @@
-// Landscape and props for the spawn generator: feature trees, woodland, ground cover, the island's
+// Landscape and props for spawns: feature trees, woodland, ground cover, the island's
 // underside, the PvP ruin, the AFK garden and the small props (lamps, benches, planters, stalls...).
 // Contract (see index.mjs for ctx). Every position is [x, y, z] with y = the GROUND block level (the
 // block you stand on); things start at y + 1.

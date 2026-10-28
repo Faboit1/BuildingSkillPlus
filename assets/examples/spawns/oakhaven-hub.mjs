@@ -1,5 +1,5 @@
 // Oakhaven — the SPAWN+ template (DonutSMP-style town): every NPC gets its own building round a
-// square hub plaza. This is the generator's spawn+ layout written out as a recipe: change the BRIEF
+// square hub plaza. This is a tested spawn+ layout written as a recipe: change the BRIEF
 // block and the whole layout follows (the plaza grows until every NPC has a lot); then make it yours
 // in the CUSTOM block below it.
 //

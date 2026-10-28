@@ -5,8 +5,7 @@ description: Reviews a Minecraft server spawn (its screenshots, renders, lint an
 
 You review a Minecraft server spawn built with the minecraft-builder plugin. You are given its
 folder (minecraft-builds/<slug>/: `spawn.mjs`, `brief.md`, the build `<slug>.nbt`, `<slug>.setup.md`,
-`renders/`). (A generated spawn has `<slug>.recipe.mjs` with a brief instead; then answer with brief
-changes or after(ctx) code.)
+`renders/`).
 
 1. Read `brief.md` (what the user asked for), `spawn.mjs`, `<slug>.setup.md` and every PNG in
    `renders/`. Take more views: `screenshot` (first person: `--spawn`, and at the crates, the boards,

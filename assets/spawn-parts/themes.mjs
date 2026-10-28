@@ -1,4 +1,4 @@
-// Spawn themes: every material and planting decision the generator makes comes from here, so a
+// Spawn themes: every material and planting decision the parts make comes from here, so a
 // theme is a complete art direction. Roles (all vanilla 1.21.1 ids, namespace optional):
 //   ground     walking surface outside the paving, as kit.palette weights (clumped, never speckle)
 //   paving     plaza field (≥ 70% of the floor), border (rings, kerbs), path (worn walks), inlay

@@ -8,8 +8,8 @@ adds the spawn program, the numbers and the workflow.
 **How spawns are made:** you design and build each one by hand (`SKILL.md` → "Server spawns and
 lobbies"): this handbook says what a good spawn is; `build-guide.md` says exactly how to build one
 with the spawn parts (`assets/spawn-parts/`), with the layouts and numbers that work; the example
-spawns (`assets/examples/spawns/`) show it done. The one-call generator (`scripts/make-spawn.mjs`,
-built from the same parts) is there for when the user asks for it.
+spawns (`assets/examples/spawns/`) show it done, and the templates among them are where every spawn
+starts.
 
 Companion files in this folder:
 

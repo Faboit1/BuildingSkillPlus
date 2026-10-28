@@ -1,6 +1,6 @@
 // Ember SMP — the NORMAL spawn template (FreshSMP-style): a big flat plaza with the NPCs on quartz
 // plinths in rings round the spawn, trees in grass beds, the boards and crates out in the open, a ring
-// of big buildings, woodland beyond. This is the generator's normal layout written out as a recipe:
+// of big buildings, woodland beyond. This is a tested layout written as a recipe:
 // change the BRIEF block and the whole layout follows (ring sizes, plaza, canvas, extras); then make it
 // yours in the CUSTOM block below it (the theme's touches, the user's extra asks, anything the
 // screenshots say).

@@ -7,9 +7,9 @@
 //   node scripts/new-spawn.mjs "Ember SMP" --from pirate-isle   start from any example spawn
 //   node scripts/new-spawn.mjs "Ember SMP" --from blank         an empty skeleton (a layout no template has)
 //
-// The templates are the generator's layouts written out as recipes, driven by a BRIEF block at the top
-// (name, theme, NPCs, boards, crates, top-3 sets, landmarks, warzone, signs...): set the brief, build
-// it, and you have the generator's quality; then make it the user's own below the brief.
+// The templates are tested layouts written as recipes, driven by a BRIEF block at the top (name,
+// theme, NPCs, boards, crates, top-3 sets, landmarks, warzone, signs...): set the brief, build it, and
+// you have a good spawn; then make it the user's own in its CUSTOM block.
 //   --type normal → ember-smp      (a big flat plaza, NPC rings, a ring of buildings)
 //   --type plus   → oakhaven-hub   (a town, a building per NPC)
 //   --type pvp    → kirin-practice (a PvP lobby)
@@ -73,7 +73,7 @@ if (from) {
   // the template's brief carries the new server's name
   src = src.replace(/(const BRIEF = \{\s*\n\s*name: )'[^']*'/, `$1${JSON.stringify(name).replace(/^"|"$/g, "'")}`)
   const templ = Object.values(TEMPLATES).includes(from)
-  src = `// ${name}: started from the ${templ ? 'template' : 'example'} ${from}.mjs. ${templ ? 'Set the BRIEF block to the interview answers and build: that is the\n// generator-quality base. Then make it this server\'s own below the brief' : 'Reshape every section to this server\'s brief'} (brief.md).\n\n${src}`
+  src = `// ${name}: started from the ${templ ? 'template' : 'example'} ${from}.mjs. ${templ ? 'Set the BRIEF block to the interview answers and build: that is the\n// base. Then make it this server\'s own in the CUSTOM block' : 'Reshape every section to this server\'s brief'} (brief.md).\n\n${src}`
   fs.writeFileSync(recipe, src)
 } else fs.writeFileSync(recipe, skeleton(name))
 const briefFile = path.join(dir, 'brief.md')

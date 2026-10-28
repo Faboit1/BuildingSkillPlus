@@ -14,8 +14,7 @@ palettes, roofs, styles, landscaping, interiors, lighting and composition.
 
 This repo is a Claude plugin (`minecraft-builder`) and its own marketplace. The plugin bundles the
 skill, a tool server (`new_spawn`, `build_recipe`, `screenshot`, `render_build`, `inspect_build`,
-`convert_build`, and the generator's `make_spawn` / `rebuild_spawn` / `spawn_options`), a
-`/minecraft-builder:spawn` command and a `spawn-critic` review agent. Its only dependency ships
+`convert_build`), a `/minecraft-builder:spawn` command and a `spawn-critic` review agent. Its only dependency ships
 inside it: install it and it works.
 
 **Claude Code** (needs Node 20.19+ on your machine):
@@ -55,9 +54,9 @@ Claude designs and builds every spawn by hand, like a build team:
    hologram boards with a podium, top-3 pillars, crates, themed buildings, hand-shaped trees,
    lamps and props, the PvP ruin, the AFK pond, a warzone with a moshpit and KOTH, landmarks,
    block-letter signs, snowfall), and complete **example spawns** to learn from.
-3. `spawn.mjs` starts as the **template for the spawn type**: the generator's own layout
-   (normal, spawn+ or PvP) written out as a recipe. Claude sets its `BRIEF` block to the interview
-   answers and **builds it** (`build_recipe`): generator quality from the first build. Then it makes
+3. `spawn.mjs` starts as the **template for the spawn type** (normal, spawn+ or PvP): a tested
+   layout that adapts to the program. Claude sets its `BRIEF` block to the interview answers and
+   **builds it** (`build_recipe`): a good spawn from the first build. Then it makes
    the spawn theirs in the template's `CUSTOM` block (plan / build / finish): a gateway framing the
    first view, a market, a building for their museum, their mascot, a winter version, a theme of
    their own. After every change it looks at the isometric overview and **first-person
@@ -90,28 +89,12 @@ overview, right the `screenshot` from the spawn point (what a player sees on joi
 | <img src="docs/gallery/hand-pirate-isle-overview.jpg" width="400" alt="Tortuga SMP, overview"> | <img src="docs/gallery/hand-pirate-isle-view.jpg" width="400" alt="Tortuga SMP, spawn view"> |
 | **Tortuga SMP** (`pirate-isle.mjs`): tropical island: volcano, ship, lighthouse, parrot statue, giant palms, a warzone with a moshpit and KOTH, colourful signs | |
 
-### The generator (when you want one call)
+### The browser spawn builder (not part of the plugin)
 
-The older one-call generator is still there: `make_spawn` with a JSON brief (or
-`node scripts/make-spawn.mjs assets/spawn-briefs/autumn-lifesteal.json`) builds a whole spawn from
-fixed layouts (normal, spawn+, PvP lobby) with the same parts. Ask for it by name ("use the
-generator"). From a clone of this repo the scripts work as they are (the dependency is bundled in
-`scripts/node_modules`); `npm install` is only needed for the browser renderer and the viewer.
-
-Generator output:
-
-| | |
-| --- | --- |
-| <img src="docs/gallery/spawngen-autumn-lifesteal.jpg" width="400" alt="Autumn normal spawn, spawn view"> | <img src="docs/gallery/spawngen-autumn-lifesteal-overview.jpg" width="400" alt="Autumn normal spawn, overview"> |
-| **Ember SMP**: normal spawn, autumn, 12 NPCs, 220 x 220 | overview |
-| <img src="docs/gallery/spawngen-donut-style-plus.jpg" width="400" alt="Medieval spawn+, spawn view"> | <img src="docs/gallery/spawngen-donut-style-plus-overview.jpg" width="400" alt="Medieval spawn+, overview"> |
-| **Glaze SMP**: spawn+, medieval valley, 16 NPCs in their own buildings | overview |
-| <img src="docs/gallery/spawngen-practice-pvp.jpg" width="400" alt="Japanese PvP lobby, spawn view"> | <img src="docs/gallery/spawngen-practice-pvp-overview.jpg" width="400" alt="Japanese PvP lobby, overview"> |
-| **Sakura PvP**: PvP lobby, japanese, 6 queue NPCs | overview |
-| <img src="docs/gallery/spawngen-cheese-smp.jpg" width="400" alt="White-town spawn, spawn view"> | <img src="docs/gallery/spawngen-winter-smp-overview.jpg" width="400" alt="Winter mountain spawn, overview"> |
-| **CheeseSMP**: normal spawn, white-town, blue accent | **Frost SMP**: normal spawn, winter, mountain ridge |
-| <img src="docs/gallery/spawngen-crimson-lifesteal.jpg" width="400" alt="Crimson lifesteal spawn, spawn view"> | <img src="docs/gallery/spawngen-crimson-lifesteal-overview.jpg" width="400" alt="Crimson lifesteal spawn, overview"> |
-| **Crimson SMP**: normal spawn, crimson (nether-style), 10 NPCs | overview |
+`apps/spawn-generator/` is a one-click spawn generator as a single offline HTML page: fill in a
+brief, generate, look at it in 3D, download the .schem/.litematic and the setup sheet. Open
+`apps/spawn-generator/dist/spawn-generator.html`. Its engine (`apps/spawn-generator/spawngen/`) runs
+the same spawn parts as the plugin; the plugin itself has no generator: Claude builds every spawn.
 
 ## What's inside
 

@@ -16,7 +16,6 @@ user's current folder.
 | The user wants | You do |
 | --- | --- |
 | A server spawn, lobby or hub | build it yourself from a template: the six steps below. This is the main use |
-| "Use the generator", "a quick one" | `make_spawn` with a brief (the end of the next section) |
 | Any other build (a house, a castle, a statue, terrain...) | write a recipe with the building kit, render, critique, repeat ("The loop" below); read `references/building/README.md` first |
 
 ## Server spawns and lobbies: build them yourself
@@ -27,10 +26,9 @@ part, tested code for what users ask for ("a winter version", "add a market", "t
 how to look at your build like a player, and delivery. Read its §1-§4 before your first spawn and
 keep it open while you work.
 
-**The templates.** `new_spawn` starts every spawn from the template for its type: the generator's
-own layout written out as a recipe, so the first build is already as good as the generator. Each has
-a **BRIEF** block (what this server is: theme, NPCs, boards, crates, options) and a **CUSTOM** block
-(what you add: `plan`, `build`, `finish`). You change those two, and the layout adapts by itself.
+**The templates.** `new_spawn` starts every spawn from the template for its type: a tested layout
+that adapts to the program, so the first build is already a good spawn. Each has a **BRIEF** block (what this server is: theme, NPCs, boards, crates, options) and a **CUSTOM** block (what you add:
+`plan`, `build`, `finish`). You change those two, and the layout adapts by itself.
 
 | Type | Template | The idea |
 | --- | --- | --- |
@@ -154,17 +152,9 @@ goes) and `world` writes the `.schem` (WorldEdit/FAWE), `.litematic` (Litematica
 text, NPC names and crate titles are holograms from `setup.md`, so the build shows only their
 plinths and boards: that is expected.
 
-### The quick generator (only when the user asks for it)
-
-`make_spawn` builds a whole spawn from a JSON brief in one call (fixed layouts: normal, spawn+,
-PvP), `rebuild_spawn` rebuilds its editable `<slug>.recipe.mjs`, `spawn_options` lists what the
-brief takes (themes, settings, NPC ids, top3, warzone, landmarks, bigTrees, terraces, rocks,
-surprise, signs). Scripts: `node "${CLAUDE_SKILL_DIR}/scripts/make-spawn.mjs" brief.json`. Examples of
-briefs are in `assets/spawn-briefs/`.
-
 ## Setup (only for the browser renderer)
 
-Building, inspecting, converting, `new-spawn`, `make-spawn`, `screenshot.mjs` and `isorender.mjs` work out of the box: their
+Building, inspecting, converting, `new-spawn`, `screenshot.mjs` and `isorender.mjs` work out of the box: their
 one dependency (Lodestone) is bundled in `scripts/node_modules/lodestone`. Only `scripts/render.mjs`
 and `preview.mjs` (perspective renders, the eye-level spawn view, the interactive viewer) need more:
 run `npm install` in the skill folder, then `npx playwright install chromium` if no Chromium is found.

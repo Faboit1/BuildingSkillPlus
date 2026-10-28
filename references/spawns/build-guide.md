@@ -3,8 +3,8 @@
 This is everything you need to build a server spawn, hub or PvP lobby that a server owner is proud of:
 what makes one great, the workflow, the templates and how to change them safely, every part with its
 numbers, tested code for the things users ask for, how to look at your build like a player, and how
-to deliver it. The spawn generator's knowledge is written down here and in the templates, so your
-spawn starts at the generator's quality. Your own judgement and the user's wishes take it further.
+to deliver it. What works is written down here and in the templates, so every spawn starts from a
+tested base. Your own judgement and the user's wishes take it further.
 
 **How to read it.** The first time, read §1-§4 and the template you are starting from (`spawn.mjs` in
 your spawn folder). After that, use it as a reference: §8 (the cookbook) maps every common request
@@ -132,7 +132,7 @@ none of them has (§5.5).
 **4. The base.** Set the BRIEF block (§4.1) to the interview answers and build with `build_recipe`
 (recipe: the spawn.mjs path). It returns a report, an isometric overview and the view from the spawn
 point. The template adapts the whole layout to the BRIEF (ring sizes, the town's plaza, the canvas),
-so this first build is already as good as the generator. Do not hand-edit the layout numbers to fit
+so this first build is already a good spawn. Do not hand-edit the layout numbers to fit
 a different program: change the BRIEF.
 
 **5. Make it theirs.** Everything else goes in the CUSTOM block (§4.3): the user's extra asks, the
@@ -182,7 +182,7 @@ about 25 s; screenshots take 2-3 s each.
 
 ## 4. Working in a template
 
-Each template is the generator's layout written out as a recipe in four parts: the **BRIEF** (what
+Each template is a tested layout written as a recipe in four parts: the **BRIEF** (what
 this server is), the **CUSTOM** block (what you add), the layout's numbers, and `build(api)`, which
 plans everything, levels the site, builds the places, calls your CUSTOM functions at the right
 moments and finishes.
