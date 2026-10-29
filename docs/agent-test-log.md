@@ -82,3 +82,24 @@ coast), but kept two habits and made new mistakes:
 | C17 + the user's request | Big trees: `bigTree` (trunks 2-4 across), giant trees and all kit trees with thick limbs in all-bark wood, `b.forest` bigger by default (scale 1.6 from 400 wide), the cherry reshaped |
 | B1, B2 | Element ids from `kit.material`; unknown ids reported with a count, a location and "did you mean" |
 | B3-B6, B8 | Leaf states only on leaves; island underside capped; no duplicate spawn point in the skeleton; a river warns when its course leaves the land |
+
+## The scoreboard
+
+Every build judged the same way (`scripts/dev/judge.mjs`, rubric in `docs/judging.md`, out of 100).
+"Old" is the plugin as released (2.0.0); "new" is this branch. Rounds count the corrections sent
+before the build was judged.
+
+| Build | Model, effort | Plugin | Rounds | Builds | Time | Score | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Driftwood | Haiku, high | old | 0 | 4 | 25 min | 23 | flat disc, a pond for a harbour, a striped cylinder as the hero |
+| Cheese SMP | Haiku, high | old | 0 | 9 | 28 min | 30 | flat disc, mountain blobs, a circle wall of 80 identical towers |
+| Kuro PvP | Sonnet, high | old | 0 | 40 | 65 min | 56 | strong hall and avenue; cone mountains, a flat statue, empty views 3 of 4 ways |
+| Cheese SMP | Sonnet, xhigh | old | 0 | 31 | 2 h | 66 | the best of round 1: a full valley, town districts, the castle on the axis; the hero fades at 208 out, a flat yellow medallion, cut grey rim walls |
+| Kuro PvP | Sonnet, high | old | 1 | 56 | 2 h | 64 | every view now has buildings, a shaded 98-tall statue, a waterfall; still saw-tooth cone ranges, a speckled floor |
+| Cheese SMP | Haiku, high | old | 4 | ~25 | 3 h | 46 | a dense town at last; a ring of saw-tooth cones, trees dotted evenly, a brick cone for a hero; 292 falling blocks, 66 broken cane, 56 leaks |
+| Driftwood | Haiku, high | old | 4 | 38 | 3 h | 52 | dense varied town, plaza with planters, physics clean; smooth grey blob mountains, a dirt column hanging under the island |
+
+What the old-plugin runs show:
+- **Haiku plateaus** on what the old plugin had no tool for. Its mountains stayed blobs or cones through four rounds of "ranges with spurs and saddles". Every round it also stopped early, with a list or a question, despite being told not to.
+- **Sonnet takes corrections well** and keeps going: high effort fixed most points in one round. But it also never saw its own physics problems (11,404 falling blocks in one build) without a measurement.
+- **What every model needed and the old plugin lacked:** a landform tool, a measured audit, and a gate. The new plugin adds all three. Round B tests it.

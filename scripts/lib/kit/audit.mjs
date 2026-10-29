@@ -257,7 +257,8 @@ function auditBlocks(src, { inside = () => true, placements = [] } = {}) {
   // ---- repeats: buildings with the same footprint and height
   const builtMask = new Uint8Array(n)
   for (let i = 0; i < n; i += 1) if (land[i] && topC[i] === BUILT_C) builtMask[i] = 1
-  const groups = components(builtMask, sx, sz, i => top[i], i => ground[i]).filter(c => c.cells >= 30 && c.cells <= 6000)
+  // (a building stands 4+ above its ground: flat paving, yards and plots are not buildings)
+  const groups = components(builtMask, sx, sz, i => top[i], i => ground[i]).filter(c => c.cells >= 30 && c.cells <= 6000 && c.h >= 4)
   const sig = new Map()
   for (const c of groups) {
     const key = `${Math.min(c.w, c.d)}x${Math.max(c.w, c.d)}x${c.h}`
