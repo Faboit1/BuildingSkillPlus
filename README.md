@@ -96,7 +96,7 @@ district, Claude drafts just that box (`focus`) in 20-40 s.
 | <img src="references/spawns/img/dais.png" width="400" alt="The spawn centre: do and don't"> | <img src="references/spawns/img/buildings.png" width="400" alt="Buildings: do and don't"> |
 | <img src="references/spawns/img/river.png" width="400" alt="Rivers: do and don't"> | <img src="references/spawns/img/bridge.png" width="400" alt="Bridges: do and don't"> |
 | <img src="references/spawns/img/cliffs.png" width="400" alt="Cliffs and mountains: do and don't"> | <img src="references/spawns/img/landmark-trees.png" width="400" alt="Giant trees: do and don't"> |
-| <img src="references/spawns/img/boards.png" width="400" alt="Boards and top-3 pillars: do and don't"> | <img src="references/spawns/img/trees.png" width="400" alt="Trees: do and don't"> |
+| <img src="references/spawns/img/walls.png" width="400" alt="Walls and towers: do and don't"> | <img src="references/spawns/img/boards.png" width="400" alt="Boards and top-3 pillars: do and don't"> |
 
 Reference spawns (`assets/examples/spawns/`): whole spawns Claude reads to see how a layout fits
 together. Left the overview, right the `screenshot` from the spawn point (what a player sees on joining):

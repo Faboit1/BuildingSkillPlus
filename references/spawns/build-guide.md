@@ -678,22 +678,74 @@ result fit the spawn, so the element is designed for this place and does not rep
 
 ### 5.14 Big buildings (`elements/buildings.mjs`)
 
-- **Do:** big buildings broken into masses: a main block, a cross wing with its own gable, a tower
-  1.5-2 times the eaves, bay windows; 25-35 wide for a hall, 2-3 storeys plus a big roof; a stone
-  plinth or ground storey, an upper storey jettied out by 1; windows in a rhythm with sills,
-  frames and shutters; string courses between storeys; pilasters or buttresses so no wall runs flat
-  for more than ~6 blocks; a grand entrance (steps, a porch, an arch); a roof at 45 degrees or more
-  with eaves, dormers and chimneys; the ground round it dressed. Neighbours are siblings, not clones.
-- **Don't:** the big box (a flat-walled cuboid with a flat roof and a row of flush glass), or a small
-  house simply scaled up.
+![Big buildings: do and don't](img/buildings.png)
+
+- **Do:**
+  - mass it from several blocks: a main range, a cross wing stepping forward with its own gable, a
+    tower 1.5-2 times the eaves, a porch; ridges at least 2 apart in height;
+  - keep every wall alive in layers of 1-2 blocks: a plinth with a water-table stair, quoins, a
+    pilaster or post every 5-7 blocks, a jetty or string course at each floor, the infill 1 behind
+    the frame, the glass 1 behind the face with a sill and an arched lintel;
+  - bays in an A-B-A beat, windows stacked over each other; scale cues (doors 2-3 tall, storeys
+    5-6, windows 2-3 tall);
+  - a roof at 45 degrees or steeper with eaves, dormers and chimneys; windows backed with a dark
+    block so they read as windows;
+  - the ground round it dressed (a forecourt, beds, lamps); neighbours as siblings, not clones.
+- **Don't:** the big flat box with flush glass in a row and a flat roof, a small house scaled up,
+  detail spread evenly over every face, per-block speckle.
+- **The example:**
+  - `hall(ctx, pos, facing, opts)`: a guildhall 35 wide (the tower, the main range and the wing)
+    and 18 deep, eaves at 12-13, the main ridge at 22, the tower 24 with its roof to 37. Options:
+    `width`, `depth`, `wing: { width, ahead, behind } | false`, `tower: { size, height } | false`,
+    `porch: { width, depth } | false`, `mirror`, `garden`, `seed`, and the materials (`masonry`,
+    `plinth`, `dressed`, `plaster`, `brick`, `trim`, `frame`, `roof`, `glass`, `backing`). The
+    facades are worked out from the footprint, so any size and facing works;
+  - `house(ctx, pos, facing, opts)`: its small sibling (13 x 8, no wing, tower or garden).
+
+  The kit's roofs (`b.roof`, `b.compoundRoof`, `b.eastRoof`, `b.pagoda`, `b.bellRoof`), windows and
+  doors are tools for your own designs (`references/building/components.md`).
+- **Make it yours:**
+  - a stone guildhall (grey masonry, spruce frame, cream plaster);
+  - a Japanese hall: a battered stone base, calcite walls between dark posts, irimoya roofs
+    (`b.eastRoof`), a pagoda (`b.pagoda`) for the tower, a raked-gravel forecourt;
+  - desert or Moorish: sandstone and terracotta, flat roofs with parapets, a domed tower, pointed
+    arches, a courtyard instead of the wing;
+  - fantasy: calcite and oxidized copper, a bell-roofed tower (`b.bellRoof`), curved bays;
+  - dark gothic: deepslate bricks with tuff bands, tall narrow windows, a steep spire.
+- **Numbers:** feature buildings 25-50 wide and 25-50 tall; ordinary buildings 15-25 wide, 2-4
+  storeys; a street of them varied in width, height, roof direction and colour.
+- **Note:** the renderer draws glass panes, open trapdoors and fences as thin posts: use full glass
+  blocks (grey stained glass over a dark block reads as a window) and judge shutters in game.
 
 ### 5.15 Walls and towers (`elements/walls.mjs`)
 
-- **Do:** a curtain wall 8-14 high and 3-4 thick with a battered base, a wall-walk behind
-  crenellations, towers every 20-40 that project from the wall and rise above it with their own
-  roofs or battlements, arrow slits, corbels under the parapet, the wall following the ground,
-  gatehouses where the roads pass.
-- **Don't:** a 1-thick flat cobblestone wall with single blocks on top and random gaps.
+![Walls and towers: do and don't](img/walls.png)
+
+- **Do:**
+  - a curtain 3+ thick and 6-14 high with a stepped (battered) foot, the masonry dark at the foot
+    and clean at the top;
+  - a parapet 1 out on corbels (a corbel every other block: machicolations), merlons 2 high in a
+    2-on 1-off beat, slabs in the embrasures;
+  - a pilaster-buttress and an arrow slit in each bay;
+  - towers every 20-40 that project from the wall and rise above it, varied in shape (round,
+    square) and top (a cone roof, battlements, a pyramid);
+  - a wall-walk that climbs the ground in steps; straight runs with a tower at every corner (a
+    diagonal run comes out as a jagged face); gatehouses (§5.13) where the roads pass.
+- **Don't:** a 1-thick cobblestone fence with single-block merlons and gaps, towers flush with the
+  wall or all alike, battlements on both edges, a wall ending in the air.
+- **The example:**
+  - `wall(ctx, points, { out, height, thickness, buttressEvery, towers, foot, body, crown, dressed, floor, trim, roof, ground, seed })`:
+    a curtain along a polyline (`out`: `'left'` or `'right'`, the outside as you walk from the
+    first point); `towers: { every, project, list: [{ t, shape, r, rise, top }] } | false` (by
+    default one at each end and corner and more on long runs); returns `{ length, at(t), towers }`;
+  - `tower(ctx, pos, { shape, r, height, walk, top, out, ... })`: one tower.
+- **Make it yours:** a desert town wall of sandstone with open-decked square towers; a Japanese
+  castle wall (a steep stone base, plastered walls with small tiled roofs instead of merlons); elven
+  walls of pale stone with copper bell roofs; a nether fortress of blackstone and basalt with red
+  nether-brick merlons; a ruined wall with merlons missing in clumps; a log palisade with wooden
+  towers.
+- **Numbers:** round a town at r 200-300 on a 1000 canvas, 8-14 high, towers 14-25 high and 9-13
+  across.
 
 ### 5.16 Lamps and light (`elements/lamps.mjs`)
 
