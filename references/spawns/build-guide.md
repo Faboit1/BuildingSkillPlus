@@ -167,7 +167,28 @@ the river valley...). For each district:
 
 ### 2.3 The quality gate
 
+**The audit.** Every spawn build prints an audit (`audit: ...` lines; `summary.json`'s `audit`),
+measured from the blocks, so "it looks fine" is not the judge:
+- bare lawn: the biggest stretch with nothing on it (at most about 48 across) and the share of lawn
+  more than 12 from anything (at most 20%);
+- flat land: the share of the ground within 2 of one level (at most 80%);
+- repeated buildings: 4 or more of the same size fail;
+- low decks over water: warned (a bridge arches on piers; a pier may sit low);
+- NPC spacing: more than 12 apart fails (6-8 is right);
+- effort: the build count from `build-log.json` (15 at the least on a spawn 400+ wide).
+
+A spawn whose audit fails is not exported: `convert.mjs` and `build_recipe`'s export refuse, with the
+list. Fix each line and build again. `--force` (`force: true`) only when the user asked for an
+unfinished draft, and then say what is still open. Under `focus` the audit judges the focus box: use
+it on each district as you go.
+
+**Don't stop early, don't ask whether to go on.** While anything on this list is open, keep working:
+the next draft, the next look, the next fix. Asking the user "should I carry on?" halfway is
+stopping. Look at every screenshot you take (read the PNG): a screenshot not looked at is not a
+check.
+
 Deliver only when all of these hold (on a full build, without `focus`):
+- the audit passes;
 
 - every element passes its chapter's DO list, and no element looks like its DON'T picture;
 - the sizes of §1.2 are met: the hero, the feature buildings, the rivers, the bridges, the walls;
@@ -335,29 +356,97 @@ spawn:
 The examples' functions can be imported. When you do, give every call its own options and make the
 result fit the spawn, so the element is designed for this place and does not repeat the example.
 
-### 5.1 The land: the island (`elements/island.mjs`)
+### 5.1 The land: the landscape (`elements/land.mjs`) and the island (`elements/island.mjs`)
 
-![The island: do and don't](img/island.png)
+![The land: do and don't](img/land.png)
+
+The land is the biggest thing on a spawn and what the user sees first from above. A flat green disc
+with a few things set on it is the most common way a spawn fails, and noise hills everywhere the
+second. Design the land as a landscape: where the mountains stand, how the valley runs, where the
+water goes. Then let the kit's heightfield, `b.land` (kit-api.md, "Landscapes"), do the arithmetic
+and the weathering. The numbers below come from pro terraformers and geomorphology
+(`terrain-research.md`).
 
 - **Do:**
-  - an outline that wanders (a radius pushed in and out by noise);
-  - flat where people walk, rolling a little further out, a shore that drops 1-3 at the rim;
-  - an underside that tapers to a ragged point, deepest under the middle (half to two thirds of the
-    radius), in rock strata under 2-4 blocks of soil;
-  - a few roots hanging from the rim.
-- **Don't:** a cylinder (vertical dirt walls, a flat bottom), a perfect cone, the same depth
-  everywhere, or noise hills where the NPCs stand.
-- **The example:** `island(ctx, { cx, cz, r, depth, seed, flat, top, soil, rock })` builds the
-  island and returns `groundY(x, z)`, the walking surface's level (-1 off the island). Keep such a
-  function so the elements off the plaza stand on the ground. Pass `land` to `finishSpawn` so
-  spawn-proofing stays on the island.
+  - **Landforms first, biggest first.**
+    - The ranges that frame the spawn (`land.range`): tallest behind the first view, steep toward
+      the players, joined by saddles, with foothills along their foot.
+    - A lone peak or two (`land.peak`): stretched, with lesser summits.
+    - The valley floor for the town and the plaza, flat pads where people walk (`land.pad`, blended
+      over 20-40), a gentle roll of 2-4 on the rest (`land.hills`).
+  - **Mountain shapes:**
+    - 3-8 times as wide as they are tall;
+    - flanks averaging 28-38° (0.5-0.8 rise a block), steeper only where there is a cliff;
+    - convex at the crest, straight in the middle, concave at the foot;
+    - spurs from the crest every half-width ÷ 2 (about every 25-60 on a spawn), with side valleys
+      between.
+  - **Weather it:** `land.erode` (rain cuts gullies, sharpens the spurs, lays gravel fans at their
+    mouths), then `land.thermal` (scree under the cliffs). Erosion is what makes it look real;
+    skipping it is what makes terrain look generated.
+  - **Blocks by slope and height** (`land.paint`, a theme or your own):
+    - grass with large soft patches on the flats (coarse dirt and podzol under woods, moss where it
+      is damp);
+    - a slope mix from 30°; scree from 44°;
+    - bare rock in tilted, wandering strata above 51°;
+    - snow only on ledges, never on cliffs;
+    - beaches 2 below to 1 above the water.
+  - **Water where water would be:**
+    - rivers in the valley's lowest line, meandering with a wavelength of about 11 times their
+      width (§5.4);
+    - lakes in basins (`paint`'s `water: { level, from }`);
+    - every water block held.
+  - **Woods by the land:**
+    - on the gentle and middle slopes, in clumps with clearings;
+    - thinning and shrinking toward a tree line well below the summits;
+    - none on cliffs and pads (`land.where` with `b.forest`'s `avoid`);
+    - meadows on the valley floor.
+  - **Floating land:**
+    - an outline that wanders (`land.outline` with a `fall`, so the relief slopes down to the rim
+      instead of being cut off);
+    - a solid underside that hangs like an upside-down mountain to a ragged point
+      (`paint`'s `underside`), deepest in the middle;
+    - roots and vines from the rim, a waterfall off the edge if there is a river.
+- **Don't:**
+  - noise hills everywhere (`height = base + n * fbm(x, z)` over the whole island: lumps of one size
+    in every direction, no valley, no ridge, nothing flat to build on);
+  - mountains as smooth cones, domes or blobs standing on flat grass with no foothills, or one blob
+    in a corner;
+  - grass up every slope and on every peak, one ground block everywhere, or single-block speckle of
+    dirt and sand on the lawn;
+  - a land that ends in a vertical wall at the edge, or a cylinder of an island;
+  - more than 80% of the ground within 2 of one level on a big canvas (the audit fails it).
+- **The example:**
+  - `valleyLand(ctx, { seed, floor, theme })` builds the picture's land, step by step and commented:
+    - an outline;
+    - a range round the north and west, a lone mountain, foothills;
+    - a floodplain and a lake basin;
+    - a plaza pad;
+    - erosion;
+    - paint with an underside and the lake;
+    - the river cut with `river()`;
+    - woods and meadows by `land.where`.
+  - It returns `{ land, groundY, plaza, lake }`.
+  - `island(ctx, ...)` (`elements/island.mjs`) is the small round island of the reference spawns, for
+    a compact spawn or a floating islet beside the main land.
+- **The loop:** shape, `land.preview(file)` (a shaded map in a second or two: read the PNG), adjust,
+  preview again; build blocks only once the map is right, then look from the plaza. Players see
+  about 160-200 blocks at a normal render distance: the first view must show a mountain, a cliff or
+  the hero within that.
 - **Make it yours:**
-  - an outline for the layout: round for a plaza, longer for a town on an axis, with bays and spurs;
-  - the theme's ground and rock (snow and stone; sand, sandstone and terracotta; moss and deepslate);
-  - flat pads for every building and place (lerp the surface to the pad's level over 3-5 blocks);
-  - hills, a ridge or a cliff behind the hero.
-- **Numbers:** for a plaza of radius `R`, the island's radius is `R` + 30-60 (room for buildings and
-  woodland); the underside is 25-60 deep.
+  - a valley ringed by mountains (the picture);
+  - a coast: the land falling to a sea bay on one side, headlands, a lagoon held by reefs;
+  - a mountain spawn on a plateau with a gorge;
+  - desert badlands (`theme: 'mesa'`), an alpine valley (`'alpine'`, snow on the peaks), a winter
+    spawn (`'winter'`), a dark land (`'dark'`: deepslate, blackstone, podzol).
+- **Numbers:**
+  - on a 1000-wide spawn the rim mountains are 80-150 tall and 200-350 wide, and the valley floor is
+    300-500 across;
+  - lone peaks 50-90;
+  - foothills 15-30;
+  - the plaza pad's blend 25-40;
+  - the underside 40-90 deep;
+  - `land.stats()` after erosion: flat 25-50%, gentle 25-40%, sloping 15-25%, steep 5-12%, cliff
+    0.5-3%.
 
 ### 5.2 Ground, planting and walks (`elements/ground.mjs`)
 
@@ -532,27 +621,55 @@ result fit the spawn, so the element is designed for this place and does not rep
 ![Trees: do and don't](img/trees.png)
 
 - **Do:**
-  - a trunk that flares at the foot and narrows as it climbs;
-  - 3-5 branches at different heights and directions, rising as they go out;
-  - a crown wider than tall, lumpy, with gaps;
-  - three size classes in groups; bushes at their feet;
+  - **big, thick trees:**
+    - the everyday tree of a spawn is 14-26 tall with a trunk 2-4 across (`bigTree`);
+    - in big woods most trunks are 2-5 across;
+    - even a small build gets 2-across trunks where there is room;
+    - the vanilla 1-wide pole reads small and generated;
+  - **trunks and limbs of the all-bark wood block** (`oak_wood`, `spruce_wood`...), never logs
+    with their ring ends showing; a trunk that flares at the foot into roots running over the
+    ground and narrows as it climbs;
+  - **limbs:** 4-7 at different heights and directions, rising as they go out and forking, so wood
+    shows inside the crown;
+  - **the crown:** wider than tall, lumpy, with gaps you can see the sky through;
+  - **three size classes in groups,** big trees first and small ones in their gaps, bushes at their
+    feet (feature 20-30, medium 14-20, small 8-12);
   - near the plaza, crowns kept above head height and off NPCs, boards and signs.
-- **Don't:** the lollipop (a pole with a ball on top), perfect spheres or cubes of leaves, every
-  tree the same height, trees in a row at equal steps, or wool as foliage.
+- **Don't:**
+  - the lollipop: a pole with a ball on top;
+  - 1-wide trunks everywhere;
+  - perfect spheres or cubes of leaves;
+  - every tree the same height, or trees in a row at equal steps;
+  - a crown made only of wool or concrete.
 - **The example:**
-  - `broadleaf(ctx, pos, { height, seed, log, leaves, branches })` grows a broadleaf;
+  - `bigTree(ctx, pos, { species, height, trunk, seed, ...giantTree options })` is the everyday big
+    tree: the giant's engine (roots, forking limbs, clustered crown) scaled to 14-26;
+  - `broadleaf(ctx, pos, { height, seed, log, leaves, branches })` is a small one;
   - `bush(ctx, pos, { r, seed, leaves })` makes a bush.
+- **Woods:** `b.forest` places whole woods with trees of the kit's presets. Its `scale` (default 1.6
+  on canvases from 400 wide, 1.3 from 150) makes them taller with trunks 2-5 across, all bark. Plant
+  `bigTree`s of your own as the feature trees of each wood and along the walks.
 - **Make it yours:**
   - the theme's species, each with its own shape:
-    - a spruce is a narrow cone of tiers;
-    - a birch is tall and thin with a small crown;
-    - a cherry or an azalea is wide and low;
+    - a spruce is a tall cone of tiers on a 2-3 wide trunk;
+    - a birch is tall and straight, 2 across, with a narrow crown;
+    - a cherry forks low into a few spreading limbs under a flat pink umbrella 1.5-2 times as wide
+      as it is tall, with petals underneath;
     - a palm leans and has a fan of fronds;
-    - a dead tree is bare branches;
+    - a dead tree is bare limbs;
+  - **autumn:** vanilla has no orange leaves, so mix 20-40% orange, red or yellow blocks (honeycomb,
+    orange or red terracotta, shroomlight, nether wart blocks) into part of the oak and dark-oak
+    crowns, in clumps; keep birch and spruce as they are; podzol, coarse dirt and leaf carpets under
+    them;
   - a hero tree 2-3 times the others for a landmark;
   - every tree its own seed, height and lean. Never the same tree twice in one view.
-- **Numbers:** feature trees 12-20 tall, medium 8-12, small 5-8, bushes 2-3. Woodland at 1 tree
-  per 40-80 columns, denser at the rim.
+- **Numbers:**
+  - feature trees 20-30 tall with trunks 3-5 across;
+  - medium 14-20, trunks 2-3;
+  - small 8-12, trunks 1-2;
+  - bushes 2-3;
+  - woods at 1 tree per 60-120 columns (big trees need room), denser at the rim, thinning toward
+    the tree line.
 
 **Giant trees** (`elements/landmark-trees.mjs`, the code in `trees.mjs`):
 
@@ -565,9 +682,10 @@ result fit the spawn, so the element is designed for this place and does not rep
 - **Don't:** a scaled-up lollipop, a leaf dome with no gaps, leaves floating with no limb to them,
   limbs of one length, a trunk with no roots.
 - **The example:** `giantTree(ctx, [x, y, z], { species, seed, berries, ground, ...fields })` with
-  `species` `oak`, `dark_oak`, `cherry`, `jungle`, `spruce` or `dead`; every field of `GIANTS`
-  (height, trunk, log, leaves, fork, limbs, reach, rise, roots, buttress, vines, petals...) can be
-  set. Returns `{ tips, crown }` (reserve the crown's disc so nothing grows into it).
+  `species` `oak`, `dark_oak`, `cherry`, `jungle`, `spruce`, `birch` or `dead`; every field of
+  `GIANTS` (height, trunk, log, leaves, fork, limbs, reach, rise, roots, buttress, vines, petals,
+  allBark...) can be set. Returns `{ tips, crown }` (reserve the crown's disc so nothing grows into
+  it). Trunks and limbs are all bark (`allBark: true`).
 - **Make it yours:** a sakura giant with petals underfoot, a dead tree on a hill, a jungle giant
   with cocoa and vines, a dark-oak umbrella over a plaza, a fantasy tree of flowering azalea.
 - **Note:** the screenshot renderer draws ring tops on every log whatever its axis, so horizontal

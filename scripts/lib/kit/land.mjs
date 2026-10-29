@@ -373,7 +373,7 @@ export class Land {
       const a = t * p.length
       let H = height * (1 - vary + vary * (0.5 + fbm2(a, 0, { scale: hw * 1.1, octaves: 3, seed: seed + 2 }) * 1.4))
       if (taper) H *= 0.3 + 0.7 * smoothstep(0, 0.18, t) * smoothstep(1, 0.82, t)
-      h[i] += H * (1 - u) ** sharp * relief(a, near.side[i] * d, x, z, spacing, rough, seed)
+      h[i] += H * profile(u, sharp) * relief(a, near.side[i] * d, x, z, spacing, rough, seed)
     }
     return this.changed()
   }
@@ -409,7 +409,7 @@ export class Land {
           // distance in the mountain's own frame, long along ang0
           const u = Math.hypot((dx * ca + dz * sa) / stretch, -dx * sa + dz * ca) / t.r
           if (u >= 1) continue
-          const v = t.height * (1 - u) ** sharp
+          const v = t.height * profile(u, sharp)
           if (v > best) { best = v; dist = u * t.r }
         }
         if (best <= 0) continue
@@ -978,6 +978,14 @@ function inverfc(y) {
   return p * x
 }
 
+// a mountain's cross-section, 1 at the crest to 0 at the foot: concave at the foot ((1 - u)^sharp),
+// rounded over the last few percent at the top (a convex crest, not a needle)
+function profile(u, sharp) {
+  const c = 0.06
+  const uu = (Math.sqrt(u * u + c * c) - c) / (Math.sqrt(1 + c * c) - c)
+  return (1 - uu) ** sharp
+}
+
 // ridged noise in 3D, 0-1 (sharp crests), for patterns on a circle
 function ridged3(x, y, z, seed, octaves = 4) {
   let amp = 0.5
@@ -1001,11 +1009,13 @@ function classify(T, sl, v, dep, st, x, z, seed) {
     const line = st.min + st.relief * T.snow.line + n * 10 - sl * 4
     if (v > line) return sl > 1.5 ? 'rock' : 'snow'
   }
+  // the thresholds of terrain-research.md §2, each edge moved by a noise so no contour shows:
+  // 30-44 degrees the slope mix, 44-51 scree, steeper bare rock
   const s = sl + n * 0.25
-  if (s > 1.35) return 'rock'
+  if (s > 1.25) return 'rock'
   if (dep > 1.6 && s < 0.9 && s > 0.15) return 'fan'
-  if (s > 1.0) return 'scree'
-  if (s > 0.62) return 'slope'
+  if (s > 0.95) return 'scree'
+  if (s > 0.56) return 'slope'
   if (dep < -1.5 && s > 0.35) return 'scree' // a gully: bare and stony
   return 'flat'
 }

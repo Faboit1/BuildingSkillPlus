@@ -101,7 +101,10 @@ function skeleton(title, S, H) {
 //   Work district by district: draft each with build_recipe's focus "x0,z0,x1,z1", look from 4+
 //   player spots, list every flaw, fix, repeat until a round finds nothing (manual §2.1-§2.3).
 // - Big, not busy: the hero 60-120 tall, feature buildings 25-50, rivers, bridges, mountains at the
-//   sizes of manual §1.2. Take the builds and tokens it needs; never stop at the first pass.
+//   sizes of manual §1.2; big trees (trunks 2-5 across). Take the builds and tokens it needs; never
+//   stop at the first pass, never stop to ask whether to go on.
+// - Every build prints the audit (manual §2.3): fix every "audit: FIX" line; the export refuses
+//   while one is open.
 //
 // The frame is plumbing only (manual §3-§4): startSpawn, finishSpawn, polar, facingToward,
 // yawToward, findSpot, local. The marks place no blocks; they record what the server admin needs
@@ -136,9 +139,17 @@ export default function build(api) {
   grid.reserveDisc(cx, cz, ctx.layout.plaza.r + 1, 'plaza')
 
   // ================================================================ 2. THE LAND (§5.1, §5.4, §5.6)
-  // Your island: its outline, the flat ground where people walk, the roll further out, the shore
-  // and the underside; the mountains and cliffs; the rivers, lakes and waterfalls. Keep a
-  // groundY(x, z) for everything off the plaza.
+  // A landscape, not a flat disc: b.land (kit-api.md "Landscapes", elements/land.mjs). Landforms
+  // biggest first (the ranges round the spawn with spurs and foothills, a lone peak, the valley
+  // floor), pads for the plaza and the town, erosion, then land.preview('.../land.png') and look at
+  // the map before painting; then paint (theme, underside, lakes), cut the rivers, plant the woods
+  // by land.where. Keep groundY(x, z) for everything off the plaza.
+  //   const land = b.land({ base: FY, seed: 7 })
+  //   land.outline({ cx, cz, r: S * 0.47 }, { fall: 50, rim: FY })
+  //   land.range([[...], [...], [...]], { width: 260, height: 110, asym: -0.3 })
+  //   land.pad({ cx, cz, r: ctx.layout.plaza.r + 6 }, { y: FY, blend: 30 })
+  //   land.erode({ strength: 1.5 }); land.thermal()
+  //   const groundY = land.paint({ theme: 'temperate', underside: { depth: 60 } })
 
   // ================================================================ 3. THE FLOOR (§5.2, §5.3)
   // The plaza's paving (field, borders, inlay, the rose), the ground's mix, the walks.
@@ -162,7 +173,7 @@ export default function build(api) {
   // ================================================================ 8. TEXT AND RULES (§5.19, §5.20)
   // Holograms (ctx.hologram), the PvP line and its region (b.region).
 
-  return finishSpawn(ctx) // with your island: finishSpawn(ctx, { land: (x, z) => groundY(x, z) >= 0 })
+  return finishSpawn(ctx) // with your land: finishSpawn(ctx, { land: (x, z) => groundY(x, z) >= 0 })
 }
 
 // ------------------------------------------------------------------ this spawn's elements

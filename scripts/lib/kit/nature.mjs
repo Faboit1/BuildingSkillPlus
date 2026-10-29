@@ -42,7 +42,10 @@ const SPECIES = {
 const ns = id => (id.includes(':') ? id : `minecraft:${id}`)
 const SOIL = ['minecraft:grass_block', 'minecraft:dirt', 'minecraft:coarse_dirt', 'minecraft:podzol', 'minecraft:rooted_dirt', 'minecraft:moss_block', 'minecraft:mud', 'minecraft:mycelium', 'minecraft:farmland']
 
-function woodPaint(spec, dir) {
+function woodPaint(spec, dir, r = 0) {
+  // a thick trunk or limb (2+ across) is all bark (oak_wood...): no log ends with rings showing where
+  // it narrows or turns
+  if (spec.wood && (r >= 0.75 || spec.allBark)) return ns(spec.wood)
   const d = norm(dir)
   const ax = Math.abs(d[0])
   const ay = Math.abs(d[1])
@@ -68,7 +71,7 @@ function limb(b, points, r0, r1, spec, { keep = false } = {}) {
     const dir = i === samples ? [c[0] - prev[0], c[1] - prev[1], c[2] - prev[2]] : [next[0] - c[0], next[1] - c[1], next[2] - c[2]]
     prev = c
     const r = r0 + (r1 - r0) * t
-    const paint = woodPaint(spec, dir)
+    const paint = woodPaint(spec, dir, r)
     if (r < 0.75) {
       // thin limb: face-connected walk from the previous sample so twigs never break apart
       const from = lastCell ?? [Math.round(c[0]), Math.round(c[1]), Math.round(c[2])]
@@ -135,6 +138,16 @@ export function tree(b, base, species = 'oak', opts = {}) {
     if (opts.roots === undefined) preset.roots = Math.round((base0.roots ?? 0) * k)
     if (opts.branches === undefined && base0.branches) preset.branches = base0.branches.map(v => Math.max(1, Math.round(v * k)))
     if (opts.radius === undefined && base0.radius) preset.radius = Math.max(1.5, base0.radius * k)
+  }
+  // girth > 1: a thicker, fuller tree (trunk radius x girth, bigger crown clusters, more roots and
+  // limbs); b.forest raises it on big canvases so woods are not vanilla poles
+  const girth = opts.girth ?? 1
+  if (girth !== 1) {
+    if (opts.trunk === undefined) preset.trunk = preset.trunk * girth
+    if (opts.blob === undefined && preset.blob) preset.blob = preset.blob.map(v => v * girth ** 0.55)
+    if (opts.roots === undefined) preset.roots = Math.round((preset.roots ?? 0) * Math.max(1, girth))
+    if (opts.branches === undefined && preset.branches) preset.branches = preset.branches.map(v => Math.round(v + (girth - 1) * 2))
+    if (opts.radius === undefined && preset.radius) preset.radius = preset.radius * girth ** 0.6
   }
   const rng = createRng((opts.seed ?? 0) * 977 + Math.round(base[0]) * 31 + Math.round(base[2]) * 17 + 5)
   // height: a number, or [min, max] (the preset's or yours) picked by the seed

@@ -2,19 +2,27 @@
 // branch count, the species of the theme. Never the same tree twice in one view.
 //
 // DO
+// - Big, thick trees: the everyday tree of a spawn is 14-26 tall with a trunk 2-4 across (bigTree);
+//   on a big spawn most trees have trunks 2-5 across, and even a small build gets a trunk 2 across
+//   where there is room. The vanilla 1-wide pole reads as small and generated.
 // - A trunk that flares at the foot (roots running out along the ground) and narrows as it climbs.
-// - 3-5 branches leaving the trunk at different heights and directions, rising as they go out.
-// - Leaves in clusters at the branch ends and the top, so the crown is lumpy, with gaps you can see
+// - 4-7 limbs leaving the trunk at different heights and directions, rising as they go out and
+//   forking, so the wood shows inside the crown.
+// - Leaves in clusters at the limb ends and the top, so the crown is lumpy, with gaps you can see
 //   sky through, wider than tall for an oak; the trunk shows under it.
-// - Three size classes on a spawn (feature, medium, small), in groups, never in a grid.
+// - Three size classes on a spawn (feature 20-30, medium 14-20, small 8-12 and bushes), in groups,
+//   never in a grid; big trees first, small ones in the gaps.
 // - Near the plaza: crowns kept above head height and off NPCs, boards and signs.
-// - A landmark (giantTree, img/landmark-trees.png): 25-40 tall, a trunk 2-4 across with buttress
+// - A landmark (giantTree, img/landmark-trees.png): 25-60 tall, a trunk 3-6 across with buttress
 //   roots running out over the ground, 5-7 big limbs that fork 2-3 times, a crown 1-1.5 of its
 //   height across, layered, with gaps, its hem drooping. One per view.
+// - Autumn: vanilla has no orange leaves, so mix 20-40% orange, red or yellow blocks (honeycomb,
+//   orange or red terracotta, shroomlight, nether wart blocks) into part of the crowns, in clumps,
+//   with birch and spruce kept as they are.
 // DON'T
 // - The lollipop: a one-block pole with a ball of leaves on top.
 // - Perfect spheres or cubes of leaves, every tree the same height, trees in a row at equal steps.
-// - Coloured wool or concrete as foliage (use leaves; colour comes from the species).
+// - A crown made only of wool, concrete or terracotta.
 // - A giant made by scaling the lollipop up: a thick pole with a ball on top.
 
 import { groundPatch } from './_scene.mjs'
@@ -102,14 +110,39 @@ export function bush(ctx, [x, y, z], { r = 2.4, seed = 1, leaves = { oak_leaves:
 //   cluster ([half width, half height] of a leaf cluster), droop (share of the hem that hangs down)
 //   roots (how many), buttress (where they leave the trunk, share of the height)
 //   vines (share of the outer underside with a vine; 0.2+ also climbs the trunk), cocoa, petals
+//   allBark (default true: trunks and limbs of the all-bark wood block, oak_wood...; false: logs)
 // and giantTree's own: seed, berries (glow berries under the crown), ground (litter under it; true).
 export const GIANTS = {
   oak: { height: 32, trunk: 4, log: 'oak', leaves: { oak_leaves: 6, dark_oak_leaves: 2, azalea_leaves: 1 }, shade: 'spruce_leaves', fork: 0.4, limbs: 7, reach: 0.31, rise: [6, 52], cluster: [4.8, 2.4], droop: 0.3, roots: 7, buttress: 0.08, vines: 0.05 },
   dark_oak: { height: 26, trunk: 4, log: 'dark_oak', leaves: { dark_oak_leaves: 5, oak_leaves: 1 }, shade: 'spruce_leaves', fork: 0.4, limbs: 7, reach: 0.42, rise: [14, 38], cluster: [5, 2.1], droop: 0.4, roots: 8, buttress: 0.1, vines: 0.08 },
-  cherry: { height: 25, trunk: 3, log: 'cherry', leaves: { cherry_leaves: 1 }, fork: 0.34, limbs: 5, reach: 0.44, rise: [26, 46], cluster: [5.4, 2], droop: 0.55, roots: 6, buttress: 0.08, petals: true },
+  // a cherry: a low fork into a few limbs that spread wide and low, an umbrella crown 1.5-2 times as
+  // wide as it is tall, flat clusters, only short tufts hanging from the hem, petals under it
+  cherry: { height: 22, trunk: 3, log: 'cherry', leaves: { cherry_leaves: 1 }, fork: 0.26, limbs: 5, reach: 0.58, rise: [16, 34], cluster: [5.6, 1.6], droop: 0.16, roots: 5, buttress: 0.06, lean: 0.1, petals: true },
   jungle: { height: 38, trunk: 4, log: 'jungle', leaves: { jungle_leaves: 4, oak_leaves: 1 }, shade: 'spruce_leaves', fork: 0.6, limbs: 7, reach: 0.3, rise: [12, 36], cluster: [4.6, 2.3], droop: 0.3, roots: 8, buttress: 0.17, vines: 0.3, cocoa: true },
   spruce: { height: 38, trunk: 3, log: 'spruce', leaves: { spruce_leaves: 1 }, conifer: true, roots: 6, buttress: 0.06 },
   dead: { height: 28, trunk: 3, log: 'oak', stripped: true, leaves: null, fork: 0.42, limbs: 5, reach: 0.42, rise: [18, 55], roots: 6, buttress: 0.1 },
+  birch: { height: 26, trunk: 2, log: 'birch', leaves: { birch_leaves: 5, oak_leaves: 1 }, fork: 0.6, limbs: 5, reach: 0.22, rise: [38, 66], cluster: [3.4, 2.4], droop: 0.1, roots: 2, buttress: 0.02, lean: 0.015 },
+}
+
+// A BIG TREE: the everyday tree of a spawn, 14-26 tall with a trunk 2-4 across: the giant's engine
+// (roots, forking limbs, clustered crown) scaled to its height. `trunk` defaults to about a
+// seventh of the height (14 -> 2, 21 -> 3, 28 -> 4); any giantTree option overrides.
+export function bigTree(ctx, pos, { species = 'oak', height = 18, trunk, seed = 1, ...opts } = {}) {
+  const g = GIANTS[species] ?? GIANTS.oak
+  const k = Math.min(1, height / g.height) // how much smaller than the giant
+  const s = 0.55 + 0.45 * k
+  return giantTree(ctx, pos, {
+    species,
+    seed,
+    height,
+    trunk: trunk ?? Math.max(2, Math.round(height / 7)),
+    ...(g.limbs ? { limbs: Math.max(4, Math.round(g.limbs * (0.7 + 0.3 * k))) } : {}),
+    ...(g.cluster ? { cluster: [Math.max(2.8, g.cluster[0] * s), Math.max(1.6, g.cluster[1] * s)] } : {}),
+    roots: Math.max(4, Math.round(g.roots * (0.6 + 0.4 * k))),
+    droop: (g.droop ?? 0) * k,
+    ...(g.reach ? { reach: g.reach * (1 + (1 - k) * 0.3) } : {}),
+    ...opts,
+  })
 }
 
 // [x, y, z]: y is the ground block level (the trunk starts at y + 1 and goes 1 into the ground).
@@ -117,7 +150,9 @@ export const GIANTS = {
 // swings from them) and the crown's radius (reserve a disc of it).
 export function giantTree(ctx, [x, y, z], { species = 'oak', seed = 1, berries = false, ground = true, ...opts } = {}) {
   const { b, kit } = ctx
-  const o = { depth: 3, lean: 0.06, ...GIANTS[species], ...opts }
+  // allBark: every trunk and limb cell is the all-bark wood block (oak_wood...), so no log ends with
+  // their rings show where the trunk narrows or a limb turns: what big trees are made of
+  const o = { depth: 3, lean: 0.06, allBark: true, ...GIANTS[species], ...opts }
   const rng = kit.rng(seed * 131 + 17)
   const H = o.height
   const W = o.trunk
@@ -141,6 +176,7 @@ export function giantTree(ctx, [x, y, z], { species = 'oak', seed = 1, berries =
   // grain, bark all round (wood). (The manual's screenshots draw every log with rings on top,
   // whatever its axis; the game does not.)
   const along = ([tx, ty, tz]) => {
+    if (o.allBark) return bark
     const l = Math.hypot(tx, ty, tz) || 1
     const [ax, ay, az] = [Math.abs(tx) / l, Math.abs(ty) / l, Math.abs(tz) / l]
     const m = Math.max(ax, ay, az)
@@ -203,7 +239,7 @@ export function giantTree(ctx, [x, y, z], { species = 'oak', seed = 1, berries =
         const [px, pz] = [Math.floor(sx) + dx, Math.floor(sz) + dz]
         // bark ridges: the radius wanders round the trunk and up it
         const rr = r + 0.3 * kit.noise.fbm3(px, (y + h) / 3, pz, { scale: 2, octaves: 1, seed: seed + 3 })
-        if (Math.hypot(px - sx, pz - sz) <= rr) putWood(px, y + h, pz, `${log}[axis=y]`, h === 0)
+        if (Math.hypot(px - sx, pz - sz) <= rr) putWood(px, y + h, pz, o.allBark ? bark : `${log}[axis=y]`, h === 0)
       }
   }
 
@@ -364,7 +400,8 @@ export function giantTree(ctx, [x, y, z], { species = 'oak', seed = 1, berries =
       if (b.get(px, py - 1, pz) || Math.hypot(px - tx0, pz - tz0) < crown * 0.5) continue
       if (kit.noise.coherent01(px, py, pz, { scale: 2.5, seed: seed + 11 }) > o.droop) continue
       const n = 1 + Math.floor(kit.hash01(px, py, pz, seed + 12) * 3)
-      for (let k = 1; k <= n && inCanvas(px, py - k, pz) && !b.get(px, py - k, pz); k += 1) b.set(px, py - k, pz, leaf)
+      // tufts stop 3 above the ground, so a small tree's hem never stands on it like legs
+      for (let k = 1; k <= n && py - k > y + 3 && inCanvas(px, py - k, pz) && !b.get(px, py - k, pz); k += 1) b.set(px, py - k, pz, leaf)
     }
   }
   if (o.conifer) crown = H * 0.27 + 1.5
@@ -442,17 +479,21 @@ export function lollipop(ctx, [x, y, z], { height = 6 } = {}) {
       for (let dz = -3; dz <= 3; dz += 1) if (Math.hypot(dx, dy, dz) <= 3 && !(dx === 0 && dz === 0 && dy <= 0)) b.set(x + dx, y + height + 2 + dy, z + dz, 'minecraft:oak_leaves[persistent=true]')
 }
 
-export const figure = { size: 30, height: 24, floorY: 3, camera: { eye: [15, 6, 36], lookAt: [15, 9, 13], fov: 62 } }
+export const figure = { size: 60, height: 44, floorY: 3, camera: { eye: [30, 10, 82], lookAt: [30, 14, 26], fov: 60 } }
 export function demo(ctx, which) {
   groundPatch(ctx)
   const { FY } = ctx
   if (which === 'good') {
-    broadleaf(ctx, [10, FY, 12], { height: 14, seed: 3 })
-    broadleaf(ctx, [21, FY, 16], { height: 9, seed: 8, branches: 3 })
-    bush(ctx, [13, FY, 15], { seed: 2 })
-    bush(ctx, [16, FY, 19], { r: 1.8, seed: 5 })
+    // three sizes of big tree, each its own, a bush at their feet
+    bigTree(ctx, [17, FY, 22], { species: 'oak', height: 22, seed: 3 })
+    bigTree(ctx, [40, FY, 18], { species: 'oak', height: 17, trunk: 2, seed: 8 })
+    bigTree(ctx, [33, FY, 36], { species: 'birch', height: 15, seed: 4 })
+    broadleaf(ctx, [8, FY, 38], { height: 9, seed: 6, branches: 3 })
+    bush(ctx, [24, FY, 34], { seed: 2 })
+    bush(ctx, [46, FY, 32], { r: 1.8, seed: 5 })
   } else {
-    lollipop(ctx, [10, FY, 12])
-    lollipop(ctx, [21, FY, 16])
+    lollipop(ctx, [12, FY, 22])
+    lollipop(ctx, [28, FY, 22])
+    lollipop(ctx, [44, FY, 22])
   }
 }
