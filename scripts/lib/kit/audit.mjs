@@ -126,7 +126,45 @@ function auditBlocks(src, { inside = () => true, placements = [] } = {}) {
       const below = b.get(x, y - 1, z)
       if (kind === 1 && (!below || below.name === 'minecraft:water' || PLANT.test(below.name))) note(physics.falling, x, y, z)
       else if (kind === 2 && !(below?.name === 'minecraft:sugar_cane' || (below && CANE_SOIL.test(below.name) && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => isWater(b.get(x + dx, y - 1, z + dz)))))) note(physics.cane, x, y, z)
-      else if (kind === 3 && (block.props?.level ?? '0') === '0' && (!below || [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => !b.get(x + dx, y, z + dz)))) note(physics.leaks, x, y, z)
+      else if (kind === 3 && (block.props?.level ?? '0') === '0') {
+        // water flows where there is air beside or under it; that is a leak unless the flow falls
+        // straight into held water within 16 blocks (a spout, a fountain's cup, a waterfall)
+        // follow the flow like the game: it falls through air, and on a floor spreads up to 7
+        // blocks looking for a way down. It escapes (a leak) if it falls off the build or spreads
+        // the full 7 (a puddle on the ground); it is held if it lands in lower water or every path
+        // ends against blocks (a pocket inside a pool)
+        const isWet = blk => blk && (blk.name === 'minecraft:water' || blk.props?.waterlogged === 'true')
+        const lands = (ax, ay, az) => {
+          const seen = new Set()
+          const queue = [[ax, ay, az, 0]]
+          while (queue.length) {
+            if (seen.size > 600) return false // a long way: count it as escaping
+            const [qx, qy, qz, run] = queue.shift()
+            const key = `${qx},${qy},${qz}`
+            if (seen.has(key)) continue
+            seen.add(key)
+            if (qy < 0 || qx < 0 || qz < 0 || qx >= sx || qz >= sz) return false // off the build
+            const here = b.get(qx, qy, qz)
+            if (isWet(here)) {
+              if (qy < y) return true // fell into water below: a spout, a waterfall
+              continue // its own pool at its own level
+            }
+            if (here) continue // a block: this path ends
+            const under = b.get(qx, qy - 1, qz)
+            if (!under || (isWet(under) && qy - 1 < y)) {
+              queue.push([qx, qy - 1, qz, 0]) // falls
+              continue
+            }
+            if (run >= 7) return false // spread the whole way on a floor: a puddle out on the ground
+            for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) queue.push([qx + dx, qy, qz + dz, run + 1])
+          }
+          return true // every path ended against blocks: held
+        }
+        const open = []
+        if (!below) open.push([x, y - 1, z])
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!b.get(x + dx, y, z + dz)) open.push([x + dx, y, z + dz])
+        if (open.some(([ax, ay, az]) => !lands(ax, ay, az))) note(physics.leaks, x, y, z)
+      }
       else if (kind === 4 && !below) note(physics.floating, x, y, z)
     }
     const c = classOf(block.name)
