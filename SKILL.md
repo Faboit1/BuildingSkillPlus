@@ -180,7 +180,7 @@ Build the land first, as a landscape (manual §5.1): shape it with `b.land` (ran
 valleys, pads), erode it, look at `land.preview()`'s map (seconds) until the landforms are right,
 then paint it and cut the rivers and lakes. Then the spawn centre, then one district at a time with
 the district loop (manual §2.2): block out the big masses, draft with `build_recipe`'s `focus` (only
-that box: 20-40 s on any canvas), detail, look from 4+ player spots, list every flaw, fix, repeat
+that box: about a minute on any canvas, as the whole recipe still runs but only the box is kept), detail, look from 4+ player spots, list every flaw, fix, repeat
 until a round finds nothing (3 rounds at least). For each element:
 
 1. Read its chapter in manual §5 and look at the do and don't picture.

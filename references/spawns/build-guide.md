@@ -157,7 +157,7 @@ the river valley...). For each district:
 
 1. **Read** the chapters of every element in it.
 2. **Block it out**: the big masses only. Draft-build just this district with `focus`
-   (`build_recipe` with `focus: "x0,z0,x1,z1"`: about 20-40 s even on a 1500-wide canvas) and look
+   (`build_recipe` with `focus: "x0,z0,x1,z1"`: about 20-60 s even on a 1500-wide canvas: the whole recipe runs, only the box is kept) and look
    at the overview of the box and 2 player views.
 3. **Detail it**: every element designed from its chapter, varied, at the sizes of §1.2.
 4. **Look**: screenshots from 4+ spots where players will stand (the way in, the middle, each
@@ -249,7 +249,7 @@ Walls: round the town at r 200, 10 high, towers every 30, gatehouses on the 4 ro
 
 Write each element as its own function, below `build()` or in files next to it (one file per
 district keeps a big spawn readable: `import { market } from './market.mjs'`). A full build of a
-1000-wide spawn takes 1-3 minutes; a `focus` draft of one district 20-40 s; a screenshot 5-20 s.
+1000-wide spawn takes 1-3 minutes; a `focus` draft of one district 20-60 s; a screenshot 5-20 s.
 
 ---
 
@@ -328,7 +328,7 @@ A spawn of 1000-1500 blocks a side holds 30-60 million blocks. The kit stores th
 sections and writes the file as a stream, so it fits in a few GB; every script gives itself three
 quarters of the machine's memory. A full build takes 1-4 minutes. While you work on one district,
 draft it with `focus` (`build_recipe`'s `focus: "x0,z0,x1,z1"`, or `run-build --focus`): the whole
-recipe runs, but only that box is kept, written and rendered, in 20-40 s. Build without `focus` for
+recipe runs, but only that box is kept, written and rendered, in 20-60 s. Build without `focus` for
 the whole-spawn checks and the delivery. In your own passes over the blocks, use `b.entriesWhere`
 for the kinds you need instead of `b.entries()`.
 

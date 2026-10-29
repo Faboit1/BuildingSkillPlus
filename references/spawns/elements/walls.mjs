@@ -73,7 +73,11 @@ export function wall(ctx, points, opts = {}) {
     const zs0 = points.map(p => p[1])
     for (let x = Math.floor(Math.min(...xs0)) - T - 12; x <= Math.ceil(Math.max(...xs0)) + T + 12; x += 1)
       for (let z = Math.floor(Math.min(...zs0)) - T - 12; z <= Math.ceil(Math.max(...zs0)) + T + 12; z += 1) snap.set(`${x},${z}`, b.groundY(x, z))
-    groundOf = (x, z) => snap.get(`${x},${z}`) ?? b.groundY(x, z)
+    // (where something already stands, b.groundY finds no ground: the ground under it then)
+    groundOf = (x, z) => {
+      const g = snap.get(`${x},${z}`) ?? b.groundY(x, z)
+      return g >= 0 ? g : b.groundUnder(x, z)
+    }
   }
   // ------------------------------------------------------------ the line: segments, arc length
   const segs = []
@@ -263,7 +267,10 @@ export function tower(ctx, pos, opts = {}) {
   const TOP = gy + height
   const dist = shape === 'round' ? (x, z) => Math.hypot(x - cx, z - cz) : (x, z) => Math.max(Math.abs(x - cx), Math.abs(z - cz))
   const R = shape === 'round' ? r : Math.round(r)
-  const ground = opts.ground ?? ((x, z) => b.groundY(x, z))
+  const ground = opts.ground ?? ((x, z) => {
+    const g = b.groundY(x, z)
+    return g >= 0 ? g : Math.max(b.groundUnder(x, z), pos[1])
+  })
   const masonry = kit.gradient([M.foot, M.body, M.body, M.body, M.crown], { t: (x, y) => (y - gy + 1.5) / (height + 2), dither: 0.3, scale: 3 })
   const st = (f, half = 'bottom') => `${kit.material(trim).stairs}[facing=${f},half=${half}]`
   const inward = (x, z) => FACE([cx - x, cz - z])

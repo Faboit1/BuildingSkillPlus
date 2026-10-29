@@ -85,7 +85,13 @@ export function townHouse(ctx, pos, facing, { width = 7, depth = 11, deep, store
   const uL = -Math.floor((W - 1) / 2)
   const uR = uL + W - 1
   const set = (u, d, h, blk, o) => b.set(...L.at(u, d, h), blk, o)
-  const gy = ground ?? ((x, z) => b.groundY(x, z))
+  // the ground under a column; b.groundY gives -1 where something is built over the ground, so
+  // fall back to the house's own level there instead of sinking the plinth to the canvas floor
+  const gy0 = ground ?? ((x, z) => b.groundY(x, z))
+  const gy = (x, z) => {
+    const g = gy0(x, z)
+    return g >= 0 ? g : pos[1]
+  }
   const base = kit.palette(look.base, { scale: 2.5, seed })
   const upper = kit.palette(look.upper, { scale: 3, seed: seed + 1 })
   const F = look.frame

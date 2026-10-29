@@ -106,7 +106,7 @@ don't-look-AI checklist).
 Big builds are fast and fit in memory: the kit stores blocks in 16 x 16 x 16 sections and writes
 the structure as a stream, so a 1000-wide spawn of 30 million blocks builds in under two minutes,
 and the scripts give themselves three quarters of the machine's memory. While it works on one
-district, Claude drafts just that box (`focus`) in 20-40 s.
+district, Claude drafts just that box (`focus`) in under a minute.
 
 | | |
 | --- | --- |

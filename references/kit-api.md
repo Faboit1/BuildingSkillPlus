@@ -412,7 +412,8 @@ which shows as a second layer in cutaways.
 | `b.boulder(c, radii, paint, { roughness, mossTop })` | noise-displaced rock |
 | `b.terrain({ x0, z0, x1, z1, base, height: (x, z) => y, layers, surface })` | returns `(x, z) => surfaceY` |
 | `b.scatter({ x0, z0, x1, z1, on, density, paints, clump })` | grass/flowers on the walking surface (also under overhangs and canopies); tall plants get both halves |
-| `b.groundY(x, z, on?)` | walking surface of a column: highest terrain (or `on`) block with only air/plants above; -1 if none. Use it instead of `b.topY` to place props under canopies, brims and jetties |
+| `b.groundY(x, z, on?)` | walking surface of a column: highest terrain (or `on`) block with only air/plants above; -1 if none (also where something is built over the ground). Use it instead of `b.topY` to place props under canopies, brims and jetties |
+| `b.groundUnder(x, z, on?)` | the ground of a column even where something stands on it: the highest terrain block; -1 if none. For walls and buildings placed after others (or pass them an explicit `ground`, like `land.paint`'s `groundY`) |
 | `b.path(points2d, { width, paint, jitter, on })` | winding path on the walking surface: the highest terrain block with only air/plants above (continues under jetties and canopies, never repaints props or floors). `dirt_path` is 1/16 lower than full blocks: use it alone (lanes, ruts) or mix only full blocks (`coarse_dirt`, `gravel`, `packed_mud`, `rooted_dirt`), otherwise close-ups show a maze of tiny steps |
 | `b.pond([cx, level, cz], r, { depth, rim, bed })` | |
 | `b.overgrow(a, c, { amount, maxLength, moss, only })` | vines on exposed walls + moss carpet; `only` limits it to some blocks (stone, not sails or planks). Run it after the last dig, or vines may hang in air |

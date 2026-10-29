@@ -501,5 +501,15 @@ export function island(b, center, radius, { depth, top = 'minecraft:grass_block'
   return b
 }
 
-export const NATURE_METHODS = { tree, bush, leafBlob, boulder, terrain, scatter, path, pond, overgrow, island, groundY }
+// The ground of a column even where something is built over it (b.groundY gives -1 there): the
+// highest terrain block, whatever stands on it; -1 if the column has none.
+export function groundUnder(b, x, z, on = TERRAIN) {
+  for (let y = b.size[1] - 1; y >= 0; y -= 1) {
+    const block = b.get(x, y, z)
+    if (block && b.matches(block, on)) return y
+  }
+  return -1
+}
+
+export const NATURE_METHODS = { tree, bush, leafBlob, boulder, terrain, scatter, path, pond, overgrow, island, groundY, groundUnder }
 export const TREE_SPECIES = Object.keys(SPECIES)

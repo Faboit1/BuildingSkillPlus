@@ -103,3 +103,13 @@ What the old-plugin runs show:
 - **Haiku plateaus** on what the old plugin had no tool for. Its mountains stayed blobs or cones through four rounds of "ranges with spurs and saddles". Every round it also stopped early, with a list or a question, despite being told not to.
 - **Sonnet takes corrections well** and keeps going: high effort fixed most points in one round. But it also never saw its own physics problems (11,404 falling blocks in one build) without a measurement.
 - **What every model needed and the old plugin lacked:** a landform tool, a measured audit, and a gate. The new plugin adds all three. Round B tests it.
+
+## Round B: fresh agents on the new plugin, the same Cheese SMP brief
+
+| Build | Model, effort | Plugin | Rounds | Builds | Time | Score | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Cheese SMP | Haiku, high | new | 0 | 16 | 80 min | 57 | b.land relief, a walled town with streets of townHouses, the castle on the axis, buildings in every direction; woods over everything hide the land, the town only 256 across, a river-lake leak (the bug fixed later), NPCs 9 apart |
+
+Against round 1, round B's Haiku (57, no corrections) beat round 1's Haiku (30, then 46 after four
+rounds of corrections). It did not stop early, and it ran 16 builds where round 1's ran 9 then
+stopped. But it took only two screenshots: the gate now asks for 12 from 8 spots.
