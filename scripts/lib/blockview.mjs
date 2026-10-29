@@ -8,6 +8,7 @@ import path from 'node:path'
 import zlib from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import { readAnyStructure } from './formats.mjs'
+import { readStructureGrid } from './structio.mjs'
 import { LODESTONE_ROOT } from './lodestone.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -131,7 +132,11 @@ export function loadGrid(input) {
     G = new Uint16Array(gbuf.buffer, gbuf.byteOffset, gbuf.length / 2)
     ;({ X, Y, Z } = meta)
   } else {
-    const { structure } = readAnyStructure(fs.readFileSync(input), input)
+    const bytes = fs.readFileSync(input)
+    // a structure .nbt reads straight into the grid (no object per block: big spawns fit)
+    const fast = /\.nbt$/i.test(input) ? readStructureGrid(bytes) : null
+    if (fast) return { pal: fast.pal, G: fast.G, X: fast.X, Y: fast.Y, Z: fast.Z }
+    const { structure } = readAnyStructure(bytes, input)
     ;[X, Y, Z] = structure.getSize()
     G = new Uint16Array(X * Y * Z)
     pal = ['minecraft:air']

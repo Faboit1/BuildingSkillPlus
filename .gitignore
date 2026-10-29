@@ -231,3 +231,6 @@ __marimo__/
 !scripts/node_modules/**/build/
 
 # apps/spawn-generator/dist/ is ignored by dist/ below; its spawn-generator.html is tracked (git add -f)
+
+# helper agents' working copies (Claude Code)
+.claude/worktrees/

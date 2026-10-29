@@ -7,8 +7,11 @@
 // - Borders and inlays of a contrasting block every 7-12 blocks, as rings round the spawn or lines
 //   that point at the exits: they give the floor structure and lead the eye.
 // - A rose (a small figure of the best stone) where players land, a kerb where the plaza ends.
+// - Or a grid: a warm field (mud bricks and packed mud, or bricks and granite) with darker lines
+//   every 8-12 blocks and a lighter band on the axes leading to the middle (gridPlaza).
 // DON'T
-// - Per-block random speckle of six stones, or a checkerboard: busy from close, noise from far.
+// - Per-block random speckle of six stones, or a checkerboard over the whole floor (a patterned
+//   medallion on the spawn dais is fine): busy from close, noise from far.
 // - One flat block over a huge area with nothing in it.
 // - Dotted or scattered inlay blocks: few, long, continuous lines read as design.
 
@@ -31,6 +34,25 @@ export function roundPlaza(ctx, { cx, cz, r, y = ctx.FY, field = { polished_ande
       else if (d > r - 0.6) block = id(border) // the kerb
       else if (d > r - 3.6 && d <= r - 2.6) block = id(inlay) // an inner ring near the edge
       else if ((Math.abs(dx) <= 0 || Math.abs(dz) <= 0) && d > 4.5 && d < r - 3.6) block = id(inlay) // lines to the exits
+      b.set(x, y, z, block)
+    }
+}
+
+// A square plaza on a grid (the warm brick look of many big servers): a field in close shades,
+// lines of a darker block every `cell` blocks from the middle, a lighter band 3 wide on the two
+// axes (the ways in) and a kerb of the line block. [x0, z0, x1, z1] inclusive, around [cx, cz].
+export function gridPlaza(ctx, { x0, z0, x1, z1, cx = Math.round((x0 + x1) / 2), cz = Math.round((z0 + z1) / 2), y = ctx.FY, field = { mud_bricks: 6, packed_mud: 1 }, line = 'brown_terracotta', band = 'polished_granite', cell = 10, seed = 1 }) {
+  const { b, kit } = ctx
+  const paint = kit.palette(field, { scale: 4, seed })
+  const id = s => (s.includes(':') ? s : `minecraft:${s}`)
+  for (let x = x0; x <= x1; x += 1)
+    for (let z = z0; z <= z1; z += 1) {
+      const dx = x - cx
+      const dz = z - cz
+      let block = paint
+      if (x === x0 || x === x1 || z === z0 || z === z1) block = id(line) // the kerb
+      else if (Math.abs(dx) <= 1 || Math.abs(dz) <= 1) block = id(band) // the axes
+      else if (dx % cell === 0 || dz % cell === 0) block = id(line) // the grid
       b.set(x, y, z, block)
     }
 }

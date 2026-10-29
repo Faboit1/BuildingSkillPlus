@@ -7,6 +7,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { blockInfo, encodePng, loadGrid } from './lib/blockview.mjs'
+import { ensureHeap } from './lib/heap.mjs'
+
+ensureHeap()
 
 const args = process.argv.slice(2)
 if (!args.length || args.includes('--help')) {

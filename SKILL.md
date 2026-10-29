@@ -33,18 +33,23 @@ your first spawn, and read an element's chapter in §5 before you write that ele
 | --- | --- | --- |
 | The island | §5.1 | a wandering outline, a flat walking area, a tapered ragged underside in strata, not a cylinder |
 | Ground, planting, walks | §5.2 | clumps not speckle, flower drifts, frayed walks |
-| Paving | §5.3 | one field material, borders and inlay lines, a rose, not speckle |
-| Stones and rocks | §5.4 | groups, sunk into the ground, noisy shapes, moss on top, not spheres |
-| Trees and bushes | §5.5 | branches, lumpy crowns with gaps, three sizes, not lollipops |
-| NPC places | §5.6 | a low plinth, a backdrop, an apron, head room, not a pillar or a glass box |
-| Leaderboards and the podium | §5.7 | a framed recess, the podium beside, not a glowstone wall or ore blocks |
-| Crates | §5.8 | a stage each, 6+ apart, the tier as an accent, not chests on concrete |
-| Gates and portals | §5.9 | piers, an arch, a clear opening, not an obsidian frame |
-| Buildings | §5.10 | a plinth, a frame, windows with depth, eaves, not a plank box |
-| Lamps and light | §5.11 | posts with arms along the walks, hidden light, not glowstone grids |
-| Props | §5.12 | groups that tell a story, not single blocks scattered |
-| Fountains and water | §5.13 | a rimmed basin, tiers, not a hole of water |
-| Text, the PvP line, the hero | §5.14-§5.16 | holograms, a red line with a region, one landmark of their own |
+| Paving | §5.3 | one field material with borders and inlay lines, or a warm grid; not speckle |
+| Rivers, lakes, waterfalls | §5.4 | a meandering river with sloped banks, depth and plants, contained water; not a straight trench |
+| Bridges | §5.5 | stone arches on piers with cutwaters, parapets, ramps into the banks; not a plank strip |
+| Cliffs and mountains | §5.6 | strata, ledges with plants, overhangs, scree, a varied skyline; not a noise blob or a cone |
+| Stones and rocks | §5.7 | groups, sunk into the ground, noisy shapes, moss on top, not spheres |
+| Trees, bushes, giant trees | §5.8 | branches, lumpy crowns with gaps, three sizes, giant landmark trees; not lollipops |
+| The spawn centre (the dais) | §5.9 | a stepped dais with stripes and a medallion on a grid plaza, the NPC ring round it |
+| NPC stands | §5.10 | a 1-block stand (a barrel), a soul lantern post, a ring turned to the middle; not pillars or glass boxes |
+| Leaderboards, top-3 pillars | §5.11 | framed recesses; 3 x 3 pillars, diamond 3 high, gold 2, iron 1, beside the boards |
+| Crates | §5.12 | a crate pavilion or court, a stage each, 6+ apart, the tier as an accent; not chests on concrete |
+| Gates and gatehouses | §5.13 | twin towers, a deep arched passage, a clear opening; not an obsidian frame |
+| Big buildings | §5.14 | masses (a main block, wings, a tower), storeys, depth on every wall, a roofscape; not a big box |
+| Walls and towers | §5.15 | a thick battered wall, crenellations, projecting towers; not a 1-thick cobble wall |
+| Lamps and light | §5.16 | posts with arms along the walks, hidden light, not glowstone grids |
+| Props | §5.17 | groups that tell a story, not single blocks scattered |
+| Fountains | §5.18 | a big rimmed basin, tiers with water spilling down; not a hole of water |
+| Text, the PvP line, the hero | §5.19-§5.21 | holograms, a red line with a region, one landmark 60-120 tall of their own |
 
 The frame (`frame/frame.mjs` in the spawn folder) is plumbing only: the canvas, a reservation grid,
 angles, the world spawn, the records the server admin needs (NPC, hologram, crate, board and portal
@@ -87,8 +92,9 @@ their request already answered.
    - *Spawn+*: a town, every NPC its own building.
    - *PvP lobby*: queue NPCs in an arc, an arena.
    - *Surprise me*: you pick everything.
-2. **Size** in blocks: *Let Claude decide* (from the NPC count: about 200 for a normal spawn, 220 for
-   spawn+, 110 for PvP) / 160 x 160 / 220 x 220 / 300 x 300.
+2. **Size** in blocks: *Let Claude decide* (about 1000 for a normal spawn, 1100 for spawn+, 550 for
+   PvP) / 800 x 800 / 1100 x 1100 / 1500 x 1500. Big spawns are the point: a town, districts and a
+   landscape round a compact centre (manual §6).
 3. **How many NPCs**: 6 / 10 / 14 / Let Claude decide (they can type any number).
 4. **Theme**: the 3 looks that fit their server best + Let Claude decide. In the question text, list
    ideas: medieval, autumn, white town, japanese, winter, fantasy, dark (lifesteal), tropical
@@ -107,31 +113,35 @@ NPC count and the options of rounds 3-4. Say what the dice picked in the plan.
 4. **Which crates** (multiSelect): Vote, Common, Rare, Epic, Legendary, Seasonal.
 
 **Round 3** (one call, the options; all optional):
-1. **Top-3 statues** (the top 3 players on a podium): *Top Spenders + Baltop* / *Baltop only* /
-   *None* / *Let Claude decide*.
+1. **Top-3 pillars** (the top 3 players as statues on 3 x 3 pillars: diamond 3 high in the middle,
+   gold 2 high, iron 1 high; or gold / iron / copper; or concrete in those colours): *Top Spenders +
+   Baltop* / *Baltop only* / *None* / *Let Claude decide*.
 2. **Warzone** (a PvP band round the spawn behind a red line): *No* / *Warzone with a moshpit and a
    KOTH hill* / *Warzone only* / *Let Claude decide*.
-3. **Big things round the spawn** (multiSelect): *Giant trees* / *Landmarks* (a volcano, a ship, a
-   lighthouse, a giant statue, rock spires or an arch) / *Raised areas and rocks* / *Let Claude decide*.
+3. **Big things round the spawn** (multiSelect): *Mountains and cliffs* / *Rivers, lakes and
+   waterfalls with bridges* / *Town walls and gatehouses* / *Giant trees* / *Landmarks* (a castle, a
+   cathedral, a ship, a lighthouse, a giant statue) / *Let Claude decide*.
 4. **Section signs** in block letters (real spawns mostly use holograms): *No, holograms only
    (Recommended)* / *Short quartz letters* / *Let Claude decide*.
 
 **Round 4** (only what is still open):
 1. The **setting**: plains / island / valley / mountain / coast.
-2. The **accent colour**: one dye, never gold.
+2. The **accent colour**: one dye, never gold (gold belongs only on the top-3 pillars).
 3. **Extras** (multiSelect): an RTP gate, a PvP ruin, an AFK pool, anything of their own (a market, a
    statue of their mascot, a building for something).
 4. **Where it goes**: the world and the paste corner, or "centred on 0, 0".
 
 ### Step 2: the plan (show it, get a yes)
 
-Write the plan into `brief.md` (manual §2 has an example):
+Write the plan into `brief.md` (manual §2.4 has an example):
 
 - the answers and what you decided;
 - the canvas size;
+- the districts and their feature buildings, the hero, the land (mountains, rivers, lakes,
+  forests) and the roads and bridges that join them;
 - every place with its coordinates;
-- a sentence on the design of each element ("the crates in a walled yard west, each on a carved
-  stage with a lantern arch");
+- a sentence on the design of each element ("the crates in an open pavilion west, each under its
+  own arch, the tier in a glass strip");
 - a top-view sketch with the main numbers.
 
 Show it and ask "Build this?".
@@ -149,9 +159,19 @@ these files:
 | `parts/` and `examples/` | Reference spawns to read: how a whole spawn fits together. |
 | `brief.md` | The plan. |
 
-### Step 4: build every element yourself
+### Step 4: build every element yourself, district by district
 
-Work through the skeleton's sections in order. For each element:
+**Cook until it is perfect** (manual §2.1). The user wants the best spawn you can make, not the
+quickest: take the builds, screenshots and tokens it needs (a great spawn takes 40-100+ builds).
+Do the most, not the least: every element has everything its chapter lists, every district gets its
+big feature, empty ground on a big canvas is a bug. Never skip a check, never stop at the first
+pass. In Claude Code you can run helper agents in parallel, one district each; then put the
+districts together and review the whole.
+
+Build the land first (the island, mountains, rivers, lakes), then the spawn centre, then one
+district at a time with the district loop (manual §2.2): block out the big masses, draft with
+`build_recipe`'s `focus` (only that box: 20-40 s on any canvas), detail, look from 4+ player spots,
+list every flaw, fix, repeat until a round finds nothing (3 rounds at least). For each element:
 
 1. Read its chapter in manual §5 and look at the do and don't picture.
 2. Read its worked example in `elements/` to see how each rule becomes blocks.
@@ -180,8 +200,9 @@ player's spots (manual §9.1; the positions come from `<slug>.placements.json`):
 Use `render_build` for close-ups (`px` 6-9 with a `box`, `ymin` to cut the island away). Check every
 picture against manual §9.2, each element against its chapter's picture, and the handbook's
 don't-look-AI checklist (`references/spawns/README.md` §5). Lint with `inspect_build` (`checks`),
-then fix and rebuild. Do at least two rounds after you think it is done. The plugin's `spawn-critic`
-agent gives a second opinion with ranked fixes.
+then fix and rebuild. Run the plugin's `spawn-critic` agent after every district and at the end,
+until its review finds nothing above minor. Deliver only when the quality gate of manual §2.3
+passes.
 
 Later requests ("make a winter version", "add more stuff", "move the crates", "bigger") are edits
 to the same `spawn.mjs`; the manual's cookbook (§8) says what to build for each.

@@ -49,8 +49,9 @@ function check(recipe, out, label) {
 // its own (here the worked examples imported, each given this spawn's options), the marks.
 const MINI = `import { startSpawn, finishSpawn, facingToward } from './frame/frame.mjs'
 import { island } from './elements/island.mjs'
-import { roundPlaza } from './elements/paving.mjs'
-import { npcPlace } from './elements/npc.mjs'
+import { gridPlaza } from './elements/paving.mjs'
+import { npcStand } from './elements/npc.mjs'
+import { dais } from './elements/dais.mjs'
 import { crateStage } from './elements/crates.mjs'
 import { boardRecess } from './elements/boards.mjs'
 import { gate } from './elements/gate.mjs'
@@ -62,10 +63,10 @@ export default function build(api) {
   const { b, FY, C } = ctx
   const [cx, cz] = C
   const groundY = island(ctx, { cx, cz, r: 30, depth: 12, seed: 4 })
-  roundPlaza(ctx, { cx, cz, r: 15, seed: 2 })
-  b.spawnPoint([cx, FY, cz], 'north')
-  npcPlace(ctx, [cx - 7, FY, cz - 6], facingToward([cx - 7, cz - 6], C), { label: 'Shop', npcId: 'shop' })
-  npcPlace(ctx, [cx + 7, FY, cz - 6], facingToward([cx + 7, cz - 6], C), { label: 'Warps', npcId: 'warps', hedge: { oak_leaves: 3, birch_leaves: 1 } })
+  gridPlaza(ctx, { x0: cx - 16, z0: cz - 16, x1: cx + 16, z1: cz + 16, cx, cz, cell: 8, seed: 2 })
+  dais(ctx, { cx, cz, R: 4, tiers: 2 })
+  npcStand(ctx, [cx - 7, FY, cz - 6], facingToward([cx - 7, cz - 6], C), { label: 'Shop', npcId: 'shop', lines: ['/shop'] })
+  npcStand(ctx, [cx + 7, FY, cz - 6], facingToward([cx + 7, cz - 6], C), { label: 'Warps', npcId: 'warps', stand: 'log', lantern: 'left' })
   crateStage(ctx, [cx - 10, FY, cz + 4], 'east', { label: 'Vote', colour: 'lime', crateId: 'vote' })
   crateStage(ctx, [cx - 10, FY, cz + 11], 'east', { label: 'Rare', colour: 'purple', block: 'ender_chest', crateId: 'rare' })
   boardRecess(ctx, [cx, FY, cz - 13], 'south', { label: 'Top balance', boardId: 'money' })

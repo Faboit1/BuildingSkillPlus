@@ -281,7 +281,7 @@ Run it on every render. Each line is a tell and its fix.
 
 Lessons from this skill's own spawns (CheeseSMP v2 → v3):
 - Gold blocks as trim looked cheap; the user preferred **white quartz lettering 5 tall** on dark
-  boards and a single **blue concrete** accent. Ask about the accent; never assume gold. Use the
+  boards and a single **blue concrete** accent. Ask about the accent; never assume gold (gold belongs only on the top-3 pillars: 3 x 3 columns, diamond 3 high in the middle, gold 2 high, iron 1 high, as players know them). Use the
   accent as points and short runs (≤ 5 blocks): long flat blue stripes read as cheap as gold did.
 - Mirrored layouts (69-90% mirror match) and cloned modules (a dozen identical domed towers, four
   shrines from one loop) were the strongest AI signal. Vary every district and tower.

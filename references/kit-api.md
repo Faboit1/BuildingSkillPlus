@@ -60,13 +60,20 @@ Returning `null` from a function leaves the position untouched (great for masks)
 
 ## Builder: core
 
+`api.builder([x, y, z], { seed, focus })` makes a canvas. It stores blocks in 16 x 16 x 16 sections
+like the game, so a 1000-1500 wide spawn of 30-60 million blocks fits (a build of that size takes
+1-4 minutes). `focus: [x0, z0, x1, z1]` keeps only that column box: a fast draft of one district
+of a big build (`run-build --focus`, `build_recipe`'s `focus`); everything outside is computed but
+not stored.
+
 | Method | Notes |
 | --- | --- |
 | `b.set(x, y, z, paint, opts?)` | `opts.keep` only fills empty cells; `opts.only` replaces only matching blocks (`'oak_*'`, `'*_planks'`, id, array, predicate); empty cells match `'air'` in the list and predicates receive `null` for them (`only: ['air', 'water']` fills air and water only); `opts.mask(x,y,z,b)`; `opts.nbt` block entity |
 | `b.get(x, y, z)` / `b.nameAt` / `b.has` / `b.is(x, y, z, test)` | read back `{ name, props }`; `is` tests against an id, id list, predicate or `null`/`'air'` |
 | `b.remove(x, y, z)` | delete |
 | `b.topY(x, z, test?)` | highest block in a column (optionally matching `test`) |
-| `b.count(test?)`, `b.bounds()`, `b.entries()` | inspection |
+| `b.count(test?)`, `b.bounds()`, `b.entries()` | inspection; `entries()` is a snapshot of `[x, y, z, block]` (iterate it, or `length`, `at(i)`, `filter`, `map`, `forEach`, `some`, `find`) |
+| `b.entriesWhere(nameTest, blockTest?)` | only the blocks whose name passes `nameTest` (asked once per name), as an array of `[x, y, z, block]`: far cheaper than `entries()` on a big build when a pass cares about a few kinds (stairs, lanterns, plants) |
 | `b.box(a, c, paint, opts)` | filled cuboid (inclusive corners) |
 | `b.hollowBox(a, c, paint)` | six faces |
 | `b.walls(a, c, paint)` | four vertical sides only |
@@ -650,7 +657,10 @@ In order it:
 4. Computes vanilla neighbour states: stair corner shapes, wall sides/posts (low/tall/up),
    fence/pane/bars connections, fence gates in walls.
 5. Marks leaves `persistent=true` so they do not decay after placement.
-6. Builds the Lodestone `Structure` (`trim: true` shrinks it to the used bounds).
+6. Collects the palette and returns `{ structure, export, metadata }`: `export` streams the blocks
+   straight to a file (run-build writes the .nbt from it, with no object per block, so big spawns
+   fit in memory); `structure`, the Lodestone `Structure`, is made the first time you read it
+   (`trim: true` shrinks it to the used bounds).
 
 Before that, `spawnProof: [min, max]` (or `{ min, max, inside, maxStep }`, or `true` for the whole
 canvas) runs `b.spawnProof`, and NPC stand-offs, crate standing areas and the spawn that a later edit

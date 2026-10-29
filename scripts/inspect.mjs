@@ -10,6 +10,9 @@ import path from 'node:path'
 import zlib from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import { LODESTONE_ROOT, NbtFile } from './lib/lodestone.mjs'
+import { ensureHeap } from './lib/heap.mjs'
+
+ensureHeap()
 
 const DENSE_LIMIT = 48_000_000 // max grid cells for typed-array storage; larger grids use a Map
 const DEFAULT_FIND_LIMIT = 200
