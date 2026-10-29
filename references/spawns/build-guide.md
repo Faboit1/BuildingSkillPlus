@@ -658,23 +658,56 @@ result fit the spawn, so the element is designed for this place and does not rep
 
 ### 5.12 Crates (`elements/crates.mjs`)
 
-- **Do:** a crate area as a set piece: an open pavilion or a colonnaded court 25-40 wide where 4-6
-  crates sit on carved stages 6-8 apart under arches, each with its tier's colour as an accent
-  (stained glass, terracotta, banners), the best crate in the middle on a bigger stage, a floor
-  pattern leading to them, lights at the sides, 3+ blocks clear in front of each and nothing above
-  the crates. Record every crate block with `b.markCrate`.
-- **Don't:** chests on the grass 2 apart on blocks of coloured concrete, glowstone next to them,
-  signs or roofs over them, or every crate a different style.
+![Crates: do and don't](img/crates.png)
+
+- **Do:**
+  - a crate area as a set piece: an arcade or pavilion 25-40 wide, the crates 6-8 apart in bays;
+  - the best crate in the middle, in a taller bay under a pediment, on a 2-high stage; the others
+    on carved 1-high stages;
+  - the tier's colour only in accents: a backdrop slot lit from behind, candles, a floor mat in
+    front, a lunette in the pediment; the stone the same for all;
+  - a dark wall with light trim (or the reverse), a floor pattern leading in, lamps at the sides;
+  - 3+ blocks clear in front of each crate and nothing over it (`b.markCrate` checks).
+- **Don't:** chests on coloured concrete 2 apart, glowstone next to them, signs or roofs over them,
+  crates hidden behind pillars or in an unlit hole, every crate a different style.
+- **The example:**
+  - `cratePavilion(ctx, pos, facing, crates, { bay, heroBay, pier, depth, court, pitch, field, keystone, stone, trim, base, roof, seed })`:
+    the arcade; `crates = [{ id, label, tier, colour, block, hero }]` (the `hero` crate takes the
+    middle bay); returns the crate records;
+  - `crateStage(ctx, pos, facing, { label, tier, colour, block, crateId, hero, backdrop, stone, base, top })`:
+    one crate on its stage, for a crate on its own.
+- **Make it yours:** the palette reversed (a light wall, dark trim); a dome or an East-Asian roof
+  over the hero bay; two arcades facing across a court (a crate cloister) for 7+ crates; an open
+  pavilion of stages with backdrops; a seasonal crate in pink under cherry leaves.
+- **Numbers:** the example arcade is 39 wide and 9 deep, the pediment's ridge at 18, the crates 7-8
+  apart with 14 clear in front.
 
 ### 5.13 Gates and gatehouses (`elements/gate.mjs`)
 
-- **Do:** the RTP gate as a gatehouse: 15-25 wide and 14-22 tall, twin towers or massive piers
-  flanking an arched opening 5-7 wide and 7-10 high, a passage 3-6 deep with a vault, string
-  courses, crenellations, banners or lanterns, steps or a ramp, a threshold of its own paving, the
-  title hologram above. The opening stays clear and is recorded with `b.markPortal`. At the end of
-  an axis from the spawn, so it is seen from far.
-- **Don't:** a bare obsidian rectangle, a frame of glowstone or beacons, glass, water or portal
-  blocks in the opening, or a gate in the middle of the plaza with nothing leading to it.
+![Gatehouses: do and don't](img/gate.png)
+
+- **Do:**
+  - a gatehouse 15-25 wide and 14-22 tall: twin towers rising 3+ above the middle, an opening 5-7
+    wide and 7-10 high;
+  - depth on every face: the arch in orders (each ring 1 deeper and 1 narrower), a voussoir ring 15+
+    lightness points off the wall with a keystone, a vaulted passage 3-6 deep with a portcullis
+    groove, a battered plinth, string courses, quoins, a corbelled parapet with crenellations;
+  - a podium with steps and a runner of paving leading through, banners and lanterns;
+  - the opening kept clear and recorded with `b.markPortal`, the title hologram above;
+  - at the end of an axis from the spawn, so it is seen from far.
+- **Don't:** a bare obsidian rectangle, a frame of glowstone, glass, water or portal blocks in the
+  opening, a gate with nothing leading to it, a small arch on a big spawn.
+- **The example:**
+  - `gate(ctx, pos, facing, { label, portalId, kind, width, height, depth, tower, towerHeight, rise, approach, banner, field, stone, trim, ring, base, keystone, seed })`:
+    the gatehouse (`pos` = the plaza floor under the middle of the opening); returns the portal
+    record;
+  - `archOpening(span, jambTop)`: the shape of a round-headed opening with stair shoulders, for
+    arches of your own.
+- **Make it yours:** piers and a pediment for a classical gate; polished blackstone with a red
+  nether-brick ring for a PvP or nether gate; sandstone for a desert; `width: 5, height: 8` for the
+  smaller warp gates; a torii in a Japanese spawn; `rise: 3, approach: 20` on the main axis.
+- **Numbers:** the example is 25 wide (the podium 29) and 22 tall, the opening 7 x 10, the passage
+  5 deep.
 
 ### 5.14 Big buildings (`elements/buildings.mjs`)
 
@@ -789,12 +822,26 @@ result fit the spawn, so the element is designed for this place and does not rep
 
 ### 5.18 Fountains (`elements/fountain.mjs`)
 
-- **Do:** a grand fountain 15-30 across for a plaza or a square: a basin (round, quatrefoil or
-  octagonal) with a rim you can sit on, a second raised basin, a centre of 2-3 tiers 8-15 tall
-  with water spilling from tier to tier (sources at the top of each tier), statues or pillars
-  round it, planting and benches outside, lights.
+![Fountains: do and don't](img/fountain.png)
+
+- **Do:**
+  - a basin 15-25 across with a seat-and-coping rim you can sit on, a raised second basin, and 2-3
+    tiers 8-14 tall;
+  - each cup 2 smaller than the water under it, so every stream lands in water; the cups as
+    saucers (a thin plate with an upside-down-stair edge on a small cone and a stem), not cones;
+  - notched spouts in slab lips (they read as streams), pillars and planting round it, benches
+    outside, hidden light under the water (waterlogged);
+  - the fountain off the landing point, on an axis.
 - **Don't:** a square hole of water flush with the floor with a glowstone in it, a glass pillar
-  shooting water, or water everywhere.
+  spouting water, water that can escape (every fall must land in water).
+- **The example:** `fountain(ctx, [cx, y, cz], { r, inner, tiers, stone, coping, carve, bed, falls, surround, seed })`
+  (two cups need `inner` 6 or more); `falls: true` also places the flowing and falling water the
+  game makes from the sources, so the pictures show it (`false`: sources only).
+- **Make it yours:** `r: 12, inner: 7` for the main plaza, `r: 8, inner: 5, tiers: 1` for a district
+  square; a round or quatrefoil basin; a sandstone or prismarine family; a full water veil instead of
+  spouts; cherry trees round it.
+- **Numbers:** the example's basin is 21 across (23 with the seats, about 35 with the planters), the
+  top 13 above the floor.
 
 ### 5.19 Signs, holograms and the name
 

@@ -59,20 +59,20 @@ import { rockGroup } from './elements/stones.mjs'
 import { broadleaf } from './elements/trees.mjs'
 
 export default function build(api) {
-  const ctx = startSpawn(api, { name: 'Mini SMP', size: 72, height: 48, seed: 3 })
+  const ctx = startSpawn(api, { name: 'Mini SMP', size: 140, height: 80, seed: 3 })
   const { b, FY, C } = ctx
   const [cx, cz] = C
-  const groundY = island(ctx, { cx, cz, r: 30, depth: 12, seed: 4 })
-  gridPlaza(ctx, { x0: cx - 16, z0: cz - 16, x1: cx + 16, z1: cz + 16, cx, cz, cell: 8, seed: 2 })
-  dais(ctx, { cx, cz, R: 4, tiers: 2 })
-  npcStand(ctx, [cx - 7, FY, cz - 6], facingToward([cx - 7, cz - 6], C), { label: 'Shop', npcId: 'shop', lines: ['/shop'] })
-  npcStand(ctx, [cx + 7, FY, cz - 6], facingToward([cx + 7, cz - 6], C), { label: 'Warps', npcId: 'warps', stand: 'log', lantern: 'left' })
-  crateStage(ctx, [cx - 10, FY, cz + 4], 'east', { label: 'Vote', colour: 'lime', crateId: 'vote' })
-  crateStage(ctx, [cx - 10, FY, cz + 11], 'east', { label: 'Rare', colour: 'purple', block: 'ender_chest', crateId: 'rare' })
-  boardRecess(ctx, [cx, FY, cz - 13], 'south', { label: 'Top balance', boardId: 'money' })
-  gate(ctx, [cx, FY, cz + 14], 'north', { portalId: 'rtp', label: 'Random teleport' })
-  for (const [x, z, s] of [[cx + 20, cz + 8, 3], [cx - 21, cz - 12, 2]]) if (groundY(x, z) >= 0) rockGroup(ctx, [x, groundY(x, z), z], { size: s, seed: x })
-  for (const [x, z, h] of [[cx + 19, cz - 14, 11], [cx - 18, cz + 19, 8]]) if (groundY(x, z) >= 0) broadleaf(ctx, [x, groundY(x, z), z], { height: h, seed: z })
+  const groundY = island(ctx, { cx, cz, r: 62, depth: 18, seed: 4 })
+  gridPlaza(ctx, { x0: cx - 34, z0: cz - 34, x1: cx + 34, z1: cz + 34, cx, cz, cell: 9, seed: 2 })
+  dais(ctx, { cx, cz, R: 6, tiers: 3 })
+  npcStand(ctx, [cx - 12, FY, cz - 9], facingToward([cx - 12, cz - 9], C), { label: 'Shop', npcId: 'shop', lines: ['/shop'] })
+  npcStand(ctx, [cx + 12, FY, cz - 9], facingToward([cx + 12, cz - 9], C), { label: 'Warps', npcId: 'warps', stand: 'log', lantern: 'left' })
+  crateStage(ctx, [cx - 24, FY, cz - 4], 'east', { label: 'Vote', colour: 'lime', crateId: 'vote' })
+  crateStage(ctx, [cx - 24, FY, cz + 6], 'east', { label: 'Rare', colour: 'purple', block: 'ender_chest', crateId: 'rare' })
+  boardRecess(ctx, [cx, FY, cz - 26], 'south', { label: 'Top balance', boardId: 'money' })
+  gate(ctx, [cx, FY, cz + 44], 'north', { portalId: 'rtp', label: 'Random teleport' })
+  for (const [x, z, s] of [[cx + 45, cz + 10, 3], [cx - 46, cz - 20, 2]]) if (groundY(x, z) >= 0) rockGroup(ctx, [x, groundY(x, z), z], { size: s, seed: x })
+  for (const [x, z, h] of [[cx + 44, cz - 30, 11], [cx - 42, cz + 34, 8]]) if (groundY(x, z) >= 0) broadleaf(ctx, [x, groundY(x, z), z], { height: h, seed: z })
   return finishSpawn(ctx, { land: (x, z) => groundY(x, z) >= 0 })
 }
 `
