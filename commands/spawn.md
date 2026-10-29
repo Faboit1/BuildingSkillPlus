@@ -50,5 +50,8 @@ Follow the minecraft-builder skill's "Server spawns and lobbies: build them your
 6. **Deliver** (manual §11): `build_recipe` with `export: true`, `origin` and `world`. Send the .schem
    and .litematic, setup.md, screenshots, the paste corner and the world spawn.
 
+Done means exported: the export goes through only once the audit passes. Until then keep
+working; never stop with a list of open items or ask whether to continue.
+
 If the MCP tools are not available, use the scripts (`node "${CLAUDE_PLUGIN_ROOT}/scripts/new-spawn.mjs"`,
 `run-build.mjs`, `screenshot.mjs`, `isorender.mjs`; see the skill).

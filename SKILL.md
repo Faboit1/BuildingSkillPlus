@@ -53,6 +53,12 @@ your first spawn, and read an element's chapter in §5 before you write that ele
 | The hero | §5.21 | one landmark 60-120 tall that reads from the spawn, grown out of a crag, layered and detailed (`elements/keep.mjs`); not a striped cylinder or a castle on a cube |
 | The town | §5.22 | streets first (5-9 wide, curving), houses shoulder to shoulder on lots along them, every house its own, back yards; not houses on a lawn |
 
+**When a spawn is done.** Only when the export went through: the audit passed (every build prints
+it; the export refuses while it fails) and the quality gate of manual §2.3 holds. Until then there
+is no report to write. A list of open items, a question like "should I continue?" or a summary of
+what is left is stopping early. Take the next item and build again. Expect 40-100 builds and hours
+of work for a big spawn: that is the job, not a sign that something is wrong.
+
 The frame (`frame/frame.mjs` in the spawn folder) is plumbing only: the canvas, a reservation grid,
 angles, the world spawn, the records the server admin needs (NPC, hologram, crate, board and portal
 positions, regions), spawn-proofing and the export. The kit is your toolbox (palettes, noise, block
