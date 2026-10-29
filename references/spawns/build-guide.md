@@ -182,7 +182,9 @@ measured from the blocks, so "it looks fine" is not the judge:
   paving salted with odd blocks warns;
 - physics: sand, gravel or concrete powder with nothing under it, sugar cane with no water, and
   still water touching air all fail (they fall, break or flow the moment the spawn is pasted);
-- effort: the build count from `build-log.json` (15 at the least on a spawn 400+ wide).
+- effort: the build count from `build-log.json` (15 at the least on a spawn 400+ wide);
+- looking: the first-person screenshots taken of the build (`screenshot` logs them in
+  `shot-log.json`): 12 at the least, from 8 different spots, before an export.
 
 A spawn whose audit fails is not exported: `convert.mjs` and `build_recipe`'s export refuse, with the
 list. Fix each line and build again. `--force` (`force: true`) only when the user asked for an

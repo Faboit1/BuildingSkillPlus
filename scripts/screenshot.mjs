@@ -39,6 +39,7 @@ options:
   --fov 70                 vertical field of view (degrees)     --width 1280 --height 720
   --far 260                view distance in blocks              --sun 0|1 (shadows, default 1)
   --out FILE.png           (single shot)  --out-dir DIR (shots; default <build dir>/renders)
+  --no-log                 do not add these shots to <build dir>/shot-log.json (the audit counts them)
 Prints the PNG path(s). A 1280x720 view of a 300-block spawn takes a few seconds.`)
   process.exit(args.length ? 0 : 1)
 }
@@ -484,6 +485,7 @@ function feet(pos) {
 
 // ------------------------------------------------------------------ run
 const written = []
+const shotLog = []
 for (const [i, s] of shots.entries()) {
   let eye
   let yaw = s.yaw !== undefined && s.yaw !== null ? Number(s.yaw) : undefined
@@ -514,6 +516,17 @@ for (const [i, s] of shots.entries()) {
   fs.mkdirSync(path.dirname(path.resolve(file)), { recursive: true })
   fs.writeFileSync(file, encodePng(W, H, img))
   written.push(file)
+  shotLog.push({ at: new Date().toISOString(), file: path.relative(baseDir, path.resolve(file)), eye: eye.map(v => Math.round(v)), yaw: Math.round(yaw) })
   console.log(`${file}  (eye ${eye.map(v => v.toFixed(1)).join(',')}, yaw ${yaw.toFixed(0)}, pitch ${pitch.toFixed(0)}, ${((Date.now() - t1) / 1000).toFixed(1)}s)`)
+}
+// the shots of this build, logged next to it: run-build's audit counts them before an export
+// (a spawn is looked at from the player's spots, not delivered from the numbers alone)
+if (!opt('--no-log')) {
+  const logFile = path.join(baseDir, 'shot-log.json')
+  let log = []
+  try {
+    log = JSON.parse(fs.readFileSync(logFile, 'utf8'))
+  } catch {}
+  fs.writeFileSync(logFile, `${JSON.stringify([...log, ...shotLog], null, 1)}\n`)
 }
 console.error(`screenshot: ${written.length} view(s) of ${X}x${Y}x${Z} in ${((Date.now() - t0) / 1000).toFixed(1)}s`)

@@ -81,7 +81,7 @@ for (const [name, yaw] of [['look-n', 180], ['look-e', -90], ['look-s', 0], ['lo
   eyeLevel.push(spawn ? { name, spawn: true, yaw, pitch: 4 } : { name, eye: [cx, sy + 1.6, cz], yaw, pitch: 4 })
 const sf = path.join(out, 'eye.json')
 fs.writeFileSync(sf, JSON.stringify(eyeLevel))
-if (run('screenshot.mjs', [nbt, '--shots', sf, '--out-dir', out, '--width', '960', '--height', '540', '--far', '300']))
+if (run('screenshot.mjs', [nbt, '--shots', sf, '--out-dir', out, '--width', '960', '--height', '540', '--far', '300', '--no-log']))
   for (const s of eyeLevel) files.push([s.name, shot(s.name)])
 const high = []
 // from outside the canvas, above the tallest land, so no mountain on the rim blocks the view
@@ -90,7 +90,7 @@ for (const [name, dx, dz] of [['high-s', 0, 1], ['high-w', -1, 0], ['high-n', 0,
   high.push({ name, eye: [Math.round(X / 2 + dx * X * 0.62), sy + lift, Math.round(Z / 2 + dz * Z * 0.62)], lookAt: [cx, sy, cz], fov: 62 })
 const hf = path.join(out, 'high.json')
 fs.writeFileSync(hf, JSON.stringify(high))
-if (run('screenshot.mjs', [nbt, '--shots', hf, '--out-dir', out, '--width', '960', '--height', '540', '--far', String(Math.round(S * 1.3))]))
+if (run('screenshot.mjs', [nbt, '--shots', hf, '--out-dir', out, '--width', '960', '--height', '540', '--far', String(Math.round(S * 1.3)), '--no-log']))
   for (const s of high) files.push([s.name, shot(s.name)])
 
 // ---- the contact sheet: 3 columns of 480 x 270 cells, each labelled
