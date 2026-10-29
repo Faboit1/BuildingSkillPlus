@@ -15,6 +15,7 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { createApi } from '../lib/pipeline.mjs'
 import { decodePng, encodePng } from '../lib/blockview.mjs'
+import { writeStructureNbt } from '../lib/structio.mjs'
 import { startSpawn } from '../../assets/frame/frame.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
@@ -62,7 +63,7 @@ function buildOne(mod, name, which) {
   // the good half must keep what it marks clear (an NPC's head room, a crate's front, a board's text)
   const blocked = which === 'good' ? (ctx.b.warnings ?? []).filter(w => /must stay clear/.test(w)) : []
   const report = result.metadata?.builderReport ?? {}
-  return { structure: result.structure, report: { ...report, problems: [...(report.problems ?? []), ...blocked] } }
+  return { result, report: { ...report, problems: [...(report.problems ?? []), ...blocked] } }
 }
 
 let failed = 0
@@ -78,7 +79,7 @@ for (const name of names) {
       failed += 1
       continue
     }
-    const { structure, report } = built
+    const { result, report } = built
     const problems = [...(report.problems ?? []), ...(report.clipped ? [`${report.clipped} clipped`] : [])]
     if (problems.length) {
       console.log(`FAIL ${name} ${which}: ${problems.slice(0, 3).join('; ')}`)
@@ -86,13 +87,15 @@ for (const name of names) {
     }
     if (check) continue
     const nbt = path.join(tmp, `${name}-${which}.nbt`)
-    fs.writeFileSync(nbt, structure.writeNbt({ name: '', dataVersion: 3955, compression: 'gzip' }))
+    // big figures (a whole landscape) stream straight from the block store
+    if (result.export) await writeStructureNbt(nbt, { size: result.export.size, palette: result.export.palette, blocks: result.export.blocks(), count: result.export.count, dataVersion: 3955 })
+    else fs.writeFileSync(nbt, result.structure.writeNbt({ name: '', dataVersion: 3955, compression: 'gzip' }))
     const png = path.join(tmp, `${name}-${which}.png`)
     const f = mod.figure ?? {}
     // an isometric view by default; figure.camera = { eye, lookAt, fov } shoots it like a player sees it
     const cam = f.camera
     const args = cam
-      ? [path.join(root, 'scripts/screenshot.mjs'), nbt, '--eye', cam.eye.join(','), '--look-at', cam.lookAt.join(','), '--fov', String(cam.fov ?? 60), '--width', String(cam.width ?? 560), '--height', String(cam.height ?? 380), '--out', png]
+      ? [path.join(root, 'scripts/screenshot.mjs'), nbt, '--eye', cam.eye.join(','), '--look-at', cam.lookAt.join(','), '--fov', String(cam.fov ?? 60), '--width', String(cam.width ?? 560), '--height', String(cam.height ?? 380), '--far', String(cam.far ?? 260), '--out', png]
       : [path.join(root, 'scripts/isorender.mjs'), nbt, '--out', png, '--px', String(f.px ?? 8), '--from', f.from ?? 'se']
     const r = spawnSync(process.execPath, args, { encoding: 'utf8' })
     if (r.status !== 0) {

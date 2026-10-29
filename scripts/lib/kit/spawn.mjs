@@ -15,6 +15,7 @@
 //   Lights  — every component lights itself with a fixture or a light behind glass, never a bare
 //             light block in view; b.spawnProof fills what is left with invisible light blocks.
 
+import { auditSpawn } from './audit.mjs'
 import { DIR, HORIZONTAL, ccw, cw, isFullSolid, opposite, parseBlock } from './blocks.mjs'
 import { material } from './materials.mjs'
 
@@ -1511,7 +1512,11 @@ export function installFinishHook(Builder) {
   const base = Builder.prototype.finish
   if (base.spawnHook) return
   function finish(opts = {}) {
-    const { spawnProof: sp, ...rest } = opts
+    const { spawnProof: sp, audit, ...rest } = opts
+    // the spawn audit (kit/audit.mjs) measures the finished blocks, before spawn-proofing adds lights
+    // (any spawn build: finishSpawn spawn-proofs; an older frame that passes no audit gets one too)
+    const auditOpts = audit ?? (sp ? { inside: sp.inside ?? (() => true) } : null)
+    const audited = auditOpts ? auditSpawn(this, auditOpts === true ? {} : auditOpts) : null
     if (sp) {
       const cfg = sp === true ? { min: [0, 0, 0], max: this.size.map(v => v - 1) } : Array.isArray(sp) ? { min: sp[0], max: sp[1] } : sp
       spawnProof(this, cfg.min, cfg.max, cfg)
@@ -1533,6 +1538,7 @@ export function installFinishHook(Builder) {
     })
     if (list.length) result.metadata.placements = list
     if (this.spawnProofReport) result.metadata.builderReport.spawnProof = this.spawnProofReport
+    if (audited) result.metadata.builderReport.audit = audited
     return result
   }
   finish.spawnHook = true

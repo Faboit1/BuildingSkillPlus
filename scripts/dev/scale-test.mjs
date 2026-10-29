@@ -38,7 +38,7 @@ step('build 1000 x 200 x 1000', [path.join(root, 'scripts/run-build.mjs'), path.
 if (fs.existsSync(nbt)) {
   step('overview (isorender px 1)', [path.join(root, 'scripts/isorender.mjs'), nbt, '--out', path.join(tmp, 'iso.png'), '--px', '1'], () => (fs.existsSync(path.join(tmp, 'iso.png')) ? undefined : 'no image'))
   step('spawn view (screenshot)', [path.join(root, 'scripts/screenshot.mjs'), nbt, '--spawn', '--out', path.join(tmp, 'view.png')], () => (fs.existsSync(path.join(tmp, 'view.png')) ? undefined : 'no image'))
-  step('.schem export', [path.join(root, 'scripts/convert.mjs'), nbt, '--out', path.join(tmp, 'scale-test.schem')], () => (fs.statSync(path.join(tmp, 'scale-test.schem')).size > 1e6 ? undefined : 'schem too small'))
+  step('.schem export', [path.join(root, 'scripts/convert.mjs'), nbt, '--out', path.join(tmp, 'scale-test.schem'), '--force'], () => (fs.statSync(path.join(tmp, 'scale-test.schem')).size > 1e6 ? undefined : 'schem too small'))
 }
 if (process.argv.includes('--keep')) console.log(`files kept in ${tmp}`)
 else fs.rmSync(tmp, { recursive: true, force: true })

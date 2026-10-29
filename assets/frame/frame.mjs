@@ -75,6 +75,8 @@ export function finishSpawn(ctx, { safeZone, description, cleanup = true, land }
     name: ctx.slug,
     description: description ?? `${ctx.name} spawn (${S}x${S})`,
     spawnProof: { min: [0, Math.max(0, FY - 6), 0], max: [S - 1, H - 1, S - 1], inside: (x, z) => inside(x, z) },
+    // the quality numbers run-build prints and the export gate checks (scripts/lib/kit/audit.mjs)
+    audit: { inside: (x, z) => inside(x, z) },
   })
   result.metadata ??= {}
   result.metadata.spawn = { name: ctx.name, floorY: FY, warnings: ctx.warnings, cleaned, ...(ctx.theme?.key ? { theme: ctx.theme.key, setting: ctx.theme.setting } : {}) }

@@ -141,8 +141,8 @@ export function wall(ctx, points, opts = {}) {
       byKey.set(`${x},${z}`, c)
     }
   const masonry = masonryAt(M, kit, (x, z) => byKey.get(`${x},${z}`)?.G ?? 0, (x, z) => byKey.get(`${x},${z}`)?.W ?? 8)
-  const st = (f, half = 'bottom', mat = trim) => `minecraft:${mat}_stairs[facing=${f},half=${half}]`
-  const slab = (type = 'bottom') => `minecraft:${trim}_slab[type=${type}]`
+  const st = (f, half = 'bottom', mat = trim) => `${kit.material(mat).stairs}[facing=${f},half=${half}]`
+  const slab = (type = 'bottom') => `${kit.material(trim).slab}[type=${type}]`
   const isButtress = tt => buttressEvery > 0 && tt > 4 && tt < length - 4 && (tt % buttressEvery === 0 || tt % buttressEvery === 1)
   const isSlit = tt => buttressEvery > 0 && tt > 4 && tt < length - 4 && tt % buttressEvery === Math.floor(buttressEvery / 2) + 1
   const merlon = tt => tt % 3 !== 2
@@ -263,7 +263,7 @@ export function tower(ctx, pos, opts = {}) {
   const R = shape === 'round' ? r : Math.round(r)
   const ground = opts.ground ?? ((x, z) => b.groundY(x, z))
   const masonry = kit.gradient([M.foot, M.body, M.body, M.body, M.crown], { t: (x, y) => (y - gy + 1.5) / (height + 2), dither: 0.3, scale: 3 })
-  const st = (f, half = 'bottom') => `minecraft:${trim}_stairs[facing=${f},half=${half}]`
+  const st = (f, half = 'bottom') => `${kit.material(trim).stairs}[facing=${f},half=${half}]`
   const inward = (x, z) => FACE([cx - x, cz - z])
   const ring = (lo, hi) => {
     const list = []
@@ -294,7 +294,7 @@ export function tower(ctx, pos, opts = {}) {
     for (let y = low; y <= g + 2; y += 1) b.set(x, y, z, masonry)
     b.set(x, g + 3, z, st(inward(x, z)))
     // (top slabs on round towers: a ring of stairs turns into a sawtooth of corner shapes)
-    for (let y = gy + 9; y < TOP - 2; y += 6) b.set(x, y, z, shape === 'round' ? `minecraft:${trim}_slab[type=top]` : st(inward(x, z), 'top'))
+    for (let y = gy + 9; y < TOP - 2; y += 6) b.set(x, y, z, shape === 'round' ? `${kit.material(trim).slab}[type=top]` : st(inward(x, z), 'top'))
   }
   for (const [x, z] of ring(R + 1, R + 2)) {
     const g = ground(x, z)

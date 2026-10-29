@@ -19,6 +19,10 @@
 
 import { groundPatch } from './_scene.mjs'
 
+// leaves stay where they are put (persistent); a crown may mix in other blocks (autumn wool,
+// shroomlight, moss), which have no such state
+const leafState = id => (/_leaves$/.test(id.split('[')[0]) ? `${id}[persistent=true]` : id)
+
 const AXIS = (dx, dz) => (Math.abs(dx) > Math.abs(dz) ? 'x' : 'z')
 
 // A broadleaf tree. [x, y, z]: y is the ground block level.
@@ -78,7 +82,7 @@ export function broadleaf(ctx, [x, y, z], { height = 12, seed = 1, log = 'oak_lo
 // the feet of trees, along walls and paths, in twos and threes.
 export function bush(ctx, [x, y, z], { r = 2.4, seed = 1, leaves = { oak_leaves: 3, azalea_leaves: 1 } } = {}) {
   const { b, kit } = ctx
-  const paint = kit.palette(Object.fromEntries(Object.entries(leaves).map(([k, v]) => [`${k}[persistent=true]`, v])), { scale: 2, seed })
+  const paint = kit.palette(Object.fromEntries(Object.entries(leaves).map(([k, v]) => [leafState(k), v])), { scale: 2, seed })
   for (let dx = -3; dx <= 3; dx += 1)
     for (let dy = 0; dy <= 2; dy += 1)
       for (let dz = -3; dz <= 3; dz += 1) {
@@ -119,7 +123,7 @@ export function giantTree(ctx, [x, y, z], { species = 'oak', seed = 1, berries =
   const W = o.trunk
   const log = o.stripped ? `minecraft:stripped_${o.log}_log` : `minecraft:${o.log}_log`
   const bark = o.stripped ? `minecraft:stripped_${o.log}_wood` : `minecraft:${o.log}_wood`
-  const leaf = o.leaves && kit.palette(Object.fromEntries(Object.entries(o.leaves).map(([k, v]) => [`minecraft:${k}[persistent=true]`, v])), { scale: 3, seed })
+  const leaf = o.leaves && kit.palette(Object.fromEntries(Object.entries(o.leaves).map(([k, v]) => [leafState(`minecraft:${k}`), v])), { scale: 3, seed })
   const inCanvas = (px, py, pz) => px >= 0 && pz >= 0 && py >= 0 && px < ctx.S && pz < ctx.S && py < ctx.H
   const isWood = (px, py, pz) => /_(log|wood)$/.test(b.nameAt(px, py, pz) ?? '')
   const SOIL = /grass_block|dirt|podzol|moss_block|mud/
@@ -351,7 +355,7 @@ export function giantTree(ctx, [x, y, z], { species = 'oak', seed = 1, berries =
             if (d > 0.4 && kit.noise.coherent01(px, py, pz, { scale: 2.5, seed: seed + 9 }) < 0.2) continue // holes
             if (!inCanvas(px, py, pz) || b.get(px, py, pz)) continue
             const under = o.shade && ddy < -0.3 && kit.noise.coherent01(px, py, pz, { scale: 3, seed: seed + 10 }) > 0.55
-            b.set(px, py, pz, under ? `minecraft:${o.shade}[persistent=true]` : leaf)
+            b.set(px, py, pz, under ? leafState(`minecraft:${o.shade}`) : leaf)
             placed.push([px, py, pz])
           }
     }

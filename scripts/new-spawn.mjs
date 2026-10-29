@@ -144,9 +144,8 @@ export default function build(api) {
   // The plaza's paving (field, borders, inlay, the rose), the ground's mix, the walks.
 
   // ================================================================ 4. THE SPAWN CENTRE (§5.9, §5.10)
-  // The dais players land on (it places the world spawn, facing the first view), the floor round
-  // it, the NPC ring. Until you build your dais, the world spawn stands on the floor here.
-  b.spawnPoint([cx, FY, cz], 'north')
+  // The dais players land on, the floor round it, the NPC ring. The dais places the world spawn
+  // (b.spawnPoint on its top, facing the first view); finishSpawn warns while there is none.
 
   // ================================================================ 5. THE PLACES (§5.11-§5.13)
   // The boards and the top-3 pillars (b.markBoard, statues with b.markNpc), the crates

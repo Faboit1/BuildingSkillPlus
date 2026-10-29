@@ -48,6 +48,7 @@ Options:
   --palette <i>           Vanilla structures with several palettes: which variant to load (default 0)
   --region <name>         Litematic: load only this region instead of merging all of them
   --keep-air              Keep explicit air blocks (vanilla structures use them to clear terrain)
+  --force                 Export a spawn whose audit has not passed (an unfinished draft the user asked for)
   --compression gzip|zlib|none   Compression for .nbt output (default gzip)
   --json                  Print a JSON summary
 `
@@ -67,6 +68,7 @@ function parseArgs(argv) {
     compression: 'gzip',
     json: false,
     help: false,
+    force: false,
   }
 
   const readValue = (arg, index) => {
@@ -96,6 +98,8 @@ function parseArgs(argv) {
       options.json = true
     } else if (arg === '--keep-air') {
       options.keepAir = true
+    } else if (arg === '--force') {
+      options.force = true
     } else if (valueFlags[flag]) {
       if (flag !== arg) {
         valueFlags[flag](arg.slice(eq + 1))
@@ -240,6 +244,20 @@ async function main() {
     outExt = path.extname(options.out).toLowerCase()
     if (!OUTPUT_EXTENSIONS.includes(outExt)) {
       throw new Error(`Unsupported output extension '${outExt || '(none)'}'; use ${OUTPUT_EXTENSIONS.join(', ')}`)
+    }
+  }
+
+  // a spawn built by run-build carries its audit in summary.json next to it: one that is not ready
+  // (bare land, a flat disc, repeats, too few builds...) is not exported unless asked to (--force)
+  if (options.out && !options.force && inputExt === '.nbt' && ['.schem', '.litematic', '.schematic'].includes(outExt)) {
+    try {
+      const summary = JSON.parse(await fs.readFile(path.join(path.dirname(inputPath), 'summary.json'), 'utf8'))
+      if (path.resolve(summary.nbtPath ?? '') === inputPath && summary.audit && !summary.audit.passed) {
+        console.error(`convert: not exported: this spawn's audit (build ${summary.audit.builds}) is not passed yet:\n  ${summary.audit.failures.join('\n  ')}\nFix these and build again (references/spawns/build-guide.md §2.3). Only if the user asked for an unfinished export, pass --force and tell them what is still open.`)
+        process.exit(3)
+      }
+    } catch (err) {
+      if (err.code !== 'ENOENT' && !(err instanceof SyntaxError)) throw err
     }
   }
 

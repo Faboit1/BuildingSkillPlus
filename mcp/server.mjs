@@ -71,8 +71,8 @@ const TOOLS = [
   {
     name: 'build_recipe',
     description: 'Build any kit recipe (a .mjs exporting default (api) => ... finish(), e.g. a spawn.mjs from new_spawn) into .nbt, .placements.json and .setup.md (NPC/hologram/crate/region commands) in the recipe folder, and return the summary (problems, warnings) plus an isometric overview and, for a spawn, the first-person view from the spawn point. export: true also writes .schem and .litematic (do it when delivering). Big spawns (up to 1500 wide, tens of millions of blocks) build in 1-4 minutes; focus "x0,z0,x1,z1" keeps only that column box, a fast draft of one district while you iterate (build without it before delivering).',
-    inputSchema: { type: 'object', properties: { recipe: { type: 'string' }, out_dir: { type: 'string', description: 'Default: the recipe\'s folder for spawn.mjs, else minecraft-builds/<name>' }, origin: { type: 'string', description: 'x,y,z paste corner for the world coordinates in setup.md' }, world: { type: 'string', description: 'World name for the setup commands' }, export: { type: 'boolean', description: 'Also write .schem and .litematic' }, focus: { type: 'string', description: 'x0,z0,x1,z1: keep only this column box (a draft of one district); the overview shows that box' }, images: { type: 'boolean', description: 'Return renders (default true)' } }, required: ['recipe'] },
-    run: async ({ recipe, out_dir, origin, world, export: exp, focus, images = true }) => {
+    inputSchema: { type: 'object', properties: { recipe: { type: 'string' }, out_dir: { type: 'string', description: 'Default: the recipe\'s folder for spawn.mjs, else minecraft-builds/<name>' }, origin: { type: 'string', description: 'x,y,z paste corner for the world coordinates in setup.md' }, world: { type: 'string', description: 'World name for the setup commands' }, export: { type: 'boolean', description: 'Also write .schem and .litematic (a spawn only once its audit passes)' }, force: { type: 'boolean', description: 'Export even though the spawn audit fails (only when the user asked for an unfinished draft; tell them what is open)' }, focus: { type: 'string', description: 'x0,z0,x1,z1: keep only this column box (a draft of one district); the overview shows that box' }, images: { type: 'boolean', description: 'Return renders (default true)' } }, required: ['recipe'] },
+    run: async ({ recipe, out_dir, origin, world, export: exp, force, focus, images = true }) => {
       const file = outPath(recipe)
       if (!fs.existsSync(file)) return fail(`no such recipe: ${file}`)
       const base = path.basename(file).replace(/\.m?js$/, '')
@@ -83,13 +83,17 @@ const TOOLS = [
       const nbt = summary.nbtPath
       const warnings = r.err.split('\n').filter(l => /^builder: /.test(l))
       const lines = [`built ${nbt} (${summary.blockCount} blocks, ${summary.size.join('x')})`, `problems: ${JSON.stringify(summary.builder?.problems ?? [])}`, `clipped: ${summary.builder?.clipped ?? 0}`]
+      // the spawn audit: what is still unfinished, measured (export refuses while it fails)
+      const audit = r.err.split('\n').filter(l => /^audit/.test(l))
+      if (audit.length) lines.push(audit.join('\n'))
       if (warnings.length) lines.push(`warnings (fix these):\n${warnings.slice(0, 30).join('\n')}${warnings.length > 30 ? `\n... ${warnings.length - 30} more` : ''}`)
       const stem = nbt.replace(/\.nbt$/, '')
       for (const f of ['.placements.json', '.setup.md']) if (fs.existsSync(stem + f)) lines.push(`setup: ${stem + f}`)
       if (exp) {
         for (const ext of ['schem', 'litematic']) {
-          const c = await run('convert.mjs', [nbt, '--out', `${stem}.${ext}`], { heap: HEAP, timeout: 3600000 })
-          lines.push(c.code === 0 ? `export: ${stem}.${ext}` : `export .${ext} failed: ${(c.err || c.out).slice(-500)}`)
+          const c = await run('convert.mjs', [nbt, '--out', `${stem}.${ext}`, ...(force ? ['--force'] : [])], { heap: HEAP, timeout: 3600000 })
+          lines.push(c.code === 0 ? `export: ${stem}.${ext}` : c.code === 3 ? `not exported: ${(c.err || c.out).slice(-1500)}` : `export .${ext} failed: ${(c.err || c.out).slice(-500)}`)
+          if (c.code === 3) break
         }
       }
       const content = [text(lines.join('\n'))]

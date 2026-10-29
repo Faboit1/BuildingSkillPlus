@@ -759,13 +759,28 @@ export class Builder {
   finish({ name, description, connections = true, persistentLeaves = true, validate = true, trim = false, strict = false, ...metadata } = {}) {
     const report = { blocks: 0, connectionsUpdated: 0, leavesPersisted: 0, clipped: this.clipped, problems: [] }
     if (validate) {
-      const checked = new Set()
-      for (const block of this.blocks.values()) {
+      // each distinct state is checked once; a bad one is reported with how many there are and
+      // where the first one is, so it can be found
+      const checked = new Map()
+      const [sx, , sz] = this.size
+      this.blocks.each((k, block) => {
         const key = stateString(block)
-        if (checked.has(key)) continue
-        checked.add(key)
-        for (const problem of validateBlock(block)) report.problems.push(problem)
-      }
+        let entry = checked.get(key)
+        if (!entry) {
+          const problems = validateBlock(block)
+          entry = problems.length ? { problems, count: 0, at: null } : null
+          checked.set(key, entry)
+        }
+        if (!entry) return
+        entry.count += 1
+        if (!entry.at) {
+          const x = k % sx
+          const rest = (k - x) / sx
+          const z = rest % sz
+          entry.at = [x, (rest - z) / sz, z]
+        }
+      })
+      for (const entry of checked.values()) if (entry) for (const problem of entry.problems) report.problems.push(`${problem} (${entry.count} placed, the first at ${entry.at.join(',')})`)
     }
     // Complete every state with vanilla defaults (the previewer needs explicit values).
     for (const [k, block] of this.blocks) {

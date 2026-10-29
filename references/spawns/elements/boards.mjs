@@ -26,21 +26,25 @@ import { npcStandIn, pavedPatch } from './_scene.mjs'
 
 // One board. pos = the floor block under the middle of its backdrop, facing = toward the readers.
 export function boardRecess(ctx, pos, facing, { label = 'Top players', boardId, width = 5, height = 4, stone = 'stone_brick', backdrop = 'polished_blackstone' } = {}) {
-  const { b } = ctx
+  const { b, kit } = ctx
   const L = local(pos, facing)
   const set = (u, d, h, blk) => b.set(...L.at(u, d, h), blk)
+  // the stone's family from the kit ('stone_brick', 'deepslate_bricks', 'tuff'...): every id real
+  const F = kit.material(stone)
+  const full = F.block
+  const chiseled = F.chiseled ?? F.block
   const half = Math.floor(width / 2)
   const W = half + 1 // the piers
   const top = height + 2 // the lintel
-  for (let u = -W; u <= W; u += 1) set(u, 0, 1, `minecraft:${stone}s`) // the base
-  for (let u = -half; u <= half; u += 1) set(u, 1, 1, `minecraft:${stone}_slab[type=bottom]`) // a ledge
+  for (let u = -W; u <= W; u += 1) set(u, 0, 1, full) // the base
+  for (let u = -half; u <= half; u += 1) set(u, 1, 1, `${F.slab}[type=bottom]`) // a ledge
   for (let u = -half; u <= half; u += 1) for (let h = 2; h < top; h += 1) set(u, 0, h, `minecraft:${backdrop}`)
   for (const u of [-W, W])
     for (let h = 1; h <= top; h += 1)
-      for (const d of [0, 1]) set(u, d, h, h === 1 ? 'minecraft:polished_andesite' : h === top ? `minecraft:chiseled_${stone}s` : `minecraft:${stone}s`)
-  for (let u = -W; u <= W; u += 1) set(u, 0, top, `minecraft:${stone}s`) // the lintel
-  for (let u = -half; u <= half; u += 1) set(u, 1, top, `minecraft:${stone}_stairs[facing=${L.back},half=top]`) // its cornice
-  for (let u = -W; u <= W; u += 1) set(u, 0, top + 1, u === 0 ? `minecraft:chiseled_${stone}s` : `minecraft:${stone}_slab[type=bottom]`)
+      for (const d of [0, 1]) set(u, d, h, h === 1 ? 'minecraft:polished_andesite' : h === top ? chiseled : full)
+  for (let u = -W; u <= W; u += 1) set(u, 0, top, full) // the lintel
+  for (let u = -half; u <= half; u += 1) set(u, 1, top, `${F.stairs}[facing=${L.back},half=top]`) // its cornice
+  for (let u = -W; u <= W; u += 1) set(u, 0, top + 1, u === 0 ? chiseled : `${F.slab}[type=bottom]`)
   for (const u of [-W, W]) set(u, 1, top + 1, 'minecraft:lantern[hanging=false]')
   // hidden light in front of the base (invisible, no collision)
   for (const u of [-half, half]) set(u, 2, 1, 'minecraft:light[level=12]')
