@@ -965,8 +965,13 @@ export class Land {
           for (let y = t + 1; y <= Math.min(wl, sy - 1); y += 1) b.put(x, y, z, waterBlock)
           for (const j of [i - 1, i + 1, i - W, i + W]) if (j < 0 || j >= this.n || top[j] < 0 || (Number.isNaN(this.water[j]) && top[j] < wl)) spill += 1
         }
-        // a thin layer of snow on the snowy flats
-        if (kind === 'snow' && T.snow?.layer && sl < 0.9 && t + 1 < sy) b.put(x, t + 1, z, P(`snow[layers=${1 + Math.floor(u * 2)}]`))
+        // snow layers as deep as the land's true surface stands above the block: the steps of a
+        // snowy slope fill in smoothly instead of showing as a staircase
+        if (kind === 'snow' && T.snow?.layer && sl < 1.1 && t + 1 < sy) {
+          const frac = h[i] - t + 0.5 // 0-1: how far up toward the next block the surface is
+          const layers = Math.min(7, Math.max(sl < 0.2 ? 1 : 0, Math.round(frac * 8)))
+          if (layers > 0) b.put(x, t + 1, z, P(`snow[layers=${layers}]`))
+        }
       }
     }
     void sx
@@ -1038,7 +1043,8 @@ function classify(T, sl, v, dep, st, x, z, seed) {
   const n = fbm2(x, z, { scale: 16, octaves: 3, seed: seed + 29 })
   if (T.snow) {
     const line = st.min + st.relief * T.snow.line + n * 10 - sl * 4
-    if (v > line) return sl > 1.5 ? 'rock' : 'snow'
+    // snow lies on ledges and gentle slopes; steeper than about 48 degrees it slides off the rock
+    if (v > line) return sl + n * 0.2 > 1.1 ? 'rock' : 'snow'
   }
   // the thresholds of terrain-research.md §2, each edge moved by a noise so no contour shows:
   // 30-44 degrees the slope mix, 44-51 scree, steeper bare rock
