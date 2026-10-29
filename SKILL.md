@@ -50,6 +50,7 @@ your first spawn, and read an element's chapter in §5 before you write that ele
 | Props | §5.17 | groups that tell a story, not single blocks scattered |
 | Fountains | §5.18 | a big rimmed basin, tiers with water spilling down; not a hole of water |
 | Text, the PvP line, the hero | §5.19-§5.21 | holograms, a red line with a region, one landmark 60-120 tall of their own |
+| The town | §5.22 | streets first (5-9 wide, curving), houses shoulder to shoulder on lots along them, every house its own, back yards; not houses on a lawn |
 
 The frame (`frame/frame.mjs` in the spawn folder) is plumbing only: the canvas, a reservation grid,
 angles, the world spawn, the records the server admin needs (NPC, hologram, crate, board and portal

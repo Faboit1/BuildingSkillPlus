@@ -994,6 +994,55 @@ its doors, windows and carvings (`references/building/sculpting.md` for statues 
 districts (a ruined tower on a hill, a windmill, a stone circle, a waterfall gorge), never on the
 axis in front of the hero.
 
+### 5.22 The town: streets lined with houses (`elements/town.mjs`)
+
+![The town: do and don't](img/town.png)
+
+- **Do:**
+  - **Streets first:**
+    - 5-9 wide, leaving the plaza toward the gates and curving with the land (never ruled straight
+      for long);
+    - paved in a clumped mix with a kerb;
+    - widening into squares where they meet.
+  - **Then the lots** along them (`kit.plan.lotsAlongRoad`), then a building on every lot.
+  - **Shoulder to shoulder:** houses 0-2 apart, fronts on the street line, a back yard behind each (a
+    fence or hedge, a vegetable plot, a shed, barrels).
+  - **Every house its own:**
+    - 5-11 wide, 2-3 storeys;
+    - the gable or the eaves to the street;
+    - upper storeys jettied over the street;
+    - a stone ground storey and timber-framed plaster above;
+    - its own roof, a chimney, windows with shutters and flower boxes, a door with a step;
+    - shops with awnings near the plaza.
+  - **Neighbours differ** in height, width, front and colour; a feature building (§5.14) at every
+    square and corner; alleys between some houses.
+- **Don't:**
+  - houses standing apart on a lawn with no street they front on;
+  - the same house again and again in a row at equal steps (the audit fails 4 of one size);
+  - a 1-3 wide dirt line as the street;
+  - streets ruled straight from end to end.
+- **The example:**
+  - `street(ctx, points, { width, ground, paving, kerb, seed })` paves a smooth street and returns
+    `{ path, cells, width }`;
+  - `townHouse(ctx, pos, facing, { width, depth, storeys, front, jetty, look, shop, awning, seed,
+    yard, ground })` builds one house on a lot;
+  - `townStreet(ctx, street, { ground, looks, occupied, shops, frontage, depth, seed })` lines a
+    street on both sides, every house different from its neighbours;
+  - `LOOKS` holds six house looks. Make your own per district: the theme's stones, plasters,
+    timbers and roofs.
+- **Make it yours:**
+  - a market street of shops with awnings in the accent colour;
+  - a harbour row of tall narrow houses on the quay;
+  - a winter town with snow on the roofs and spruce frames;
+  - a desert town of flat roofs and courtyards;
+  - a hillside town whose streets climb in terraces with retaining walls.
+- **Numbers:**
+  - on a 1000-wide spawn the town has 6-10 streets and 40-120 houses;
+  - streets 5-9 wide, lanes 3-5;
+  - lots 5-11 along the street, 12-18 deep;
+  - houses 9-16 tall to the eaves;
+  - a square every 80-150 blocks of street.
+
 ## 6. Layouts and their numbers
 
 A spawn is laid out from the middle out: the spawn centre, the ring of districts round it, the land
