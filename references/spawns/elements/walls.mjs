@@ -49,10 +49,11 @@ const masonryAt = (M, kit, ground, top) => kit.gradient([M.foot, M.body, M.body,
 // A curtain wall along a polyline. points = [[x, z], ...] (world), the wall's OUTER FACE line;
 // out = 'left' | 'right': the outside as you walk from the first point to the last.
 //   height     walk floor above the (smoothed) ground (7)       thickness   the body (3)
-//   towers     { every: 30 (the most blocks between two), project, list: [{ t, shape, r, rise, top }] }
+//   towers     { every: 30 (the most blocks between two), project, list: [{ t, shape, r, rise, top, roof, banner }] }
 //              or false; by default one at each end and corner, more where a run is longer
 //   foot, body, crown, dressed, floor: palettes (base, field, top courses, trim blocks, walk);
-//   trim: the stairs family; roof: the tower roofs
+//   trim: the stairs family; roof: the tower roofs (each tower's own `roof` in the list wins);
+//   banner: the flags' colour (the theme's accent; false for none)
 //   ground     (x, z) => y of the ground (default b.groundY: build the terrain first)
 // Returns { length, at(t) → { x, z, G, W, nx, nz }, towers }.
 export function wall(ctx, points, opts = {}) {
@@ -226,7 +227,7 @@ export function wall(ctx, points, opts = {}) {
       const top = spec.top ?? (shape === 'square' ? 'pyramid' : i % 3 === 1 ? 'crenel' : 'cone')
       const rise = spec.rise ?? [6, 8, 5, 7][i % 4]
       const tw = tower(ctx, [cx, groundOf(cx, cz), cz], {
-        shape, r, top, walk: p.W, height: p.W - groundOf(cx, cz) + rise, roof, trim, seed: seed + i,
+        shape, r, top, walk: p.W, height: p.W - groundOf(cx, cz) + rise, roof: spec.roof ?? roof, trim, banner: spec.banner ?? opts.banner ?? 'red', seed: seed + i,
         out: FACE([p.nx, p.nz]), ground: groundOf, foot: opts.foot, body: opts.body, crown: opts.crown, dressed: opts.dressed, floor: opts.floor,
       })
       placed.push(tw)
@@ -251,11 +252,12 @@ export function wall(ctx, points, opts = {}) {
 //   top       'cone' (a cone over a corbelled parapet) | 'crenel' (an open deck behind merlons)
 //             | 'pyramid' (square towers: a steep pyramid over the parapet)
 //   out       the facing of the outside (its slits look that way)
+//   banner    the colour of the flag on a 'crenel' deck (the theme's accent; false for none)
 //   roof, trim, foot, body, crown, dressed, floor, ground, seed: as for wall()
 // Returns { x, z, top, inShell(x, z) }.
 export function tower(ctx, pos, opts = {}) {
   const { b, kit } = ctx
-  const { shape = 'round', r = 4.5, height = 14, walk, top = 'cone', roof = 'deepslate_tile', trim = 'stone_brick', out = 'south', seed = 1 } = opts
+  const { shape = 'round', r = 4.5, height = 14, walk, top = 'cone', roof = 'deepslate_tile', trim = 'stone_brick', out = 'south', banner = 'red', seed = 1 } = opts
   const M = materials(kit, { ...DEFAULTS, ...Object.fromEntries(['foot', 'body', 'crown', 'dressed', 'floor'].filter(k => opts[k]).map(k => [k, opts[k]])), seed })
   const [cx, gy, cz] = pos
   const TOP = gy + height
@@ -333,7 +335,7 @@ export function tower(ctx, pos, opts = {}) {
     b.set(cx, TOP + 1, cz, 'minecraft:spruce_fence')
     b.set(cx, TOP + 2, cz, 'minecraft:spruce_fence')
     b.set(cx, TOP + 3, cz, 'minecraft:spruce_fence')
-    b.set(cx, TOP + 4, cz, 'minecraft:red_banner[rotation=0]')
+    if (banner) b.set(cx, TOP + 4, cz, `minecraft:${banner}_banner[rotation=0]`)
   }
   return { x: cx, z: cz, top: TOP, inShell: (x, z) => dist(x, z) > R - 2.5 && dist(x, z) <= R + 0.5 }
 }

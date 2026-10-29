@@ -14,7 +14,7 @@ import { ensureHeap } from './lib/heap.mjs'
 
 ensureHeap()
 
-const DENSE_LIMIT = 48_000_000 // max grid cells for typed-array storage; larger grids use a Map
+const DENSE_LIMIT = 700_000_000 // max grid cells for typed-array storage (a 1500 x 250 x 1500 spawn fits); larger grids use a Map
 const DEFAULT_FIND_LIMIT = 200
 const DEFAULT_EXAMPLES = 6
 

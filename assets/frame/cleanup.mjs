@@ -4,6 +4,9 @@
 //     on nylium they become the matching nether roots instead
 //   - bells, hanging lanterns, hanging roots and vines with nothing to hang from (whole chains)
 //   - pointed dripstone with nothing at its root (whole columns)
+//   - azaleas and carpets with nothing under them
+//   - sand, gravel and concrete powder with nothing under them: swapped for the stable look-alike
+//     (sandstone, andesite, concrete), since they would fall on the first update
 // Returns the number of blocks removed or swapped.
 
 const DIRT = /^minecraft:(dirt|grass_block|podzol|coarse_dirt|rooted_dirt|moss_block|mud|muddy_mangrove_roots|farmland|mycelium|dirt_path)$/
@@ -47,6 +50,16 @@ export function cleanupSpawn(ctx) {
       const up = p.hanging === 'true'
       if (!solidish(name(x, up ? y + 1 : y - 1, z))) drop(x, y, z)
     }
+  }
+  // azaleas and carpets need something under them
+  for (const [x, y, z] of b.entriesWhere(n => /^minecraft:(azalea|flowering_azalea|.*_carpet)$/.test(n))) if (!solidish(name(x, y - 1, z))) drop(x, y, z)
+  // what would fall: the stable look-alike in its place
+  const STABLE = { 'minecraft:sand': 'minecraft:sandstone', 'minecraft:red_sand': 'minecraft:red_sandstone', 'minecraft:gravel': 'minecraft:andesite', 'minecraft:suspicious_sand': 'minecraft:sandstone', 'minecraft:suspicious_gravel': 'minecraft:andesite' }
+  for (const [x, y, z, blk] of b.entriesWhere(n => n in STABLE || /_concrete_powder$/.test(n))) {
+    const below = name(x, y - 1, z)
+    if (y > 0 && below && below !== 'minecraft:water' && !GROUND_PLANT.test(below)) continue
+    b.set(x, y, z, STABLE[blk.name] ?? blk.name.replace('_concrete_powder', '_concrete'))
+    fixed += 1
   }
   // hanging chains and dripstone: walk each column from its root
   for (const [x, y, z, blk] of b.entriesWhere(n => HANGING.test(n) || n === 'minecraft:pointed_dripstone')) {

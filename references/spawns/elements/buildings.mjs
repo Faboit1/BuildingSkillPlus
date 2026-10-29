@@ -41,7 +41,7 @@ const K = (u, d) => `${u},${d}`
 const OPP = { north: 'south', south: 'north', east: 'west', west: 'east' }
 const TALL = /^(rose_bush|peony|lilac|tall_grass|large_fern)$/
 // roof materials and the two neighbours their clumps of wear are made of
-const AGED_ROOF = { deepslate_tile: ['cobbled_deepslate', 'deepslate_brick'], dark_oak: ['spruce', 'mangrove'], spruce: ['dark_oak', 'oak'], brick: ['mud_brick', 'granite'], mud_brick: ['brick', 'granite'], stone_brick: ['mossy_stone_brick', 'cobblestone'] }
+const AGED_ROOF = { deepslate_tile: ['cobbled_deepslate', 'deepslate_brick'], dark_oak: ['spruce', 'spruce'], spruce: ['dark_oak', 'oak'], brick: ['mud_brick', 'granite'], mud_brick: ['brick', 'granite'], stone_brick: ['mossy_stone_brick', 'cobblestone'] }
 
 // Heights above pos (the ground block): plinth 1-2, ground floor at 2, stone storey 3-7, upper floor
 // (the jetty beam) at 8, timber storey 9-11, top plate 12, roofs start at 13.

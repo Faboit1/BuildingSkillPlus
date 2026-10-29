@@ -74,7 +74,7 @@ export function finishSpawn(ctx, { safeZone, description, cleanup = true, land }
   const result = b.finish({
     name: ctx.slug,
     description: description ?? `${ctx.name} spawn (${S}x${S})`,
-    spawnProof: { min: [0, Math.max(0, FY - 6), 0], max: [S - 1, H - 1, S - 1], inside: (x, z) => inside(x, z) },
+    spawnProof: { min: [0, Math.max(0, FY - 6), 0], max: [S - 1, H - 1, S - 1], inside: (x, z, y) => inside(x, z, y) },
     // the quality numbers run-build prints and the export gate checks (scripts/lib/kit/audit.mjs)
     audit: { inside: (x, z) => inside(x, z) },
   })
