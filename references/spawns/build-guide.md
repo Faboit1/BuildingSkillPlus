@@ -174,7 +174,12 @@ measured from the blocks, so "it looks fine" is not the judge:
 - flat land: the share of the ground within 2 of one level (at most 80%);
 - repeated buildings: 4 or more of the same size fail;
 - low decks over water: warned (a bridge arches on piers; a pier may sit low);
-- NPC spacing: more than 12 apart fails (6-8 is right);
+- NPC spacing: more than 12 apart fails (6-8 is right; only the NPCs within 60 of the spawn, so a
+  spawn+ town's NPCs in their own buildings are not counted);
+- views: from the spawn, at least 5 of 8 directions must show something 8+ tall within 160
+  blocks (a building, trees, the hero, a hill), or the first minute is floor and sky;
+- physics: sand, gravel or concrete powder with nothing under it, sugar cane with no water, and
+  still water touching air all fail (they fall, break or flow the moment the spawn is pasted);
 - effort: the build count from `build-log.json` (15 at the least on a spawn 400+ wide).
 
 A spawn whose audit fails is not exported: `convert.mjs` and `build_recipe`'s export refuse, with the
@@ -531,7 +536,12 @@ and the weathering. The numbers below come from pro terraformers and geomorpholo
   - a broad river through the town under 2-4 bridges into a harbour lake;
   - a river that ends in a lake at the plaza, or falls off the island's rim (falling water does not
     spread);
-  - a canal through a city: stone banks, steps down to the water, moored boats.
+  - a canal through a city: stone banks, steps down to the water, moored boats;
+  - a harbour: a natural bay with an irregular shore, headlands and coves, widening to its mouth,
+    the water held by the land's own rock (on a floating island a lagoon inside a rim of land and
+    reefs, never a walled plate hanging off the edge); stone quays with steps only in the harbour
+    itself, 3-4 piers on posts, moored boats of blocks, crates and barrels on the quay, a
+    lighthouse on a headland.
 - **Numbers:** rivers 10-24 wide on a big spawn (the example 8-15), 3 deep in the channel; lakes
   40-120 across; waterfalls 6-20 high into pools 4-6 deep.
 
@@ -879,7 +889,10 @@ and the weathering. The numbers below come from pro terraformers and geomorpholo
     2-on 1-off beat, slabs in the embrasures;
   - a pilaster-buttress and an arrow slit in each bay;
   - towers every 20-40 that project from the wall and rise above it, varied in shape (round,
-    square) and top (a cone roof, battlements, a pyramid);
+    square) and top (a cone roof, battlements, a pyramid), never the same design twice in a row;
+  - an outline that follows the land: it takes the high ground, bends round hills and the river,
+    with gatehouses where the streets leave (on a big spawn the wall's towers every 40-60, in 3-4
+    designs, the corner towers the biggest); never a perfect circle or square of identical towers;
   - a wall-walk that climbs the ground in steps; straight runs with a tower at every corner (a
     diagonal run comes out as a jagged face); gatehouses (§5.13) where the roads pass.
 - **Don't:** a 1-thick cobblestone fence with single-block merlons and gaps, towers flush with the
@@ -1326,5 +1339,8 @@ streets.
 
 Read them for structure and ideas. They are references, not starting points: this spawn's plan,
 layout and elements are designed for this server, and its elements follow the chapters of §5. A
-function from `parts/` may be imported when it does exactly what the plan needs. Then give it this
-spawn's sizes, materials and options, look at the result, and change it until it fits the place.
+function from `parts/` may be imported when it does exactly what the plan needs, but note that
+`parts/` functions take the context of `parts/spawn.mjs`'s own `startSpawn` (with `ctx.theme` and
+`ctx.site`), not the frame's: in a spawn built on the frame, use `elements/` (written for the frame)
+or copy the idea. Then give it this spawn's sizes, materials and options, look at the result, and
+change it until it fits the place.

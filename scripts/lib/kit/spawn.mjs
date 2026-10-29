@@ -292,6 +292,8 @@ const sideFacing = (L, u) => (u < 0 ? L.left : L.right)
 
 function record(b, rec) {
   b.placements ??= []
+  // two places of one kind with one id would get one hologram / one NPC name in setup.md
+  if (rec.id && rec.type !== 'spawn' && b.placements.some(p => p.type === rec.type && p.id === rec.id)) b.warnings.push(`${rec.type} id "${rec.id}" is used twice: give each its own id (setup.md names holograms and NPCs by it)`)
   b.placements.push(rec)
   return rec
 }
@@ -310,7 +312,11 @@ const r2 = v => Math.round(v * 100) / 100
 // ------------------------------------------------------------------ b.sign
 
 // Block-letter signage. `facing` is the side the reader stands on; `at` is the top-left letter
-// cell as the reader sees it (top-centre with align: 'center', top-right with 'right').
+// cell as the reader sees it (top-centre with align: 'center', top-right with 'right'). The text
+// runs to the reader's right, which in world terms is:
+//   facing 'south' (reader south of it): +x    facing 'north': -x
+//   facing 'east'  (reader east of it):  -z    facing 'west':  +z
+// so for a sign read from the north, `at` is its east end; align: 'center' avoids the question.
 //   b.sign('CRATES', [x, y, z], 'south', { align: 'center', board: 'polished_blackstone' })
 // Options: font 'small' (3x5) | 'medium' (5 tall, default) | 'large' (5x7); block / stairs (face
 // block and its stair family: quartz_block / quartz by default; any block with stairs works,

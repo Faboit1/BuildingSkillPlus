@@ -8,6 +8,9 @@
 //   bridges     decks laid flat on the water (a bridge arches 6-10 above it; §5.5)
 //   repeats     buildings with the same footprint and height (every building is its own design)
 //   NPCs        how far apart the stands are (§5.10: 6-8)
+//   views       from the spawn, the share of directions with something standing within 160 blocks
+//   physics     sand and gravel with nothing under them, sugar cane with no water, still water
+//               touching air (all break or flow the moment the spawn is pasted)
 // Guide: references/spawns/build-guide.md §2.3 (the quality gate).
 
 const SOIL = /^minecraft:(grass_block|dirt|coarse_dirt|podzol|rooted_dirt|mycelium|moss_block|mud|sand|red_sand|snow_block|snow|powder_snow|clay|farmland)$/
@@ -23,8 +26,52 @@ const TREE_C = 4
 const WATER_C = 5
 const BUILT_C = 6
 
-export function auditSpawn(b, { inside = () => true, placements = b.placements ?? [] } = {}) {
-  const [sx, sy, sz] = b.size
+// From the builder (finish() calls this).
+export function auditSpawn(b, opts = {}) {
+  const [sx, , sz] = b.size
+  const src = {
+    size: b.size,
+    focus: b.focus,
+    get: (x, y, z) => b.get(x, y, z),
+    each: cb => b.blocks.each((k, block) => {
+      const x = k % sx
+      const rest = (k - x) / sx
+      const z = rest % sz
+      cb(x, (rest - z) / sz, z, block)
+    }),
+  }
+  return auditBlocks(src, { placements: b.placements ?? [], ...opts })
+}
+
+// From a saved build: a palette of state strings (0 = air) and a grid indexed (y * Z + z) * X + x,
+// as blockview's loadGrid gives it (the judge uses this on any .nbt).
+export function auditGrid({ pal, G, X, Y, Z }, opts = {}) {
+  const blocks = pal.map(st => {
+    if (!st || /^minecraft:(air|cave_air|void_air|structure_void)$/.test(st.split('[')[0])) return null
+    const [name, rest] = st.split('[')
+    const props = rest ? Object.fromEntries(rest.slice(0, -1).split(',').map(kv => kv.split('='))) : undefined
+    return { name, props }
+  })
+  const src = {
+    size: [X, Y, Z],
+    get: (x, y, z) => (x < 0 || y < 0 || z < 0 || x >= X || y >= Y || z >= Z ? null : blocks[G[(y * Z + z) * X + x]]),
+    each: cb => {
+      for (let y = 0; y < Y; y += 1)
+        for (let z = 0; z < Z; z += 1) {
+          const row = (y * Z + z) * X
+          for (let x = 0; x < X; x += 1) {
+            const id = G[row + x]
+            if (id && blocks[id]) cb(x, y, z, blocks[id])
+          }
+        }
+    },
+  }
+  return auditBlocks(src, opts)
+}
+
+function auditBlocks(src, { inside = () => true, placements = [] } = {}) {
+  const b = { get: src.get, focus: src.focus }
+  const [sx, sy, sz] = src.size
   const n = sx * sz
   // a focus draft is judged on its box (one district), a full build on the whole canvas
   const box = b.focus ?? [0, 0, sx - 1, sz - 1]
@@ -42,12 +89,31 @@ export function auditSpawn(b, { inside = () => true, placements = b.placements ?
     }
     return c
   }
-  b.blocks.each((k, block) => {
-    const x = k % sx
-    const rest = (k - x) / sx
-    const z = rest % sz
-    const y = (rest - z) / sz
+  // physics: what breaks the moment the spawn is pasted (checked only for the blocks it concerns)
+  const GRAVITY = /^minecraft:(sand|red_sand|gravel|suspicious_sand|suspicious_gravel|anvil|chipped_anvil|damaged_anvil|.*_concrete_powder)$/
+  const CANE_SOIL = /^minecraft:(grass_block|dirt|coarse_dirt|podzol|rooted_dirt|mud|sand|red_sand|moss_block|mycelium|suspicious_sand)$/
+  const physics = { falling: [], cane: [], leaks: [], floating: [] }
+  const note = (list, x, y, z) => { if (list.length < 6) list.push([x, y, z]); list.n = (list.n ?? 0) + 1 }
+  const isWater = blk => blk && (blk.name === 'minecraft:water' || blk.props?.waterlogged === 'true' || /^minecraft:(kelp|kelp_plant|seagrass|tall_seagrass|bubble_column)$/.test(blk.name))
+  const physicsOf = new Map()
+  const kindOf = name => {
+    let v = physicsOf.get(name)
+    if (v === undefined) {
+      v = GRAVITY.test(name) ? 1 : name === 'minecraft:sugar_cane' ? 2 : name === 'minecraft:water' ? 3 : PLANT.test(name) ? 4 : 0
+      physicsOf.set(name, v)
+    }
+    return v
+  }
+  src.each((x, y, z, block) => {
     const i = z * sx + x
+    const kind = kindOf(block.name)
+    if (kind && y > 0) {
+      const below = b.get(x, y - 1, z)
+      if (kind === 1 && (!below || below.name === 'minecraft:water' || PLANT.test(below.name))) note(physics.falling, x, y, z)
+      else if (kind === 2 && !(below?.name === 'minecraft:sugar_cane' || (below && CANE_SOIL.test(below.name) && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => isWater(b.get(x + dx, y - 1, z + dz)))))) note(physics.cane, x, y, z)
+      else if (kind === 3 && (block.props?.level ?? '0') === '0' && (!below || [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => !b.get(x + dx, y, z + dz)))) note(physics.leaks, x, y, z)
+      else if (kind === 4 && !below) note(physics.floating, x, y, z)
+    }
     const c = classOf(block.name)
     if (y > top[i]) {
       top[i] = y
@@ -146,8 +212,49 @@ export function auditSpawn(b, { inside = () => true, placements = b.placements ?
     if (list.length >= 4) failures.push(`repeats: ${list.length} buildings are the same size (${key.replace(/x(\d+)$/, ', $1 tall')}), e.g. at ${list.slice(0, 4).map(c => `${c.cx},${c.cz}`).join(' ')}: design each one (manual §5.14)`)
     else if (list.length === 3) warnings.push(`repeats: 3 buildings are the same size (${key}), e.g. at ${list.map(c => `${c.cx},${c.cz}`).join(' ')}`)
 
+  // ---- physics: falling sand and gravel, sugar cane with no water, water that will flow out
+  const where = list => list.map(p => p.join(',')).join(' ')
+  stats.falling = physics.falling.n ?? 0
+  stats.leaks = physics.leaks.n ?? 0
+  if (physics.falling.n) failures.push(`falling: ${physics.falling.n} sand, gravel or concrete powder block(s) have nothing under them and fall when pasted, e.g. ${where(physics.falling)}: put a solid block under each, or use sandstone, packed mud, tuff`)
+  if (physics.cane.n) failures.push(`sugar cane: ${physics.cane.n} cane with no soil next to water under it (it breaks), e.g. ${where(physics.cane)}: cane stands on dirt, grass, sand or mud with water beside that block`)
+  if (physics.leaks.n) failures.push(`water: ${physics.leaks.n} still water block(s) touch air at a side or below and will flow out when pasted, e.g. ${where(physics.leaks)}: seal them with blocks (manual §5.4)`)
+  if (physics.floating.n > 10) warnings.push(`plants: ${physics.floating.n} plant(s) float over air, e.g. ${where(physics.floating)}`)
+
+  // ---- the views from the spawn: in each 45-degree sector, does something stand up within 160
+  // blocks (a building, trees, the hero, a mountain), or only floor and sky?
+  const sp = placements.find(p => p.type === 'spawn')
+  if (sp && big) {
+    const [px0, py0, pz0] = sp.pos
+    const sectors = new Array(8).fill(0)
+    for (let a = 0; a < 72; a += 1) {
+      const ang = (a * 5 * Math.PI) / 180
+      const dx = Math.sin(ang)
+      const dz = Math.cos(ang)
+      for (let d = 6; d <= 160; d += 1) {
+        const x = Math.round(px0 + dx * d)
+        const z = Math.round(pz0 + dz * d)
+        if (x < 0 || z < 0 || x >= sx || z >= sz) break
+        // something that reads: at least 8 above the spawn's floor and 3.4 degrees up (a building,
+        // a tree, the hero, a hill; a lamp post or a bench does not)
+        if (top[z * sx + x] - py0 >= Math.max(8, d * 0.06)) {
+          sectors[Math.floor(a / 9)] += 1
+          break
+        }
+      }
+    }
+    const filled = sectors.filter(n => n >= 5).length
+    const names = ['south', 'south-west', 'west', 'north-west', 'north', 'north-east', 'east', 'south-east']
+    stats.views = `${filled}/8`
+    const empty = names.filter((_, k) => sectors[k] < 5)
+    if (filled < 5) failures.push(`views: from the spawn only ${filled} of 8 directions show something standing within 160 blocks (empty: ${empty.join(', ')}): bring buildings, trees, the hero or the land within view, or make the plaza smaller (manual §1.1)`)
+    else if (filled < 7) warnings.push(`views: from the spawn ${empty.join(', ')} show only floor and sky within 160 blocks`)
+  }
+
   // ---- NPCs: how far apart the stands are
-  const npcs = placements.filter(p => p.type === 'npc').map(p => p.pos)
+  // (the ring round the spawn only: a spawn+ town puts its NPCs in their own buildings, far apart)
+  const spawnAt = placements.find(p => p.type === 'spawn')?.pos
+  const npcs = placements.filter(p => p.type === 'npc' && p.role !== 'statue' && (!spawnAt || Math.hypot(p.pos[0] - spawnAt[0], p.pos[2] - spawnAt[2]) <= 60)).map(p => p.pos)
   if (npcs.length >= 3) {
     const nearest = npcs.map((p, i) => Math.min(...npcs.filter((_, j) => j !== i).map(q => Math.hypot(p[0] - q[0], p[2] - q[2]))))
     nearest.sort((p, q) => p - q)

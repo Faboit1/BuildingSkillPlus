@@ -389,7 +389,8 @@ export function setupSheet({ name, origin, world, size, placements, changeHint =
   if (holos.length) {
     L.push('## Other holograms (DecentHolograms)', '')
     L.push('Free-standing text: rules, district names, tips. The location is the top line.', '')
-    code(holos.flatMap(p => [`dh hologram create ${slugId(p.id)} -l:${world}:${p.world.pos.join(':')} ${p.label}`, ...(p.lines ?? []).map(line => `dh line add ${slugId(p.id)} 1 ${line}`)]))
+    // prefixed like the others (npc-, lb-, crate-), so a hologram never takes an NPC's or a board's name
+    code(holos.flatMap(p => [`dh hologram create holo-${slugId(p.id)} -l:${world}:${p.world.pos.join(':')} ${p.label}`, ...(p.lines ?? []).map(line => `dh line add holo-${slugId(p.id)} 1 ${line}`)]))
   }
 
   const crates = of('crate')

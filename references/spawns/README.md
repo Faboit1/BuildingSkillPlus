@@ -39,9 +39,10 @@ Ask all four together. Size and NPC count are always explicit questions: they de
      terraces or a central plaza.
    - *PvP lobby*: a compact arena-focused lobby (kit/queue NPCs, leaderboards, a view of the action).
    - *Other*: minigame hub, network lobby...
-2. **Size** (in blocks, footprint × footprint). Options: *100 × 100*, *150 × 150*, *250 × 250*,
-   or their own number. Recommend from the type: normal 100-160, spawn+ 200-350, PvP lobby
-   60-120. If they also care about height or a hard limit (world border, paste area), note it.
+2. **Size** (in blocks, footprint × footprint). Options: *800 × 800*, *1100 × 1100*,
+   *1500 × 1500*, or their own number. Recommend from the type: normal about 1000, spawn+ about
+   1100, PvP lobby 450-700 (the spawn manual's §1.3: spawns are big, a compact centre in a town and
+   a landscape). If they also care about height or a hard limit (world border, paste area), note it.
 3. **How many NPCs.** Options: *4-6* (essentials), *7-10*, *11-16*, *17+* or an exact number.
    Recommend from the type: normal 5-10, spawn+ 12-25 slots (fill about half, keep spare dressed
    spots for seasons), PvP lobby 4-8. Every NPC gets its own place, so the count drives the size:
@@ -108,7 +109,7 @@ Only then build.
 
 | | Normal spawn (FreshSMP-like) | Spawn+ (DonutSMP-like) | PvP lobby |
 | --- | --- | --- | --- |
-| Footprint | 80-140 incl. terrain; built core 35-70 | 180-300 (districts on spokes or terraces) | 60-120 |
+| Footprint | 800-1100 incl. the landscape; the plaza core 120-200 | 1100-1500 (districts on spokes or terraces) | 450-700 |
 | The hero | the terrain: cliffs, waterfall, big trees frame one plaza | one landmark 1.5-2× the height of every other building | the arena / FFA pit, seen from the spawn |
 | Structure | one plaza, NPC crescent around it, a crate alcove, a board wall, one gate out | central plaza + landmark, then 5-9 feature places each with its own building | spawn platform facing the arena, queue NPCs in a short arc |
 | NPCs | 5-10 | 12-25 slots (fill ~half, keep 3-6 dressed spares) | 4-8 (unranked, ranked, FFA, kit editor, events, store) |
