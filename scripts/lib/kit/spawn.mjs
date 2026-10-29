@@ -1460,8 +1460,22 @@ export function spawnProof(b, min, max, { inside, maxStep = 10, maxRounds = 8, l
   let dark = darkCells(b, g, min, max, inside)
   for (let round = 0; round < maxRounds && dark.length; round += 1) {
     const lit = []
+    // the lights of this round in buckets of maxStep, so the spacing check looks at 27 buckets
+    // instead of every light so far (a big island has hundreds of thousands of dark cells)
+    const buckets = new Map()
+    const bk = (x, y, z) => `${Math.floor(x / maxStep)},${Math.floor(y / maxStep)},${Math.floor(z / maxStep)}`
+    const near = (x, y, z) => {
+      const [bx, by, bz] = [Math.floor(x / maxStep), Math.floor(y / maxStep), Math.floor(z / maxStep)]
+      for (let dx = -1; dx <= 1; dx += 1)
+        for (let dy = -1; dy <= 1; dy += 1)
+          for (let dz = -1; dz <= 1; dz += 1) {
+            const list = buckets.get(`${bx + dx},${by + dy},${bz + dz}`)
+            if (list?.some(p => Math.abs(p[0] - x) + Math.abs(p[1] - y) + Math.abs(p[2] - z) <= maxStep)) return true
+          }
+      return false
+    }
     for (const [x, y, z] of dark) {
-      if (lit.some(p => Math.abs(p[0] - x) + Math.abs(p[1] - y) + Math.abs(p[2] - z) <= maxStep)) continue
+      if (near(x, y, z)) continue
       const i = g.idx(x, y, z)
       let cell = null
       if (g.flags[i] & 16 && !(g.flags[i - layer] & 32)) cell = [x, y, z, i]
@@ -1471,6 +1485,9 @@ export function spawnProof(b, min, max, { inside, maxStep = 10, maxRounds = 8, l
       g.emit[cell[3]] = level
       g.flags[cell[3]] = 4
       lit.push(cell)
+      const key = bk(cell[0], cell[1], cell[2])
+      if (!buckets.has(key)) buckets.set(key, [])
+      buckets.get(key).push(cell)
     }
     if (!lit.length) break
     placed += lit.length
@@ -1538,13 +1555,15 @@ function nextId(b, kind) {
 }
 
 // An NPC: pos = the block it stands on (its feet at y + 1), facing = the way it looks (where the
-// players stand). Keeps its head room (3 above the feet) and the cell in front clear.
-export function markNpc(b, pos, facing = 'south', { id, label, role = '' } = {}) {
+// players stand). Keeps its head room (3 above the feet) and the cell in front clear. lines = the
+// hologram's lines under the title (the command, what it does, "Tap below"...): the hologram rises
+// 0.28 per line so the lines stay above the head.
+export function markNpc(b, pos, facing = 'south', { id, label, role = '', lines = [] } = {}) {
   const [x, y, z] = pos.map(v => Math.round(v))
   const [fx, fz] = STEP[facing]
   const nid = id ?? nextId(b, 'npc')
   watchClear(b, `npc "${nid}"`, [[x, y + 1, z], [x, y + 2, z], [x, y + 3, z], [x + fx, y + 1, z + fz], [x + fx, y + 2, z + fz]])
-  return record(b, { type: 'npc', id: nid, label: label ?? nid, role, style: 'own', pos: [x, y + 1, z], facing, yaw: YAW[facing], hologram: [x + 0.5, r2(y + 1 + 2.4), z + 0.5] })
+  return record(b, { type: 'npc', id: nid, label: label ?? nid, role, style: 'own', pos: [x, y + 1, z], facing, yaw: YAW[facing], hologram: [x + 0.5, r2(y + 1 + 2.4 + 0.28 * lines.length), z + 0.5], ...(lines.length ? { lines } : {}) })
 }
 
 // A crate: pos = the crate block you placed (a chest, an ender chest, a barrel...), facing = the
@@ -1586,9 +1605,11 @@ export function markPortal(b, min, max, { id, label, kind = 'rtp', facing = 'sou
 }
 
 // A free-standing hologram (rules, a welcome, a district name): [x, z] = the block column, y = the
-// height of its top line (the floor + 3 reads well). Recorded for setup.md.
+// height of its top line (the floor + 3 reads well). text: one line, or an array of lines.
+// Recorded for setup.md.
 export function markHologram(b, id, text, [x, y, z]) {
-  return record(b, { type: 'hologram', id, label: text, pos: [x + 0.5, y, z + 0.5] })
+  const [label, ...lines] = Array.isArray(text) ? text : [text]
+  return record(b, { type: 'hologram', id, label, pos: [x + 0.5, y, z + 0.5], ...(lines.length ? { lines } : {}) })
 }
 
 export const SPAWN_METHODS = {

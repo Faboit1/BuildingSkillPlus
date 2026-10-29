@@ -15,3 +15,14 @@ export function groundPatch(ctx, { y = ctx.FY, margin = 1, top = 'minecraft:gras
 export function pavedPatch(ctx, opts = {}) {
   groundPatch(ctx, { ...opts, top: ctx.kit.palette({ polished_andesite: 6, andesite: 2, stone: 1 }, { scale: 4, seed: 3 }) })
 }
+
+// A stand-in for an NPC, for the pictures only (the renderer cannot draw entities): a 2-block
+// figure on the block the NPC stands on (feet = the mark's pos). Never build this in a spawn: the
+// NPC plugin puts the real one there. It fills the head room the NPC's mark keeps clear, so it takes
+// those two cells off the watch list.
+export function npcStandIn(ctx, [x, feet, z], { shirt = 'light_blue_concrete', legs = 'blue_concrete' } = {}) {
+  const { b } = ctx
+  b.set(x, feet, z, `minecraft:${legs}`)
+  b.set(x, feet + 1, z, `minecraft:${shirt}`)
+  for (const w of b.spawnClearance ?? []) w.cells = w.cells.filter(([cx, cy, cz]) => !(cx === x && cz === z && (cy === feet || cy === feet + 1)))
+}

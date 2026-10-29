@@ -18,6 +18,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { blockInfo, encodePng, loadGrid } from './lib/blockview.mjs'
+import { ensureHeap } from './lib/heap.mjs'
+
+ensureHeap()
 
 const args = process.argv.slice(2)
 if (!args.length || args.includes('--help') || args.includes('-h')) {
@@ -263,8 +266,9 @@ function render({ eye, yaw, pitch, fov }) {
 
 // one ray: traverse the grid (Amanatides-Woo), blend translucent cells, shade the first solid hit
 function trace(ox, oy, oz, dx, dy, dz, out) {
-  // clip the ray to the build's box (the camera may stand outside it)
-  const enter = boxHit(ox, oy, oz, dx, dy, dz, 0, 0, 0, X, Y, Z, 0, FAR)
+  // clip the ray to the build's box (the camera may stand outside it, or exactly on its edge: the
+  // search starts a hair before 0 so an entry at t = 0 still counts)
+  const enter = boxHit(ox, oy, oz, dx, dy, dz, 0, 0, 0, X, Y, Z, -1e-9, FAR)
   let t = 0
   const inside = ox >= 0 && oy >= 0 && oz >= 0 && ox < X && oy < Y && oz < Z
   if (!inside) {

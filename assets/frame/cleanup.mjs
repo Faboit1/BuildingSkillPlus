@@ -21,7 +21,7 @@ export function cleanupSpawn(ctx) {
     b.remove(x, y, z)
     fixed += 1
   }
-  for (const [x, y, z, blk] of b.entries()) {
+  for (const [x, y, z, blk] of b.entriesWhere(n => GROUND_PLANT.test(n) || NETHER_PLANT.test(n) || /^minecraft:(bell|lantern|soul_lantern)$/.test(n))) {
     const n = blk.name
     const p = blk.props ?? {}
     if (GROUND_PLANT.test(n) && p.half !== 'upper') {
@@ -49,7 +49,7 @@ export function cleanupSpawn(ctx) {
     }
   }
   // hanging chains and dripstone: walk each column from its root
-  for (const [x, y, z, blk] of b.entries()) {
+  for (const [x, y, z, blk] of b.entriesWhere(n => HANGING.test(n) || n === 'minecraft:pointed_dripstone')) {
     const n = blk.name
     if (HANGING.test(n)) {
       const above = name(x, y + 1, z)

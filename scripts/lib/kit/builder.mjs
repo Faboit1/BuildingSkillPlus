@@ -13,6 +13,7 @@ import { completeBlocks } from './fixups.mjs'
 import { coherent01, createRng, hash01 } from './noise.mjs'
 import { material as materialFamily } from './materials.mjs'
 import { AGED_VARIANTS } from './paint.mjs'
+import { BlockStore, EntryList } from './store.mjs'
 
 const REMOVE = Symbol('remove')
 
@@ -56,16 +57,20 @@ function distToSegment(p, a, b) {
 }
 
 export class Builder {
-  constructor(size, { seed = 1 } = {}) {
+  // focus: [x0, z0, x1, z1] keeps only the blocks in that column box (a draft of one district of
+  // a big build: everything else is computed but not stored); null keeps everything.
+  constructor(size, { seed = 1, focus = null } = {}) {
     if (!Array.isArray(size) || size.length !== 3 || !size.every(v => Number.isFinite(v) && v > 0)) {
       throw new Error('builder size must be [x, y, z] with positive numbers')
     }
     this.size = size.map(v => Math.trunc(v))
     this.seed = seed
     this.rng = createRng(seed)
-    this.blocks = new Map()
+    this.blocks = new BlockStore(this.size)
     this.clipped = 0
     this.warnings = []
+    this.focus = focus ? [Math.min(focus[0], focus[2]), Math.min(focus[1], focus[3]), Math.max(focus[0], focus[2]), Math.max(focus[1], focus[3])] : null
+    if (this.focus) this.warnings.push(`focus: only x ${this.focus[0]}-${this.focus[2]}, z ${this.focus[1]}-${this.focus[3]} was kept (a draft); build without focus before delivering`)
   }
 
   // ---------------------------------------------------------------- core access
@@ -112,6 +117,8 @@ export class Builder {
       box.max = [Math.max(box.max[0], x), Math.max(box.max[1], y), Math.max(box.max[2], z)]
       return this
     }
+    const f = this.focus
+    if (f && (x < f[0] || x > f[2] || z < f[1] || z > f[3])) return this
     const k = this.key(x, y, z)
     if (opts) {
       const existing = this.blocks.get(k)
@@ -184,19 +191,36 @@ export class Builder {
 
   // Raw store interface used by the connection pass.
   put(x, y, z, block) {
+    const f = this.focus
+    if (f && (x < f[0] || x > f[2] || z < f[1] || z > f[3])) return
     this.blocks.set(this.key(x, y, z), block)
   }
 
+  // Every block as [x, y, z, block], a snapshot taken now (an EntryList: iterate it, or use
+  // length, at(i), filter, map, forEach, some, find).
   entries() {
+    return new EntryList(this.blocks, this.size[0], this.size[2])
+  }
+
+  // Only the blocks whose name passes nameTest (asked once per distinct name), and blockTest when
+  // given, as an array of [x, y, z, block] taken now. Much cheaper than entries() on a big build
+  // when a pass only cares about stairs, doors or lanterns.
+  entriesWhere(nameTest, blockTest) {
+    const memo = new Map()
     const out = []
     const [sx, , sz] = this.size
-    for (const [k, block] of this.blocks) {
+    this.blocks.each((k, block) => {
+      let ok = memo.get(block.name)
+      if (ok === undefined) {
+        ok = Boolean(nameTest(block.name))
+        memo.set(block.name, ok)
+      }
+      if (!ok || (blockTest && !blockTest(block))) return
       const x = k % sx
       const rest = (k - x) / sx
       const z = rest % sz
-      const y = (rest - z) / sz
-      out.push([x, y, z, block])
-    }
+      out.push([x, (rest - z) / sz, z, block])
+    })
     return out
   }
 
@@ -760,14 +784,47 @@ export class Builder {
         size = [box.max[0] - box.min[0] + 1, box.max[1] - box.min[1] + 1, box.max[2] - box.min[2] + 1]
       }
     }
-    const structure = new Structure(size)
-    const seenStates = new Set()
-    for (const [x, y, z, block] of this.entries()) {
-      seenStates.add(stateString(block))
-      structure.addBlock([x - offset[0], y - offset[1], z - offset[2]], block.name, block.props ?? undefined, block.nbt)
+    // The palette (one entry per distinct state), an exporter that streams the blocks straight to
+    // a file (run-build uses it: no per-block objects, so a 1000-wide spawn fits in memory) and the
+    // Lodestone Structure, made only when something asks for result.structure.
+    const paletteIndex = new Map()
+    const palette = []
+    const stateOf = block => {
+      const key = stateString(block)
+      let i = paletteIndex.get(key)
+      if (i === undefined) {
+        i = palette.length
+        palette.push({ name: block.name, props: block.props ?? undefined })
+        paletteIndex.set(key, i)
+      }
+      return i
     }
+    for (const block of this.blocks.values()) stateOf(block)
     report.blocks = this.blocks.size
-    report.palette = seenStates.size
+    report.palette = palette.length
+    const store = this.blocks
+    const [sx, , sz] = this.size
+    const exporter = {
+      size,
+      count: store.size,
+      palette,
+      *blocks() {
+        for (const [k, block] of store) {
+          const x = k % sx
+          const rest = (k - x) / sx
+          const z = rest % sz
+          const y = (rest - z) / sz
+          yield [x - offset[0], y - offset[1], z - offset[2], stateOf(block), block.nbt]
+        }
+      },
+    }
+    let structure = null
+    const makeStructure = () => {
+      if (structure) return structure
+      structure = new Structure(size)
+      for (const [x, y, z, block] of this.entries()) structure.addBlock([x - offset[0], y - offset[1], z - offset[2]], block.name, block.props ?? undefined, block.nbt)
+      return structure
+    }
     if (report.problems.length > 0) {
       const message = `builder: ${report.problems.length} block-state problem(s):\n  ${report.problems.slice(0, 25).join('\n  ')}`
       if (strict) throw new Error(message)
@@ -776,8 +833,7 @@ export class Builder {
     // hanging lanterns must hang from something: walk up the chain to its anchor
     let floating = 0
     let firstFloating
-    for (const [x, y, z, blk] of this.entries()) {
-      if (!/lantern$/.test(blk.name) || blk.props?.hanging !== 'true') continue
+    for (const [x, y, z, blk] of this.entriesWhere(n => /lantern$/.test(n), blk => blk.props?.hanging === 'true')) {
       // vertical chains carry it up to the anchor; a horizontal chain has no bottom face to hang from
       let yy = y + 1
       while (this.get(x, yy, z)?.name === 'minecraft:chain' && (this.get(x, yy, z).props?.axis ?? 'y') === 'y') yy += 1
@@ -804,7 +860,10 @@ export class Builder {
       if (this.clippedFrom) report.clippedFrom = this.clippedFrom
     }
     return {
-      structure,
+      get structure() {
+        return makeStructure()
+      },
+      export: exporter,
       metadata: {
         ...metadata,
         ...(name ? { name } : {}),

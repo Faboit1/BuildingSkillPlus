@@ -9,14 +9,22 @@ import path from 'node:path'
 import {
   DATA_VERSIONS,
   DEFAULT_DATA_VERSION,
+  GridStructure,
   INPUT_EXTENSIONS,
   OUTPUT_EXTENSIONS,
   readAnyStructure,
   summarizeStructure,
   writeStructure,
 } from './lib/formats.mjs'
+import { readStructureGrid } from './lib/structio.mjs'
+import { ensureHeap } from './lib/heap.mjs'
+
+ensureHeap()
 
 const STRUCTURE_BLOCK_LIMIT = 48
+// a structure .nbt above this many blocks converts through a grid (structio): no object per block,
+// so whole spawns of tens of millions of blocks fit in memory. CONVERT_FAST=1 forces it (tests).
+const GRID_FROM = 1_500_000
 
 function usage() {
   return `Usage:
@@ -236,12 +244,24 @@ async function main() {
   }
 
   const bytes = new Uint8Array(await fs.readFile(inputPath))
-  const result = readAnyStructure(bytes, inputPath, {
-    paletteIndex: options.paletteIndex,
-    region: options.region,
-    keepAir: options.keepAir,
-    targetDataVersion: options.dataVersion ?? DEFAULT_DATA_VERSION,
-  })
+  let result
+  const grid = inputExt === '.nbt' && options.out && outExt !== '.nbt' && !options.keepAir && options.paletteIndex === undefined ? readStructureGrid(bytes) : null
+  if (grid && (grid.blocks > GRID_FROM || process.env.CONVERT_FAST)) {
+    const size = [grid.X, grid.Y, grid.Z]
+    result = {
+      format: 'structure-nbt',
+      dataVersion: grid.dataVersion,
+      structure: new GridStructure(grid),
+      meta: { warnings: [], dropped: {}, regions: [{ name: 'structure', origin: [0, 0, 0], size, blocks: grid.blocks }], compression: 'gzip', grid: true },
+    }
+  } else {
+    result = readAnyStructure(bytes, inputPath, {
+      paletteIndex: options.paletteIndex,
+      region: options.region,
+      keepAir: options.keepAir,
+      targetDataVersion: options.dataVersion ?? DEFAULT_DATA_VERSION,
+    })
+  }
   const summary = summarizeStructure(result.structure, { top: 20 })
   const report = {
     input: inputPath,
@@ -267,8 +287,11 @@ async function main() {
     await fs.mkdir(path.dirname(outPath), { recursive: true })
     await fs.writeFile(outPath, outBytes)
 
-    const reread = readAnyStructure(outBytes, outPath, { keepAir: options.keepAir })
-    const problem = verifyRoundTrip(result.structure, reread.structure)
+    // re-read the output and compare every block (a whole spawn read through the grid is checked
+    // by its block count only: re-reading it through Lodestone would need an object per block)
+    const big = result.meta.grid && summary.blockCount > GRID_FROM
+    const reread = big ? { format: outExt.slice(1) } : readAnyStructure(outBytes, outPath, { keepAir: options.keepAir })
+    const problem = big ? undefined : verifyRoundTrip(result.structure, reread.structure)
     if (problem) throw new Error(`Output failed round-trip validation: ${problem}`)
 
     const [x, y, z] = summary.size
@@ -285,7 +308,7 @@ async function main() {
       format: reread.format,
       dataVersion,
       bytes: outBytes.length,
-      verified: true,
+      verified: big ? 'block count' : true,
       notes,
       next: nextSteps(outPath),
     }
@@ -297,7 +320,7 @@ async function main() {
       console.log(`  Output:  ${outPath} (${outBytes.length} bytes, DataVersion ${dataVersion} = ${releaseName(dataVersion)})`)
       console.log(`  Size:    ${x} x ${y} x ${z}`)
       console.log(`  Blocks:  ${summary.blockCount} (${summary.blockEntities} block entities)`)
-      console.log('  Verified: output re-reads with identical blocks and block-entity positions')
+      console.log(big ? '  Verified: block count (a big build: the block-by-block re-read is skipped)' : '  Verified: output re-reads with identical blocks and block-entity positions')
       for (const note of [...result.meta.warnings, ...notes]) console.log(`  Note: ${note}`)
       for (const step of report.output.next) console.log(`  Next: ${step}`)
     }

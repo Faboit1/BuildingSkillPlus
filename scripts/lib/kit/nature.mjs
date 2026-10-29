@@ -137,7 +137,8 @@ export function tree(b, base, species = 'oak', opts = {}) {
     if (opts.radius === undefined && base0.radius) preset.radius = Math.max(1.5, base0.radius * k)
   }
   const rng = createRng((opts.seed ?? 0) * 977 + Math.round(base[0]) * 31 + Math.round(base[2]) * 17 + 5)
-  const height = opts.height ?? rng.int(preset.height[0], preset.height[1])
+  // height: a number, or [min, max] (the preset's or yours) picked by the seed
+  const height = typeof opts.height === 'number' ? opts.height : rng.int(preset.height[0], preset.height[1])
   const [bx, by, bz] = base
   const leanAngle = rng() * Math.PI * 2
   const lean = (preset.lean ?? 0.12) * height

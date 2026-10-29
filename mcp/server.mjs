@@ -16,6 +16,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import readline from 'node:readline'
 import { fileURLToPath } from 'node:url'
+import { heapTargetMb } from '../scripts/lib/heap.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(here, '..')
@@ -28,6 +29,8 @@ const projectDir = () => {
 }
 const outPath = p => (p ? path.resolve(projectDir(), p) : null)
 const log = (...a) => process.stderr.write(`[minecraft-builder] ${a.join(' ')}\n`)
+// whole spawns hold tens of millions of blocks: the build and convert steps get 3/4 of the machine's memory
+const HEAP = heapTargetMb()
 
 // ---------------------------------------------------------------- running the scripts
 function run(script, args, { timeout = 600000, heap } = {}) {
@@ -67,14 +70,14 @@ const TOOLS = [
   },
   {
     name: 'build_recipe',
-    description: 'Build any kit recipe (a .mjs exporting default (api) => ... finish(), e.g. a spawn.mjs from new_spawn) into .nbt, .placements.json and .setup.md (NPC/hologram/crate/region commands) in the recipe folder, and return the summary (problems, warnings) plus an isometric overview and, for a spawn, the first-person view from the spawn point. export: true also writes .schem and .litematic (do it when delivering).',
-    inputSchema: { type: 'object', properties: { recipe: { type: 'string' }, out_dir: { type: 'string', description: 'Default: the recipe\'s folder for spawn.mjs, else minecraft-builds/<name>' }, origin: { type: 'string', description: 'x,y,z paste corner for the world coordinates in setup.md' }, world: { type: 'string', description: 'World name for the setup commands' }, export: { type: 'boolean', description: 'Also write .schem and .litematic' }, images: { type: 'boolean', description: 'Return renders (default true)' } }, required: ['recipe'] },
-    run: async ({ recipe, out_dir, origin, world, export: exp, images = true }) => {
+    description: 'Build any kit recipe (a .mjs exporting default (api) => ... finish(), e.g. a spawn.mjs from new_spawn) into .nbt, .placements.json and .setup.md (NPC/hologram/crate/region commands) in the recipe folder, and return the summary (problems, warnings) plus an isometric overview and, for a spawn, the first-person view from the spawn point. export: true also writes .schem and .litematic (do it when delivering). Big spawns (up to 1500 wide, tens of millions of blocks) build in 1-4 minutes; focus "x0,z0,x1,z1" keeps only that column box, a fast draft of one district while you iterate (build without it before delivering).',
+    inputSchema: { type: 'object', properties: { recipe: { type: 'string' }, out_dir: { type: 'string', description: 'Default: the recipe\'s folder for spawn.mjs, else minecraft-builds/<name>' }, origin: { type: 'string', description: 'x,y,z paste corner for the world coordinates in setup.md' }, world: { type: 'string', description: 'World name for the setup commands' }, export: { type: 'boolean', description: 'Also write .schem and .litematic' }, focus: { type: 'string', description: 'x0,z0,x1,z1: keep only this column box (a draft of one district); the overview shows that box' }, images: { type: 'boolean', description: 'Return renders (default true)' } }, required: ['recipe'] },
+    run: async ({ recipe, out_dir, origin, world, export: exp, focus, images = true }) => {
       const file = outPath(recipe)
       if (!fs.existsSync(file)) return fail(`no such recipe: ${file}`)
       const base = path.basename(file).replace(/\.m?js$/, '')
       const dir = outPath(out_dir) ?? (base === 'spawn' ? path.dirname(file) : path.join(projectDir(), 'minecraft-builds', base))
-      const r = await run('run-build.mjs', [file, '--out-dir', dir, '--json', ...(origin ? ['--origin', origin] : []), ...(world ? ['--world', world] : [])], { heap: 6144 })
+      const r = await run('run-build.mjs', [file, '--out-dir', dir, '--json', ...(origin ? ['--origin', origin] : []), ...(world ? ['--world', world] : []), ...(focus ? ['--focus', focus] : [])], { heap: HEAP, timeout: 3600000 })
       if (r.code !== 0) return fail(`build failed:\n${(r.err || r.out).slice(-4000)}`)
       const summary = JSON.parse(r.out.slice(r.out.indexOf('{')))
       const nbt = summary.nbtPath
@@ -85,7 +88,7 @@ const TOOLS = [
       for (const f of ['.placements.json', '.setup.md']) if (fs.existsSync(stem + f)) lines.push(`setup: ${stem + f}`)
       if (exp) {
         for (const ext of ['schem', 'litematic']) {
-          const c = await run('convert.mjs', [nbt, '--out', `${stem}.${ext}`], { heap: 6144 })
+          const c = await run('convert.mjs', [nbt, '--out', `${stem}.${ext}`], { heap: HEAP, timeout: 3600000 })
           lines.push(c.code === 0 ? `export: ${stem}.${ext}` : `export .${ext} failed: ${(c.err || c.out).slice(-500)}`)
         }
       }
@@ -95,13 +98,16 @@ const TOOLS = [
       fs.mkdirSync(rdir, { recursive: true })
       const name = path.basename(stem)
       const png = path.join(rdir, `${name}-iso-se.png`)
-      const S = summary.size[0]
-      const rr = await run('isorender.mjs', [nbt, '--out', png, '--px', S > 200 ? '2' : S > 130 ? '3' : S > 60 ? '4' : '6'], { heap: 6144 })
+      // the overview: the whole build, or the focus box; the scale so the image stays readable
+      const box = focus ? focus.split(',').map(Number) : null
+      const S = box ? Math.max(Math.abs(box[2] - box[0]), Math.abs(box[3] - box[1])) + 1 : summary.size[0]
+      const px = S > 600 ? '1' : S > 200 ? '2' : S > 130 ? '3' : S > 60 ? '4' : '6'
+      const rr = await run('isorender.mjs', [nbt, '--out', png, '--px', px, ...(box ? ['--box', box.join(',')] : [])], { heap: HEAP })
       if (rr.code === 0 && fs.existsSync(png)) content.push(text(png), image(png))
       // a spawn: what the player sees on joining
       if (fs.existsSync(path.join(scripts, 'screenshot.mjs')) && fs.existsSync(`${stem}.placements.json`) && fs.readFileSync(`${stem}.placements.json`, 'utf8').includes('"spawn"')) {
         const shot = path.join(rdir, `${name}-spawn-view.png`)
-        const sr = await run('screenshot.mjs', [nbt, '--spawn', '--out', shot, '--width', '1280', '--height', '720'], { heap: 6144 })
+        const sr = await run('screenshot.mjs', [nbt, '--spawn', '--out', shot, '--width', '1280', '--height', '720'], { heap: HEAP })
         if (sr.code === 0 && fs.existsSync(shot)) content.push(text(shot), image(shot))
       }
       return { content }
@@ -128,7 +134,7 @@ const TOOLS = [
       const f = outPath(file)
       if (!fs.existsSync(f)) return fail(`no such file: ${f}`)
       const list = shots?.length ? shots : [{ name: 'spawn-view', spawn: true }]
-      const r = await run('screenshot.mjs', [f, '--shots', JSON.stringify(list), ...(width ? ['--width', String(width)] : []), ...(height ? ['--height', String(height)] : [])], { heap: 6144 })
+      const r = await run('screenshot.mjs', [f, '--shots', JSON.stringify(list), ...(width ? ['--width', String(width)] : []), ...(height ? ['--height', String(height)] : [])], { heap: HEAP })
       if (r.code !== 0) return fail(`screenshot failed:\n${(r.err || r.out).slice(-3000)}`)
       const files = r.out.split('\n').map(l => l.split('  (')[0].trim()).filter(l => l.endsWith('.png'))
       const content = []

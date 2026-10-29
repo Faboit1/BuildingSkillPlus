@@ -35,12 +35,14 @@ export function island(ctx, { cx, cz, r, y = ctx.FY, depth = Math.round(r * 0.75
       const t = y + Math.max(0, roll) - shore
       // the underside: deepest in the middle, tapering, ragged
       const d = Math.max(2, Math.round(depth * (1 - e ** 1.6) * (0.8 + 0.4 * (0.5 + kit.noise.fbm2(x, z, { scale: 5, seed: seed + 2 })))))
+      const soilDepth = 2 + Math.round(kit.hash01(x, 0, z, seed) * 1.5)
+      const strata = Math.round(2 * kit.noise.fbm2(x, z, { scale: 7, seed: seed + 4 })) // per column, not per block
       for (let yy = t - d; yy <= t; yy += 1) {
         const below = t - yy
         if (below === 0) b.set(x, yy, z, `minecraft:${top}`)
-        else if (below <= 2 + Math.round(kit.hash01(x, 0, z, seed) * 1.5)) b.set(x, yy, z, soilPaint)
+        else if (below <= soilDepth) b.set(x, yy, z, soilPaint)
         // strata: bands of rock that wander with the noise
-        else b.set(x, yy, z, (yy + Math.round(2 * kit.noise.fbm2(x, z, { scale: 7, seed: seed + 4 }))) % 5 === 0 ? 'minecraft:andesite' : rockPaint)
+        else b.set(x, yy, z, (yy + strata) % 5 === 0 ? 'minecraft:andesite' : rockPaint)
       }
       // roots hanging from the rim's underside
       if (e > 0.55 && kit.hash01(x, 7, z, seed) < 0.06) b.set(x, t - d - 1, z, 'minecraft:hanging_roots')

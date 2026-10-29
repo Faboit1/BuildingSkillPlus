@@ -110,7 +110,8 @@ export function updateConnections(store, { stairs = true, walls = true, fences =
   // Walls must be processed top-down because a wall's post depends on the wall above it.
   const wallList = []
 
-  for (const [x, y, z, block] of store.entries()) {
+  const wanted = name => (stairs && isStairs(name)) || (walls && isWall(name)) || (fences && isFence(name)) || (panes && isPaneLike(name)) || (gates && /_fence_gate$/.test(name))
+  for (const [x, y, z, block] of store.entriesWhere ? store.entriesWhere(wanted) : store.entries()) {
     const { name } = block
     if (stairs && isStairs(name)) {
       const shape = stairsShape(get, x, y, z, block)
@@ -204,7 +205,7 @@ function shouldRaisePost(props, above) {
 // Leaves placed by structures decay unless persistent=true. Returns count changed.
 export function persistLeaves(store) {
   let changed = 0
-  for (const [x, y, z, block] of store.entries()) {
+  for (const [x, y, z, block] of store.entriesWhere ? store.entriesWhere(isLeaves) : store.entries()) {
     if (isLeaves(block.name) && block.props?.persistent !== 'true') {
       store.put(x, y, z, { name: block.name, props: { distance: '7', waterlogged: 'false', ...block.props, persistent: 'true' } })
       changed += 1

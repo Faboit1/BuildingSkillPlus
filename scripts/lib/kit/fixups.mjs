@@ -21,7 +21,8 @@ export function completeBlocks(store) {
     store.put(x, y, z, block)
     changed += 1
   }
-  for (const [x, y, z, block] of store.entries()) {
+  const wanted = name => TALL_PLANTS.test(name) || isDoor(name) || isBed(name) || name === 'minecraft:vine'
+  for (const [x, y, z, block] of store.entriesWhere ? store.entriesWhere(wanted) : store.entries()) {
     const { name } = block
     const props = block.props ?? {}
     if ((TALL_PLANTS.test(name) || isDoor(name)) && props.half === 'lower') {

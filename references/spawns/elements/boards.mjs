@@ -1,23 +1,28 @@
-// LEADERBOARDS AND THE TOP-3 PODIUM. Read this, look at img/boards.png, then design your own: the
-// frame, the backdrop and where the podium goes are yours. A leaderboard is a hologram (10-12 lines
+// LEADERBOARDS AND THE TOP-3 PILLARS. Read this, look at img/boards.png, then design your own: the
+// frame, the backdrop and where the pillars go are yours. A leaderboard is a hologram (10-12 lines
 // of text); what you build is the place it floats in. b.markBoard records it and keeps its volume
-// clear; the podium's statues are NPCs (b.markNpc with role 'statue').
+// clear; the pillars' statues are NPCs (b.markNpc with role 'statue'; the blue figures in the
+// picture stand in for them).
 //
 // DO
 // - A framed recess: piers at the sides, a base and a lintel, the backdrop set 1 back. A dark
 //   backdrop only behind the text (polished blackstone, dark oak, deepslate tiles) so it reads.
 // - The text at eye height: its top line 4-6 above the floor, the board 5 wide and 4 tall per 10-12
 //   lines. Free floor in front (6+ deep) so players can step back and read.
-// - The podium beside the boards or between them, never in front: statues would hide the text.
-//   Steps 3 / 2 / 1 high (1st in the middle), each 3 wide so the statue has a stage.
+// - The top-3 pillars as players know them: three 3 x 3 columns side by side, the 1st 3 high in the
+//   middle, the 2nd 2 high on its left, the 3rd 1 high on its right, in the metals of the ranks:
+//   diamond / gold / iron blocks, or gold / iron / copper (waxed, so it never turns green), or
+//   concrete in those colours (light blue / yellow / light grey). The only place gold belongs.
+// - The pillars beside the boards or between them, never in front: statues would hide the text.
+//   A hologram over each statue (#1 and the name), a title over the set ("Top balance").
 // - Light it with hidden light: light blocks in front of the base, a lantern on the piers.
 // DON'T
 // - A black wall with a glowstone grid, or the board as a flat panel in the open with no frame.
 // - A roof, a slab or a lantern over the text plane: holograms render through nothing.
-// - A podium of diamond, emerald and iron blocks (the ore-block cliche); statues in front of a board.
+// - Thin 1 x 1 posts for the statues, ranks at one height, or the pillars in front of a board.
 
 import { local } from '../../../assets/frame/frame.mjs'
-import { pavedPatch } from './_scene.mjs'
+import { npcStandIn, pavedPatch } from './_scene.mjs'
 
 // One board. pos = the floor block under the middle of its backdrop, facing = toward the readers.
 export function boardRecess(ctx, pos, facing, { label = 'Top players', boardId, width = 5, height = 4, stone = 'stone_brick', backdrop = 'polished_blackstone' } = {}) {
@@ -44,22 +49,33 @@ export function boardRecess(ctx, pos, facing, { label = 'Top players', boardId, 
   return b.markBoard([ax + 0.5, ay + 0.5, az + 0.5], facing, { id: boardId, label, size: [width, height] })
 }
 
-// The top-3 podium. pos = the floor block under the middle of the 1st step.
-export function podium(ctx, pos, facing, { stone = 'stone_brick' } = {}) {
+// The top-3 pillars. pos = the floor block under the middle of the 1st pillar, facing = toward the
+// players. set: 'classic' (diamond, gold, iron), 'metals' (gold, iron, copper) or 'concrete'; or
+// your own [1st, 2nd, 3rd] blocks. Statues are recorded as NPCs (role 'statue').
+const PILLARS = {
+  classic: ['diamond_block', 'gold_block', 'iron_block'],
+  metals: ['gold_block', 'iron_block', 'waxed_copper_block'],
+  concrete: ['light_blue_concrete', 'yellow_concrete', 'light_gray_concrete'],
+}
+export function podium(ctx, pos, facing, { set = 'classic', id = 'top', label = 'Top players' } = {}) {
   const { b } = ctx
   const L = local(pos, facing)
-  const steps = [
-    { rank: 2, u: -3, H: 2 },
+  const blocks = Array.isArray(set) ? set : PILLARS[set]
+  const pillars = [
     { rank: 1, u: 0, H: 3 },
+    { rank: 2, u: -3, H: 2 },
     { rank: 3, u: 3, H: 1 },
   ]
-  for (const { rank, u: uc, H } of steps) {
-    for (let u = uc - 1; u <= uc + 1; u += 1)
-      for (let d = -1; d <= 1; d += 1)
-        for (let h = 1; h <= H; h += 1) b.set(...L.at(u, d, h), h === H ? 'minecraft:polished_andesite' : `minecraft:${stone}s`)
-    b.set(...L.at(uc, 1, H), `minecraft:chiseled_${stone}s`) // the rank's plaque at the front
-    b.markNpc(L.at(uc, 0, H), facing, { id: `statue-${rank}`, label: `#${rank}`, role: 'statue' })
+  const statues = []
+  for (const { rank, u: uc, H } of pillars) {
+    const block = blocks[rank - 1].includes(':') ? blocks[rank - 1] : `minecraft:${blocks[rank - 1]}`
+    for (let u = uc - 1; u <= uc + 1; u += 1) for (let d = -1; d <= 1; d += 1) for (let h = 1; h <= H; h += 1) b.set(...L.at(u, d, h), block)
+    statues.push(b.markNpc(L.at(uc, 0, H), facing, { id: `${id}-${rank}`, label: `&e#${rank} &f%name_${rank}%`, role: 'statue' }))
   }
+  // the set's title floats over the 1st's statue
+  const [tx, ty, tz] = L.at(0, 0, 3 + 4)
+  ctx.hologram(`${id}-title`, `&6&l${label}`, [tx, ty + 0.5, tz])
+  return statues
 }
 
 export const figure = { size: 30, height: 14, floorY: 3, camera: { eye: [15, 8, 31], lookAt: [15, 6, 12], fov: 66 } }
@@ -68,15 +84,16 @@ export function demo(ctx, which) {
   const { b, FY } = ctx
   if (which === 'good') {
     boardRecess(ctx, [5, FY, 12], 'south', { label: 'Top balance', boardId: 'money' })
-    podium(ctx, [15, FY, 13], 'south')
+    podium(ctx, [15, FY, 13], 'south', { label: 'Top balance' }).forEach(st => npcStandIn(ctx, st.pos))
     boardRecess(ctx, [25, FY, 12], 'south', { label: 'Top kills', boardId: 'kills' })
   } else {
     for (let x = 6; x <= 24; x += 1)
       for (let h = 1; h <= 7; h += 1) b.set(x, FY + h, 11, (x % 3 === 0 && h % 3 === 1) ? 'minecraft:glowstone' : 'minecraft:black_concrete')
     for (let x = 6; x <= 24; x += 1) for (const z of [12, 13]) b.set(x, FY + 8, z, 'minecraft:quartz_slab[type=bottom]')
-    const ores = [['diamond_block', 3], ['emerald_block', 2], ['iron_block', 1]]
-    ores.forEach(([blk, H], i) => {
-      for (let h = 1; h <= H; h += 1) b.set(13 + i * 2, FY + h, 14, `minecraft:${blk}`)
-    })
+    // thin posts at one height, right in front of the board
+    for (let i = 0; i < 3; i += 1) {
+      for (let h = 1; h <= 3; h += 1) b.set(13 + i * 2, FY + h, 14, 'minecraft:quartz_pillar[axis=y]')
+      npcStandIn(ctx, [13 + i * 2, FY + 4, 14])
+    }
   }
 }

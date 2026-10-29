@@ -5,16 +5,22 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import * as lodestone from './lib/lodestone.mjs'
 import { DEFAULT_DATA_VERSION, createApi, fillDefaultStates, setupSheet, summarize, updateStructureConnections, worldPlacements } from './lib/pipeline.mjs'
+import { readStructureGrid, writeStructureNbt } from './lib/structio.mjs'
+import { ensureHeap } from './lib/heap.mjs'
+
+ensureHeap()
 
 const { NbtFile, Structure } = lodestone
 
 function usage() {
   return `Usage:
-  node scripts/run-build.mjs <recipe.mjs> [--out-dir <dir>] [--name <name>] [--data-version <number>] [--compression gzip|zlib|none] [--no-block-state-updates] [--no-default-states] [--origin x,y,z] [--world <name>] [--json]
+  node scripts/run-build.mjs <recipe.mjs> [--out-dir <dir>] [--name <name>] [--data-version <number>] [--compression gzip|zlib|none] [--no-block-state-updates] [--no-default-states] [--origin x,y,z] [--world <name>] [--focus x0,z0,x1,z1] [--json]
 
   --origin x,y,z   where the build's minimum corner will be pasted in the world (default 0,0,0);
                    used for the world coordinates in <name>.placements.json and <name>.setup.md
   --world <name>   the world name used in the plugin commands of <name>.setup.md (default world)
+  --focus x0,z0,x1,z1   keep only that column box: a fast draft of one district of a big build
+                   (also MC_FOCUS=x0,z0,x1,z1); build without it before delivering
 `
 }
 
@@ -81,6 +87,11 @@ function parseArgs(argv) {
       index += 1
     } else if (arg.startsWith('--origin=')) {
       options.origin = parseOrigin(arg.slice('--origin='.length))
+    } else if (arg === '--focus') {
+      options.focus = parseFocus(readValue(arg, index))
+      index += 1
+    } else if (arg.startsWith('--focus=')) {
+      options.focus = parseFocus(arg.slice('--focus='.length))
     } else if (arg === '--world') {
       options.world = readValue(arg, index)
       index += 1
@@ -101,6 +112,13 @@ function parseArgs(argv) {
   }
 
   return options
+}
+
+// --focus x0,z0,x1,z1: keep only that column box (a draft of one district of a big build)
+function parseFocus(text) {
+  const v = String(text).split(',').map(Number)
+  if (v.length !== 4 || v.some(n => !Number.isFinite(n))) throw new Error(`--focus needs x0,z0,x1,z1 (got ${text})`)
+  return v
 }
 
 function slugify(value) {
@@ -134,27 +152,32 @@ async function main() {
   if (options.json) console.log = (...args) => console.error(...args)
   let result
   try {
-    result = await buildFn(createApi())
+    result = await buildFn(createApi({ focus: options.focus ?? (process.env.MC_FOCUS ? parseFocus(process.env.MC_FOCUS) : null) }))
   } finally {
     console.log = log
   }
-  const structure = result instanceof Structure ? result : result?.structure
-  if (!(structure instanceof Structure)) {
-    throw new Error('Recipe must return a Lodestone Structure or { structure, metadata }')
-  }
-
   const metadata = {
     ...(recipe.metadata ?? {}),
     ...(result?.metadata ?? {}),
   }
-  // Builder-made structures already carry vanilla-accurate connection states. Raw-API
-  // structures get the same pass here: default states first, then stairs/walls/fences/panes.
+  // A kit build arrives with complete states and computed connections, and an exporter that
+  // streams its blocks straight to the file (no Structure object per block: a 1000-wide spawn of
+  // tens of millions of blocks fits in memory). Raw-API structures get the default states, then
+  // the stairs/walls/fences/panes pass, through Lodestone as before.
   const kitUpdated = metadata.blockStatesUpdated === true
-  const outputStructure = options.updateBlockStates || options.defaultStates ? structure.clone() : structure
-  const defaultsFilled = options.defaultStates ? fillDefaultStates(outputStructure) : 0
-  const blockStateUpdates = options.updateBlockStates && !kitUpdated
-    ? { updatedBlocks: updateStructureConnections(outputStructure) }
-    : { updatedBlocks: 0 }
+  const exporter = kitUpdated && result?.export ? result.export : null
+  let outputStructure = null
+  let defaultsFilled = 0
+  let blockStateUpdates = { updatedBlocks: 0 }
+  if (!exporter) {
+    const structure = result instanceof Structure ? result : result?.structure
+    if (!(structure instanceof Structure)) {
+      throw new Error('Recipe must return a Lodestone Structure or { structure, metadata }')
+    }
+    outputStructure = options.updateBlockStates || options.defaultStates ? structure.clone() : structure
+    defaultsFilled = options.defaultStates ? fillDefaultStates(outputStructure) : 0
+    if (options.updateBlockStates && !kitUpdated) blockStateUpdates = { updatedBlocks: updateStructureConnections(outputStructure) }
+  }
   const builderReport = metadata.builderReport
   delete metadata.builderReport
   const name = slugify(options.name ?? metadata.name ?? path.basename(recipePath, path.extname(recipePath)))
@@ -162,19 +185,38 @@ async function main() {
   await fs.mkdir(outDir, { recursive: true })
 
   const nbtPath = path.join(outDir, `${name}.nbt`)
-  const bytes = outputStructure.writeNbt({
-    name: '',
-    dataVersion: options.dataVersion,
-    compression: options.compression,
-  })
-  await fs.writeFile(nbtPath, bytes)
-
-  const file = NbtFile.read(bytes)
-  const roundTrip = Structure.fromNbt(file.root)
-  const stats = summarize(outputStructure)
-  const roundTripStats = summarize(roundTrip)
-  if (JSON.stringify(stats.size) !== JSON.stringify(roundTripStats.size) || stats.blockCount !== roundTripStats.blockCount) {
-    throw new Error('Generated NBT failed Lodestone round-trip validation')
+  let stats
+  if (exporter) {
+    await writeStructureNbt(nbtPath, {
+      size: exporter.size,
+      palette: exporter.palette,
+      blocks: exporter.blocks(),
+      count: exporter.count,
+      dataVersion: options.dataVersion,
+      compression: options.compression,
+    })
+    stats = { size: exporter.size, blockCount: exporter.count, paletteCount: exporter.palette.length }
+    // read it back and compare (skipped above 3 million blocks: the writer is covered by the tests)
+    if (exporter.count <= 3e6) {
+      const back = readStructureGrid(await fs.readFile(nbtPath))
+      if (!back || back.blocks !== exporter.count || [back.X, back.Y, back.Z].join() !== exporter.size.join()) {
+        throw new Error('Generated NBT failed the read-back check')
+      }
+    }
+  } else {
+    const bytes = outputStructure.writeNbt({
+      name: '',
+      dataVersion: options.dataVersion,
+      compression: options.compression,
+    })
+    await fs.writeFile(nbtPath, bytes)
+    const file = NbtFile.read(bytes)
+    const roundTrip = Structure.fromNbt(file.root)
+    stats = summarize(outputStructure)
+    const roundTripStats = summarize(roundTrip)
+    if (JSON.stringify(stats.size) !== JSON.stringify(roundTripStats.size) || stats.blockCount !== roundTripStats.blockCount) {
+      throw new Error('Generated NBT failed Lodestone round-trip validation')
+    }
   }
 
   // spawn kit placements: NPC spots, hologram anchors, crates, portals, regions, the world spawn
@@ -184,7 +226,7 @@ async function main() {
     const counts = {}
     for (const p of placements) counts[p.type] = (counts[p.type] ?? 0) + 1
     if ((counts.spawn ?? 0) > 1) throw new Error('placements: more than one world spawn')
-    const size = outputStructure.getSize()
+    const size = stats.size
     const list = worldPlacements(placements, options.origin)
     const jsonPath = path.join(outDir, `${name}.placements.json`)
     const setupPath = path.join(outDir, `${name}.setup.md`)

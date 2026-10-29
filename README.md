@@ -49,26 +49,28 @@ fixing it as it goes. Ask for changes the same way: "make a winter version", "ad
 Claude designs and builds every spawn by hand, like a build team, block by block. Nothing is
 generated and nothing is pasted from stock pieces:
 
-1. **Interview** the server owner, then **plan** the layout: every place with its coordinates, and
-   a sentence on the design of each element.
+1. **Interview** the server owner, then **plan** the layout: the districts and the land, every
+   place with its coordinates, and a sentence on the design of each element. Spawns are big: 1000
+   blocks a side by default (800-1500), a compact centre in a town and a landscape.
 2. **`new_spawn`** makes a folder with:
    - `spawn.mjs`, a skeleton Claude fills in section by section;
    - the frame, which does only the plumbing: the canvas, angles, the NPC, hologram, crate, board
      and portal records for the setup sheet, spawn-proofing, the export;
    - the manual's element examples;
    - reference spawns to read.
-3. **Claude builds every element itself**:
-   - the island;
-   - the ground and the paving;
-   - every stone and tree;
-   - every NPC place, the boards, the crates and the gates;
-   - every building, lamp and prop.
+3. **Claude builds every element itself, district by district**:
+   - the island, the mountains and cliffs, the rivers, lakes and waterfalls;
+   - the ground and the paving, the stepped spawn dais;
+   - every stone, tree and giant tree;
+   - every NPC stand, the boards and top-3 pillars, the crates and the gatehouses;
+   - every big building, wall, tower, bridge, lamp and prop.
 
    For each one it reads the manual's chapter: what to do and what not to do, side by side, with
    tested code for one worked example. Then it writes this spawn's own version from the brief and
    the theme. After every section it looks at the isometric overview and **first-person
    screenshots** (`screenshot`, a CPU renderer: what a player sees from the spawn point or any
-   spot) and fixes what it sees.
+   spot) and fixes what it sees, round after round, until the quality gate passes: it is told to
+   take the builds and tokens the spawn needs, not to stop at the first pass.
 4. It delivers `.schem` / `.litematic` and a setup sheet with the NPC, hologram, crate and
    WorldGuard commands.
 
@@ -84,10 +86,17 @@ The craft is written down in the **spawn manual**, `references/spawns/build-guid
 It sits on the spawn handbook (`references/spawns/README.md`: real spawns measured, the
 don't-look-AI checklist).
 
+Big builds are fast and fit in memory: the kit stores blocks in 16 x 16 x 16 sections and writes
+the structure as a stream, so a 1000-wide spawn of 30 million blocks builds in under two minutes,
+and the scripts give themselves three quarters of the machine's memory. While it works on one
+district, Claude drafts just that box (`focus`) in 20-40 s.
+
 | | |
 | --- | --- |
-| <img src="references/spawns/img/stones.png" width="400" alt="Stones: do and don't"> | <img src="references/spawns/img/buildings.png" width="400" alt="Buildings: do and don't"> |
-| <img src="references/spawns/img/crates.png" width="400" alt="Crates: do and don't"> | <img src="references/spawns/img/trees.png" width="400" alt="Trees: do and don't"> |
+| <img src="references/spawns/img/dais.png" width="400" alt="The spawn centre: do and don't"> | <img src="references/spawns/img/buildings.png" width="400" alt="Buildings: do and don't"> |
+| <img src="references/spawns/img/river.png" width="400" alt="Rivers: do and don't"> | <img src="references/spawns/img/bridge.png" width="400" alt="Bridges: do and don't"> |
+| <img src="references/spawns/img/cliffs.png" width="400" alt="Cliffs and mountains: do and don't"> | <img src="references/spawns/img/landmark-trees.png" width="400" alt="Giant trees: do and don't"> |
+| <img src="references/spawns/img/walls.png" width="400" alt="Walls and towers: do and don't"> | <img src="references/spawns/img/boards.png" width="400" alt="Boards and top-3 pillars: do and don't"> |
 
 Reference spawns (`assets/examples/spawns/`): whole spawns Claude reads to see how a layout fits
 together. Left the overview, right the `screenshot` from the spawn point (what a player sees on joining):

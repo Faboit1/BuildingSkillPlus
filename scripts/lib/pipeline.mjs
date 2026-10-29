@@ -204,11 +204,12 @@ function createBlockNbt(object) {
   return compound
 }
 
-export function createApi() {
+// focus: [x0, z0, x1, z1] makes every builder keep only that column box (run-build --focus)
+export function createApi({ focus = null } = {}) {
   const kit = createKit()
   return {
     kit,
-    builder: kit.builder,
+    builder: (size, opts) => kit.builder(size, { focus, ...opts }),
     lodestone,
     Structure,
     BlockState,
@@ -370,8 +371,8 @@ export function setupSheet({ name, origin, world, size, placements, changeHint =
   if (npcs.length || boards.length || of('crate').length) {
     L.push('## Holograms (DecentHolograms)', '')
     if (npcs.length) {
-      L.push('Name plates over the NPCs (2.4 above their feet):', '')
-      code(npcs.map(p => `dh hologram create npc-${slugId(p.id)} -l:${world}:${p.world.hologram.join(':')} ${p.label}`))
+      L.push('Name plates over the NPCs (2.4 above their feet, higher by 0.28 per extra line):', '')
+      code(npcs.flatMap(p => [`dh hologram create npc-${slugId(p.id)} -l:${world}:${p.world.hologram.join(':')} ${p.label}`, ...(p.lines ?? []).map(line => `dh line add npc-${slugId(p.id)} 1 ${line}`)]))
     }
     if (boards.length) {
       L.push('Leaderboards: the location is the top line, centred on the board and 0.5 in front of its backdrop.')
@@ -388,7 +389,7 @@ export function setupSheet({ name, origin, world, size, placements, changeHint =
   if (holos.length) {
     L.push('## Other holograms (DecentHolograms)', '')
     L.push('Free-standing text: rules, district names, tips. The location is the top line.', '')
-    code(holos.map(p => `dh hologram create ${slugId(p.id)} -l:${world}:${p.world.pos.join(':')} ${p.label}`))
+    code(holos.flatMap(p => [`dh hologram create ${slugId(p.id)} -l:${world}:${p.world.pos.join(':')} ${p.label}`, ...(p.lines ?? []).map(line => `dh line add ${slugId(p.id)} 1 ${line}`)]))
   }
 
   const crates = of('crate')

@@ -115,7 +115,8 @@ const familyCache = new Map()
 // 'deepslate_tiles', 'oak_stairs' or 'minecraft:cobblestone'. Throws if nothing matches.
 export function material(name) {
   const key = String(name).replace(/^minecraft:/, '')
-  if (familyCache.has(key)) return familyCache.get(key)
+  // a copy each time: a caller that adds a fallback to its family must not change everyone's
+  if (familyCache.has(key)) return { ...familyCache.get(key) }
   const data = loadTable()
   let family
   if (data) {
@@ -135,7 +136,7 @@ export function material(name) {
   if (!family.block && !family.stairs && !family.slab) throw new Error(`Unknown material "${name}"`)
   if (!family.block) family.block = family.planks ?? family.stairs?.replace(/_stairs$/, '')
   familyCache.set(key, family)
-  return family
+  return { ...family }
 }
 
 // A material's variant with a fallback chain, e.g. variant('terracotta', 'stairs', 'granite').

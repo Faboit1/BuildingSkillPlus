@@ -1279,6 +1279,35 @@ export function writeLitematic(structure, {
   return writeNbtBytes('', root, 'gzip')
 }
 
+/**
+ * A structure read straight into a grid (structio.readStructureGrid) with the two methods the
+ * writers use: getSize() and getBlocks(), a generator that makes one small object per block as the
+ * loop reaches it, so a spawn of tens of millions of blocks converts without an object per block.
+ */
+export class GridStructure {
+  constructor(grid) {
+    this.grid = grid
+    this.states = grid.pal.map(st => parseStateString(st))
+  }
+
+  getSize() {
+    return [this.grid.X, this.grid.Y, this.grid.Z]
+  }
+
+  *getBlocks() {
+    const { G, X, Y, Z, blockEntities } = this.grid
+    for (let y = 0; y < Y; y += 1)
+      for (let z = 0; z < Z; z += 1) {
+        const row = (y * Z + z) * X
+        for (let x = 0; x < X; x += 1) {
+          const id = G[row + x]
+          if (id === 0) continue
+          yield { pos: [x, y, z], state: this.states[id], nbt: blockEntities.get(row + x) }
+        }
+      }
+  }
+}
+
 /** Write a structure in the format implied by `format` ('nbt' | 'schem' | 'litematic' or an extension). */
 export function writeStructure(structure, format, options = {}) {
   const key = String(format).replace(/^\./, '').toLowerCase()
