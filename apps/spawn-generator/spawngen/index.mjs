@@ -1,13 +1,12 @@
-// The spawn generator: one brief in, a finished server spawn out. It is the quick path, used when the
-// user asks for it; by default the AI hand-builds each spawn with the same parts
-// (assets/spawn-parts/, references/spawns/build-guide.md). The layouts and the brief live here; the
-// terrain, buildings, trees, crates, boards and set pieces are the shared parts.
+// The spawn generator: one brief in, a finished server spawn out. It is the engine of the browser
+// spawn builder (apps/spawn-generator) and not part of the plugin, where Claude builds every spawn by
+// hand from the templates. The layouts and the brief live here; the terrain, buildings, trees,
+// crates, boards and set pieces are the plugin's spawn parts (assets/spawn-parts/).
 //
-//   import { generateSpawn } from './scripts/lib/spawngen/index.mjs'
+//   import { generateSpawn } from './apps/spawn-generator/spawngen/index.mjs'
 //   export default api => generateSpawn(api, { name: 'CheeseSMP', type: 'normal', npcs: 8, theme: 'autumn' })
 //
-// scripts/make-spawn.mjs wraps this (brief.json → .nbt/.schem/.litematic, placements, setup.md,
-// renders). The pipeline, in order:
+// The app's worker (src/worker.js) runs it and exports the files. The pipeline, in order:
 //   1. normalizeBrief (brief.mjs) and resolveTheme (themes.mjs)
 //   2. createContext: the builder, the theme's paints, the occupancy grid
 //   3. layout (layout-normal / layout-plus / layout-pvp): pure geometry, no blocks. It decides the
@@ -38,7 +37,7 @@ import { normalizeBrief, TYPES } from './brief.mjs'
 import { resolveTheme } from '../../../assets/spawn-parts/themes.mjs'
 import { buildSite } from '../../../assets/spawn-parts/site.mjs'
 import { landscapePass } from '../../../assets/spawn-parts/landscape.mjs'
-import { cleanupSpawn } from '../../../assets/spawn-parts/cleanup.mjs'
+import { cleanupSpawn } from '../../../assets/frame/cleanup.mjs'
 import { createGrid } from '../../../assets/spawn-parts/spawn.mjs'
 import { buildWarzone } from './warzone.mjs'
 import * as normal from './layout-normal.mjs'

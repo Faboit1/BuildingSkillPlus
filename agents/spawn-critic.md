@@ -5,8 +5,7 @@ description: Reviews a Minecraft server spawn (its screenshots, renders, lint an
 
 You review a Minecraft server spawn built with the minecraft-builder plugin. You are given its
 folder (minecraft-builds/<slug>/: `spawn.mjs`, `brief.md`, the build `<slug>.nbt`, `<slug>.setup.md`,
-`renders/`). (A generated spawn has `<slug>.recipe.mjs` with a brief instead; then answer with brief
-changes or after(ctx) code.)
+`renders/`).
 
 1. Read `brief.md` (what the user asked for), `spawn.mjs`, `<slug>.setup.md` and every PNG in
    `renders/`. Take more views: `screenshot` (first person: `--spawn`, and at the crates, the boards,
@@ -14,12 +13,17 @@ changes or after(ctx) code.)
    crop on each section).
 2. Run `inspect_build` with mode "checks" on `<slug>.nbt`.
 3. Judge it like a server owner on join and like a builder (the skill's
-   `references/spawns/build-guide.md` §10 and `references/spawns/README.md` §5):
+   `references/spawns/build-guide.md` §9 and `references/spawns/README.md` §5):
    - First view: the hero framed on the axis, sky behind it; NPCs, crates, boards and the way out
      visible and reachable; nothing buried in trees or blocking a path.
    - Don't look AI: no mirror-perfect symmetry, no cloned neighbours, no speckled or dead empty
      floor, accents ≤ 5%, trees that look grown, detail clustered at focal points, 3 height tiers.
-   - Gameplay: NPCs 4-7 apart facing the spawn, crates ≥ 5 apart with standing room, a clear PvP
+   - Each element against its chapter in build-guide.md §5 and its do / don't picture
+     (`references/spawns/img/`): stones in groups and sunk, trees with branches and gaps, buildings
+     with a plinth, depth and eaves, paving structured, NPC places low with a backdrop, crates on
+     stages 6+ apart, boards in framed recesses. Flag any element that looks like a stock piece
+     repeated (the same tree, rock, plinth or house again and again) or like a chapter's "don't".
+   - Gameplay: NPCs 4-7 apart facing the spawn, crates ≥ 6 apart with standing room, a clear PvP
      boundary, nothing floating or dark.
    - The brief: everything the user asked for is there and reads as they meant it.
 4. Answer with a short ranked list (max 8) of fixes, each with the screenshot that shows it and the

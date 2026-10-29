@@ -1,5 +1,5 @@
-// The build pipeline shared by scripts/run-build.mjs and the browser spawn generator
-// (apps/spawn-generator): the recipe api, the export passes (default states, connections), the
+// The build pipeline shared by scripts/run-build.mjs and the browser spawn builder
+// (apps/spawn-generator, not part of the plugin): the recipe api, the export passes (default states, connections), the
 // placements in world coordinates and the setup sheet. No Node built-ins here, so it bundles for
 // the browser as is.
 

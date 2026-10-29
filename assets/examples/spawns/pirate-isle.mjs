@@ -1,3 +1,7 @@
+// A REFERENCE SPAWN, for reading: how a whole spawn fits together (the plan, the reservations, the
+// order of work). New spawns do not start from it: they start from the skeleton, and each of their
+// elements is designed for that server (references/spawns/build-guide.md).
+//
 // Tortuga SMP — a hand-built NORMAL spawn on a tropical pirate island, with a WARZONE round it.
 // It shows the optional extras together: landmarks (a volcano, a ship, a lighthouse, a parrot
 // statue, giant palms), raised areas and rocks, a warzone band behind a red line with a moshpit and a

@@ -1,6 +1,9 @@
-// Kirin Practice — the PVP LOBBY template: compact, every game one glance away. This is the
-// generator's PvP layout written out as a recipe: change the BRIEF block and the layout follows (the
-// NPC arc widens with the count); then make it yours in the CUSTOM block below it.
+// A REFERENCE SPAWN, for reading: how a whole spawn fits together (the plan, the reservations, the
+// order of work). New spawns do not start from it: they start from the skeleton, and each of their
+// elements is designed for that server (references/spawns/build-guide.md).
+//
+// Kirin Practice — a PVP LOBBY: compact, every game one glance away. Its layout follows a BRIEF
+// block (the NPC arc widens with the count), with a CUSTOM block for additions.
 //
 //                 boards + podium     [top3]
 //         [top3]   . o  o  o  o  o  o .            o = queue NPC on a pedestal, an arc of 150
@@ -9,7 +12,7 @@
 //                          |
 //                   FFA arena (south, behind its red line)
 //
-// The numbers (references/spawns/build-guide.md §5.4): the arc radius Rn grows with the count so the
+// The numbers (references/spawns/build-guide.md §6.3): the arc radius Rn grows with the count so the
 // NPCs stay 7 apart (Rn = max(11, 7N x 180 / (pi x 150))); the plaza Rp = Rn + 5; the boards 5 behind
 // the plaza rim; the arena starts 4 past the rim; canvas = 2 x (Rp + 36). Players spawn on a raised
 // dais facing north, straight at the queue NPCs.
@@ -50,21 +53,20 @@ const BRIEF = {
 }
 
 // ================================================================== your additions (edit these)
-// Everything this server gets beyond the template goes here, so the layout above keeps working when
+// Everything this server gets beyond the base layout goes here, so the layout above keeps working when
 // the BRIEF changes. Every part is imported at the top. L is the plan (all build coordinates):
 //   L.cx, L.cz      the spawn column (the dais; players spawn on it facing north)   L.FY  the plaza floor
 //   L.S             the canvas side      L.islandR  the shore's distance from the middle
 //   L.Rn, L.Rp      the NPC arc's and the plaza's radius   L.arc  the NPC places
 //   L.hero (the boards' area), L.arena, L.crates, L.pavilion, L.tower, L.trees   the planned places
 //   L.slot({ x0, z0, x1, z1, kind }, pad)   reserve a rectangle and level a pad under it (plan only)
-// references/spawns/build-guide.md §4 shows how, with tested examples.
 const CUSTOM = {
   // 1. while planning, after the lobby's places and before the landmarks and the raised areas:
   //    reserve the ground of each piece (findSpot or L.slot) and return what you planned
   plan(ctx, L) {
     return {}
   },
-  // 2. build your pieces, after the template's own and before the landscape pass
+  // 2. build your pieces, after the base layout's own and before the landscape pass
   build(ctx, L, mine) {},
   // 3. after the landscape pass: seasonal passes (snowfall, leafLitter) and last touches
   finish(ctx, L, mine) {},

@@ -1,3 +1,7 @@
+// A REFERENCE SPAWN, for reading: how a whole spawn fits together (the plan, the reservations, the
+// order of work). New spawns do not start from it: they start from the skeleton, and each of their
+// elements is designed for that server (references/spawns/build-guide.md).
+//
 // Frost SMP — a hand-built NORMAL spawn with a SQUARE plaza, winter theme, 180 x 180.
 // It shows three things the round Ember SMP example does not:
 //   1. another composition: a square plaza on a cross of avenues, the NPCs in two lines along the

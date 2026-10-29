@@ -1,9 +1,11 @@
-// Ember SMP — the NORMAL spawn template (FreshSMP-style): a big flat plaza with the NPCs on quartz
-// plinths in rings round the spawn, trees in grass beds, the boards and crates out in the open, a ring
-// of big buildings, woodland beyond. This is the generator's normal layout written out as a recipe:
-// change the BRIEF block and the whole layout follows (ring sizes, plaza, canvas, extras); then make it
-// yours in the CUSTOM block below it (the theme's touches, the user's extra asks, anything the
-// screenshots say).
+// A REFERENCE SPAWN, for reading: how a whole spawn fits together (the plan, the reservations, the
+// order of work). New spawns do not start from it: they start from the skeleton, and each of their
+// elements is designed for that server (references/spawns/build-guide.md).
+//
+// Ember SMP — a NORMAL spawn (FreshSMP-style): a big flat plaza with the NPCs on quartz plinths in
+// rings round the spawn, trees in grass beds, the boards and crates out in the open, a ring of big
+// buildings, woodland beyond. Its layout follows a BRIEF block (ring sizes, plaza, canvas, extras),
+// with a CUSTOM block for additions.
 //
 // The plan (top view, north up; players spawn in the middle facing north):
 //
@@ -16,7 +18,7 @@
 //                        (RTP gate)
 //                    path south to the wild
 //
-// The numbers (references/spawns/build-guide.md §5.1): NPCs 6 apart along a ring, the inner ring r 12
+// The numbers (references/spawns/build-guide.md §6.1): NPCs 6 apart along a ring, the inner ring r 12
 // broken by four 9-wide path mouths, the outer ring wide enough for the rest (r >= 22); the paved plaza
 // Rp = max(40, R2 + 14) with a 5-wide street ring; the buildings from Rp + 7; feature trees between
 // the rings on the diagonals; boards 6 in from the rim north, crates 6 in from the rim west, top-3
@@ -24,7 +26,7 @@
 // mirrors the crate arc and the PvP ruin.
 //
 // Build: node scripts/run-build.mjs assets/examples/spawns/ember-smp.mjs --out-dir minecraft-builds/ember-smp
-// (in a spawn folder made with new_spawn the imports read './parts/...').
+// (in a spawn folder made with new_spawn it sits in examples/ and imports '../parts/...').
 
 import { startSpawn, finishSpawn, polar, facingToward, yawToward, findSpot } from '../../spawn-parts/spawn.mjs'
 import { buildSite, paveRound, paveRect, pavePath } from '../../spawn-parts/site.mjs'
@@ -71,7 +73,7 @@ const BRIEF = {
 }
 
 // ================================================================== your additions (edit these)
-// Everything this server gets beyond the template goes here, so the layout above keeps working when
+// Everything this server gets beyond the base layout goes here, so the layout above keeps working when
 // the BRIEF changes. Every part is imported at the top. L is the plan (all build coordinates):
 //   L.cx, L.cz      the spawn column (players spawn there facing north)   L.FY  the plaza floor block
 //   L.S             the canvas side      L.islandR  the shore's distance from the middle
@@ -80,15 +82,13 @@ const BRIEF = {
 //   L.houses        the buildings (filled after plan; edit them before build)  L.doors  their doors
 //   L.slot({ x0, z0, x1, z1, kind }, pad)   reserve a rectangle and level a pad under it (plan only)
 //   L.onIsland(rect, r)                     every corner of rect within r of the middle
-// references/spawns/build-guide.md §4 shows how, with tested examples (a gateway arch, a market, your
-// own building, snow).
 const CUSTOM = {
   // 1. while planning, after the gameplay places and BEFORE the buildings (they fill round what you
   //    reserve): reserve the ground of each piece (findSpot or L.slot) and return what you planned
   plan(ctx, L) {
     return {}
   },
-  // 2. build your pieces, after the template's own and before the landscape pass (the woodland, the
+  // 2. build your pieces, after the base layout's own and before the landscape pass (the woodland, the
   //    flowers and the path lamps then grow round them)
   build(ctx, L, mine) {},
   // 3. after the landscape pass: seasonal passes (snowfall, leafLitter) and last touches

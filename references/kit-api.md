@@ -478,6 +478,27 @@ skirts; `deepslate_tiles`), `wood` (posts, stalls; `dark_oak`), `roof` (`deepsla
 (keystones and finials; `blue_concrete`; never gold by default), `field` (any paint for big surfaces), `colour` (dye for the
 glow glass; from the accent), `glass` and `light` (the glow; `ochre_froglight`).
 
+**Marks: recording places you build yourself.** A hand-built spawn designs its own NPC places,
+boards, crates and gates (`references/spawns/build-guide.md` §5), then records each one with a mark.
+A mark places no block. It records the placement for `placements.json` and `setup.md`, and it watches
+the cells the place needs: `finish()` warns, naming the cell, when anything fills one.
+
+| Mark | Records | Watches |
+| --- | --- | --- |
+| `b.markNpc(pos, facing, { id, label, role })` | `npc`, `style: 'own'`: `pos` = the block it stands on (feet at y + 1), its hologram 2.4 above the feet | 3 above the feet, 2 in front |
+| `b.markCrate(pos, facing, { id, label, tier, block })` | `crate`: `pos` = the crate block you placed (`block` read from it when not given), its hologram 1.6 above | 2 above, 2 in front |
+| `b.markBoard([x, y, z], facing, { id, label, size: [5, 4] })` | `leaderboard`: the top line's anchor (fractions allowed; 0.5 in front of your backdrop) | the board's volume: `size[0]` across, `size[1]` down |
+| `b.markPortal(min, max, { id, label, kind, facing })` | `portal`: the opening players walk through, as the trigger region | the opening |
+| `b.markHologram(id, text, [x, y, z])` | `hologram`: free-standing text, top line at `y` (the spawn frame's `ctx.hologram`) | nothing |
+
+Without an `id`, a mark numbers its kind (`npc-1`, `crate-2`...). The spawn frame
+(`assets/frame/frame.mjs`: `startSpawn`, `finishSpawn`, the reservation grid, `polar`,
+`facingToward`, `yawToward`, `local(pos, facing)` for building in front/right/up terms) is
+documented in build-guide.md §3-§4.
+
+The methods below are finished designs: the reference spawns use them. A hand-built spawn designs
+its own places and records them with the marks above.
+
 | Method | Notes |
 | --- | --- |
 | `b.sign(text, at, facing, opts)` | block letters; `at` = top-left letter cell as the reader sees it (top-centre with `align: 'center'`, top-right with `'right'`); `font: 'small'` (3x5) \| `'medium'` (5 tall, default) \| `'large'` (5x7); `block` / `stairs` (quartz_block / quartz; any block with its own stairs smooths, others stay square); `depth`; `'\n'` for lines (`leading`). `board` adds a framed panel: the field `boardDepth` (2) deep sits 1 behind the letters inside a `frame` ring (polished_deepslate; `false` for a bare board with an optional flat `boardEdge`) with a stair cornice and sill, returned ends and a slab `cap`; `pad` (1) cells of field around the text. Returns `{ width, height, min, max }` |
@@ -538,7 +559,8 @@ Placement records (structure coordinates; shifted with the structure when `trim:
 
 | type | record |
 | --- | --- |
-| `npc` | `{ id, label, role, style, pos: [x, y + 1, z] (the feet block), facing, yaw, hologram: [x + .5, y + 3.4, z + .5], board?, rank? }` |
+| `npc` | `{ id, label, role, style, pos: [x, y + 1, z] (the feet block), facing, yaw, hologram: [x + .5, y + 3.4, z + .5], board?, rank? }` (`style: 'own'` from `markNpc`) |
+| `hologram` | `{ id, label, pos: [x + .5, y, z + .5] }` |
 | `leaderboard` | `{ id, label, anchor: [x, y, z], facing, size }`: the hologram's top line, centred on the board, 0.5 in front of the backdrop; the recess fits 10-12 lines at 0.25-0.3 |
 | `crate` | `{ id, label, tier, block, pos: [crate block], facing, hologram: [x + .5, y + 1.6, z + .5] }` |
 | `portal` | `{ id, label, kind, min, max, facing }` (the trigger region) |

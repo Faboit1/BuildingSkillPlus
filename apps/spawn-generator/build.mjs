@@ -39,7 +39,7 @@ const DATA_FILES = [
   'scripts/node_modules/lodestone/assets/default-pack/block-flags/non_self_culling.txt',
   'scripts/node_modules/lodestone/assets/default-pack/block-flags/emissive.json',
 ]
-const BRIEFS = path.join(root, 'assets/spawn-briefs')
+const BRIEFS = path.join(here, 'briefs')
 
 const SHIMS = {
   'node:fs': 'fs.js', fs: 'fs.js', 'node:fs/promises': 'fs.js',

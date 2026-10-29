@@ -50,10 +50,11 @@
     "docs:sync": "node scripts/sync-lodestone-docs.mjs --from ../lodestone",
     "docs:check": "node scripts/sync-lodestone-docs.mjs --from ../lodestone --check",
     "gallery": "node scripts/dev/gallery.mjs",
-    "test:spawns": "node scripts/dev/spawngen-smoke.mjs",
-    "spawn": "node scripts/make-spawn.mjs",
+    "test:generator": "node apps/spawn-generator/test.mjs",
     "package:plugin": "bash scripts/dev/package-plugin.sh",
     "test:examples": "node scripts/dev/spawn-examples-smoke.mjs",
+    "test:manual": "node scripts/dev/manual-figures.mjs --check",
+    "figures:manual": "node scripts/dev/manual-figures.mjs",
     "new-spawn": "node scripts/new-spawn.mjs",
     "test:screenshot": "node scripts/dev/screenshot-selftest.mjs"
   },
