@@ -405,33 +405,106 @@ result fit the spawn, so the element is designed for this place and does not rep
 
 ### 5.4 Rivers, lakes and waterfalls (`elements/river.mjs`)
 
-- **Do:** a meandering river (a bent centreline, not a sine) 10-24 wide whose width varies, carved
-  into the ground 2-5 deep in the middle and shallow at the edges, with banks that slope from grass
-  to sand and gravel at the waterline, a bed of gravel, sand and clay, plants along it (sugar cane,
-  grass, ferns, lily pads in the calm bends, seagrass in the deep parts), stones at the bends, a
-  lake or a pond on its course, and waterfalls where the land steps down, into a plunge pool.
-- **Water rules:** a river in a structure is water source blocks at one level per stretch, held by
-  solid blocks at its sides and bed; it changes level only at a waterfall, into a pool. Water next
-  to air floods when pasted.
-- **Don't:** a straight trench of water flush with the grass, one width all along, vertical sides,
-  one block deep, no banks and no plants, or water standing above its banks.
+![Rivers: do and don't](img/river.png)
+
+- **Do:**
+  - a meandering course (a spline through points, never a straight line or a sine) whose width
+    varies (10-24 on a big spawn), with a lake or a pond on it;
+  - still water at one level per stretch, 2 below the land, held by solid blocks at every side and
+    underneath; the level changes only at a waterfall, into a deep pool;
+  - depth 1 at the edges, deepest on the outside of the bends;
+  - sloping banks: a beach of sand and gravel on the inside of a bend, a steep cut bank of dirt,
+    roots and rock on the outside; a bed of gravel, sand, clay and mud in clumps;
+  - sugar cane in clumps at the waterline, lily pads only in calm water, seagrass where it is 2+
+    deep, mossy stones at the bends;
+  - the waterfall: a shallow rock lip, a curtain with rock either side, wet mossy rock round it.
+- **Water rules:**
+  - in a structure, still water is source blocks; anything that is not solid at its side or bed
+    (air, a plant, a carpet, a lantern) lets it flood when pasted, so seal every side last;
+  - a waterfall is flowing water: `water[level=1]` past the lip, then `water[level=8]` (falling)
+    down to the pool; falling water does not spread sideways, so the curtain needs no walls, and
+    nothing solid may stand in it;
+  - sugar cane grows on dirt, sand, grass or mud with water beside that block (not on gravel).
+- **Don't:** a straight trench of one width, 1 deep, flush with the grass; water standing above its
+  banks (a wall of water down a cliff); lily pads everywhere or sugar cane in rows.
+- **The example:**
+  - `course(ctx, points)`: a smooth spline through `[[x, z], ...]` with `at(t)`, `tangent(t)` and
+    `nearest(x, z)` (`{ t, d, side, bend }`; `side * bend > 0` is the inside of a bend);
+  - `river(ctx, points, { width, depth, bank, level, falls, pools, spring, seed, plants, stones, ground })`
+    carves it into the land already there; `width` is a number, a `[min, max]` range or `t => width`;
+    `falls: [{ at, drop, pool }]`, `pools: [{ at, r, depth, bank }]`; it returns `{ centre, levelAt,
+    widthAt, at, tangent, nearest, isWater(x, z), waterTop, bedAt, surfaceAt, falls }` for bridges
+    and paths, and warns if water touches the canvas edge;
+  - `holdsWater(block)`, `riverStone(ctx, pos, { r, seed, avoid })`.
+- **Make it yours:**
+  - a swamp river (2 deep, a mud bed, mangrove roots on the banks);
+  - a winter river with snow and packed ice on the banks;
+  - a broad river through the town under 2-4 bridges into a harbour lake;
+  - a river that ends in a lake at the plaza, or falls off the island's rim (falling water does not
+    spread);
+  - a canal through a city: stone banks, steps down to the water, moored boats.
+- **Numbers:** rivers 10-24 wide on a big spawn (the example 8-15), 3 deep in the channel; lakes
+  40-120 across; waterfalls 6-20 high into pools 4-6 deep.
 
 ### 5.5 Bridges (`elements/bridge.mjs`)
 
-- **Do:** a stone arch bridge where a road crosses a river: abutments set into each bank, 2-4 arches
-  (8-14 wide each) on piers with pointed cutwaters upstream, a deck 5-9 wide that rises gently to
-  the middle, parapets with a coping, lamp posts on the parapets, the deck paved and the road going
-  on into the land on both sides. 30-80 long.
-- **Don't:** a strip of planks laid across the water at grass level with no rails, ends that float
-  or do not meet the banks, or one huge flat slab.
+![Bridges: do and don't](img/bridge.png)
+
+- **Do:**
+  - cross square to the flow, the abutments set into both banks;
+  - 2-4 arches, the middle one the biggest, the curves smoothed with upside-down stairs and slabs
+    inside a ring of lighter stone;
+  - piers founded on the river bed, with pointed cutwaters, higher on the upstream side;
+  - a humped deck in slab steps that ramps down at the ends, parapets with a coping and a line of
+    stair corbels under them;
+  - lamps on pillars and newel posts at the ends, wing walls, the road carrying on into the land.
+- **Don't:** a flat plank strip at grass level with no rails and its ends floating, one big flat
+  slab, piers that stop above the river bed.
+- **The example:**
+  - `crossing(river, t)` finds the crossing at `t` along a river from §5.4: `{ centre, facing,
+    waterY, upstream }` (the road runs along the grid axis most square to the flow);
+  - `archBridge(ctx, site, { spans, pier, abutment, width, arch, springing, hump, road, lamps, face, low, paving, landRoad, ring, coping, pillar, lantern, seed })`
+    builds it (`arch`: `'round'`, `'pointed'`, `'segmental'`); returns `{ length, deckY(d), ends }`.
+- **Make it yours:**
+  - a gothic bridge in warm brick: `arch: 'pointed'`, mud-brick faces with a stone-brick ring;
+  - a dark one: a single segmental span of 14 in deepslate, a polished blackstone ring, soul
+    lanterns;
+  - a long bridge over a broad river: `spans: [6, 8, 10, 8, 6]`, or a level causeway with `hump: 0`;
+  - a village footbridge: `spans: [12]`, `width: 5`; a covered timber bridge or a bridge with
+    houses on it for a fantasy town.
+- **Numbers:** 30-80 long on a big spawn (the example 38, 42 with its ramps), arches 8-14 wide, the
+  deck 5-9 wide and 6-10 above the water.
 
 ### 5.6 Cliffs and mountains (`elements/cliffs.mjs`)
 
-- **Do:** a cliff face or a mountain massif 40-100 tall in layered strata (bands of stone, andesite,
-  tuff, deepslate or the theme's stones that tilt and wander), ledges and terraces with grass, moss,
-  bushes and small trees, overhangs and vertical cracks, a scree slope of gravel and boulders at the
-  foot, and a skyline of several peaks of different heights; a waterfall down it feeding a river.
-- **Don't:** a noise blob or a smooth cone of one stone, or a vertical wall with a flat top.
+![Cliffs and mountains: do and don't](img/cliffs.png)
+
+- **Do:**
+  - 2-4 peaks of different heights with saddles between them, steep toward the players and longer
+    slopes behind;
+  - strata bands 1-5 rows thick that tilt and wander: dark at the foot, a pale line every 8-12
+    rows; hard bands stand out and soft ones sink back, which makes the lips and overhangs;
+  - planted benches every 6-9 rows (grass, moss, bushes, small trees), vertical cracks, a scree
+    slope of gravel, slabs and boulders at the foot, the foot buried in the ground;
+  - a cave mouth or a snowline if the place calls for it; a waterfall down it into a river (§5.4).
+- **Don't:** a noise blob or a smooth cone of one stone, a flat-topped vertical wall, per-block
+  speckle or rainbow bands, grass on vertical faces, or the same peak copied.
+- **The example:**
+  - `massif(ctx, { cx, cz, y, height, radius, face, peaks, seed, terrace, strata, dip, cracks, cave, snow, plants, trees, scree })`:
+    a mountain of a steep plinth with 3-4 towers on it; returns `topY(x, z)`.
+  - `cliff(ctx, { x0, z0, x1, z1, y, height, face, seed, terrace, summits, ...rock })`: an
+    escarpment, a wall with summits set back on it.
+  - `strata`: `'grey'`, `'mesa'`, `'dark'` or your own `{ foot, body, cap, accent, scree, slabs, soil, trees, green }`
+    (`STRATA` has the presets); `peaks: [{ u, v, h, r, p }]` places the towers yourself.
+- **Make it yours:**
+  - snowy peaks (`strata: 'dark', snow: 24`), desert badlands (`strata: 'mesa'` on red sand), a
+    single Matterhorn or twin peaks with a pass between them;
+  - a cliff wall along the back of the spawn, a crag carrying the castle that is the hero;
+  - a hidden cave with a warp in it, a path climbing to a lookout.
+- **Numbers:** mountains 40-100 tall (the example 44, radius 30); benches every 6-9 rows; scree
+  out to a third of the height.
+- **Note:** `rng.shuffle(list)` returns a shuffled copy and leaves the list as it was; use what it
+  returns.
 
 ### 5.7 Stones and rocks (`elements/stones.mjs`)
 
@@ -481,9 +554,26 @@ result fit the spawn, so the element is designed for this place and does not rep
 - **Numbers:** feature trees 12-20 tall, medium 8-12, small 5-8, bushes 2-3. Woodland at 1 tree
   per 40-80 columns, denser at the rim.
 
-- **Giant trees:** a landmark tree 30-60 tall: a 2 x 2 to 4 x 4 trunk, buttress roots spreading over
-  the ground, big forking branches (logs on the right axis), a wide layered crown with gaps and
-  drooping edges; one or two per district park, the biggest as a hero. Never a scaled-up lollipop.
+**Giant trees** (`elements/landmark-trees.mjs`, the code in `trees.mjs`):
+
+![Giant trees: do and don't](img/landmark-trees.png)
+
+- **Do:** a landmark tree 25-60 tall: a leaning, flared trunk 2-4 across; 5-8 buttress roots, each
+  with a fin and a tail along the ground; 5-7 limbs at the golden angle, each forking 2-3 times; a
+  layered crown 1-1.5 times the height across with gaps, darker underneath, a drooping hem; vines,
+  glow berries, litter at the foot. One or two per park, the biggest as a hero.
+- **Don't:** a scaled-up lollipop, a leaf dome with no gaps, leaves floating with no limb to them,
+  limbs of one length, a trunk with no roots.
+- **The example:** `giantTree(ctx, [x, y, z], { species, seed, berries, ground, ...fields })` with
+  `species` `oak`, `dark_oak`, `cherry`, `jungle`, `spruce` or `dead`; every field of `GIANTS`
+  (height, trunk, log, leaves, fork, limbs, reach, rise, roots, buttress, vines, petals...) can be
+  set. Returns `{ tips, crown }` (reserve the crown's disc so nothing grows into it).
+- **Make it yours:** a sakura giant with petals underfoot, a dead tree on a hill, a jungle giant
+  with cocoa and vines, a dark-oak umbrella over a plaza, a fantasy tree of flowering azalea.
+- **Note:** the screenshot renderer draws ring tops on every log whatever its axis, so horizontal
+  limbs show pale ends in the pictures; in the game they are bark.
+
+
 
 ### 5.9 The spawn centre: the dais (`elements/dais.mjs`)
 
