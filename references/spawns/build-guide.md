@@ -997,7 +997,9 @@ and the weathering. The numbers below come from pro terraformers and geomorpholo
 - **An AFK area** is a quiet garden or pool with its own region (`'afk'`).
 - Keep PvP and AFK out of the first view's middle, and their entrances off the main paths.
 
-### 5.21 The hero and landmarks
+### 5.21 The hero and landmarks (`elements/keep.mjs`)
+
+![The hero: do and don't](img/keep.png)
 
 The hero is the one thing this server has that no other has: its mascot or logo as a statue, a
 castle keep on a crag, a cathedral, a giant tree, a ship in a harbour, a lighthouse, a volcano. It
@@ -1008,6 +1010,39 @@ its doors, windows and carvings (`references/building/sculpting.md` for statues 
 `components.md` and §5.14 for buildings). Add 2-4 more landmarks on the diagonals behind the
 districts (a ruined tower on a hill, a windmill, a stone circle, a waterfall gorge), never on the
 axis in front of the hero.
+
+- **Do:**
+  - **The silhouette reads from the spawn:**
+    - a main mass with smaller masses round it (turrets, a stair tower rising above the rest);
+    - a roofscape whose spire is the highest point;
+    - 60-120 tall from the plaza.
+  - **It grows out of its ground:**
+    - a natural crag under it (rock with strata, ledges, scree);
+    - a platform cut into the rock;
+    - a battered plinth that steps out where it meets the rock.
+  - **Depth at every scale:**
+    - buttresses and string courses;
+    - windows in groups that grow as they climb;
+    - a corbelled parapet with machicolations;
+    - turrets corbelled out from the corners.
+  - **A curtain round the top, and a road that winds up to the gate,** lit at the gate and in the
+    high windows at night.
+- **Don't:**
+  - a cylinder in rings of two stones with a cone on top, standing on the flat;
+  - a castle on a plain block of stone, or on a flat lawn;
+  - flat faces with windows in a grid and a flat roof;
+  - a statue as a flat silhouette with no shading, no layers and no face.
+- **The example:** `keep(ctx, { cx, cz, y, crag, w, d, height, face, seed, foot, body, crown, trim,
+  roof })` builds the picture:
+  - the crag (`massif` from §5.6);
+  - the platform and its batter, the curtain;
+  - the keep with plinth, buttresses, courses, windows, parapet and hip roof;
+  - corner turrets and the stair tower (`tower` from §5.15);
+  - the gate and the road.
+  It returns `{ top, platform, gate }`.
+- **Make it yours:** a cathedral (a nave and transepts, a crossing tower, flying buttresses), a
+  lighthouse on a headland, a giant statue (sculpting.md: an armature, layered plates, a shaded
+  face), a ship in the harbour, a volcano with a temple. The rules above hold for each.
 
 ### 5.22 The town: streets lined with houses (`elements/town.mjs`)
 
