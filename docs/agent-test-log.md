@@ -96,6 +96,7 @@ before the build was judged.
 | Kuro PvP | Sonnet, high | old | 0 | 40 | 65 min | 56 | strong hall and avenue; cone mountains, a flat statue, empty views 3 of 4 ways |
 | Cheese SMP | Sonnet, xhigh | old | 0 | 31 | 2 h | 66 | the best of round 1: a full valley, town districts, the castle on the axis; the hero fades at 208 out, a flat yellow medallion, cut grey rim walls |
 | Kuro PvP | Sonnet, high | old | 1 | 56 | 2 h | 64 | every view now has buildings, a shaded 98-tall statue, a waterfall; still saw-tooth cone ranges, a speckled floor |
+| Kuro PvP | Sonnet, high | old | 2 | 67 | 3 h | 68 | ranges rebuilt as ridges (a continuous crest, varied summits, spurs, woods thinning upward): the skyline from the spawn is a massive wall at last; the floors and a lawn at the north edge still need work |
 | Cheese SMP | Haiku, high | old | 4 | ~25 | 3 h | 46 | a dense town at last; a ring of saw-tooth cones, trees dotted evenly, a brick cone for a hero; 292 falling blocks, 66 broken cane, 56 leaks |
 | Driftwood | Haiku, high | old | 4 | 38 | 3 h | 52 | dense varied town, plaza with planters, physics clean; smooth grey blob mountains, a dirt column hanging under the island |
 
