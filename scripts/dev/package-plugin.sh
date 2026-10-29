@@ -14,10 +14,13 @@ git -C "$root" archive HEAD | tar -x -C "$plugin"
 # what a plugin user never needs: the README gallery, the dev-only Codex metadata and the browser app
 rm -rf "$plugin/docs/gallery" "$plugin/.github" "$plugin/apps"
 # smoke check from the packaged copy (no root node_modules there: only the bundled one): a scaffolded
-# spawn folder builds, and it can be photographed
+# spawn folder's skeleton builds, the element figures build, a reference spawn builds from inside
+# the folder, and it can be photographed
 (cd "$work" && node "$plugin/scripts/new-spawn.mjs" "Pack Hand" --out-dir "$work/hand" >/dev/null \
   && node --max-old-space-size=4096 "$plugin/scripts/run-build.mjs" "$work/hand/spawn.mjs" --out-dir "$work/hand" --json >/dev/null \
-  && node "$plugin/scripts/screenshot.mjs" "$work/hand/pack-hand.nbt" --spawn --width 320 --height 180 --out "$work/hand/shot.png" >/dev/null 2>&1)
+  && node "$plugin/scripts/dev/manual-figures.mjs" --check >/dev/null \
+  && node --max-old-space-size=4096 "$plugin/scripts/run-build.mjs" "$work/hand/examples/kirin-practice.mjs" --out-dir "$work/ref" --json >/dev/null \
+  && node "$plugin/scripts/screenshot.mjs" "$work/ref/kirin-practice.nbt" --spawn --width 320 --height 180 --out "$work/ref/shot.png" >/dev/null 2>&1)
 if command -v claude >/dev/null 2>&1; then claude plugin validate "$plugin" >/dev/null; fi
 # plugin uploads reject paths with anything but letters, digits, dot, dash, underscore and slash
 bad="$(cd "$plugin" && find . -mindepth 1 | sed 's|^\./||' | grep -E '[^A-Za-z0-9._/-]' || true)"

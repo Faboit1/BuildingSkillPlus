@@ -1,36 +1,37 @@
 # The spawn manual: building a server spawn by hand
 
-This is everything you need to build a server spawn, hub or PvP lobby that a server owner is proud of:
-what makes one great, the workflow, the templates and how to change them safely, every part with its
-numbers, tested code for the things users ask for, how to look at your build like a player, and how
-to deliver it. What works is written down here and in the templates, so every spawn starts from a
-tested base. Your own judgement and the user's wishes take it further.
+You build every block of the spawn yourself: the island, the ground, the paving, every stone and
+tree, every NPC place, the boards, the crates, the gates, every building, every lamp. Nothing is
+generated for you and nothing is pasted from a stock piece. This manual teaches each element with a
+picture of what to do next to what not to do, and with the code of one worked example.
+The examples show how an element is made. What this spawn's elements look like is yours to design
+from the user's brief and the theme.
 
-**How to read it.** The first time, read §1-§4 and the template you are starting from (`spawn.mjs` in
-your spawn folder). After that, use it as a reference: §8 (the cookbook) maps every common request
-to the change it needs, §10 is the looking-and-fixing loop, §12 is delivery. Each section starts with
-what you need most.
+The frame (`frame/frame.mjs` in the spawn folder) does only the plumbing nobody sees: the canvas, a
+reservation grid, angles, the world spawn, the records the server admin needs (NPC, hologram, crate,
+board and portal positions, regions), spawn-proofing and the export. The kit (`ctx.kit`, `ctx.b`) is
+your toolbox: palettes, noise, block states, stairs and slabs, modules, and the building helpers for
+roofs, windows and doors (`references/kit-api.md`). Use the tools freely; the design is yours.
 
 | § | Section | Use it when |
 | --- | --- | --- |
 | 1 | What a great spawn is | planning, judging screenshots |
-| 2 | The workflow, step by step | always: the order of work |
+| 2 | The workflow | always: the order of work |
 | 3 | Coordinates, angles and facing | writing any position or direction |
-| 4 | Working in a template: the BRIEF and the CUSTOM block | every spawn |
-| 5 | Layouts and their numbers | planning, or a layout the templates do not have |
-| 6 | The parts, place by place | looking up a function and its options |
-| 7 | Writing your own structures | anything the parts do not have |
-| 8 | The cookbook: requests and their changes | "make it winter", "add more stuff", "move the crates"... |
-| 9 | Themes, and making your own | the look |
-| 10 | Looking at it: screenshots, critique, fixes | after every build |
-| 11 | Troubleshooting | an error, a warning, a slow build |
-| 12 | Delivery | the end |
+| 4 | The frame, the marks and the tools | the API you build with |
+| 5 | The elements, one chapter each | before you write each element |
+| 6 | Layouts and their numbers | planning |
+| 7 | Materials for a theme | choosing blocks |
+| 8 | The cookbook: what the user asks | "make it winter", "add more stuff"... |
+| 9 | Looking at it: screenshots, critique, fixes | after every build |
+| 10 | Troubleshooting | an error or a warning |
+| 11 | Delivery | the end |
+| 12 | The reference spawns | seeing how a whole spawn fits together |
 
-Related files: `assets/examples/spawns/` (the templates and two hand-written showcases, copied into
-every spawn folder as `examples/`), `assets/spawn-parts/` (the parts, copied as `parts/`: each file
-starts with a header listing its functions), `references/spawns/README.md` (the spawn handbook: the
-interview, the measured numbers, the don't-look-AI checklist), `references/kit-api.md` (the
-building kit), `references/building/` (the building craft).
+The element examples are in `references/spawns/elements/` (copied into every spawn folder as
+`elements/`), their pictures in `references/spawns/img/`. `references/spawns/README.md` is the
+handbook: the interview, the measured numbers, the don't-look-AI checklist.
+`references/building/` covers the building craft in depth.
 
 ---
 
@@ -38,115 +39,127 @@ building kit), `references/building/` (the building craft).
 
 ### 1.1 The first minute
 
-A player joins and, in this order: sees the first view (the hero, the plaza), reads the NPC
-holograms nearest them, walks to the crates or the boards, and leaves through the RTP gate or a
-road. A great spawn makes each step obvious without a sign: the hero pulls the eye, the NPCs face
-the player, the sections are in the open where they can be seen, and the way out is in the first
-view. Everything below serves that minute.
+A player joins and does these things in order:
+
+1. Sees the first view: the hero and the plaza.
+2. Reads the NPC holograms nearest them.
+3. Walks to the crates or the boards.
+4. Leaves through the RTP gate or a road.
+
+A great spawn makes each step obvious without a sign. The hero pulls the eye, the NPCs face the
+player, and the places stand in the open where they can be seen. The way out is in the first view.
+Everything below serves that minute.
 
 ### 1.2 The rules, with the numbers to hit
 
 1. **The first view is the design.** From the spawn point (eye 1.62 above the floor, facing north):
-   a frame close by (an arch, two trees, columns), the hero 20-45 blocks out on the axis filling a
-   quarter to half of the frame height, open sky behind it, the NPCs and the way on visible.
-   Nothing above eye level in the middle 30 degrees.
-2. **One hero, three tiers.** One landmark (a monument, the boards' plaza, a gate, a big tree)
-   1.5-2 times the height of what surrounds it, feature buildings at a third to a half of it, the NPC
-   places at human scale.
-3. **Short distances.** Core NPCs within 15-25 blocks of the spawn (a town: 25 to the plaza ring,
-   75 to the farthest district). Nothing important more than ~12 seconds of sprint away
+   - a frame close by (an arch, two trees, columns);
+   - the hero 20-45 blocks out on the axis, filling a quarter to half of the frame height, with open
+     sky behind it;
+   - the NPCs and the way on visible;
+   - nothing above eye level in the middle 30 degrees.
+2. **One hero, three tiers.** One landmark (a monument, the boards' place, a gate, a big tree) 1.5-2
+   times the height of what surrounds it. Feature buildings a third to a half of it. NPC places at
+   human scale.
+3. **Short distances.** Core NPCs within 15-25 blocks of the spawn (in a town: 25 to the plaza ring,
+   75 to the farthest district). Nothing important more than about 12 seconds of sprinting away
    (5.6 blocks/s).
-4. **Places that work.** NPCs 4-7 apart, facing the spawn, 2 blocks clear in front, 3 of air above
-   (the hologram). Crates at least 5-6 apart (their holograms are ~5 wide), 3 x 3 clear in front, open
-   sky above. Boards with a 10-12 deep standing area in front.
-5. **Shaped floors.** One field material for 70% or more, borders and inlays every 7-12 blocks that
-   point at exits, no plain patch over 16 x 16, no per-block random speckle.
-6. **Variety, not symmetry.** No exact mirror of the layout (keep the ceremonial axis symmetric, vary
-   everything else), at most 3 identical modules in one view, neighbouring buildings as siblings, not
-   clones (different sizes, storeys, set-backs, seeds).
-7. **One accent, used sparingly.** The accent dye at 5% or less of what you see, as points and short
-   runs. Never gold blocks as trim.
-8. **Light by design.** Lamps every ~12-13 along streets, at corners and gates, never in a path
-   mouth; hidden sources (under slabs, in leaves, behind glass). `finishSpawn` spawn-proofs the rest.
-9. **A designed edge.** The town meets the land with planting, steps and set pieces; the island's
-   shore and underside look natural. The PvP boundary is a visible red line.
-10. **It looks hand-built.** Detail clustered at entrances and focal points, 30-50% of walls calm,
-    partial blocks (stairs, slabs, walls) for 16-28% of what you see, trees that look grown.
+4. **Places that work.**
+   - NPCs 4-7 apart, facing the spawn, 2 blocks clear in front and 3 of air above.
+   - Crates 6 or more apart, 3 x 3 clear in front, open sky above.
+   - Boards with a standing area 10-12 deep in front.
+5. **Shaped floors.** One field material for 70% or more of the floor. Borders and inlays every 7-12
+   blocks that point at the exits. No plain patch over 16 x 16, and no per-block random speckle.
+6. **Variety, not symmetry.** No exact mirror of the layout: keep the ceremonial axis symmetric and
+   vary everything else. At most 3 identical pieces in one view. Neighbouring buildings are
+   siblings, not clones.
+7. **One accent, used sparingly.** The accent colour at 5% or less of what you see, as points and
+   short runs. Never gold blocks; lettering in quartz.
+8. **Light by design.** Lamps on posts along the walks and at doors and gates. Hidden light for the
+   rest. `finishSpawn` spawn-proofs what you leave dark.
+9. **A designed edge.** The town meets the land with planting, steps and rocks. The island's shore
+   and underside look natural. The PvP boundary is a visible red line.
+10. **It looks hand-built.** Detail is clustered at entrances and focal points, and 30-50% of walls
+    are calm. Partial blocks (stairs, slabs, walls) make up 16-28% of what you see. Trees look grown.
 
 ### 1.3 The three types
 
 | | Normal spawn (FreshSMP-like) | Spawn+ (DonutSMP-like) | PvP lobby |
 | --- | --- | --- | --- |
-| Template | `ember-smp` (`type: normal`) | `oakhaven-hub` (`type: plus`) | `kirin-practice` (`type: pvp`) |
-| The idea | one big flat plaza, NPCs on plinths in rings round the spawn | a town round a square hub, every NPC its own building | a compact lobby, queue NPCs in an arc, an arena |
-| Size | 180-260 (220 for ~14 NPCs) | 160-320 | 90-140 |
+| The idea | one big plaza, NPC places round the spawn | a town round a hub, every NPC its own building | a compact lobby, queue NPCs in an arc, an arena |
+| Size | 160-260 | 160-320 | 90-140 |
 | NPCs | 5-20 | 10-30 | 4-10 |
-| Boards, crates | in the open on the plaza: boards north, crates in an arc on one side | the hero wall north (boards and the name), a crate yard west | boards north behind the arc, a crate yard west |
-| Way out | RTP gate south, four roads | RTP gate south, the spoke road east | the arena south |
+| Boards, crates | on the plaza: boards on the axis, crates to one side | a hero wall with the boards, a crate yard or hall | boards behind the arc, crates to a side |
+| Way out | an RTP gate opposite the first view, roads | the RTP gate, a road to the arena | the arena's gate |
 
 ---
 
-## 2. The workflow, step by step
+## 2. The workflow
 
 | Step | You do | Done when |
 | --- | --- | --- |
-| 1. Interview | ask in rounds with AskUserQuestion (SKILL.md) | you know type, size, NPCs, theme, program, options |
-| 2. Plan | write the plan in `brief.md`, show it, ask "Build this?" | the user said yes |
-| 3. Scaffold | `new_spawn` with the name and `type` | the folder exists |
-| 4. Base | set the BRIEF block, `build_recipe` | `problems: []`, `clipped: 0`, no warnings, the images look right |
-| 5. Make it theirs | the CUSTOM block, one change per build | everything they asked for is in |
-| 6. Look and fix | screenshots from the player's spots (§10), two critique rounds | the §10.2 checklist passes |
-| 7. Deliver | `build_recipe` with `export: true`, `origin`, `world` | they have the files and know how to paste them |
+| 1. Interview | ask in rounds with AskUserQuestion (SKILL.md, README.md §1) | you know the type, size, NPCs, boards, crates, theme and extras |
+| 2. Plan | write `brief.md`: the answers and a top-view sketch with the numbers; show it, ask "Build this?" | the user said yes |
+| 3. Scaffold | `new_spawn` with the name and the brief | the folder exists, the skeleton builds |
+| 4. Build, element by element | for each section of the skeleton: read its chapter (§5), design it for this spawn, write it, build, look | every section is built and looks right |
+| 5. Look and fix | screenshots from the player's spots (§9), two critique rounds, `spawn-critic` | the §9.2 checklist passes |
+| 6. Deliver | `build_recipe` with `export: true`, `origin`, `world` | they have the files and know how to paste them |
 
-**1. Interview.** SKILL.md has the questions. Every answer becomes a BRIEF field or a CUSTOM piece:
-keep a list of which, so nothing they said gets lost.
+**Plan.** Most bad spawns are bad plans, and a plan costs nothing to change. Decide:
 
-**2. Plan.** Write `brief.md`: the answers, what you decided for "Let Claude decide", the canvas size,
-and a top-view sketch with the main numbers. Most bad spawns are bad plans, and a plan costs nothing
-to change. For example:
+- every place with its coordinates: the plaza, the spawn point and its first view, each NPC place,
+  the boards, the crates, the gates and the buildings;
+- for each element, a sentence on its design: "the crates in a walled yard west, each on a carved
+  stage with a lantern arch, the tier in a glass strip".
+
+For example:
 
 ```
-CHEESE SMP: normal spawn, white town, accent blue, plains, 220 x 220 (10 NPCs)
-NPCs (inner ring first, nearest north = first view): Shop, Auction House, Kits, Store, Quests,
-  Sell, Warps, Events, Vote, Start Here
-Boards north: Money, Kills, Playtime + podium. Top-3 sets: Top Spenders, Baltop
-Crates west (arc): Vote, Common, Rare, Legendary. PvP ruin east. RTP gate south.
-Extras (CUSTOM): a gateway arch on the axis 17 north framing the boards; a welcome hologram;
-  a market square in the building ring, south-west (stalls round a fountain)
+CHEESE SMP: normal spawn, white-and-blue town, plains island, 200 x 200, 10 NPCs
+Spawn at the middle facing north. First view: a gateway arch 14 north framing the boards' place 30 north.
+NPCs: an inner ring r 12 (Shop, Auction, Kits, Store, Quests, Sell), an outer arc r 22 (Warps, Events,
+  Vote, Start Here); each on its own plinth with a hedge behind, lanterns on posts.
+Boards north: 3 framed recesses in a low wall, a 3/2/1 podium between the middle two.
+Crates west: a yard behind a low wall, 4 carved stages 7 apart in an arc facing the spawn.
+RTP gate south on the axis, a road out east. PvP ruin east behind a red line.
+Buildings: 14 timber-and-plaster houses round the plaza from r 47, no two alike.
+Life: 5 groups of oaks, rocks at the rim, flower drifts, benches facing the plaza, a fountain SW.
 
-              N   [top3] boards+podium [top3]
-                     (arch, r 17)
-        crates   o  o  inner ring r 12  o  o     PvP ruin east (behind a red line)
-         (arc)      o     SPAWN      o
-                  o   outer ring r 22   o
-        [market]          RTP gate
-                     ring of buildings from r 47
+              N   boards + podium
+                     (arch, r 14)
+        crates   o  o  inner ring r 12  o  o     PvP ruin east (red line)
+        (yard)      o     SPAWN      o
+                  o   outer arc r 22    o
+        [fountain]       RTP gate
+                     houses from r 47
 ```
 
-**3. Scaffold.** `new_spawn` with `name`, `type` (`normal`, `plus` or `pvp`) and `brief` (the plan
-text). It writes `minecraft-builds/<slug>/` with `spawn.mjs` (the template, its BRIEF named after the
-server), `parts/` (your own copy of the parts), `examples/` and `brief.md`. `from: "frost-smp"` or
-`"pirate-isle"` starts from a showcase instead; `from: "blank"` is an empty skeleton, only for a layout
-none of them has (§5.5).
+**Scaffold.** `new_spawn` with `name` and `brief` (the plan text). It writes
+`minecraft-builds/<slug>/` with these files:
 
-**4. The base.** Set the BRIEF block (§4.1) to the interview answers and build with `build_recipe`
-(recipe: the spawn.mjs path). It returns a report, an isometric overview and the view from the spawn
-point. The template adapts the whole layout to the BRIEF (ring sizes, the town's plaza, the canvas),
-so this first build is already a good spawn. Do not hand-edit the layout numbers to fit
-a different program: change the BRIEF.
+| File | What it is |
+| --- | --- |
+| `spawn.mjs` | The skeleton: the frame and one empty section per element group, each pointing at its chapter. |
+| `frame/` | The plumbing. |
+| `elements/` | The worked examples of this manual, with their do and don't comments. |
+| `parts/` and `examples/` | Reference spawns to read (§12). |
+| `brief.md` | The brief and the plan. |
 
-**5. Make it theirs.** Everything else goes in the CUSTOM block (§4.3): the user's extra asks, the
-theme's touches, your own structures, the fixes the screenshots call for. Add one piece at a time,
-build after each, and look at the images every time.
+**Build, element by element.** Work through the skeleton's sections in order: plan, land, floor,
+places, buildings, life, then text. For each element:
 
-**6. Look and fix.** Take the screenshots of §10.1, run the checklist of §10.2, fix, rebuild. Do it at
-least twice after you think it is done: the second round always finds something. The `spawn-critic`
-agent gives a second opinion with ranked fixes.
+1. Read its chapter in §5 and look at its picture.
+2. Write the element for this spawn as its own function, below `build()` or in a file next to it.
+   Give it its own shape, sizes and materials, and vary it as the chapter says.
+3. Call the function, build with `build_recipe` and look at the views.
 
-**7. Deliver.** §12.
+Build after every section. A first build in 10 minutes that you then improve beats a perfect plan
+you never look at.
 
-A typical spawn takes 5-10 builds: the base, 2-5 additions, 2-3 fix rounds. A 220 spawn builds in
-about 25 s; screenshots take 2-3 s each.
+**Look and fix.** §9. Do at least two rounds after you think the spawn is done; the second round
+always finds something. The `spawn-critic` agent gives a second opinion with ranked fixes.
+
+A typical spawn takes 10-20 builds. A 200 x 200 spawn builds in 10-30 s, and a screenshot takes 2-3 s.
 
 ---
 
@@ -161,720 +174,701 @@ about 25 s; screenshots take 2-3 s each.
             south (z bigger)
 ```
 
-- **Axes.** `x` east, `y` up, `z` south. The canvas is `S x H x S`; `[cx, cz] = ctx.C` is its middle
-  column, where the world spawn stands. Players spawn facing **north**.
-- **The floor.** `FY` is the plaza's floor block; players stand at `FY + 1`. Every part takes
+- **Axes.** `x` points east, `y` up, `z` south. The canvas is `S x H x S`. `[cx, cz] = ctx.C` is its
+  middle column, where the world spawn usually stands. Players spawn facing **north**.
+- **The floor.** `FY` is the plaza's floor block, and players stand at `FY + 1`. The examples take
   positions as **ground block levels**: a thing "at `[x, FY, z]`" starts at `FY + 1`.
-- **Angles round the spawn.** `polar(ctx, angle, r)` → `[x, z]` (not rounded: `Math.round` before
-  using them as block positions), 0 = north, 90 = east, 180 = south, 270 = west.
-- **`facing` = the side the player stands on.** An NPC looks that way, a sign reads from there, a
-  crate opens to it, a building's door is on that face, an arch reads from there.
-  `facingToward([x, z], [cx, cz])` gives the facing that looks at the spawn.
-- **Stairs.** `facing` = the side of the tall back (you walk up toward it). Upside-down stairs
-  (`half=top`) under eaves and in arches: the tall back toward the wall or the pier.
-- **Yaw and pitch** (screenshots, NPCs): Minecraft's own. Yaw 0 looks south, 90 west, 180 north, -90
-  east; pitch > 0 looks down. `yawToward(from, to)` computes it.
+- **Angles round the spawn.** `polar(ctx, angle, r)` returns `[x, z]`, not rounded, so use
+  `Math.round` before using them as block positions. 0 = north, 90 = east, 180 = south, 270 = west.
+- **`facing` = the side the player stands on.** An NPC looks that way, a crate opens to it, a door is
+  on that face, an arch reads from there. `facingToward([x, z], [cx, cz])` gives the facing that looks
+  at the spawn.
+- **Building something that faces a way.** Use `local(pos, facing)` from the frame:
+  - `.at(u, d, h)` is the block `u` to the right (as the players in front see it), `d` toward the
+    players and `h` up from `pos`.
+  - `.out`, `.back`, `.left` and `.right` name the directions for block states.
+  - `.across` and `.deep` are the log axes.
+
+  Write the element once in `u, d, h` and it works for all four facings. Every element example
+  uses it.
+- **Stairs.** `facing` is the side of the tall back: you walk up toward it. Upside-down stairs
+  (`half=top`) go under eaves, as sills and in arches, with the tall back toward the wall or pier.
+- **Open trapdoors** (shutters, armrests, wheels) lie flat against the side of their block opposite
+  their `facing`.
+- **Yaw and pitch** (screenshots, NPCs) are Minecraft's own: yaw 0 looks south, 90 west, 180 north
+  and -90 east; pitch above 0 looks down. `yawToward(from, to)` computes the yaw.
 - **Local and world coordinates.** Everything in the recipe, the screenshots and `placements.json`'s
-  `pos` is local (the structure's minimum corner is 0 0 0). World = the paste corner (`origin`) + local;
-  setup.md and the `world` fields use world coordinates (§12).
+  `pos` is local: the structure's minimum corner is 0 0 0. World = the paste corner (`origin`) +
+  local. setup.md and the `world` fields use world coordinates (§11).
 
 ---
 
-## 4. Working in a template
+## 4. The frame, the marks and the tools
 
-Each template is a tested layout written as a recipe in four parts: the **BRIEF** (what
-this server is), the **CUSTOM** block (what you add), the layout's numbers, and `build(api)`, which
-plans everything, levels the site, builds the places, calls your CUSTOM functions at the right
-moments and finishes.
+### 4.1 The frame (`frame/frame.mjs`)
 
-### 4.1 The BRIEF
-
-| Field | Values | Notes |
-| --- | --- | --- |
-| `name` | the server name | shown on the hero wall (spawn+) and in the files |
-| `theme` | `autumn`, `medieval`, `white-town`, `japanese`, `winter`, `fantasy`, `crimson`, `tropical`, or your own theme object (§9.2) | the whole art direction |
-| `accent` | one dye: `red`, `blue`, `light_blue`, `cyan`, `purple`, `magenta`, `pink`, `orange`, `yellow`, `lime`, `green`, `white`, `light_gray`, `gray`, `black`, `brown` | never gold; `null` = the theme's |
-| `setting` | `plains`, `island`, `valley`, `mountain`, `coast` | every setting is a floating island (§9) |
-| `seed` | a number | another number = another variation of the same plan |
-| `size` | blocks across, or `null` | `null` = recommended for the program (best) |
-| `npcs` | `[{ id, label }]` | order = priority: the first ones get the best places (nearest the first view) |
-| `boards` | `[{ id, label }]` | 3-4 on a normal spawn, 4-5 on a town |
-| `crates` | `[{ id, label, tier }]` | tiers `vote`, `common`, `uncommon`, `rare`, `epic`, `legendary`, `mythic`, `seasonal` pick the chest and the plinth colour |
-| `top3` | `[{ id, label }]` | top-3 pillar sets (statues of the top players): up to 4 (normal), 2 (spawn+, PvP) |
-| `cratesSide` | `'west'` or `'east'` | normal only: the crate arc's side (the PvP ruin takes the other) |
-| `rtp`, `pvp`, `afk` | `true` / `false` | the RTP gate, the PvP ruin, an AFK garden pool (not in the PvP template) |
-| `landmarks` | `'volcano'`, `'lighthouse'`, `'ship'`, `'statue'`, `'giant-tree'`, `'giant-palm'`, `'rock-spires'`, `'rock-arch'` | big set pieces outside the town, on the diagonals (§6.10); 1-3 |
-| `bigTrees` | 0-8 | giant trees (giant palms for tropical) |
-| `terraces` | 0-10 | raised areas, 1-4 blocks, smooth, in the free ground |
-| `rocks` | 0-30 | rock outcrops here and there |
-| `warzone` | `null` or `{ width: 40-120, moshpit, koth, label }` | a PvP band all round the spawn (not in the PvP template); the canvas grows by 2 x width |
-| `signs` | `null` or `{ style: 'slim' \| 'classic' \| 'colorful', outline, thick }` | block-letter titles (CRATES, LEADERBOARDS, PVP; the name on a spawn+ hero wall); `null` = holograms only, like real spawns |
-
-### 4.2 What `build(api)` does, in order
-
-| # | Section | Normal template (`ember-smp`) | Spawn+ (`oakhaven-hub`) | PvP (`kirin-practice`) |
-| --- | --- | --- | --- | --- |
-| 1 | plan | rings and plaza from the NPC count; reserve the plaza and the four corridors; NPC places, boards, crate arc, top-3 sets, RTP, PvP ruin, feature trees, AFK; landmarks; **CUSTOM.plan**; the ring of buildings; cottages; the warzone's pit and hill; raised areas and rocks | the plaza from the NPC count; the ring road; hero wall, crate yard, RTP, spoke road; the lots, NPCs moved in; arena, AFK; **CUSTOM.plan**; landmarks; raised areas | the NPC arc, the boards' area, the arena, crate yard, pavilion, tower, trees; **CUSTOM.plan**; landmarks; raised areas |
-| 2 | site | `buildSite`: the island, level pads, mounds, the town flat | same | same |
-| 3 | plaza | street ring, target rings, the spawn point, NPC plinths, trees in grass beds | road, plaza, the rose, cross walks, the spawn point | the plaza, the dais, the spawn point, queue pedestals |
-| 4 | sections | boards + podium, top-3, crates, RTP gate, PvP ruin, AFK, signs | hero wall, crate yard, RTP, the buildings and their walks, arena, AFK | top-3, boards, arena, crate yard, pavilion, tower, trees |
-| 5 | town | landmarks, rocks; the buildings and their walks; corridors out | landmarks, rocks | landmarks, rocks, walks, lamps, benches |
-| 6 | warzone | moshpit, KOTH, the band, its region | same | (none) |
-| 7 | life | street lamps, benches, rim bushes, props by the houses | plaza gardens, top-3, planters, stalls, benches, lamps, props | (in 4-5) |
-| 8 | end | **CUSTOM.build**, `landscapePass`, **CUSTOM.finish**, `finishSpawn` | same | same |
-
-Every part is imported at the top of each template, so your CUSTOM code can call any of them.
-
-### 4.3 The CUSTOM block
-
-```js
-const CUSTOM = {
-  plan(ctx, L) { return {} },   // reserve ground for your pieces; return what you planned (mine)
-  build(ctx, L, mine) {},       // build your pieces
-  finish(ctx, L, mine) {},      // seasonal passes and last touches
-}
-```
-
-`ctx` is the spawn context (§6.1); `L` is the plan, with the template's places in build coordinates;
-`mine` is whatever your `plan` returned. The fields of `L`:
-
-| Template | `L` holds |
+| Function | Does |
 | --- | --- |
-| all | `cx`, `cz` (the spawn column), `FY` (the floor), `S` (canvas side), `islandR` (the shore's distance from the middle), `pads` (push `{ x0, z0, x1, z1, y, blend }` to level ground), `slot(rect, pad)` (reserve a rectangle + level a pad under it; returns the rect) |
-| normal | `R1`, `R2` (the NPC rings), `Rp` (the plaza radius; the street ring runs to `Rp + 5`, the buildings from `Rp + 7`), `spawnS`, `W` (warzone width), `npcSpots`, `crates` (`{ crate, x, z, facing }`), `top3`, `boardsZ`, `rtp`, `pvp`, `afk`, `trees`, `landmarks`, `houses` (empty in `plan`: a building you push there is built with the template's ring, which is planned right after; §4.4 H), `doors` (after the buildings), `onIsland(rect, r)` |
-| spawn+ | `P` (the plaza's side), `plaza` (rect), `road` (the ring road's outer rect), `half` (the town's half width), `hero`, `crates`, `rtp`, `spoke`, `pvp`, `afk` (rects), `buildings` (every lot: `{ kind, x0..z1, facing, npc, storeys, seed }`, edit them in `plan`), `doors` (after the buildings) |
-| PvP | `Rn` (the NPC arc), `Rp` (the plaza), `arc` (the NPC places), `hero` (the boards' area), `arena`, `crates`, `pavilion`, `tower`, `trees` |
+| `startSpawn(api, { name, size, height, seed, floorY })` → `ctx` | The canvas and everything below. `size` 120-320, `height` 80-110. `floorY` defaults to about a third of the height. |
+| `finishSpawn(ctx, { safeZone, description, land })` | Removes what the game would drop (flowers on stone, lanterns hanging from air), adds the `spawn` safe region (pvp, mobs, fall damage and item drops denied; priority 10), spawn-proofs every dark walkable cell with invisible light and exports. `land(x, z)` = true on your island keeps spawn-proofing on it. |
+| `ctx` | `api`, `kit`, `b` (the builder), `name`, `slug`, `rng` (`rng()`, `rng.int(a, b)`, `rng.range(a, b)`, `rng.chance(p)`), `seed`, `S`, `H`, `FY`, `C`, `grid`, `layout` (your plan), `hologram(id, text, [x, y, z])`, `warn(msg)`, `place(fn, ...args)` (runs `fn(ctx, ...args)` and turns an error into a warning) |
+| `ctx.grid` | One tag per column: `reserve(x0, z0, x1, z1, tag, pad)`, `reserveDisc(cx, cz, r, tag)`, `free(x0, z0, x1, z1)`, `freeDisc(cx, cz, r)`, `tag(x, z)`. Reserve every place while planning, so trees and rocks placed later keep off it. |
+| `findSpot(ctx, { r, ring: [r0, r1], angles, box, tag, edge })` → `{ x, z, r }` or `null` | Finds and reserves a free disc; `angles` are tried first. |
+| `polar`, `facingToward`, `yawToward`, `local` | §3 |
 
-**The four rules of adding anything.**
+### 4.2 The marks: what the server admin needs
 
-1. **Reserve in `plan`, build in `build`.** Find room with `findSpot(ctx, { r, ring: [r0, r1], angles })`
-   (it reserves the disc it returns) or reserve a rectangle with `L.slot({ x0, z0, x1, z1, kind }, pad)`.
-   In the normal template `plan` runs before the buildings, so they fill round what you reserve. A
-   piece you build without reserving gets trees and flowers grown through it.
-2. **Give it level ground.** `L.slot` adds a pad; after `findSpot`, push a pad yourself:
-   `L.pads.push({ x0: s.x - s.r, z0: s.z - s.r, x1: s.x + s.r, z1: s.z + s.r, y: L.FY, blend: 5 })`.
-   Pads only work in `plan` (the site is built right after it).
-3. **On the plaza, no reservation is needed** (the plaza is reserved and paved), but keep off the NPC
-   places, the crates' standing areas and the walks: check `L.npcSpots` / `L.crates`, and build
-   between the rings or in the corridors' mouths.
-4. **Seasonal passes go in `finish`**, after the landscape, so they cover everything.
+A mark places no block. It records a position for `placements.json` and the commands in setup.md,
+and it keeps the cells the place needs clear: `finish()` warns, naming the cell, if anything you
+build fills one.
 
-To print a number while you work, `ctx.warn(\`Rp ${L.Rp} FY ${L.FY}\`)`: it shows in the build
-report as `spawn: Rp 40 FY 34`. Remove it before delivering.
+| Call | Records | Keeps clear |
+| --- | --- | --- |
+| `b.spawnPoint([x, FY, z], facing)` | the world spawn (players appear at `y + 1`) | 2 above it |
+| `b.markNpc(pos, facing, { id, label, role })` | an NPC standing on block `pos` (its feet at `y + 1`), its hologram 2.4 above its feet | 3 above its feet, 2 in front |
+| `b.markCrate(pos, facing, { id, label, tier, block })` | the crate block at `pos` and its hologram 1.6 above it | 2 above it, 2 in front |
+| `b.markBoard([x, y, z], facing, { id, label, size: [w, h] })` | a hologram leaderboard whose top line floats at `[x, y, z]` (fractions allowed) | its volume: `w` across, `h` down |
+| `b.markPortal(min, max, { id, label, kind, facing })` | a portal's trigger region (the cells players walk through); `kind` is `rtp`, `warp`, `pvp`, `nether` or any word | the opening |
+| `ctx.hologram(id, text, [x, y, z])` | a free-standing hologram (rules, a welcome, a district name); `y` is its top line | nothing |
+| `b.region(id, min, max, flags)` | a WorldGuard region, e.g. `{ pvp: 'allow', priority: 20 }` (above the spawn's 10 to override it) | nothing |
 
-### 4.4 Tested examples
+### 4.3 The tools
 
-All of these were built and screenshotted on the templates. Copy them, then adapt.
+The kit is in `ctx.kit` and on `b`, documented in `references/kit-api.md`. The ones every element
+uses:
 
-**A. A gateway arch on the axis, framing the first view** (normal template; the full function is
-§7.2). It stands between the two NPC rings, 17 north of the spawn, where the outer ring leaves a gap
-for the boards, so players see the boards through it.
-
-```js
-build(ctx, L, mine) {
-  const gz = L.cz - Math.round((L.R1 + L.R2) / 2)
-  gateway(ctx, { x: L.cx, z: gz, facing: 'south' })
-  ctx.hologram('welcome', '&fWelcome to &9Cheese SMP', [L.cx, L.FY + 4, gz + 2])
-},
-```
-
-`ctx.hologram(id, text, [x, y, z])` adds a free-standing hologram to setup.md (x, z = the column, y =
-the top line's height: floor + 3 or 4 reads well). Colour codes (`&f`, `&9`) are DecentHolograms'.
-
-**B. A market square in the building ring** (normal template): reserved in `plan`, so the buildings
-fill round it.
-
-```js
-plan(ctx, L) {
-  const [mx, mz] = polar(ctx, 225, L.Rp + 20).map(Math.round)   // south-west, past the street ring
-  const market = L.slot({ kind: 'market', x0: mx - 11, z0: mz - 8, x1: mx + 11, z1: mz + 8 }, 2)
-  return { market, mx, mz }
-},
-build(ctx, L, mine) {
-  const { FY, theme } = ctx
-  const m = mine.market
-  paveRect(ctx, { ...m, field: ctx.paint.field, border: theme.paving.border, corner: 2 })
-  fountain(ctx, [mine.mx, FY, mine.mz], { r: 3 })
-  stall(ctx, [mine.mx - 6, FY, m.z0 + 3], 'south', { width: 5, seed: 1 })   // facing = the customers' side
-  stall(ctx, [mine.mx + 6, FY, m.z0 + 3], 'south', { width: 5, seed: 2 })
-  stall(ctx, [mine.mx - 6, FY, m.z1 - 3], 'north', { width: 5, seed: 3 })
-  stall(ctx, [mine.mx + 6, FY, m.z1 - 3], 'north', { width: 5, seed: 4 })
-  for (const [x, z] of [[m.x0 + 1, m.z0 + 1], [m.x1 - 1, m.z0 + 1], [m.x0 + 1, m.z1 - 1], [m.x1 - 1, m.z1 - 1]]) lamp(ctx, [x, FY, z], { kind: 'post' })
-  pavePath(ctx, [[mine.mx, mine.mz], polar(ctx, 225, L.Rp + 4)], { width: 5 })   // a walk to the street ring
-},
-```
-
-**C. A winter version.** In the BRIEF: `theme: 'winter'`, `accent: 'red'` (or blue). Then:
-
-```js
-finish(ctx, L, mine) {
-  snowfall(ctx)   // snow on every open surface, swept walks, drifts, frozen pond edges
-},
-```
-
-**D. Autumn leaves.** `finish(ctx) { leafLitter(ctx, { amount: 0.2 }) }` with the autumn theme (or
-any theme: it reads as late autumn).
-
-**E. A statue outside a spawn+ town and fountains on its plaza** (spawn+ template):
-
-```js
-plan(ctx, L) {
-  const statue = findSpot(ctx, { r: LANDMARKS.statue.r + 2, ring: [L.half + 10, L.islandR - 12], angles: [225, 200, 250] })
-  if (statue) L.pads.push({ x0: statue.x - statue.r, z0: statue.z - statue.r, x1: statue.x + statue.r, z1: statue.z + statue.r, y: L.FY, blend: 5 })
-  return { statue }
-},
-build(ctx, L, mine) {
-  if (mine.statue) landmark(ctx, 'statue', { x: mine.statue.x, z: mine.statue.z, y: L.FY, subject: 'knight', facing: facingToward([mine.statue.x, mine.statue.z], [L.cx, L.cz]) })
-  for (const sx of [-1, 1]) fountain(ctx, [L.cx + sx * Math.round(L.P / 4 + 2), L.FY, L.cz + Math.round(L.P / 4)], { r: 2 })
-},
-```
-
-(A statue of the standard kinds is easier through the BRIEF: `landmarks: ['statue']`. Use CUSTOM when
-you want it in a particular place.)
-
-**F. The crates on the other side** (normal template): `cratesSide: 'east'` in the BRIEF. The crate
-arc, the outer ring's gap, the top-3 sets, the PvP ruin, its walk and the signs all follow.
-
-**G. Your own theme**: §9.2 (a desert oasis, tested).
-
-**H. A building of your own in the ring** (normal template): a museum hall with its NPC on the porch,
-reserved in `plan` and pushed into `L.houses`, so the template builds it with the others, paves its
-walk and the ring fills round it.
-
-```js
-plan(ctx, L) {
-  const [hx, hz] = polar(ctx, 135, L.Rp + 15).map(Math.round)   // south-east, in the building ring
-  const facing = facingToward([hx, hz], [L.cx, L.cz])           // the door faces the plaza
-  const [w, d] = facing === 'north' || facing === 'south' ? [21, 15] : [15, 21]
-  const x0 = hx - Math.floor(w / 2)
-  const z0 = hz - Math.floor(d / 2)
-  L.houses.push(L.slot({ kind: 'hall', x0, z0, x1: x0 + w - 1, z1: z0 + d - 1, facing, y: L.FY, seed: 99, storeys: 2, npc: { id: 'museum', label: 'Museum' } }, 2))
-  return {}
-},
-```
-
-The NPC lands in setup.md like every other. `kind` may be any of §6.7; keep the footprint inside its
-kind's range (a hall 13-27 x 11-21).
-
-### 4.5 When you must edit the template itself
-
-Only for a change to the layout that the BRIEF cannot express and CUSTOM cannot add round: a
-different ring spacing, the boards on another side, a third NPC ring, another building rhythm. Then:
-
-- Change one thing, build, look. Keep the plan-then-build order (nothing placed before `buildSite`).
-- Keep every reservation: a place you move must still be reserved, or the woodland and the buildings
-  will overlap it.
-- Keep the spawn point, the boards' sector and the first view in agreement (§1.2 rule 1).
-- If the layout itself must be different (a square plaza, a terraced hillside), start from the
-  closest example (`frost-smp` is a square plaza) or from `blank` and use §5's numbers.
+| Tool | For |
+| --- | --- |
+| `b.set(x, y, z, block)`, `b.box(min, max, block)`, `b.get`, `b.nameAt`, `b.remove` | placing and reading blocks; `block` is an id with states (`'minecraft:spruce_stairs[facing=north,half=top]'`) or a palette |
+| `kit.palette({ stone: 5, andesite: 3, tuff: 1 }, { scale, seed })` | a clumped mix; `scale` is the clump size in blocks. Give the main block most of the weight: 1 in 7 reads as texture, 1 in 3 as speckle. |
+| `kit.noise.fbm2(x, z, { scale, seed })`, `fbm3`, `coherent01`; `kit.hash01(x, y, z, seed)` | smooth noise (about ±0.6; `coherent01` is 0..1) for shapes and patches; a fixed per-block random number |
+| `kit.material(name)` | a family's blocks: `.stairs`, `.slab`, `.wall`, `.mossy`, `.cracked`, `.chiseled` (not every family has every variant) |
+| `kit.stairs(name, facing, half)`, `kit.slab(name, type)`, `kit.trapdoor`, `kit.log(name, axis)` | state strings |
+| `b.module([w, h, d])` and `b.stamp(m, corner, { rotate })` | build a piece once, place it turned |
+| `b.roof`, `b.window`, `b.door`, `b.column`, `b.arch` | building helpers (kit-api.md, `references/building/components.md`); tools, not designs: choose their sizes, materials and where they go |
+| `b.hull`, `b.figure`, the SDF shapes | statues, monuments, ships (`references/building/sculpting.md`) |
 
 ---
 
-## 5. Layouts and their numbers
+## 5. The elements, one chapter each
 
-### 5.1 Normal spawn, round plaza (FreshSMP-style; `ember-smp`)
+Each chapter has a picture (do on the left, don't on the right), the rules and the worked example
+in `elements/`. That file's header repeats the rules, and its code builds the do half of the
+picture. Read the code to see how each rule turns into blocks. Then write the element for this
+spawn:
 
-A big flat plaza with the NPCs on 1-block plinths in rings round the spawn, trees in grass beds, the
-boards and crates in the open on the plaza, big buildings all round it.
+- its own sizes, shapes and materials;
+- several variants where the spawn has several of it (no two trees, rocks or buildings alike);
+- placed where the plan says.
+
+The examples' functions can be imported. When you do, give every call its own options and make the
+result fit the spawn, so the element is designed for this place and does not repeat the example.
+
+### 5.1 The land: the island (`elements/island.mjs`)
+
+![The island: do and don't](img/island.png)
+
+- **Do:**
+  - an outline that wanders (a radius pushed in and out by noise);
+  - flat where people walk, rolling a little further out, a shore that drops 1-3 at the rim;
+  - an underside that tapers to a ragged point, deepest under the middle (half to two thirds of the
+    radius), in rock strata under 2-4 blocks of soil;
+  - a few roots hanging from the rim.
+- **Don't:** a cylinder (vertical dirt walls, a flat bottom), a perfect cone, the same depth
+  everywhere, or noise hills where the NPCs stand.
+- **The example:** `island(ctx, { cx, cz, r, depth, seed, flat, top, soil, rock })` builds the
+  island and returns `groundY(x, z)`, the walking surface's level (-1 off the island). Keep such a
+  function so the elements off the plaza stand on the ground. Pass `land` to `finishSpawn` so
+  spawn-proofing stays on the island.
+- **Make it yours:**
+  - an outline for the layout: round for a plaza, longer for a town on an axis, with bays and spurs;
+  - the theme's ground and rock (snow and stone; sand, sandstone and terracotta; moss and deepslate);
+  - flat pads for every building and place (lerp the surface to the pad's level over 3-5 blocks);
+  - hills, a ridge or a cliff behind the hero.
+- **Numbers:** for a plaza of radius `R`, the island's radius is `R` + 30-60 (room for buildings and
+  woodland); the underside is 25-60 deep.
+
+### 5.2 Ground, planting and walks (`elements/ground.mjs`)
+
+![Ground, planting and paths: do and don't](img/ground.png)
+
+- **Do:**
+  - one main ground block (grass) with 2-3 others in clumps a few blocks across, from coherent noise;
+  - flowers in drifts, one or two species per patch, grass round them;
+  - walks 3-5 wide that follow the ground, with frayed edges.
+- **Don't:** per-block speckle of five ground blocks, flowers one per block in rows, a rainbow of
+  every flower, or a 1-wide gravel line ruled across the grass.
+- **The example:**
+  - `naturalGround(ctx, cells, { mix, seed })` makes the clumped mix;
+  - `plantDrifts(ctx, area, { flowers, seed })` makes the drifts;
+  - `walk(ctx, points, { width, seed })` makes a frayed walk along points.
+- **Make it yours:**
+  - the theme's mix (podzol and coarse dirt under spruces, snow and powder snow in winter, sand and
+    dead bushes in a desert);
+  - the flower species of the season;
+  - walks that curve to the doors and gates instead of ruling straight lines.
+
+### 5.3 Paving: the plaza floor (`elements/paving.mjs`)
+
+![Paving: do and don't](img/paving.png)
+
+- **Do:**
+  - one field material for 70% or more of the floor, in 2-3 close shades clumped together;
+  - borders and inlays of a contrasting block every 7-12 blocks, as rings round the spawn or long
+    lines that point at the exits;
+  - a rose (a small figure of the best stone) where players land, a kerb where the plaza ends.
+- **Don't:** speckle, a checkerboard, one flat block over a huge area, or dotted and scattered inlay
+  blocks.
+- **The example:** `roundPlaza(ctx, { cx, cz, r, field, border, inlay, rose })`: a rose, a ring
+  round it, an inner ring near the edge, inlay lines on the four axes and a kerb.
+- **Make it yours:**
+  - the shape of your plaza (square with cut corners, a long forum, two linked circles);
+  - rings at the radii of your NPC rings (a border band under each);
+  - inlay lines toward your exits, not the four axes by habit;
+  - the theme's stones (smooth sandstone and cut red sandstone; deepslate tiles and polished
+    blackstone; mud bricks and packed mud).
+- **Numbers:** paths 5-9 wide; a plaza over 40 across needs a figure every 12-16 blocks.
+
+### 5.4 Stones and rocks (`elements/stones.mjs`)
+
+![Stones: do and don't](img/stones.png)
+
+- **Do:**
+  - groups, not singles: one big stone with one or two smaller ones against it and loose bits round
+    them;
+  - irregular shapes (an ellipsoid pushed in and out by noise), wider than tall, with a flatter top;
+  - sunk a block into the ground, in a clumped mix of 3-4 grey stones;
+  - moss on the faces that look up, plants at the foot.
+- **Don't:** a sphere of one block sitting on the grass, speckle of five materials, the same rock in
+  a row or a ring, or stones on paving, in a doorway or in front of an NPC.
+- **The example:**
+  - `boulder(ctx, pos, { r: [rx, ry, rz], seed, moss })` makes one stone;
+  - `rockGroup(ctx, pos, { size, seed })` makes the group (sizes 1 : 0.6 : 0.35).
+- **Make it yours:**
+  - sizes for the place: 1-2 at a path's edge, 4-8 at the rim, cliffs of 12+ behind the hero;
+  - the theme's stones (sandstone and terracotta in a desert, calcite and packed ice in winter,
+    blackstone and basalt for a dark theme);
+  - lean them, stack them into outcrops, or put a waterfall between two.
+
+### 5.5 Trees and bushes (`elements/trees.mjs`)
+
+![Trees: do and don't](img/trees.png)
+
+- **Do:**
+  - a trunk that flares at the foot and narrows as it climbs;
+  - 3-5 branches at different heights and directions, rising as they go out;
+  - a crown wider than tall, lumpy, with gaps;
+  - three size classes in groups; bushes at their feet;
+  - near the plaza, crowns kept above head height and off NPCs, boards and signs.
+- **Don't:** the lollipop (a pole with a ball on top), perfect spheres or cubes of leaves, every
+  tree the same height, trees in a row at equal steps, or wool as foliage.
+- **The example:**
+  - `broadleaf(ctx, pos, { height, seed, log, leaves, branches })` grows a broadleaf;
+  - `bush(ctx, pos, { r, seed, leaves })` makes a bush.
+- **Make it yours:**
+  - the theme's species, each with its own shape:
+    - a spruce is a narrow cone of tiers;
+    - a birch is tall and thin with a small crown;
+    - a cherry or an azalea is wide and low;
+    - a palm leans and has a fan of fronds;
+    - a dead tree is bare branches;
+  - a hero tree 2-3 times the others for a landmark;
+  - every tree its own seed, height and lean. Never the same tree twice in one view.
+- **Numbers:** feature trees 12-20 tall, medium 8-12, small 5-8, bushes 2-3. Woodland at 1 tree
+  per 40-80 columns, denser at the rim.
+
+### 5.6 NPC places (`elements/npc.mjs`)
+
+![NPC places: do and don't](img/npc.png)
+
+- **Do:**
+  - stand the NPC 1 block above the players' floor (2 at most);
+  - a place of its own: a plinth with a skirt of steps, something behind it (a hedge, a wall, a
+    stall's back) and an apron of its own paving in front;
+  - face it where players come from;
+  - keep 3 clear above its feet and nothing within 2 in front;
+  - light it from the sides.
+- **Don't:** a pillar 4+ up, a glass box, NPCs in a row against a wall 2 apart all alike, or anything
+  in its face (a sign, a lantern, leaves, a crate).
+- **The example:** `npcPlace(ctx, pos, facing, { label, role, plinth, skirt, apron, hedge, post })`
+  builds the place and calls `b.markNpc`. In the picture, the NPC stands on the empty middle of the
+  plinth.
+- **Make it yours:** a place that says what the NPC does:
+  - the shop at a stall with a striped awning;
+  - the auction house under an arcade;
+  - the quests by a notice board;
+  - the warps in a small gate;
+  - the store on a dais with banners;
+  - in a town, the NPC on its building's porch or behind its counter.
+
+  Vary the plinths in a ring: two or three designs, and the role in a detail.
+
+### 5.7 Leaderboards and the top-3 podium (`elements/boards.mjs`)
+
+![Leaderboards: do and don't](img/boards.png)
+
+- **Do:**
+  - a framed recess: piers at the sides, a base and a lintel, the backdrop set 1 back, dark only
+    behind the text;
+  - the text's top line 4-6 above the floor, 5 wide and 4 tall per 10-12 lines;
+  - free floor in front (6+ deep);
+  - the podium beside the boards or between them: steps 3 / 2 / 1 high with the 1st in the middle,
+    each 3 wide;
+  - hidden light.
+- **Don't:** a black wall with a glowstone grid, a flat panel in the open, a roof or anything over
+  the text, a podium of diamond, emerald and iron blocks, or statues in front of a board.
+- **The example:**
+  - `boardRecess(ctx, pos, facing, { label, width, height, stone, backdrop })` calls `b.markBoard`;
+  - `podium(ctx, pos, facing)` marks the statues with `b.markNpc` (`role: 'statue'`).
+- **Make it yours:**
+  - boards set into a building's front, a garden wall, the base of the hero monument or a
+    colonnade;
+  - 2-5 boards, the middle one bigger;
+  - the podium as steps, plinths or columns in the theme's stone;
+  - the server's name over them as a hologram, or in quartz letters only if asked.
+
+### 5.8 Crates (`elements/crates.mjs`)
+
+![Crates: do and don't](img/crates.png)
+
+- **Do:**
+  - a corner or hall of their own off the main path, every crate on its own low stage;
+  - 6+ apart centre to centre;
+  - a backdrop behind each whose accent is the tier's colour, the stone the same for all;
+  - the crate block facing the players with nothing over it, the best crate in the middle and a
+    little bigger;
+  - 3+ blocks free in front.
+- **Don't:** chests on the grass 2 apart on blocks of coloured concrete, glowstone next to them,
+  signs or roofs over them, or every crate a different style.
+- **The example:**
+  `crateStage(ctx, pos, facing, { label, tier, colour, block, stone, hero })` builds a stage, a
+  screen and lantern posts, and calls `b.markCrate`.
+- **Make it yours:**
+  - the setting: a yard behind a low wall, a vaulted hall, a market row, an arc on the plaza facing
+    the spawn;
+  - the backdrop: an arch, a niche, a shrine, a banner;
+  - the crate block for the theme (an ender chest, a chest, a barrel, a shulker box);
+  - the tier colours from the user's crate list.
+
+### 5.9 Gates and portals (`elements/gate.mjs`)
+
+![Gates: do and don't](img/gate.png)
+
+- **Do:**
+  - two piers with a base and a cap, an arch or a lintel with a keystone, 2 deep;
+  - the opening 3+ wide and 4+ high, kept clear and marked with `b.markPortal`;
+  - a threshold of its own paving, lanterns on the piers, its name on a hologram above;
+  - the gate at the end of a path or axis.
+- **Don't:** a bare obsidian rectangle, a frame of glowstone or beacons, glass, water or portal
+  blocks in the opening, or a gate in the middle of the plaza with nothing leading to it.
+- **The example:**
+  `gate(ctx, pos, facing, { label, kind, width, height, stone, threshold })` calls `b.markPortal`
+  and `ctx.hologram`.
+- **Make it yours:**
+  - the gate for its kind: a stone arch for RTP, a ruined arch behind the red line for PvP, a torii
+    in a Japanese spawn, a ship's gangway on a pirate island, a ring of stone for warps;
+  - for nether portals, a frame of crying obsidian and blackstone round real portal blocks
+    (`kind: 'nether'`).
+
+### 5.10 Buildings (`elements/buildings.mjs`)
+
+![Buildings: do and don't](img/buildings.png)
+
+- **Do:**
+  - a plinth of stone, and a frame you can read: corner posts and a top plate, posts beside the
+    door;
+  - infill lighter than the frame;
+  - depth on every face: windows with sills and shutters, a hood or porch over the door, a step up;
+  - a roof that overhangs by 1 all round, at 45 degrees or steeper, with filled gable ends, a ridge
+    and a chimney;
+  - walls 4-6 high on 5-9 wide, with a rhythm of window, post, door, post, window.
+- **Don't:** the plank box (one material, a flat roof, flush glass in a row, no plinth), glass walls
+  or concrete on a rustic spawn, or every building the same box in a row.
+- **The example:** `house(ctx, pos, facing, { w, d, h, plinth, post, fill, roof, gable })`: a timber
+  house with a gable roof along its front.
+- **Make it yours:** design each building from its job and the theme:
+  - a tavern with a sign arm and a beer-garden fence;
+  - a bank of stone with columns;
+  - a tower with string courses;
+  - a market hall open on arches.
+
+  Vary along a street:
+  - width, storeys (an upper storey jettied out by 1), roof direction (gable to the street or along
+    it), roof shape (gable, hip, half-hip), set-backs and colours.
+
+  The kit's `b.roof`, `b.window` and `b.door` save time once you know what you want
+  (`references/building/components.md`).
+- **Numbers:** houses 7-15 x 7-13, halls 13-27 x 11-21; a street of 6 has at most 2 of the same size
+  next to each other. Pave a walk from each door to the street.
+
+### 5.11 Lamps and light (`elements/lamps.mjs`)
+
+![Lamps: do and don't](img/lamps.png)
+
+- **Do:**
+  - lamps where people walk: posts along the paths every 7-10 blocks, alternating sides; at doors,
+    gates, NPC places and crates;
+  - a post with a base, a cap and an arm that holds the lantern out;
+  - hidden light for the rest: light blocks, a lantern in a hedge, shroomlight in a crown, a sea
+    lantern under carpet;
+  - warm light for warm themes.
+- **Don't:** glowstone or sea lanterns in the floor in a grid, torches every 2 blocks, or lamps in a
+  doorway, in front of an NPC or under a board's text.
+- **The example:** `lampPost(ctx, pos, armToward, { height, wood, base })`.
+- **Make it yours:**
+  - an iron post (chains and an iron bar) in a town;
+  - a stone column with a brazier (a campfire) on a castle spawn;
+  - a stone lantern in a Japanese garden;
+  - a lantern on a rope between two posts at a market.
+
+### 5.12 Props (`elements/props.mjs`)
+
+![Props: do and don't](img/props.png)
+
+- **Do:**
+  - props in groups that tell a story (barrels and a crate by a stall, a bench under a tree facing
+    the view, an anvil by the smithy);
+  - built props: a bench of stairs with armrests and a back against a hedge, a cart with wheels, a
+    table with things on it;
+  - barrels upright and on their sides;
+  - out of the way, along edges and walls.
+- **Don't:** random single blocks (an anvil, a cauldron, a hay bale, a jukebox) scattered in a grid
+  or a ring, the same prop at every lamp post, or a prop in the middle of a path.
+- **The example:** `bench(ctx, pos, facing)`, `stallGoods(ctx, pos, facing)`, `cart(ctx, pos, facing)`.
+- **Make it yours:**
+  - the theme's life: nets, barrels and a rowing boat at a dock; a forge with a grindstone at a
+    smithy;
+  - market stalls with awnings in the accent colour;
+  - pumpkins and hay in autumn, presents under a decorated tree in winter.
+
+### 5.13 Fountains and water (`elements/fountain.mjs`)
+
+![Fountains: do and don't](img/fountain.png)
+
+- **Do:**
+  - a basin with a rim (a block with a slab on it makes a seat), the water a block below the rim's
+    top and 1-2 deep;
+  - a centre that rises in tiers with water spilling down;
+  - a few lily pads near the rim;
+  - the fountain off the landing point, on an axis.
+- **Don't:** a square hole of water flush with the floor with a glowstone in it, a glass pillar
+  shooting water, or water everywhere.
+- **The example:** `fountain(ctx, pos, { r, rim, floor, centre })`.
+- **Make it yours:**
+  - a square basin with cut corners;
+  - a long canal with bridges;
+  - a well with a roof in a village;
+  - a pond with reeds and stepping stones in a park;
+  - a waterfall off the island's rim.
+
+### 5.14 Signs, holograms and the name
+
+- **Holograms are the text of a spawn:** NPC names, crate titles, board text, the rules, the
+  district names and the welcome. The marks record them (§4.2). Add your own free-standing ones
+  with `ctx.hologram(id, text, [x, y, z])`, with the top line 3 above the floor and nothing over it.
+- **Block letters** only when the user asks for them. Use them for the server's name and at most 2-3
+  titles, in quartz (never gold), at least 1/12 of the viewing distance tall, with 30+ L* contrast
+  to their board. Write them yourself, letter by letter, from a 5-high pixel font
+  (`kit.signWidth` measures a text, `b.sign` builds one: kit-api.md).
+- **Signs** (the block) for small things: shop prices, a "coming soon", a joke on a notice board.
+
+### 5.15 The PvP line, AFK and regions
+
+- **A PvP area** (a ruin, a pit, an arena, a warzone round the spawn) has a red line where it
+  starts: red concrete or red terracotta 2 wide, continuous, with a hologram warning at each
+  entrance. Add a region with `b.region('pvp', min, max, { pvp: 'allow', priority: 20 })`. A
+  warzone round the whole spawn has priority 5, with `finishSpawn(ctx, { safeZone })` set to the
+  spawn's square.
+- **An AFK area** is a quiet garden or pool with its own region (`'afk'`).
+- Keep PvP and AFK out of the first view's middle, and their entrances off the main paths.
+
+### 5.16 The hero and landmarks
+
+The hero is the one thing this server has that no other has: its mascot or logo as a statue, a
+monument to its theme, a giant tree, a ship, a lighthouse, a volcano. It stands on the spawn's axis,
+20-45 out, 1.5-2 times the height of the buildings round it. Its silhouette must read from the
+spawn, and it is lit at night. Read `references/building/sculpting.md` for statues, monuments and
+ships. Get the silhouette right from the spawn view before any detail. Add 1-3 more landmarks on
+the diagonals behind the buildings, never on the axis in front of the hero.
+
+---
+
+## 6. Layouts and their numbers
+
+### 6.1 Normal spawn, round plaza (FreshSMP-style)
+
+A big flat plaza with the NPC places in rings round the spawn, the boards and crates in the open,
+buildings all round it.
 
 | Piece | Number |
 | --- | --- |
-| Inner NPC ring | r 12, NPCs 6 apart along it, broken by 4 path mouths 9 wide (6 NPCs fit) |
-| Outer NPC ring | r 22, or wider for more NPCs: r = n x 6 / (2 pi x 0.69); it skips the boards' sector (north, 44 degrees each side) and the crates' |
-| Plaza | radius Rp = max(40, R2 + 14); kerb in the border block; a 5-wide street ring to Rp + 5 |
-| Paving rings | the rose r 0-1.5 (chiseled quartz) and 1.5-3.5 (smooth quartz), a border ring 3.5-4.6, inlay 7.4-8.4, a border band under each NPC ring (r +- 1.6), inlay at Rp - 9 |
-| Feature trees | 4, on the diagonals between the rings (+- 6 degrees, not exact), in grass beds r 4, crowns <= 8 radius, <= 16 tall |
-| Leaderboards | `boardsPlaza` 6 in from the rim, north, facing south, boards 7 apart, a top-3 podium in front of the middle one |
-| Top-3 pillars | beside the boards at +-34 degrees (then +-52, or 70 if that lands on the crates), 6 in from the rim, facing the spawn |
-| Crates | an arc 6 in from the rim, west (or east), 6 apart along the arc, each facing the spawn |
-| RTP gate | on the south axis just outside the plaza (`b.portal`, a 5-wide opening) |
-| PvP ruin | opposite the crates beyond the street: `pvpArena` 22-32 square with its red line and region |
-| Buildings | a ring from Rp + 7 out, facing the plaza: every third a hall (19-23 x 13-15), now and then a tower (9 x 9, never two side by side), houses 13-15 x 11-13 of 2-3 storeys; step on by width + 4; one-storey cottages further out where there is room |
-| Size | 2 x (Rp + 70): 220 for up to ~14 NPCs |
+| Inner NPC ring | r 10-14, NPCs 6 apart along it, broken by 4 path mouths 9 wide |
+| Outer NPC ring | r 20-26, or wider for more NPCs: r = n x 6 / (2 pi x 0.7); leave out the boards' sector and the crates' |
+| Plaza | radius 30-45; a kerb; a street ring 5 wide round it |
+| Paving | the rose r 0-1.5, a ring at 3.5-4.5, a border band under each NPC ring, inlay lines to the exits |
+| Feature trees | 4-6 on the diagonals between the rings (not exact), in grass beds r 3-4, crowns kept off the places |
+| Boards | north on the axis, 6 in from the rim, facing the spawn, a podium beside or between them |
+| Crates | an arc 6 in from the rim on one side, 6-7 apart, each facing the spawn |
+| RTP gate | south on the axis, at the plaza's rim |
+| Buildings | a ring from the street out, facing the plaza: a hall every third or so, now and then a tower (never two side by side), houses of 2-3 storeys; smaller ones further out |
+| Size | 2 x (plaza radius + 60-70): 200-220 for up to ~14 NPCs |
 
-### 5.2 Normal spawn, square plaza (`frost-smp`)
+### 6.2 Spawn+ town (DonutSMP-style)
 
-A 61-square plaza on a cross of avenues, the NPCs in two lines either side of a central aisle (6
-apart, 9 off the axis), the hero 19 north of the spawn on the axis (a hand-written Christmas tree),
-the boards on one side and the crates on the other, cabins in a square ring outside the street. Few,
-long, straight inlay lines (the aisle, a frame 16 out): dotted or scattered inlay reads as noise.
+A square or round hub plaza with a ring road (5 wide) and a band of lots round it. Every NPC gets
+its own building facing the road.
 
-### 5.3 Spawn+ town (DonutSMP-style; `oakhaven-hub`)
+- The hub has a centre piece on each side: the hero wall with the boards and the name, the crate
+  yard or hall, the RTP gate, a road to the arena.
+- Lots either side are 11-15 wide, 2-4 apart, 11-13 deep and 1-2 back from the road. Halls stand on
+  the corners.
+- The first NPCs (the shop, the auction house) get the buildings in the first view.
+- Dress the plaza: gardens in the corners, stalls along the sides, planters, benches facing the rose.
 
-A square hub plaza (side P) with a ring road (5 wide) and a band of lots (16 deep) round it; every
-NPC gets its own building facing the road.
+### 6.3 PvP lobby
 
-- Each side has a centre piece: north the hero wall (boards + the name), west the crate yard, south
-  the RTP gate, east the spoke road to the PvP arena. Lots either side, 11-15 wide, 2-4 apart,
-  11-13 deep, 1-2 back from the road. Halls on the four corners with forecourts.
-- P grows until every NPC has a lot (14 NPCs → P 70). The town is P + 10 + 32 across; ~40 more each
-  side for the arena, the AFK park and the woodland.
-- The first NPCs (shop, auction) get the north corner halls, then the north lots (the first view),
-  then west and east, then south. Spare lots become houses.
-- The plaza is dressed: quarter-round gardens in the corners (a feature tree, flowers, a bench facing
-  the rose, a lamp), market stalls along the sides, planters on the rose's diagonals, a rose ring
-  round the spawn with cross walks to the road.
+- A raised round spawn dais (r 4, a stair skirt) facing north.
+- The queue NPCs on pedestals in a 150-degree arc, 7 apart, at radius Rn = max(11, 7N x 180 /
+  (pi x 150)). The plaza's radius is Rn + 5.
+- The boards behind the plaza rim, with podiums either side.
+- The arena south behind its red line, the crates to a side.
+- The canvas is 2 x (plaza radius + 36).
 
-### 5.4 PvP lobby (`kirin-practice`)
+### 6.4 Composing your own
 
-A raised round spawn dais (r 4, a stair skirt) facing north; the queue NPCs on pedestals in a
-150-degree arc (radius Rn = max(11, 7N x 180 / (pi x 150)), 7 apart), the plaza Rp = Rn + 5; the
-boards 5 behind the plaza rim with top-3 pillars either side; the FFA arena south behind its red
-line; the crates west; a store pavilion and a tower east. Canvas 2 x (Rp + 36).
+Mix them: a round plaza with a ring of shops, a warzone round any of them, a town on a mountain
+terrace, a harbour town on a coast. Keep the rules:
 
-### 5.5 Composing your own
+- one hero on the spawn's axis;
+- everything important within 15-25 blocks of the spawn (25-75 in a town);
+- places that face the spawn, and corridors out;
+- nothing mirrored exactly, at most 3 identical pieces in one view.
 
-Mix them: a round plaza with a spawn+ ring of shops, a warzone round any of them, a town on a
-mountain terrace. Start from the closest example or `blank`, and keep the rules: one hero on the
-spawn's axis, everything important within 15-25 blocks of the spawn (25-75 for a town), places that
-face the spawn, corridors out, nothing mirrored exactly, at most 3 identical modules in one view.
-The order of work never changes: plan (reserve everything, fill `ctx.layout` and the pads) →
-`buildSite` → paving and the spawn point → the gameplay places → buildings and their walks → set
-pieces, rocks, trees, props → `landscapePass` → seasonal passes → `finishSpawn`.
+The order of work never changes:
 
----
-
-## 6. The parts, place by place
-
-Every part takes `ctx` first; positions are ground block levels (things start at `y + 1`). Each
-file in `parts/` starts with a header that lists its functions and options: read it when you need
-more than this table.
-
-### 6.1 The frame (`spawn.mjs`)
-
-| Function | Does |
-| --- | --- |
-| `startSpawn(api, { name, size, height, theme, accent, setting, seed, floorY })` → `ctx` | the builder and everything below; `height` 90-110 |
-| `finishSpawn(ctx, { safeZone, description })` | cleanup, the `spawn` safe region (pvp, mobs, fall damage, item drop denied), spawn-proofing, `finish()`; warns if there is no world spawn |
-| `ctx` | `b` (the builder), `kit`, `theme`, `rng` (`rng()`, `rng.int(a, b)`, `rng.range(a, b)`, `rng.chance(p)`), `S`, `H`, `FY`, `C`, `M` (spawn-kit materials for `b.npcSpot` and friends), `paint.ground/field/path/wall` (clumped palettes), `grid`, `layout`, `site`, `hologram()`, `warn()`, `place(fn, ...args)` (runs a part and turns an error into a warning) |
-| `ctx.grid` | one tag per column: `reserve(x0, z0, x1, z1, tag, pad)`, `reserveDisc(cx, cz, r, tag)`, `free(x0, z0, x1, z1)`, `freeDisc(cx, cz, r)`, `tag(x, z)` |
-| `findSpot(ctx, { r, ring: [r0, r1], angles, box, tag, edge })` → `{ x, z, r }` or `null` | finds and reserves a free disc; `angles` are tried first |
-| `polar(ctx, angle, r)`, `facingToward(from, to)`, `yawToward(from, to)` | §3 |
-
-### 6.2 The site and paving (`site.mjs`)
-
-| Function | Does |
-| --- | --- |
-| `buildSite(ctx, { plaza, pads, mounds, flat, setting, shape, radius, depth })` → `site` | the floating island: the plaza flat at FY, level pads (`{ x0, z0, x1, z1, y, blend }`), mounds (`{ x, z, r: 8-14, h: 1-4 }`), `flat(x, z)` columns kept at FY, `shape: 'square'` for a warzone |
-| `site.groundY(x, z)` | the walking surface's block level (-1 off the island); use it for anything off the plaza |
-| `paveRound(ctx, { cx, cz, r, rings, kerb, field, wobble })` | a round plaza; `rings: [{ r0, r1, paint }]` |
-| `paveRect(ctx, { x0, z0, x1, z1, border, field, corner })` | a rectangular one |
-| `pavePath(ctx, points, { width, paint, fray })` | a walk following the ground, frayed edges by default |
-
-### 6.3 NPCs
-
-| Function | Does |
-| --- | --- |
-| `ringPoints(ctx, { r, n, skips: [[angle, halfWidth]] })` | n points round a ring, leaving out sectors; sorted nearest north first |
-| `npcPlinth(ctx, npc, [x, z], { lookAt })` | a quartz plinth with a stair skirt; the NPC faces the spawn (normal spawns) |
-| `b.npcSpot(pos, facing, { ...ctx.M, ...npc, style, size })` | the kit's places: `pedestal` (`size: 3`), `alcove` (in a wall), `booth`, `kiosk`, `none` (record only) |
-| `building(ctx, { kind, ..., npc })` | an NPC on a porch, behind a counter or under a roof (spawn+) |
-
-An NPC is `{ id, label }` (`role` optional). Keep them 4-7 apart, 2 clear in front, 3 of air above.
-
-### 6.4 Leaderboards and top 3 (`features.mjs`, `buildings.mjs`)
-
-| Function | Does |
-| --- | --- |
-| `boardsPlaza(ctx, { cx, z, facing, boards, gap })` | hologram boards over low lit plinths, 7 apart, the middle one raised, a top-3 podium (statues) 3 in front of it: the normal-spawn way |
-| `top3Pillars(ctx, { x, z, facing, id, label })` | 2nd / 1st / 3rd columns (4 / 6 / 3 tall) 4 apart with statue NPCs; the title as a hologram |
-| `heroWall(ctx, { x0, x1, z0, z1, y, cx, z, width, facing, boards, name })` | boards set into a themed wall with towers, the server name in quartz letters on it (`name: null` for none): the spawn+ hero |
-| `b.leaderboards(pos, facing, { count, labels, podium, style })` | the kit's framed board wall (`style: 'wall'` or `'row'`) |
-
-### 6.5 Crates (`features.mjs`)
-
-| Function | Does |
-| --- | --- |
-| `crateCourt(ctx, { points, facings, crates })` | crates on 3 x 3 carved plinths (tier-coloured core, trim stairs, lanterns either side) at your points, a clear standing area in front |
-| `crateYard(ctx, { x0, z0, x1, z1, facing, crates }, { hedge, lamp })` | a paved yard with a hedge behind and lamps, the crates in a row 6 apart facing its open side |
-| `b.crate(pos, facing, opts)`, `b.crateRow(start, facing, crates, { spacing })` | the kit's crate stations (a dais, an arch over the hero crate) |
-
-A crate is `{ id, label, tier }`. Keep them at least 5-6 apart, 3 x 3 clear in front, open sky above.
-
-### 6.6 Gates, arenas, AFK
-
-| Function | Does |
-| --- | --- |
-| `b.portal([x0, y0, z], [x1, y1, z], { ...ctx.M, id, label, kind, facing })` | a gate round a 1-thick opening, recorded as a trigger region; `kind`: `rtp`, `warp`, `pvp` (pointed arch), `nether` |
-| `pvpArena(ctx, { x0, z0, x1, z1, y, entrance })` | a ruined colonnade behind a red line with a rules hologram and the `pvp` region |
-| `afkPark(ctx, { x0, z0, x1, z1, y })` | a garden pool (~17 x 17) with the `afk` region |
-| `b.region(id, min, max, flags)` | any region: `{ pvp: 'allow', priority: 20 }`; above the spawn's 10 to override it |
-
-### 6.7 Buildings (`buildings.mjs`)
-
-`building(ctx, { kind, x0, z0, x1, z1, y: FY, facing, seed, storeys, npc, label })` → `{ door, bounds, top }`.
-
-| Kind | Footprint (w along the street x d) | Notes |
-| --- | --- | --- |
-| `house` | 7-15 x 7-13 | 1-3 storeys, porch, chimney, a furnished ground floor |
-| `shop` | 7-15 x 7-13 | opens its front on a counter under a striped awning in the accent |
-| `hall` | 13-27 x 11-21 | entrance pavilion, grand door, corner tower |
-| `tower` | 5-9 square | string courses, a belfry, the theme's roof (a pagoda in japanese) |
-| `arcade` | 7-13 x 9-40 | a colonnade |
-| `pavilion` | 7-15 square | an open roof on columns |
-
-Each theme has its own wall system (timber, stone, log, quartz, machiya), roof and dressing; the seed
-varies the plan, roof, porch, chimney and windows, so neighbours are siblings. Pave a walk from each
-`door` to the street. Vary sizes, storeys and set-backs along a street.
-
-### 6.8 Trees, planting and props (`landscape.mjs`)
-
-| Function | Does |
-| --- | --- |
-| `featureTree(ctx, [x, y, z], { size, style, seed, maxRadius, maxHeight })` | hand-shaped trees with dressed ground; styles `autumn`, `oak`, `cherry`, `snowy_spruce`, `spruce`, `blossom`, `pine`, `birch`, `dark_oak`, `azalea`, `palm` |
-| `grassBed(ctx, x, z, r)` | a grass bed in the paving with a slab rim, for a tree on the plaza |
-| `planter(ctx, [x, y, z], { r, tree })`, `bushAt`, `hedge(ctx, [x0, z0], [x1, z1], y, { height, gaps })` | planting |
-| `lamp(ctx, [x, y, z], { kind: 'post' \| 'wall' \| 'hanging', facing })` | themed lamps |
-| `bench(ctx, [x, y, z], facing, { length })` | the sitter faces `facing` |
-| `fountain(ctx, [x, y, z], { r })`, `well(ctx, [x, y, z], { facing })` | water features |
-| `stall(ctx, [x, y, z], facing, { width, colour })` | a market stall; [x, z] = the counter's middle, the customers on `facing` |
-| `clutter(ctx, [x, y, z], kind)` | `barrels`, `crates`, `hay`, `logs`, `cart`, `firewood`, `pots` by doors |
-| `rockOutcrop`, `stoneLantern`, `bambooClump`, `torii(ctx, [x, y, z], facing, { width })` | details (japanese) |
-| `palmTree(ctx, [x, y, z], { height, lean })` | a 7-12 tall palm |
-| `landscapePass(ctx)` | LAST before the seasons: woodland on every free column (densest at the rim and on hills, low in front of features), bushes, rocks, flower drifts, theme details, the island's rim and underside |
-
-### 6.9 Raised areas, rocks and set pieces round the town (`extras.mjs`)
-
-The templates do this from the BRIEF (`landmarks`, `bigTrees`, `terraces`, `rocks`):
-`planLandmarks(ctx, { kinds, ring, islandR })` before the buildings, `planGround(ctx, { terraces, rocks,
-islandR, inner })` last while planning, `buildExtras(ctx, { landmarks, rocks, mounds })` before the
-landscape. Raised areas are smooth 1-4 block rises the woodland still grows on.
-
-### 6.10 Landmarks (`landmarks.mjs`)
-
-`landmark(ctx, kind, { x, z, y, seed, facing, ...opts })` → `{ r, top }`. Reserve `LANDMARKS[kind].r + 2`
-with `findSpot` before the buildings; `facing` toward the spawn; level a pad. 1-3 per spawn, on the
-sightlines from the plaza (the diagonals behind the building ring), never on the axis in front of the
-hero.
-
-| Kind | Ground radius | What |
-| --- | --- | --- |
-| `volcano` | 26 | a 30-tall cone with ridges, a crater with a contained lava pool, magma rivulets, smoke |
-| `ship` | 22 | a galleon (`kind: 'sloop'` for a small one) moored broadside in its own basin, with a jetty |
-| `giant-tree` | 12 | a 28-34 tall tree of the theme's feature style with buttress roots |
-| `rock-arch` | 12 | a natural arch you look through from `facing` |
-| `rock-spires` | 10 | 3-5 stone pillars with strata and moss caps |
-| `lighthouse` | 8 | a striped tower (`stripe`, default red), gallery, lantern room |
-| `giant-palm` | 8 | a 20-27 tall palm |
-| `statue` | 7 | `subject: 'parrot'` (a giant macaw, tropical's default) or `'knight'` on a carved plinth |
-
-### 6.11 The warzone (`warzone.mjs`)
-
-The canvas is the spawn square plus a band of width W (40-120) all round: `size = spawnSize + 2W`, the
-spawn square `[W, W, W + spawnSize - 1, W + spawnSize - 1]`, the site `shape: 'square'`.
-`warzoneBand(ctx, { spawn, label, keepClear })` draws the red concrete line 2 wide just outside the
-spawn square, continues the corridors, adds holograms and cover; `moshpit(ctx, [x, z], { r: 8-12 })`
-(a terraced sunken pit) and `koth(ctx, [x, z])` (a stepped hill with a capture zone) add their
-regions. Then `b.region('warzone', [0, 0, 0], [S - 1, H - 1, S - 1], { pvp: 'allow', priority: 5 })` and
-`finishSpawn(ctx, { safeZone: spawnSquare })`. The templates do all of it from `BRIEF.warzone`.
-
-### 6.12 Block-letter signs (`signs.mjs`; off unless asked)
-
-Real spawns label with holograms; letters are for the server name and at most 2-3 titles.
-`signStand(ctx, text, [x, z], facing, { style, outline, thick, posts, y })`: `slim` (small quartz
-letters smoothed with stairs), `classic` (5-tall quartz with stair bevels on a dark board), `colorful`
-(accent concrete outlined in terracotta); `'auto'` picks for the theme; `posts: false` sets it
-against your own wall. `signStyle(ctx, text, opts).width` measures it first. Letters at least the
-viewing distance / 12 tall, 30+ L* contrast to the board.
-
-### 6.13 Seasons (`seasons.mjs`)
-
-`snowfall(ctx, { paved: 0.35, natural: 0.97, deep: 0.3, ice: true })`: snow layers on every open
-surface (full blocks, leaves, top slabs, upside-down stairs), deeper in drifts, swept walks, frozen
-water edges; NPC plinths, crates and the spawn rose stay clear. `leafLitter(ctx, { amount: 0.25 })`:
-autumn carpets in clumps on natural ground and the plaza edges. Both in `CUSTOM.finish`.
-
-### 6.14 Holograms, regions, safety
-
-- `ctx.hologram(id, text, [x, y, z])` for free-standing text (rules, district names, a welcome). NPC,
-  crate and board holograms are recorded by their parts.
-- `b.region(id, min, max, flags)` for every PvP or AFK zone, priority above the spawn's 10.
-- `finishSpawn` spawn-proofs (invisible light in every dark walkable cell) and adds the safe region.
+1. Plan: reserve everything, fill `ctx.layout`.
+2. The island.
+3. The paving and the spawn point.
+4. The places.
+5. Buildings and their walks.
+6. Rocks, trees, planting and props.
+7. Text.
+8. `finishSpawn`.
 
 ---
 
-## 7. Writing your own structures
+## 7. Materials for a theme
 
-Anything the parts do not have, you build: the server's mascot, a monument, a gateway, a portal hall,
-a Christmas tree (`frost-smp.mjs` → `christmasTree`). Write a function in `spawn.mjs` below
-`build()` (or a new file in `parts/`) and call it from `CUSTOM.build`.
+A theme is your choice of blocks for each role. Write it down in the plan, then use it in every
+element:
 
-### 7.1 The rules that keep it hand-built
+- the ground mix;
+- the paving's field, border and inlay;
+- the wall stone and the wall's infill;
+- the timber;
+- the roof;
+- the trim (it needs stairs and slabs);
+- the tree species;
+- the flowers;
+- the light;
+- the one accent colour.
 
-- **Silhouette first.** Get the outline right from the player's distance before any detail;
-  screenshot it from the spawn and from the side.
-- **Materials from the theme**, so it fits any spawn: `ctx.paint.wall` (the wall field, clumped),
-  `theme.wall.base`, `kit.material(theme.trim)` (stairs and slabs), `kit.material(theme.kit.primary)`,
-  `` `minecraft:${theme.accent}_glazed_terracotta` `` for the one accent point.
-- **Depth.** Nothing flat: a base course, a cornice that overhangs, reveals, upside-down stairs under
-  edges. Partial blocks for 16-28% of what you see.
-- **3-5 shades per material, in clumps** (`kit.palette({ a: 4, b: 1 }, { scale: 3 })`), never
-  per-block random speckle.
-- **Light it** with hidden or fitted sources (a lantern on a cap, one hanging on a chain, light under
-  slabs).
-- **Author once, stamp turned.** Build it in a module whose front is south, then
-  `b.stamp(m, corner, { rotate })` with `{ south: 0, west: 1, north: 2, east: 3 }[facing]`. A square
-  module keeps its footprint at every turn, so you can stamp it centred on `[x, z]`.
-- **Reserve its ground and give it a pad** (§4.3) unless it stands on the plaza.
+Some starting points:
 
-### 7.2 The worked example: a gateway arch
+| Theme | Walls | Roofs | Trees | Accent |
+| --- | --- | --- | --- | --- |
+| Medieval | stone bricks and white terracotta plaster with spruce or dark oak timber | dark oak or deepslate tiles, steep gables | oak, birch | red or blue |
+| Autumn | stone bricks, spruce timber | steep dark oak | oaks with orange, red and yellow crowns (acacia, cherry, mangrove leaves mixed) | orange |
+| White town | smooth quartz with deepslate frames | deepslate tile hips | oak | blue |
+| Japanese | white plaster, dark oak | curved deepslate roofs | cherry, pine | red |
+| Winter | spruce log cabins | steep spruce under snow | snowy spruce | red |
+| Fantasy | calcite, birch timber | prismarine bell roofs | azalea, blossom | purple |
+| Dark / lifesteal | polished blackstone bricks, crimson stems | nether bricks | crimson fungi | red |
+| Tropical | white terracotta, sandstone, jungle timber | bamboo, thatch of hay | palms | light blue |
+| Desert | smooth and cut sandstone, cut red sandstone | flat with parapets, domes | palms, cacti | cyan |
 
-Tested on the normal template (§4.4 A). A 13-wide, 9-tall arch with a 7-wide opening, two piers on a
-base course, a stepped curve in the wall's own stone, a band with an accent keystone, an overhanging
-cornice with a slab cap, lanterns on the piers and one hanging in the opening.
+Rules:
 
-```js
-// A gateway arch over a walk. [x, z] = the middle of the arch, facing = the side players come from.
-function gateway(ctx, { x, z, facing = 'south' }) {
-  const { b, kit, theme, FY } = ctx
-  const trim = kit.material(theme.trim) // the cornice
-  const wall = kit.material(theme.kit.primary) // the curve, in the wall's own stone when it has stairs
-  const curve = wall?.stairs ? wall : trim
-  const body = ctx.paint.wall
-  const m = b.module([13, 10, 13]) // square, so every turn keeps the footprint; the arch runs along x at z 5-6
-  for (const x0 of [1, 10])
-    for (let px = x0; px <= x0 + 1; px += 1)
-      for (let z = 5; z <= 6; z += 1) {
-        m.set(px, 0, z, theme.wall.base) // a base course, then the wall
-        for (let y = 1; y <= 6; y += 1) m.set(px, y, z, body)
-      }
-  for (let z = 5; z <= 6; z += 1) {
-    // the curve: upside-down stairs stepping in from each pier (facing = the tall back, toward the pier)
-    for (const [y, u] of [[3, 0], [4, 1], [5, 2]]) {
-      m.set(3 + u, y, z, `${curve.stairs}[facing=west,half=top]`)
-      m.set(9 - u, y, z, `${curve.stairs}[facing=east,half=top]`)
-      for (let k = 0; k < u; k += 1) {
-        m.set(3 + k, y, z, body)
-        m.set(9 - k, y, z, body)
-      }
-    }
-    m.set(6, 5, z, `${curve.slab}[type=top]`)
-    for (let x = 3; x <= 9; x += 1) m.set(x, 6, z, body) // the band over the opening
-  }
-  m.set(6, 6, 6, `minecraft:${theme.accent}_glazed_terracotta`) // the keystone: the one accent
-  // the cornice: a course of the trim with upside-down stairs overhanging front and back, a slab cap
-  for (let x = 0; x <= 12; x += 1) {
-    for (const z of [5, 6]) m.set(x, 7, z, trim.block)
-    m.set(x, 7, 7, `${trim.stairs}[facing=north,half=top]`)
-    m.set(x, 7, 4, `${trim.stairs}[facing=south,half=top]`)
-    if (x !== 1 && x !== 11) for (const z of [5, 6]) m.set(x, 8, z, `${trim.slab}[type=bottom]`)
-  }
-  m.set(1, 8, 6, 'minecraft:lantern[hanging=false]')
-  m.set(11, 8, 6, 'minecraft:lantern[hanging=false]')
-  m.set(6, 4, 6, 'minecraft:chain[axis=y]')
-  m.set(6, 3, 6, 'minecraft:lantern[hanging=true]')
-  b.stamp(m, [x - 6, FY + 1, z - 6], { rotate: { south: 0, west: 1, north: 2, east: 3 }[facing] })
-}
-```
-
-What it teaches: the module frame (y 0 = the first block above the floor), stairs facing their tall
-back toward the pier for a curve, a band and a cornice that overhangs on both faces, one accent
-point, fitted lights. Scale it by changing the opening and the pier width; keep the curve's steps
-one block each.
-
-### 7.3 Bigger pieces
-
-For statues, monuments, ships, crystals and clouds read `references/building/sculpting.md` (`b.hull`,
-`b.figure`, SDF shapes, `b.shadeSurface`); for towers, roofs, windows and doors
-`references/building/components.md` and `kit-api.md` (`b.roof`, `b.window`, `b.door`, `b.column`,
-`b.arch`). A logo or mascot statue must read as its icon at a glance from the spawn: a clean
-silhouette, 15-30 tall, 3-5 shades, lit at night.
+- 3-5 shades per material, in clumps, with the main one weighted most.
+- Partial blocks of the same family for depth.
+- The accent at 5% or less.
+- No gold anywhere; lettering in quartz.
+- Plants grow only on soil (grass, dirt, moss, podzol): on sand, use dead bushes, cacti and an oasis.
 
 ---
 
-## 8. The cookbook: what the user asks, and what you change
+## 8. The cookbook: what the user asks, and what you build
 
-| They ask | You change |
+| They ask | You build |
 | --- | --- |
-| "Make a winter version" | BRIEF `theme: 'winter'` (log cabins, snowy roofs and spruces), accent red or blue; `snowfall(ctx)` in `CUSTOM.finish` (§4.4 C); a decorated hero tree like `frost-smp`'s |
-| "Autumn feel" | `theme: 'autumn'`, `leafLitter(ctx)` in finish; pumpkins and hay by doors (`clutter`) |
-| "Christmas" | winter + snowfall + a decorated tree on the axis (`frost-smp.mjs` → `christmasTree`) + red and white accents |
-| "Halloween" | `theme: 'autumn'` or `crimson`, accent orange, `leafLitter`, jack o'lanterns by doors, a dead tree on the axis |
-| "Tropical / pirate" | `theme: 'tropical'`, `setting: 'coast'`, landmarks `ship`, `lighthouse`, `volcano`, `giant-palm` (`pirate-isle` shows them all) |
-| "Lifesteal / dark / nether" | `theme: 'crimson'` (blackstone, crimson wood, nether bricks, fungi trees) |
-| "Desert", "candy", "sci-fi" or any look not listed | your own theme on the closest one (§9.2) |
-| "Add more stuff" | first the BRIEF's options (landmarks, big trees, raised areas, rocks, AFK, top-3 sets), then CUSTOM pieces: a market (§4.4 B), fountains, a gateway (§7.2), statues, a garden, a second tree ring, stalls along the street; keep the plaza readable and the corridors free |
-| "It looks empty" | planters and benches between the rings, inlay lines, a fountain, more trees in grass beds; on the land: `terraces`, `rocks`, `bigTrees` |
-| "It looks crowded" | fewer props, widen the rings (bigger `size`), keep the corridors 9 wide, lower `maxRadius` of the plaza trees |
-| "Bigger" / "smaller" | BRIEF `size` (normal 120-320, spawn+ 160-320, PvP 60-160); below the recommendation the town gets tight |
-| "More NPCs" / "fewer" | add or remove in `npcs`: the rings, the town or the arc resize by themselves |
-| "Move the crates" | normal: `cratesSide: 'east'` (§4.4 F); anything else: §4.5 |
-| "Their logo / mascot" | a hand-written statue (§7.3) as the hero on the axis, or replacing the gateway |
-| "A welcome message", "rules" | `ctx.hologram(...)` (§4.4 A) |
-| "Signs on the sections" | BRIEF `signs: { style, outline, thick }` (§6.12) |
-| "A warzone", "a moshpit", "KOTH" | BRIEF `warzone: { width, moshpit, koth, label }` |
-| "Another variation" | another `seed` |
-| "A different layout" | §4.5 and §5: re-plan in brief.md first |
-| "A night look" | lamps and hidden lights are already there and `finishSpawn` lights every dark cell; show it with `node scripts/render.mjs --nbt <file> --lighting night` (needs Playwright, SKILL.md Setup); add `lamp`s where streets look dark |
-| "A building for X" (a museum, a guild hall, a bank) | §4.4 H, with an NPC for it |
-| "Make it more unique" | a hero only this server has (their mascot, a themed monument), one set piece on a diagonal sightline, a story detail (a statue of the season-1 champion, a "coming soon" scaffold) |
+| "Make a winter version" | snow on every open top (snow layers, deeper in drifts, walks swept), snowy spruces, frozen water edges, log cabins with steep roofs; a decorated tree as the hero |
+| "Autumn feel" | autumn crowns, leaf litter (carpets in clumps on the ground), pumpkins and hay by doors |
+| "Christmas" | winter, plus a decorated tree on the axis (lights in the crown, presents under it), red and white accents |
+| "Halloween" | autumn, orange accent, jack o'lanterns, a dead tree on the axis, cobwebs in corners |
+| "Tropical / pirate" | a coast with a beach, palms, a ship moored at a jetty, a lighthouse |
+| "Desert", "candy", "sci-fi" or any look | your own theme (§7) |
+| "Add more stuff" | first more places with a job (an AFK garden, a market, a top-3 set), then set pieces: a fountain, a gateway on the axis, statues, a garden, stalls along the street; keep the plaza readable and the corridors free |
+| "It looks empty" | planters and benches between the rings, inlay lines, a fountain, tree groups in grass beds, rocks at the rim |
+| "It looks crowded" | fewer props, wider rings (a bigger canvas), corridors 9 wide |
+| "Bigger" / "smaller" | the canvas `size`, then re-plan the rings and the building band |
+| "More NPCs" / "fewer" | re-plan the rings (§6.1's formula) or the lots |
+| "Move the crates" | re-plan: move them to the other side and turn them to face the spawn |
+| "Their logo / mascot" | a statue as the hero (§5.16) |
+| "A welcome message", "rules" | `ctx.hologram(...)` |
+| "Signs on the sections" | holograms by default; block letters only if they insist (§5.14) |
+| "A warzone", "a moshpit", "KOTH" | §5.15, with a sunken pit or a stepped hill and their regions |
+| "Another variation" | a new seed, and new designs for the places, not only new positions |
+| "A night look" | lamps along every walk; show it with `node scripts/render.mjs --nbt <file> --lighting night` |
+| "Make it more unique" | a hero only this server has, a set piece on a diagonal sightline, a story detail (a statue of the season-1 champion, a "coming soon" scaffold) |
 
 ---
 
-## 9. Themes, and making your own
+## 9. Looking at it: screenshots, critique, fixes
 
-### 9.1 The eight themes
+### 9.1 The shot list
 
-| Theme | Walls | Roofs | Trees | Accent | Default setting |
-| --- | --- | --- | --- | --- | --- |
-| `autumn` | stone bricks, spruce timber | steep dark oak | red, orange, yellow autumn trees | orange | island |
-| `medieval` | stone and white plaster with dark timber | deepslate tile gables | oak, birch | red | valley |
-| `white-town` | smooth quartz, dark deepslate frames | deepslate tile hips | oak | blue | coast |
-| `japanese` | white plaster, dark oak (machiya) | East-Asian deepslate roofs | cherry, pine | red | island |
-| `winter` | spruce log cabins | steep snowy spruce | snowy spruce, pine | red | mountain |
-| `fantasy` | calcite, birch timber | prismarine bell roofs | blossom | purple | island |
-| `crimson` | polished blackstone bricks, crimson stems | nether brick | crimson fungi | red | island |
-| `tropical` | white terracotta, sandstone, jungle timber | bamboo | palms | light blue | coast |
-
-Normal spawns use `plains` unless the BRIEF says otherwise (real normal spawns are flat). The
-settings: `plains` (nearly flat), `island` (gentle rolling), `valley` (hills round the rim),
-`mountain` (a rocky ridge behind the hero, north-west), `coast` (a lake cove south-east with
-beaches). Every setting is a floating island, so it pastes into a void world or the sky of any world.
-
-### 9.2 Your own theme
-
-Give the BRIEF a theme object built on the closest theme. The roles you give replace the base's;
-`paving`, `wall`, `trees`, `kit` and `buildings` merge one level deep; the buildings and the
-landscape keep the base's style unless `buildings` overrides it. Every role is listed at the top of
-`parts/themes.mjs`, every building style option in `parts/buildings.mjs` (`STYLES`). Tested:
-
-```js
-theme: {
-  base: 'tropical', // palms, sand, the coast; the roles below replace its own
-  label: 'Desert oasis',
-  ground: { sand: 10, red_sand: 1 },
-  paving: { field: { smooth_sandstone: 4, cut_sandstone: 2, sandstone: 1 }, border: 'cut_red_sandstone', path: { sand: 2, smooth_sandstone: 1 }, inlay: 'cyan_terracotta' },
-  wall: { field: { smooth_sandstone: 4, cut_sandstone: 1, sandstone: 1 }, quoin: 'chiseled_sandstone', base: 'cut_red_sandstone' },
-  timber: 'stripped_acacia_log', wood: 'acacia', plaster: 'smooth_sandstone',
-  roof: 'smooth_sandstone', trim: 'smooth_red_sandstone',
-  trees: { feature: 'palm', forest: [[3, 'palm'], [1, 'azalea']] },
-  flowers: [[3, 'dead_bush'], [1, 'short_grass']],
-  kit: { primary: 'smooth_sandstone', trim: 'smooth_red_sandstone', base: 'cut_red_sandstone', wood: 'acacia', roof: 'smooth_sandstone' },
-  buildings: {
-    system: 'stone', ground2: 'stone', single: 'stone', quoin: null,
-    plinth: { cut_red_sandstone: 2, red_sandstone: 1 }, skirt: 'smooth_red_sandstone',
-    roof: { type: 'hip', profile: 'hip', material: 'smooth_sandstone', overhang: 1 },
-    gable: { kind: 'plain' }, win: { shutters: 0.3, box: 0.2 },
-    door: 'acacia', floor: 'acacia_planks', props: ['barrel', 'pots', 'hay'], rug: ['cyan_carpet', 'orange_carpet'],
-  },
-},
-accent: 'cyan',
-```
-
-Rules: `trim`, `roof` and `kit.trim` need a material with stairs and slabs (`kit.material(id).stairs`);
-the accent is a dye name; weights are clumped palettes, so give the main material most of the
-weight (a 1-in-7 contrast block reads as texture, 1-in-3 as speckle). Woodland only grows on soil
-(grass, dirt, moss, podzol): a sand ground stays open, so add palms, cacti or an oasis pool in
-CUSTOM if it needs life. Tell the user which theme you started from.
-
----
-
-## 10. Looking at it: screenshots, critique, fixes
-
-### 10.1 The shot list
-
-`build_recipe` returns the overview and the spawn view. After every change, take screenshots of what
-you changed; before delivering, take the whole set:
+`build_recipe` returns the overview and the view from the spawn. After every change, take
+screenshots of what you changed. Before delivering, take the whole set:
 
 | Shot | How |
 | --- | --- |
 | The spawn view | `{ "name": "spawn", "spawn": true }` |
-| In front of the crates | stand 4-6 out along a crate's facing, look at it |
-| At the boards | stand 8-10 in front of the middle board, look at its anchor |
-| The plaza rim looking back | stand at the street ring on the south axis, look at the spawn |
+| In front of the crates | stand 4-6 out along a crate's facing and look at it |
+| At the boards | stand 8-10 in front of the middle board and look at its anchor |
+| At each NPC place | stand 4 in front and look at its hologram |
+| The plaza rim looking back | stand at the street on the south axis and look at the spawn |
 | The way out | stand at the RTP gate looking out, or on a corridor |
-| Each CUSTOM piece | from where players first see it |
+| Each set piece | from where players first see it |
 | High views | `{ "eye": [x, FY + 40, z + 60], "yaw": 180, "pitch": 32 }` over the plaza; `render_build` from two corners |
 
-Positions come from `<slug>.placements.json` (next to the .nbt): every `crate`'s `pos` and `facing`,
-every `leaderboard`'s `anchor`, every NPC's `pos`, the `spawn`'s `pos` and `yaw`, all in local
-coordinates. "Stand in front of X" = X's pos plus its facing's step times the distance (north `z - d`,
-south `z + d`, east `x + d`, west `x - d`), then `lookAt` X. For example, a crate at `[86, 36, 110]`
-facing east: `{ "name": "crate-vote", "pos": [91, 110], "lookAt": [86, 37, 110] }`.
+Positions come from `<slug>.placements.json`, next to the .nbt, in local coordinates:
 
-`screenshot` takes up to 6 shots per call: `pos: [x, z]` stands on the ground there (`[x, y, z]` = the
-feet block), `eye` places the camera exactly, `lookAt` or `yaw`/`pitch` aims it, `fov` defaults to 70.
-`render_build` gives isometric views from above: `px` 2-3 for the whole spawn, 6-9 with a `box`
-(`x0,z0,x1,z1`) for a district, `ymin` (e.g. FY - 4) to cut the island away.
+- every `crate`'s `pos` and `facing`;
+- every `leaderboard`'s `anchor`;
+- every NPC's `pos`;
+- the `spawn`'s `pos` and `yaw`.
 
-### 10.2 What to check, in every picture
+"Stand in front of X" means X's pos plus its facing's step times the distance (north `z - d`, south
+`z + d`, east `x + d`, west `x - d`), with `lookAt` set to X.
+
+`screenshot` takes up to 6 shots per call:
+
+- `pos: [x, z]` stands on the ground there (`[x, y, z]` = the feet block);
+- `eye` places the camera exactly;
+- `lookAt`, or `yaw` and `pitch`, aims it;
+- `fov` defaults to 70.
+
+`render_build` gives isometric views from above:
+
+- `px` 2-3 for the whole spawn;
+- `px` 6-9 with a `box` (`x0,z0,x1,z1`) for a district;
+- `ymin` to cut the island away.
+
+### 9.2 What to check, in every picture
 
 - **The first view:** the hero on the axis, framed, sky behind it; NPCs visible; the way out visible.
-- **The places:** every NPC, crate and board readable and reachable, nothing in front of them, no tree
-  over them, nothing blocking a walk.
+- **The places:** every NPC, crate and board readable and reachable, with nothing in front of it,
+  no tree over it and nothing blocking a walk.
 - **Nothing broken:** no floating or buried pieces, no building cut by a path, no tree in a doorway,
   no lantern hanging from air.
-- **The floor:** structured, not speckled; not one big plain patch.
+- **Each element against its chapter:** compare it with the do and don't picture. Stones in groups
+  and sunk; trees with branches and gaps; buildings with a plinth, depth and eaves; paving
+  structured, not speckled.
 - **Variety:** no two identical neighbours, no exact mirror, three height tiers.
 - **The edge:** the town meets the land with planting and steps; the shore and the underside look
   natural.
 - **The brief:** everything the user asked for is there and reads the way they meant it.
 
-Then `inspect_build` (mode `checks`): floating blocks, plants on stone, fluids, dark spots.
-The `spawn-critic` agent reviews the folder and answers with ranked fixes as code.
+Then run `inspect_build` (mode `checks`): floating blocks, plants on stone, fluids, dark spots. The
+`spawn-critic` agent reviews the folder and answers with ranked fixes as code.
 
-### 10.3 Symptom → fix
+### 9.3 Symptom → fix
 
 | You see | Fix |
 | --- | --- |
-| The first view is a wall, a tree trunk or empty sky | move or shrink what blocks it; put the hero 20-45 out on the axis; lower `maxHeight` of the trees framing it |
-| A tree covers an NPC, a crate or a board | lower its `maxRadius` / `maxHeight`, or move its bed 2-3 off the line |
-| Your piece has woodland growing through it | reserve it in `plan` (§4.3 rule 1) |
-| Your piece floats or is half buried | give it a pad in `plan`, or build on `ctx.site.groundY(x, z)` |
-| Buildings overlap or stand in the woods | reserve every slot and give it a pad; check `grid.free` before you place |
-| The plaza looks empty | planters, benches, inlay lines, a fountain, a gateway; more NPCs or top-3 sets |
-| The plaza looks crowded | fewer props, a bigger `size`, corridors 9 wide |
-| Everything looks the same | vary sizes, storeys, set-backs and seeds; break symmetry on purpose |
-| Speckled ground or walls | give the main material more weight in the palette |
-| Dark streets in a night view | lamps every 12-13 along them (`lamp`) |
+| The first view is a wall, a tree trunk or empty sky | move or shrink what blocks it; put the hero 20-45 out on the axis |
+| A tree covers an NPC, a crate or a board | a smaller crown there, or move the tree 2-3 off the line; reserve the place's footprint before you plant |
+| A piece floats or is half buried | build it on `groundY(x, z)` from your island, or level a pad under it |
+| Buildings overlap | reserve every lot on the grid while planning; check `grid.free` before you place |
+| The plaza looks empty | planters, benches, inlay lines, a fountain, a gateway, more places with a job |
+| Everything looks the same | vary sizes, storeys, set-backs, roofs, seeds; break symmetry on purpose |
+| Speckled ground or walls | give the main material more weight, a bigger palette `scale` |
+| A rock, a tree or a building looks generated | compare it with its chapter's picture: groups, sinking, irregular shapes, depth, variation |
 
 ---
 
-## 11. Troubleshooting
+## 10. Troubleshooting
 
 | Report line | Means | Do |
 | --- | --- | --- |
-| `build failed: run-build: X is not defined` | a name your code uses is not imported or misspelled | every part is imported at the top of the template; check the spelling. The `at build (.../spawn.mjs:LINE:COL)` line under it is where |
+| `build failed: run-build: X is not defined` | a name your code uses is not imported or is misspelled | check the imports at the top; the `at build (.../spawn.mjs:LINE:COL)` line under it is where |
 | `build failed: run-build: ...` with any other message | your code threw | the `at` lines under the message name the file and line |
-| `spawn: <part> failed: ...` | a part threw and was skipped (`ctx.place` catches it) | usually a slot off the canvas or a missing option; build with the script and `SPAWN_DEBUG=1` to throw it with its line (`SPAWN_DEBUG=1 node scripts/run-build.mjs <spawn.mjs> --out-dir <folder> --json`) |
+| `spawn: <fn> failed: ...` | a function run by `ctx.place` threw and was skipped | call it directly to see the error with its line |
 | `problems: ["unknown block id ..."]` | a block id that does not exist in 1.21.1 | fix the id; check `kit.material(id)` for families (not every block has stairs, mossy or cracked variants) |
-| `clipped: N` with `clippedFrom` | N placements fell outside the canvas | the line named; keep pieces inside `islandR` |
-| `... cell(s) that must stay clear are filled` | something blocks an NPC's stand-off, a crate's standing area or head room | move it; the cell is named |
-| `hanging lantern(s) hang from air` | a lantern with nothing above | put a chain or a block above it |
+| `clipped: N` with `clippedFrom` | N placements fell outside the canvas | the line named; keep pieces inside the canvas, or make it bigger |
+| `... cell(s) that must stay clear are filled` | something blocks an NPC's head room or front, a crate's front, a board's text or a portal's opening | move it; the cell is named |
+| `hanging lantern(s) hang from air` | a lantern with nothing above it | put a chain or a block above it |
 | `spawnPoint called twice` | two world spawns | keep one `b.spawnPoint` |
+| `no world spawn` | `b.spawnPoint` was never called | call it on the plaza |
 | `spawnProof: N dark walkable cell(s) left` | no free cell for a light there | add a lamp near the cell named |
-| `size N is small for M NPCs` | the canvas is below the recommendation | `size: null`, or accept a tighter town |
-| `N NPC(s) got no building` (spawn+) | not enough lots | raise `size` |
-| A build takes over a minute | a big canvas (a warzone adds 2 x its width) | fine for the final build; use a smaller warzone while iterating |
+| A build takes over a minute | a big canvas | fine for the final build; work on a smaller one, or build one district at a time while iterating |
 
 ---
 
-## 12. Delivery
+## 11. Delivery
 
-1. **Ask where it goes** if they have not said: the world name, and the paste corner (the world block
-   where the schematic's minimum corner goes), or "centred on 0, 0". To centre the spawn on 0, 0 with
-   the plaza floor at world height Y: `origin = [-cx, Y - FY, -cz]` (local `cx`, `FY`, `cz` from the
-   placements' spawn: it stands at `[cx, FY + 1, cz]`).
-2. **Export:** `build_recipe` with `export: true`, `origin: "x,y,z"` and `world: "name"`. It writes, next
-   to `spawn.mjs`: `<slug>.schem` (WorldEdit / FAWE), `<slug>.litematic` (Litematica), `<slug>.nbt`
-   (structure blocks, `/place template`), `<slug>.setup.md` (every command) and
-   `<slug>.placements.json` (the same positions as data).
-3. **Check the setup sheet:** the world spawn (`setworldspawn` with its angle), the NPCs (Citizens and
-   FancyNpcs lines), the holograms (DecentHolograms: NPC labels, boards, crates, your free ones), the
-   crates (ExcellentCrates and CrazyCrates), the regions (WorldGuard). All in world coordinates.
+1. **Ask where it goes** if they have not said: the world name, and the paste corner (the world
+   block where the schematic's minimum corner goes), or "centred on 0, 0". To centre the spawn on
+   0, 0 with the plaza floor at world height Y, use `origin = [-cx, Y - FY, -cz]`. Local `cx`, `FY`
+   and `cz` come from the placements' spawn, which stands at `[cx, FY + 1, cz]`.
+2. **Export:** `build_recipe` with `export: true`, `origin: "x,y,z"` and `world: "name"`. It writes
+   these files next to `spawn.mjs`:
+
+   | File | For |
+   | --- | --- |
+   | `<slug>.schem` | WorldEdit / FAWE |
+   | `<slug>.litematic` | Litematica |
+   | `<slug>.nbt` | structure blocks, `/place template` |
+   | `<slug>.setup.md` | every command |
+   | `<slug>.placements.json` | the same positions as data |
+
+3. **Check the setup sheet.** It has, all in world coordinates:
+   - the world spawn (`setworldspawn` with its angle);
+   - the NPCs (Citizens and FancyNpcs lines);
+   - the holograms (DecentHolograms: NPC labels, boards, crates, your free ones);
+   - the crates (ExcellentCrates and CrazyCrates);
+   - the regions (WorldGuard).
 4. **Send** the .schem and .litematic, setup.md, 3-4 screenshots (the spawn view, the overview, the
-   main sections), and a short note:
+   main sections) and a short note:
 
 ```
-Cheese SMP spawn: 220 x 100 x 220, white town, 10 NPCs, 3 boards, 4 crates.
-Paste: //schem load cheese-smp, stand at -110 64 -110 (the minimum corner) and //paste.
-The world spawn is then 0 99 0 facing north (setworldspawn is in setup.md).
+Cheese SMP spawn: 200 x 90 x 200, white town, 10 NPCs, 3 boards, 4 crates.
+Paste: //schem load cheese-smp, stand at -100 64 -100 (the minimum corner) and //paste.
+The world spawn is then 0 95 0 facing north (setworldspawn is in setup.md).
 setup.md has every NPC, hologram, crate and region command, ready for the console.
 Holograms carry the names and board text, so in the schematic the NPC places, boards and crates
-are empty plinths until the plugins fill them.
+are empty stages until the plugins fill them.
 ```
 
 WorldEdit pastes the minimum corner at your feet (`//paste -a` skips air; a void world needs no
-`-a`). Litematica: put the file in `.minecraft/schematics`, load it, set the placement origin to the
-corner. Vanilla structure blocks load at most 48 x 48 x 48; `/place template` from a datapack has no
-such limit (`references/formats.md`).
+`-a`). For Litematica, put the file in `.minecraft/schematics`, load it, and set the placement origin
+to the corner. Vanilla structure blocks load at most 48 x 48 x 48; `/place template` from a datapack
+has no such limit (`references/formats.md`).
+
+---
+
+## 12. The reference spawns
+
+Every spawn folder also gets two reference sets to read. They show how a whole spawn fits together:
+how a layout is planned, how places are reserved, how districts connect, how a spawn+ town lines its
+streets.
+
+- `examples/`: whole spawns written earlier (a round-plaza spawn, a square one, a town, a PvP lobby,
+  a pirate island).
+- `parts/`: the library those spawns are built from (sites, plinths, buildings, landscapes,
+  landmarks, warzones). Each file starts with a header listing its functions.
+
+Read them for structure and ideas. They are references, not starting points: this spawn's plan,
+layout and elements are designed for this server, and its elements follow the chapters of §5. A
+function from `parts/` may be imported when it does exactly what the plan needs. Then give it this
+spawn's sizes, materials and options, look at the result, and change it until it fits the place.

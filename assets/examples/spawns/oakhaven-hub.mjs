@@ -1,7 +1,10 @@
-// Oakhaven — the SPAWN+ template (DonutSMP-style town): every NPC gets its own building round a
-// square hub plaza. This is a tested spawn+ layout written as a recipe: change the BRIEF
-// block and the whole layout follows (the plaza grows until every NPC has a lot); then make it yours
-// in the CUSTOM block below it.
+// A REFERENCE SPAWN, for reading: how a whole spawn fits together (the plan, the reservations, the
+// order of work). New spawns do not start from it: they start from the skeleton, and each of their
+// elements is designed for that server (references/spawns/build-guide.md).
+//
+// Oakhaven — a SPAWN+ town (DonutSMP-style): every NPC gets its own building round a square hub
+// plaza. Its layout follows a BRIEF block (the plaza grows until every NPC has a lot), with a CUSTOM
+// block for additions.
 //
 //                         HERO WALL (boards + the name)
 //        [hall]  [shop] [shop]   ===============   [shop] [shop]  [hall]
@@ -14,7 +17,7 @@
 //        [hall]  [shop] [house]    RTP gate     [shop] [house]  [hall]
 //    AFK park (outside the town)
 //
-// The numbers (references/spawns/build-guide.md §5.3): lots 11-15 wide with 2-4 gaps, 11-13 deep, 1-2
+// The numbers (references/spawns/build-guide.md §6.2): lots 11-15 wide with 2-4 gaps, 11-13 deep, 1-2
 // back from the road; each side of the ring road has a centre piece (north the hero wall, west the
 // crate yard, south the RTP gate, east the spoke road) with lots either side; halls on the four
 // corners with forecourts; the first NPCs take the north corner halls, then the north lots (the first
@@ -66,7 +69,7 @@ const BRIEF = {
 }
 
 // ================================================================== your additions (edit these)
-// Everything this server gets beyond the template goes here, so the layout above keeps working when
+// Everything this server gets beyond the base layout goes here, so the layout above keeps working when
 // the BRIEF changes. Every part is imported at the top. L is the plan (all build coordinates):
 //   L.cx, L.cz      the spawn column (players spawn there facing north)   L.FY  the plaza floor block
 //   L.S             the canvas side      L.islandR  the shore's distance from the middle
@@ -77,14 +80,13 @@ const BRIEF = {
 //   L.doors         the doors (after build)
 //   L.slot({ x0, z0, x1, z1, kind }, pad)   reserve a rectangle and level a pad under it (plan only)
 // The lots are fixed by the bands round the road: put your pieces on the plaza or outside the town.
-// references/spawns/build-guide.md §4 shows how, with tested examples.
 const CUSTOM = {
   // 1. while planning, after the town and before the landmarks and the raised areas: reserve the
   //    ground of each piece (findSpot or L.slot) and return what you planned
   plan(ctx, L) {
     return {}
   },
-  // 2. build your pieces, after the template's own and before the landscape pass
+  // 2. build your pieces, after the base layout's own and before the landscape pass
   build(ctx, L, mine) {},
   // 3. after the landscape pass: seasonal passes (snowfall, leafLitter) and last touches
   finish(ctx, L, mine) {},

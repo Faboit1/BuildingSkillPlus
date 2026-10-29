@@ -5,17 +5,18 @@ leaderboard section and a crates section, a DonutSMP-style hub, or a PvP lobby. 
 the building handbook (`references/building/README.md`): every law there still applies; this file
 adds the spawn program, the numbers and the workflow.
 
-**How spawns are made:** you design and build each one by hand (`SKILL.md` → "Server spawns and
-lobbies"): this handbook says what a good spawn is; `build-guide.md` says exactly how to build one
-with the spawn parts (`assets/spawn-parts/`), with the layouts and numbers that work; the example
-spawns (`assets/examples/spawns/`) show it done, and the templates among them are where every spawn
-starts.
+**How spawns are made:** you design and build each one by hand, every element of it
+(`SKILL.md` → "Server spawns and lobbies"). This handbook says what a good spawn is.
+`build-guide.md` says how to build one: one chapter per element (the island, the paving, stones,
+trees, NPC places, boards, crates, gates, buildings, lamps, props, water), each with a do / don't
+picture and a worked example. The reference spawns (`assets/examples/spawns/`) show how a whole
+spawn fits together.
 
 Companion files in this folder:
 
 | File | What it holds |
 | --- | --- |
-| `build-guide.md` | The spawn manual: what makes a spawn great, the workflow, the templates (BRIEF and CUSTOM), the layouts with their numbers, every part, a cookbook of tested code, screenshots and fixes, delivery |
+| `build-guide.md` | The spawn manual: what makes a spawn great, the workflow, the frame and the marks, one chapter per element with do / don't pictures (`img/`) and worked examples (`elements/`), the layouts with their numbers, materials, a cookbook, screenshots and fixes, delivery |
 | `corpus-study.md` | Real human-built spawns, lobbies and hubs, measured: sizes, layouts, set pieces, palettes, techniques |
 | `design-research.md` | How popular servers lay out spawns, the plugin facts (NPC, hologram, crate, region), and why builds look AI vs human |
 | `case-studies.md` | Critiques of earlier spawns made with this skill and the user's own spawns, with ranked lessons |

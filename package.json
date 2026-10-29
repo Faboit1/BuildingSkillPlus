@@ -53,6 +53,8 @@
     "test:generator": "node apps/spawn-generator/test.mjs",
     "package:plugin": "bash scripts/dev/package-plugin.sh",
     "test:examples": "node scripts/dev/spawn-examples-smoke.mjs",
+    "test:manual": "node scripts/dev/manual-figures.mjs --check",
+    "figures:manual": "node scripts/dev/manual-figures.mjs",
     "new-spawn": "node scripts/new-spawn.mjs",
     "test:screenshot": "node scripts/dev/screenshot-selftest.mjs"
   },

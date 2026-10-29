@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // The plugin's MCP server (stdio, JSON-RPC 2.0, one message per line; no SDK needed). It gives the
 // model real tools instead of shell commands:
-//   new_spawn       start a hand-built spawn: a folder with its own parts, the examples, a skeleton
+//   new_spawn       start a hand-built spawn: the skeleton, the frame, the element examples, references
 //   build_recipe    build any kit recipe (a spawn.mjs too) → .nbt (+ .schem/.litematic), renders
 //   screenshot      what a player sees: first-person views (the spawn point or any camera), CPU only
 //   render_build    an isometric render of any .nbt/.schem/.litematic, returned as an image
@@ -55,14 +55,14 @@ const fail = msg => ({ content: [text(msg)], isError: true })
 const TOOLS = [
   {
     name: 'new_spawn',
-    description: 'Start a hand-built server spawn (the default way to make a spawn, after the interview): creates minecraft-builds/<slug>/ with spawn.mjs = the template for the spawn type (normal: ember-smp, plus: oakhaven-hub, pvp: kirin-practice; a tested layout driven by a BRIEF block at its top, with a CUSTOM block for your additions), parts/ (your own editable copy of the spawn parts), examples/ (every example spawn) and brief.md. Set the BRIEF block to the interview answers and build it with build_recipe: that is the base. Then make it the user\'s own in the CUSTOM block (theme touches, their extra asks, custom structures), screenshot, fix, repeat.',
-    inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'The server name' }, type: { type: 'string', enum: ['normal', 'plus', 'pvp'], description: 'The spawn type: picks the template (default normal)' }, from: { type: 'string', description: 'Instead of type: start from any example (ember-smp, frost-smp, oakhaven-hub, kirin-practice, pirate-isle), or "blank" for an empty skeleton (only for a layout none of them has)' }, brief: { type: 'string', description: 'The interview answers and the plan, saved as brief.md' }, out_dir: { type: 'string' }, force: { type: 'boolean', description: 'Overwrite an existing spawn.mjs' } }, required: ['name'] },
-    run: async ({ name, type, from, brief, out_dir, force }) => {
-      const args = [name, ...(type ? ['--type', type] : []), ...(from ? ['--from', from] : []), ...(brief ? ['--brief', brief] : []), ...(out_dir ? ['--out-dir', outPath(out_dir)] : []), ...(force ? ['--force'] : [])]
+    description: 'Start a hand-built server spawn (after the interview and the plan): creates minecraft-builds/<slug>/ with spawn.mjs = the skeleton (the frame and one empty section per element group: land, floor, the spawn point, NPC places, boards, crates, gates, buildings, life, text), frame/ (the plumbing: canvas, grid, angles, the records for setup.md, spawn-proofing), elements/ (the manual\'s worked examples with their do / don\'t rules), parts/ and examples/ (reference spawns to read) and brief.md. You write every element yourself, section by section, following references/spawns/build-guide.md §5: read the element\'s chapter and its do / don\'t picture, design it for this spawn, build with build_recipe, look, fix.',
+    inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'The server name' }, brief: { type: 'string', description: 'The interview answers and the plan, saved as brief.md' }, size: { type: 'integer', description: 'The canvas side in blocks (default 200; normal 160-260, spawn+ 160-320, PvP 90-140)' }, out_dir: { type: 'string' }, force: { type: 'boolean', description: 'Overwrite an existing spawn.mjs' } }, required: ['name'] },
+    run: async ({ name, brief, size, out_dir, force }) => {
+      const args = [name, ...(brief ? ['--brief', brief] : []), ...(size ? ['--size', String(size)] : []), ...(out_dir ? ['--out-dir', outPath(out_dir)] : []), ...(force ? ['--force'] : [])]
       const r = await run('new-spawn.mjs', args)
       if (r.code !== 0) return fail((r.err || r.out).slice(-3000))
       const guide = path.join(root, 'references/spawns/build-guide.md')
-      return { content: [text(`${r.out.trim()}\n\nNext: set the BRIEF block at the top of spawn.mjs to the interview answers and build it with build_recipe (the base). Then make it theirs in the CUSTOM block below the BRIEF (plan / build / finish): ${guide} §4 explains it with tested examples and §8 maps every common request to its change; build and screenshot after each change.`)] }
+      return { content: [text(`${r.out.trim()}\n\nNext: work through spawn.mjs section by section. For each element read its chapter in ${guide} §5 (the rules, the do / don\'t picture in ${path.join(root, 'references/spawns/img')}, the worked example in the spawn folder\'s elements/), write this spawn\'s own version below build(), build with build_recipe and look at the views before the next section.`)] }
     },
   },
   {
@@ -183,7 +183,7 @@ const ORDER = ['new_spawn', 'build_recipe', 'screenshot', 'render_build', 'inspe
 // ---------------------------------------------------------------- JSON-RPC over stdio
 const send = msg => process.stdout.write(`${JSON.stringify(msg)}\n`)
 const serverInfo = { name: 'minecraft-builder', version: VERSION }
-const INSTRUCTIONS = 'Minecraft builds and server spawns. For a spawn/lobby/hub follow the minecraft-builder skill: interview the user, then build the spawn yourself: new_spawn makes the folder with the type\'s template, you set its BRIEF and add the user\'s extras in its CUSTOM block (references/spawns/build-guide.md, the spawn manual), build_recipe builds it, screenshot and render_build show it, you fix and rebuild until it is great, inspect_build lints it, then deliver the .schem/.litematic + setup.md.'
+const INSTRUCTIONS = 'Minecraft builds and server spawns. For a spawn/lobby/hub follow the minecraft-builder skill: interview the user, plan, then build the spawn yourself, every element by hand: new_spawn makes the folder with the skeleton, you write each element (the island, the paving, stones, trees, NPC places, boards, crates, gates, buildings, lamps...) from its chapter in references/spawns/build-guide.md (do / don\'t pictures and worked examples), build_recipe builds it, screenshot and render_build show it, you fix and rebuild until it is great, inspect_build lints it, then deliver the .schem/.litematic + setup.md.'
 
 async function handle(msg) {
   const { id, method, params } = msg

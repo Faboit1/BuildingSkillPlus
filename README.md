@@ -38,7 +38,7 @@ Then just ask, or run the command:
 /minecraft-builder:spawn lifesteal smp called Crimson SMP, about 10 npcs, dark red vibe
 ```
 
-It interviews you (type, size, NPC count, theme; the program; options like top-3 pillars, a
+It interviews you (type, size, NPC count, theme; the program; options like top-3 statues, a
 warzone with a moshpit and KOTH, landmarks, giant trees, raised areas and rocks, block-letter signs;
 every question has "Let Claude decide", and "Surprise me" picks everything), shows the plan, and
 after your yes **builds the spawn itself** in `minecraft-builds/<name>/`, looking at screenshots and
@@ -46,35 +46,51 @@ fixing it as it goes. Ask for changes the same way: "make a winter version", "ad
 
 ## Server spawns, built by Claude
 
-Claude designs and builds every spawn by hand, like a build team:
+Claude designs and builds every spawn by hand, like a build team, block by block. Nothing is
+generated and nothing is pasted from stock pieces:
 
-1. **Interview** the server owner, then **plan** the layout (a sketch with the numbers).
-2. **`new_spawn`** makes a folder with `spawn.mjs` (the recipe Claude writes), its own copy of the
-   **spawn parts** (`assets/spawn-parts/`: island terrain, plaza paving, NPC plinths and rings,
-   hologram boards with a podium, top-3 pillars, crates, themed buildings, hand-shaped trees,
-   lamps and props, the PvP ruin, the AFK pond, a warzone with a moshpit and KOTH, landmarks,
-   block-letter signs, snowfall), and complete **example spawns** to learn from.
-3. `spawn.mjs` starts as the **template for the spawn type** (normal, spawn+ or PvP): a tested
-   layout that adapts to the program. Claude sets its `BRIEF` block to the interview answers and
-   **builds it** (`build_recipe`): a good spawn from the first build. Then it makes
-   the spawn theirs in the template's `CUSTOM` block (plan / build / finish): a gateway framing the
-   first view, a market, a building for their museum, their mascot, a winter version, a theme of
-   their own. After every change it looks at the isometric overview and **first-person
+1. **Interview** the server owner, then **plan** the layout: every place with its coordinates, and
+   a sentence on the design of each element.
+2. **`new_spawn`** makes a folder with:
+   - `spawn.mjs`, a skeleton Claude fills in section by section;
+   - the frame, which does only the plumbing: the canvas, angles, the NPC, hologram, crate, board
+     and portal records for the setup sheet, spawn-proofing, the export;
+   - the manual's element examples;
+   - reference spawns to read.
+3. **Claude builds every element itself**:
+   - the island;
+   - the ground and the paving;
+   - every stone and tree;
+   - every NPC place, the boards, the crates and the gates;
+   - every building, lamp and prop.
+
+   For each one it reads the manual's chapter: what to do and what not to do, side by side, with
+   tested code for one worked example. Then it writes this spawn's own version from the brief and
+   the theme. After every section it looks at the isometric overview and **first-person
    screenshots** (`screenshot`, a CPU renderer: what a player sees from the spawn point or any
    spot) and fixes what it sees.
 4. It delivers `.schem` / `.litematic` and a setup sheet with the NPC, hologram, crate and
    WorldGuard commands.
 
-The craft is written down in the **spawn manual**, `references/spawns/build-guide.md`: what makes a
-spawn great (with the numbers), the workflow, the templates and how to change them safely, every
-part, a cookbook of tested code for what server owners ask for, the screenshot-and-fix loop and
-delivery. It sits on the spawn handbook (`references/spawns/README.md`: real spawns measured, the
-don't-look-AI checklist). Eight themes (autumn, medieval, white-town, japanese, winter, fantasy,
-crimson, tropical) and five island settings; any other look is a theme of your own built on the
-closest one.
+The craft is written down in the **spawn manual**, `references/spawns/build-guide.md`:
 
-Example spawns (`assets/examples/spawns/`), each a recipe Claude reads and learns from. Left the
-overview, right the `screenshot` from the spawn point (what a player sees on joining):
+- what makes a spawn great, with the numbers;
+- the workflow;
+- one chapter per element, each with a do / don't picture (`references/spawns/img/`) and a worked
+  example (`references/spawns/elements/`);
+- the layouts and their numbers, materials for any theme, and a cookbook for what server owners ask;
+- the screenshot-and-fix loop, and delivery.
+
+It sits on the spawn handbook (`references/spawns/README.md`: real spawns measured, the
+don't-look-AI checklist).
+
+| | |
+| --- | --- |
+| <img src="references/spawns/img/stones.png" width="400" alt="Stones: do and don't"> | <img src="references/spawns/img/buildings.png" width="400" alt="Buildings: do and don't"> |
+| <img src="references/spawns/img/crates.png" width="400" alt="Crates: do and don't"> | <img src="references/spawns/img/trees.png" width="400" alt="Trees: do and don't"> |
+
+Reference spawns (`assets/examples/spawns/`): whole spawns Claude reads to see how a layout fits
+together. Left the overview, right the `screenshot` from the spawn point (what a player sees on joining):
 
 | | |
 | --- | --- |
@@ -94,7 +110,7 @@ overview, right the `screenshot` from the spawn point (what a player sees on joi
 `apps/spawn-generator/` is a one-click spawn generator as a single offline HTML page: fill in a
 brief, generate, look at it in 3D, download the .schem/.litematic and the setup sheet. Open
 `apps/spawn-generator/dist/spawn-generator.html`. Its engine (`apps/spawn-generator/spawngen/`) runs
-the same spawn parts as the plugin; the plugin itself has no generator: Claude builds every spawn.
+the reference spawn parts; the plugin itself has no generator: Claude builds every spawn.
 
 ## What's inside
 

@@ -1,4 +1,4 @@
-// The last pass over a generated spawn: removes what the game would drop or pop off on the first
+// The last pass over a spawn: removes what the game would drop or pop off on the first
 // block update, so a pasted spawn has no floating bells, dripstone or flowers on stone.
 //   - ground plants (grass, ferns, flowers, saplings, berry bushes) on a block they cannot grow on;
 //     on nylium they become the matching nether roots instead

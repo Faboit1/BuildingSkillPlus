@@ -1522,7 +1522,81 @@ export function installFinishHook(Builder) {
   Builder.prototype.finish = finish
 }
 
+// ------------------------------------------------------------------ marks (record only)
+// For places you build yourself: a mark places no block. It records what the server admin needs
+// (placements.json, the commands in setup.md) and the cells that must stay clear, so finish() warns
+// when something you build later blocks an NPC's head room, a crate's front or a board's hologram.
+const STEP = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0] }
+function watchClear(b, label, cells) {
+  b.spawnClearance ??= []
+  b.spawnClearance.push({ label, cells })
+}
+function nextId(b, kind) {
+  b.spawnIds ??= {}
+  b.spawnIds[kind] = (b.spawnIds[kind] ?? 0) + 1
+  return `${kind}-${b.spawnIds[kind]}`
+}
+
+// An NPC: pos = the block it stands on (its feet at y + 1), facing = the way it looks (where the
+// players stand). Keeps its head room (3 above the feet) and the cell in front clear.
+export function markNpc(b, pos, facing = 'south', { id, label, role = '' } = {}) {
+  const [x, y, z] = pos.map(v => Math.round(v))
+  const [fx, fz] = STEP[facing]
+  const nid = id ?? nextId(b, 'npc')
+  watchClear(b, `npc "${nid}"`, [[x, y + 1, z], [x, y + 2, z], [x, y + 3, z], [x + fx, y + 1, z + fz], [x + fx, y + 2, z + fz]])
+  return record(b, { type: 'npc', id: nid, label: label ?? nid, role, style: 'own', pos: [x, y + 1, z], facing, yaw: YAW[facing], hologram: [x + 0.5, r2(y + 1 + 2.4), z + 0.5] })
+}
+
+// A crate: pos = the crate block you placed (a chest, an ender chest, a barrel...), facing = the
+// side players open it from. Its title hologram floats 1.6 above it; the two cells above it and the
+// two in front stay clear.
+export function markCrate(b, pos, facing = 'south', { id, label, tier = 'common', block } = {}) {
+  const [x, y, z] = pos.map(v => Math.round(v))
+  const [fx, fz] = STEP[facing]
+  const cid = id ?? nextId(b, 'crate')
+  const kind = block ?? (b.nameAt(x, y, z) ?? 'minecraft:chest').replace(/^minecraft:/, '')
+  watchClear(b, `crate "${cid}"`, [[x, y + 1, z], [x, y + 2, z], [x + fx, y, z + fz], [x + fx, y + 1, z + fz]])
+  return record(b, { type: 'crate', id: cid, label: label ?? `${cid} Crate`, tier, block: kind, pos: [x, y, z], facing, hologram: [x + 0.5, r2(y + 1.6), z + 0.5] })
+}
+
+// A hologram leaderboard: anchor = where its top line floats [x, y, z] (fractions allowed), facing
+// = the readers' side, size = [width, height] in blocks (5 x 4 holds 10-12 lines). The board's
+// volume (width across, height down from the anchor) stays clear.
+export function markBoard(b, anchor, facing = 'south', { id, label, size = [5, 4] } = {}) {
+  const [ax, ay, az] = anchor
+  const along = facing === 'north' || facing === 'south' ? [1, 0] : [0, 1]
+  const half = Math.floor(size[0] / 2)
+  const bid = id ?? nextId(b, 'board')
+  const cells = []
+  for (let u = -half; u <= half; u += 1) for (let h = 0; h < size[1]; h += 1) cells.push([Math.floor(ax) + along[0] * u, Math.floor(ay) - h, Math.floor(az) + along[1] * u])
+  watchClear(b, `board "${bid}"`, cells)
+  return record(b, { type: 'leaderboard', id: bid, label: label ?? bid, anchor: [r2(ax), r2(ay), r2(az)], facing, size })
+}
+
+// A portal's trigger region (an RTP gate, a warp): min, max = the opening's inclusive corners (the
+// cells a player walks through), kind = 'rtp' | 'warp' | 'pvp' | 'nether' | any word.
+export function markPortal(b, min, max, { id, label, kind = 'rtp', facing = 'south' } = {}) {
+  const lo = [0, 1, 2].map(i => Math.round(Math.min(min[i], max[i])))
+  const hi = [0, 1, 2].map(i => Math.round(Math.max(min[i], max[i])))
+  const pid = id ?? nextId(b, 'portal')
+  const cells = []
+  for (let x = lo[0]; x <= hi[0]; x += 1) for (let y = lo[1]; y <= hi[1]; y += 1) for (let z = lo[2]; z <= hi[2]; z += 1) cells.push([x, y, z])
+  watchClear(b, `portal "${pid}"`, cells)
+  return record(b, { type: 'portal', id: pid, label: label ?? pid, kind, min: lo, max: hi, facing })
+}
+
+// A free-standing hologram (rules, a welcome, a district name): [x, z] = the block column, y = the
+// height of its top line (the floor + 3 reads well). Recorded for setup.md.
+export function markHologram(b, id, text, [x, y, z]) {
+  return record(b, { type: 'hologram', id, label: text, pos: [x + 0.5, y, z + 0.5] })
+}
+
 export const SPAWN_METHODS = {
+  markNpc,
+  markCrate,
+  markBoard,
+  markPortal,
+  markHologram,
   sign,
   npcSpot,
   leaderboards,
