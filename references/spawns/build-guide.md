@@ -178,6 +178,8 @@ measured from the blocks, so "it looks fine" is not the judge:
   spawn+ town's NPCs in their own buildings are not counted);
 - views: from the spawn, at least 5 of 8 directions must show something 8+ tall within 160
   blocks (a building, trees, the hero, a hill), or the first minute is floor and sky;
+- speckle: more than 3% of the lawn as single blocks unlike their neighbours fails (dirt dots);
+  paving salted with odd blocks warns;
 - physics: sand, gravel or concrete powder with nothing under it, sugar cane with no water, and
   still water touching air all fail (they fall, break or flow the moment the spawn is pasted);
 - effort: the build count from `build-log.json` (15 at the least on a spawn 400+ wide).

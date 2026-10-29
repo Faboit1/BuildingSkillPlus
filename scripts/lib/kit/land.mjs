@@ -860,6 +860,37 @@ export class Land {
     const top = new Int16Array(this.n).fill(-1)
     for (let i = 0; i < this.n; i += 1) if (!Number.isNaN(h[i])) top[i] = Math.round(h[i])
     this.painted = top
+    // hold every lake: water beside the void (the edge of the land or the canvas) gives way to
+    // shore, again and again until none is left there; a dry neighbour lower than the water is
+    // raised to its level, so nothing spills when the spawn is pasted
+    if (this.water) {
+      let changed = true
+      let shrunk = 0
+      let raised = 0
+      while (changed) {
+        changed = false
+        for (let i = 0; i < this.n; i += 1) {
+          if (Number.isNaN(this.water[i])) continue
+          const ix = i % W
+          const wl = this.water[i]
+          for (const j of [ix > 0 ? i - 1 : -1, ix < W - 1 ? i + 1 : -1, i >= W ? i - W : -1, i + W < this.n ? i + W : -1]) {
+            if (j < 0 || top[j] < 0) {
+              this.water[i] = NaN
+              top[i] = Math.max(top[i], Math.round(wl))
+              shrunk += 1
+              changed = true
+              break
+            }
+            if (Number.isNaN(this.water[j]) && top[j] < wl) {
+              top[j] = Math.round(wl)
+              raised += 1
+            }
+          }
+        }
+      }
+      if (shrunk) this.warnings.push(`land.paint: ${shrunk} water columns touched the edge of the land and became shore: keep lakes inside the outline`)
+      void raised
+    }
     const f = b.focus
     const [sx, sy, sz] = b.size
     let clipped = 0

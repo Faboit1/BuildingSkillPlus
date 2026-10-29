@@ -188,6 +188,9 @@ export function river(ctx, points, { width = [8, 14], depth = 3, bank = 4, level
       }
       const wet = shapes.filter(sh => sh.s < 0)
       const land = groundAt(x, z)
+      // a lake (or other still water) already here: the river flows into it and leaves it alone
+      // (carving or banking inside it would open holes and build walls in the water)
+      if (b.nameAt(x, land + 1, z) === 'minecraft:water') continue
       if (wet.length) {
         // where two waters overlap, the lower one wins (a plunge pool cuts back under its fall)
         const k = Math.max(...wet.map(sh => sh.k))

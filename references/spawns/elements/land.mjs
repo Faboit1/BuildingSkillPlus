@@ -46,7 +46,7 @@ export function valleyLand(ctx, { seed = 5, floor = 70, theme = 'autumn' } = {})
   // 3. foothills along the range's foot: low, rough, broken
   land.range([[S * 0.16, S * 0.66], [S * 0.22, S * 0.36], [S * 0.42, S * 0.22], [S * 0.66, S * 0.26]], { width: 90, height: 16, rough: 0.7, seed: seed + 3 })
   // 4. the river's floodplain from the foot of the range to the lake, and the lake's basin
-  const lake = { cx: Math.round(S * 0.66), cz: Math.round(S * 0.82), r: 34 }
+  const lake = { cx: Math.round(S * 0.64), cz: Math.round(S * 0.77), r: 34 }
   // the river ends where it meets the lake's shore (inside the lake it would build banks in the water)
   const mouth = [S * 0.47, S * 0.74]
   const dir = Math.atan2(lake.cz - mouth[1], lake.cx - mouth[0])

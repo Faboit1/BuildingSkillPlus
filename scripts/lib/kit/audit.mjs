@@ -19,6 +19,8 @@ const ROCK = /^minecraft:(stone|andesite|diorite|granite|tuff|deepslate|calcite|
 const TREE = /_(log|wood|leaves|stem|hyphae)$|^minecraft:(mangrove_roots|muddy_mangrove_roots|shroomlight|nether_wart_block|warped_wart_block|bamboo|vine|hanging_roots|azalea|flowering_azalea|.*_wool)$/
 const WATER = /^minecraft:(water|bubble_column|kelp|kelp_plant|seagrass|tall_seagrass|lily_pad|sugar_cane)$/
 
+const INVISIBLE = /^minecraft:(light|barrier|structure_void|air|cave_air|void_air)$/
+
 const SOIL_C = 1
 const PLANT_C = 2
 const ROCK_C = 3
@@ -70,7 +72,7 @@ export function auditGrid({ pal, G, X, Y, Z }, opts = {}) {
 }
 
 function auditBlocks(src, { inside = () => true, placements = [] } = {}) {
-  const b = { get: src.get, focus: src.focus }
+  const b = { get: (x, y, z) => { const blk = src.get(x, y, z); return blk && !INVISIBLE.test(blk.name) ? blk : null }, focus: src.focus }
   const [sx, sy, sz] = src.size
   const n = sx * sz
   // a focus draft is judged on its box (one district), a full build on the whole canvas
@@ -80,6 +82,17 @@ function auditBlocks(src, { inside = () => true, placements = [] } = {}) {
   const topC = new Uint8Array(n)
   const ground = new Int16Array(n).fill(-1)
   const water = new Int16Array(n).fill(-1)
+  const groundName = new Uint16Array(n) // which block the ground is, per column (an index into names)
+  const topName = new Uint16Array(n)
+  const nameIds = new Map([['', 0]])
+  const idOf = name => {
+    let id = nameIds.get(name)
+    if (id === undefined) {
+      id = nameIds.size
+      nameIds.set(name, id)
+    }
+    return id
+  }
   const memo = new Map()
   const classOf = name => {
     let c = memo.get(name)
@@ -105,6 +118,8 @@ function auditBlocks(src, { inside = () => true, placements = [] } = {}) {
     return v
   }
   src.each((x, y, z, block) => {
+    // invisible blocks (spawn-proofing's lights, barriers) are not things on the land
+    if (INVISIBLE.test(block.name)) return
     const i = z * sx + x
     const kind = kindOf(block.name)
     if (kind && y > 0) {
@@ -118,8 +133,12 @@ function auditBlocks(src, { inside = () => true, placements = [] } = {}) {
     if (y > top[i]) {
       top[i] = y
       topC[i] = c
+      topName[i] = idOf(block.name)
     }
-    if ((c === SOIL_C || c === ROCK_C) && y > ground[i]) ground[i] = y
+    if ((c === SOIL_C || c === ROCK_C) && y > ground[i]) {
+      ground[i] = y
+      groundName[i] = idOf(block.name)
+    }
     if (c === WATER_C && block.name === 'minecraft:water' && y > water[i]) water[i] = y
   })
   void sy
@@ -211,6 +230,38 @@ function auditBlocks(src, { inside = () => true, placements = [] } = {}) {
   for (const [key, list] of sig)
     if (list.length >= 4) failures.push(`repeats: ${list.length} buildings are the same size (${key.replace(/x(\d+)$/, ', $1 tall')}), e.g. at ${list.slice(0, 4).map(c => `${c.cx},${c.cz}`).join(' ')}: design each one (manual §5.14)`)
     else if (list.length === 3) warnings.push(`repeats: 3 buildings are the same size (${key}), e.g. at ${list.map(c => `${c.cx},${c.cz}`).join(' ')}`)
+
+  // ---- speckle: single blocks unlike all four neighbours, on the lawn (dirt dots) and on floors
+  // (paving salted with odd blocks); clumped patches have almost none
+  let lawnN = 0
+  let lawnDots = 0
+  let floorN = 0
+  let floorDots = 0
+  for (let z = 1; z < sz - 1; z += 1)
+    for (let x = 1; x < sx - 1; x += 1) {
+      const i = z * sx + x
+      if (!land[i]) continue
+      const c = topC[i]
+      const lawn = c === SOIL_C || c === PLANT_C
+      const floor = c === BUILT_C && Math.abs(top[i] - (top[i - 1] + top[i + 1] + top[i - sx] + top[i + sx]) / 4) < 0.3
+      if (!lawn && !floor) continue
+      const key = lawn ? groundName : topName
+      const v = key[i]
+      let same = 0
+      let comparable = 0
+      for (const j of [i - 1, i + 1, i - sx, i + sx]) {
+        if (!land[j] || (lawn ? !(topC[j] === SOIL_C || topC[j] === PLANT_C) : topC[j] !== BUILT_C)) continue
+        comparable += 1
+        if (key[j] === v) same += 1
+      }
+      if (comparable < 4) continue
+      if (lawn) { lawnN += 1; if (!same) lawnDots += 1 }
+      else { floorN += 1; if (!same) floorDots += 1 }
+    }
+  stats.lawnSpeckle = pct(lawnDots, lawnN)
+  stats.floorSpeckle = pct(floorDots, floorN)
+  if (big && lawnN > 1000 && lawnDots / lawnN > 0.03) failures.push(`speckle: ${pct(lawnDots, lawnN)}% of the lawn is single blocks unlike their neighbours (dots of dirt, podzol or sand): ground patches are clumps 10-40 across (manual §5.2), at most 3% single dots`)
+  if (floorN > 500 && floorDots / floorN > 0.09) warnings.push(`speckle: ${pct(floorDots, floorN)}% of the paved floor is single blocks unlike their neighbours: one field material in clumped shades with borders and inlays (manual §5.3)`)
 
   // ---- physics: falling sand and gravel, sugar cane with no water, water that will flow out
   const where = list => list.map(p => p.join(',')).join(' ')
