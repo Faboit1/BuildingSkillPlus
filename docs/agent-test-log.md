@@ -111,6 +111,7 @@ What the old-plugin runs show:
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Cheese SMP | Haiku, high | new | 0 | 16 | 80 min | 57 | b.land relief, a walled town with streets of townHouses, the castle on the axis, buildings in every direction; woods over everything hide the land, the town only 256 across, a river-lake leak (the bug fixed later), NPCs 9 apart |
 
+| Cheese SMP | Haiku, high | new | 1 | 31 | 2 h 10 | 60 | woods down to 30% with clearings, the ridges show, farms, a mill, a hamlet, a lake village, a lumber camp, a shrine, NPCs 6.3 apart, 34 screenshots read; the town still compact, the districts small next to the woods |
 | Cheese SMP | Sonnet, xhigh | new | 0 | 24 | 1 h 50 | 73 | eroded ranges and a valley, the river looping round the walled town, a 124-tall castle on its crag on the axis, harbour, mill, windmill, farms, an abbey; blocky terracotta autumn crowns, lawn speckle 3.4%, templated house streets, the river-lake leak |
 
 Against round 1, round B's Haiku (57, no corrections) beat round 1's Haiku (30, then 46 after four
