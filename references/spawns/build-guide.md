@@ -1113,6 +1113,8 @@ to the rim. These are starting numbers for a 1000-wide canvas; scale them with y
 | The hero | on the north axis 100-200 out, 60-120 tall, seen over the boards in the first view |
 | Land | to the rim: a mountain range or crag behind the hero, a river from the mountains through the town under 2-4 bridges into a lake, forests with giant trees, cliffs and waterfalls at the island's edge |
 | Walls (optional) | round the town at r 200-300, gatehouses on the roads |
+| Outside the walls | 4-8 places of their own from the walls to the rim, each on a road from a gate: farms with a barn, a watermill, a hamlet, a lake village with a jetty, a lumber camp, a shrine or a ruined tower on a hill, a windmill, a mine mouth in a cliff. No quarter of the island is only woods |
+| Woods | 20-35% of the land, in clumps with meadows and fields between, thinning to a tree line; the mountains show above them |
 | Canvas | 800-1300; height 200 (the island's underside 50-80 below the floor) |
 
 ### 6.2 Spawn+ city (DonutSMP-like, big)
