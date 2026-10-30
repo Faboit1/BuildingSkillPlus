@@ -31,14 +31,14 @@ your first spawn, and read an element's chapter in §5 before you write that ele
 
 | Element | Chapter | What the picture teaches |
 | --- | --- | --- |
-| The island | §5.1 | a wandering outline, a flat walking area, a tapered ragged underside in strata, not a cylinder |
+| The land | §5.1 | a landscape from `b.land`: ranges with spurs, foothills, a valley, erosion, blocks by slope; a wandering outline and a hanging underside; not a flat disc, not noise hills, not blobs on the flat |
 | Ground, planting, walks | §5.2 | clumps not speckle, flower drifts, frayed walks |
 | Paving | §5.3 | one field material with borders and inlay lines, or a warm grid; not speckle |
 | Rivers, lakes, waterfalls | §5.4 | a meandering river with sloped banks, depth and plants, contained water; not a straight trench |
-| Bridges | §5.5 | stone arches on piers with cutwaters, parapets, ramps into the banks; not a plank strip |
+| Bridges | §5.5 | stone arches on piers with cutwaters, a humped deck 6-10 above the water, parapets, ramps into the banks; never a flat strip on the water |
 | Cliffs and mountains | §5.6 | strata, ledges with plants, overhangs, scree, a varied skyline; not a noise blob or a cone |
 | Stones and rocks | §5.7 | groups, sunk into the ground, noisy shapes, moss on top, not spheres |
-| Trees, bushes, giant trees | §5.8 | branches, lumpy crowns with gaps, three sizes, giant landmark trees; not lollipops |
+| Trees, bushes, giant trees | §5.8 | big thick trees (14-26 tall, trunks 2-5 across, all-bark wood), forking limbs, lumpy crowns with gaps, three sizes, giant landmarks; autumn by `b.autumn()` after the last tree (whole clumps turn, some trees stay green); not lollipops, 1-wide poles or green crowns dotted with orange cubes |
 | The spawn centre (the dais) | §5.9 | a stepped dais with stripes and a medallion on a grid plaza, the NPC ring round it |
 | NPC stands | §5.10 | a 1-block stand (a barrel), a soul lantern post, a ring turned to the middle; not pillars or glass boxes |
 | Leaderboards, top-3 pillars | §5.11 | framed recesses; 3 x 3 pillars, diamond 3 high, gold 2, iron 1, beside the boards |
@@ -49,7 +49,15 @@ your first spawn, and read an element's chapter in §5 before you write that ele
 | Lamps and light | §5.16 | posts with arms along the walks, hidden light, not glowstone grids |
 | Props | §5.17 | groups that tell a story, not single blocks scattered |
 | Fountains | §5.18 | a big rimmed basin, tiers with water spilling down; not a hole of water |
-| Text, the PvP line, the hero | §5.19-§5.21 | holograms, a red line with a region, one landmark 60-120 tall of their own |
+| Text, the PvP line | §5.19-§5.20 | holograms, a red line with a region |
+| The hero | §5.21 | one landmark 60-120 tall that reads from the spawn, grown out of a crag, layered and detailed (`elements/keep.mjs`); not a striped cylinder or a castle on a cube |
+| The town | §5.22 | streets first (5-9 wide, curving), houses shoulder to shoulder on lots along them, every house its own, back yards; not houses on a lawn |
+
+**When a spawn is done.** Only when the export went through: the audit passed (every build prints
+it; the export refuses while it fails) and the quality gate of manual §2.3 holds. Until then there
+is no report to write. A list of open items, a question like "should I continue?" or a summary of
+what is left is stopping early. Take the next item and build again. Expect 40-100 builds and hours
+of work for a big spawn: that is the job, not a sign that something is wrong.
 
 The frame (`frame/frame.mjs` in the spawn folder) is plumbing only: the canvas, a reservation grid,
 angles, the world spawn, the records the server admin needs (NPC, hologram, crate, board and portal
@@ -71,7 +79,8 @@ states, modules, and roof, window and door helpers): use it freely, the design i
 - **Scripts (the same results, when the tools are not listed, e.g. in claude.ai chat):**
   - `node "${CLAUDE_SKILL_DIR}/scripts/new-spawn.mjs" "<name>" --brief "<plan>"`
   - `run-build.mjs <spawn.mjs> --out-dir <folder> --json`
-  - `screenshot.mjs <file.nbt> --spawn` (or `--shots '<json>'`)
+  - `screenshot.mjs <file.nbt> --spawn` (or `--shots '<json>'`; `--night` for the night view with the
+    game's block light)
   - `isorender.mjs <file.nbt> --out x.png`
 
   They need Node 20.19+. The dependencies are bundled in `scripts/node_modules`, so there is nothing
@@ -168,10 +177,12 @@ big feature, empty ground on a big canvas is a bug. Never skip a check, never st
 pass. In Claude Code you can run helper agents in parallel, one district each; then put the
 districts together and review the whole.
 
-Build the land first (the island, mountains, rivers, lakes), then the spawn centre, then one
-district at a time with the district loop (manual §2.2): block out the big masses, draft with
-`build_recipe`'s `focus` (only that box: 20-40 s on any canvas), detail, look from 4+ player spots,
-list every flaw, fix, repeat until a round finds nothing (3 rounds at least). For each element:
+Build the land first, as a landscape (manual §5.1): shape it with `b.land` (ranges, peaks,
+valleys, pads), erode it, look at `land.preview()`'s map (seconds) until the landforms are right,
+then paint it and cut the rivers and lakes. Then the spawn centre, then one district at a time with
+the district loop (manual §2.2): block out the big masses, draft with `build_recipe`'s `focus` (only
+that box: about a minute on any canvas, as the whole recipe still runs but only the box is kept), detail, look from 4+ player spots, list every flaw, fix, repeat
+until a round finds nothing (3 rounds at least). For each element:
 
 1. Read its chapter in manual §5 and look at the do and don't picture.
 2. Read its worked example in `elements/` to see how each rule becomes blocks.
@@ -180,6 +191,11 @@ list every flaw, fix, repeat until a round finds nothing (3 rounds at least). Fo
    places or buildings alike.
 4. Build with `build_recipe` and look at the views before you go on. Fix every `problems`,
    `clipped` and warning line.
+
+**The audit** (manual §2.3): every build prints `audit:` lines measured from the blocks (bare lawn,
+flat land, repeated buildings, low decks over water, NPC spacing, the build count). Each `FIX` line is
+work to do now; the export refuses while any is open. Never stop to ask the user whether to carry on
+while the audit fails or the gate is not met: carry on. Read every screenshot you take.
 
 Use the marks for the gameplay places (`b.spawnPoint`, `b.markNpc`, `b.markCrate`, `b.markBoard`,
 `b.markPortal`, `ctx.hologram`, `b.region`; manual §4.2). They record what setup.md needs and warn
@@ -209,8 +225,9 @@ to the same `spawn.mjs`; the manual's cookbook (§8) says what to build for each
 
 ### Step 6: deliver
 
-`build_recipe` with `export: true`, `origin` (the world block where the schematic's minimum corner
-goes) and `world` writes these files:
+Only once the audit passes and the gate of manual §2.3 holds. `build_recipe` with `export: true`,
+`origin` (the world block where the schematic's minimum corner goes) and `world` writes these files
+(with the scripts: `convert.mjs <slug>.nbt --out <slug>.schem`, and `.litematic`):
 
 - the `.schem` (WorldEdit/FAWE);
 - the `.litematic` (Litematica);
@@ -349,6 +366,9 @@ exact numbers.
 
 ## Facts that prevent most mistakes
 
+- Players see about 160-200 blocks at a normal render distance (10-12 chunks): what the first view
+  must show (a mountain, the hero) stands within that of the spawn point; screenshots use
+  `--far 260` by default, more for overviews.
 - Coordinates: `x` east, `y` up, `z` south. Everything must fit inside the builder size; out-of-range
   placements are skipped and counted.
 - Stairs `facing` = side of the tall back (you walk up toward it). Wall features (windows, doors,
@@ -363,8 +383,8 @@ exact numbers.
 - Output DataVersion defaults to 3955 (1.21.1); newer games upgrade it automatically. Use
   `--data-version` for older targets.
 - Entities (item frames, armor stands, paintings) are not exported. Sign text and banner patterns
-  render unreliably — build detail from blocks. The previewer does not propagate light; night mode
-  shows emissive blocks glowing.
+  render unreliably — build detail from blocks. The browser previewer does not propagate light (its night
+  mode shows emissive blocks glowing); `screenshot.mjs --night` does, like the game.
 - Standing sign/banner/head `rotation` previews mirrored east↔west; write the vanilla value anyway.
 - Vanilla structure blocks load at most 48×48×48; `/place template` and WorldEdit/Litematica have no
   such limit (`references/formats.md`).

@@ -7,6 +7,7 @@ import { Builder } from './builder.mjs'
 import { EASTROOF_METHODS } from './eastroof.mjs'
 import { FOREST_METHODS } from './forest.mjs'
 import { IMPORT_METHODS } from './importer.mjs'
+import { LAND_METHODS, Land, THEMES as LAND_THEMES, smoothPath } from './land.mjs'
 import * as colors from './colors.mjs'
 import * as materials from './materials.mjs'
 import { NATURE_METHODS, TREE_SPECIES } from './nature.mjs'
@@ -17,7 +18,7 @@ import { ROOFPLAN_METHODS } from './roofplan.mjs'
 import { EROSION_PRESETS, SCULPT_METHODS, centripetalCatmullRom, sdEllipsoid, sdTaper } from './sculpt.mjs'
 import * as spawn from './spawn.mjs'
 
-for (const [name, fn] of Object.entries({ ...ARCH_METHODS, ...ROOFPLAN_METHODS, ...EASTROOF_METHODS, ...NATURE_METHODS, ...FOREST_METHODS, ...plan.PLAN_METHODS, ...SCULPT_METHODS, ...IMPORT_METHODS, ...spawn.SPAWN_METHODS })) {
+for (const [name, fn] of Object.entries({ ...ARCH_METHODS, ...ROOFPLAN_METHODS, ...EASTROOF_METHODS, ...NATURE_METHODS, ...FOREST_METHODS, ...plan.PLAN_METHODS, ...SCULPT_METHODS, ...IMPORT_METHODS, ...LAND_METHODS, ...spawn.SPAWN_METHODS })) {
   Builder.prototype[name] = function method(...args) {
     return fn(this, ...args)
   }
@@ -115,6 +116,8 @@ export function createKit() {
     hash01: noise.hash01,
     // settlement planning (roads, lots, curtain walls, plazas, skyline report): composition.md
     plan,
+    // landscapes: a heightfield with landforms, erosion, a map preview and painting (b.land)
+    land: { Land, THEMES: LAND_THEMES, smoothPath },
     // spawn & lobby kit (signs, NPC spots, leaderboards, crates, portals, spawn-proofing)
     spawn,
     signWidth: spawn.signWidth,

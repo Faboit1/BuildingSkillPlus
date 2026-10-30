@@ -309,7 +309,7 @@ export function validateBlock(block) {
   const states = vanillaStates()
   if (states) {
     const def = states.blocks[name]
-    if (!def) return [`unknown block id ${name}`]
+    if (!def) return [`unknown block id ${name}${suggest(name, Object.keys(states.blocks))}`]
     const problems = []
     for (const [key, value] of Object.entries(props ?? {})) {
       const allowed = def.v?.[key]
@@ -319,7 +319,7 @@ export function validateBlock(block) {
     return problems
   }
   const data = pack()
-  if (!data.ids.has(name)) return [`unknown block id ${name}`]
+  if (!data.ids.has(name)) return [`unknown block id ${name}${suggest(name, [...data.ids])}`]
   const problems = []
   const values = data.propertyValues.get(name)
   if (props && values) {
@@ -365,3 +365,46 @@ export const isLog = name => /_(log|wood|stem|hyphae)$/.test(name) || /^minecraf
 export const isAir = name => name === 'minecraft:air' || name === 'minecraft:cave_air' || name === 'minecraft:void_air'
 export const isFluid = name => name === 'minecraft:water' || name === 'minecraft:lava'
 export const isEmissive = name => pack().emissive.has(withNamespace(name))
+
+// " (did you mean minecraft:x?)" for an unknown id: the usual slips first (stone_bricks_stairs,
+// chiseled_deepslate_bricks), then the closest id by edit distance
+function suggest(name, ids) {
+  const known = new Set(ids)
+  const bare = name.replace(/^minecraft:/, '')
+  // ids renamed in newer versions, and common old names
+  const RENAMED = { grass: 'short_grass', grass_path: 'dirt_path', chain_block: 'chain', copper_chain: 'chain', lily: 'lily_pad', wooden_planks: 'oak_planks', log: 'oak_log', leaves: 'oak_leaves', stone_brick: 'stone_bricks', brick: 'bricks', sign: 'oak_sign', wall_sign: 'oak_wall_sign', snow_layer: 'snow', web: 'cobweb', melon_block: 'melon', red_flower: 'poppy', yellow_flower: 'dandelion', tallgrass: 'tall_grass', mob_spawner: 'spawner' }
+  if (RENAMED[bare] && known.has(`minecraft:${RENAMED[bare]}`)) return ` (did you mean minecraft:${RENAMED[bare]}?)`
+  const tries = [
+    bare.replace(/s_(stairs|slab|wall)$/, '_$1'),
+    bare.replace(/_bricks?$/, ''),
+    bare.replace(/^chiseled_(\w+?)_bricks$/, 'chiseled_$1'),
+    bare.replace(/_block_(stairs|slab|wall)$/, '_$1'),
+    `${bare}s`,
+    bare.replace(/s$/, ''),
+  ].map(t => `minecraft:${t}`)
+  const hit = tries.find(t => t !== name && known.has(t))
+  if (hit) return ` (did you mean ${hit}?)`
+  let best = null
+  let bestD = Infinity
+  for (const id of known) {
+    if (Math.abs(id.length - name.length) > 4) continue
+    const d = editDistance(id, name, bestD)
+    if (d < bestD) { bestD = d; best = id }
+  }
+  return best && bestD <= Math.max(2, Math.floor(bare.length / 5)) ? ` (did you mean ${best}?)` : ''
+}
+
+function editDistance(a, b, cap = Infinity) {
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i)
+  for (let i = 1; i <= a.length; i += 1) {
+    const cur = [i]
+    let low = i
+    for (let j = 1; j <= b.length; j += 1) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1))
+      if (cur[j] < low) low = cur[j]
+    }
+    if (low > cap) return Infinity
+    prev = cur
+  }
+  return prev[b.length]
+}

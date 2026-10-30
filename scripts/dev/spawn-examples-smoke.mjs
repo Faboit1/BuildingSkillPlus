@@ -17,7 +17,7 @@ const dir = path.join(root, 'assets/examples/spawns')
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'spawn-examples-'))
 const node = (args, opts = {}) => spawnSync(process.execPath, ['--max-old-space-size=6144', ...args], { encoding: 'utf8', maxBuffer: 1 << 26, ...opts })
 
-function check(recipe, out, label) {
+function check(recipe, out, label, { spawn = true } = {}) {
   const t0 = Date.now()
   const r = node([path.join(root, 'scripts/run-build.mjs'), recipe, '--out-dir', out, '--json'])
   const secs = ((Date.now() - t0) / 1000).toFixed(1)
@@ -33,7 +33,7 @@ function check(recipe, out, label) {
     if (clear.length) problems.push(`${clear.length} keep-clear warnings, e.g. ${clear[0]}`)
     const pl = fs.readdirSync(out).find(f => f.endsWith('.placements.json'))
     const placements = pl ? JSON.parse(fs.readFileSync(path.join(out, pl), 'utf8')).placements : []
-    if (!placements.some(p => p.type === 'spawn')) problems.push('no world spawn')
+    if (spawn && !placements.some(p => p.type === 'spawn')) problems.push('no world spawn')
     const npcs = placements.filter(p => p.type === 'npc' && p.role !== 'statue').length
     const src = fs.readFileSync(recipe, 'utf8')
     // the NPC list: a template's BRIEF.npcs, or an example's NPCS constant (comment lines skipped)
@@ -92,7 +92,8 @@ if (!only.length || only.includes('scaffold')) {
     console.log(`FAIL new-spawn: ${(r.stderr || r.stdout).slice(-400)}`)
     failed += 1
   } else {
-    if (!check(path.join(out, 'spawn.mjs'), out, 'new-spawn skeleton')) failed += 1
+    // the empty skeleton has no world spawn yet (the dais places it)
+    if (!check(path.join(out, 'spawn.mjs'), out, 'new-spawn skeleton', { spawn: false })) failed += 1
     if (!check(path.join(out, 'examples', 'kirin-practice.mjs'), path.join(out, 'ref'), 'reference spawn inside the folder')) failed += 1
     fs.writeFileSync(path.join(out, 'mini.mjs'), MINI)
     const miniOut = path.join(out, 'mini')

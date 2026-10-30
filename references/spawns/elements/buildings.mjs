@@ -41,7 +41,7 @@ const K = (u, d) => `${u},${d}`
 const OPP = { north: 'south', south: 'north', east: 'west', west: 'east' }
 const TALL = /^(rose_bush|peony|lilac|tall_grass|large_fern)$/
 // roof materials and the two neighbours their clumps of wear are made of
-const AGED_ROOF = { deepslate_tile: ['cobbled_deepslate', 'deepslate_brick'], dark_oak: ['spruce', 'mangrove'], spruce: ['dark_oak', 'oak'], brick: ['mud_brick', 'granite'], mud_brick: ['brick', 'granite'], stone_brick: ['mossy_stone_brick', 'cobblestone'] }
+const AGED_ROOF = { deepslate_tile: ['cobbled_deepslate', 'deepslate_brick'], dark_oak: ['spruce', 'spruce'], spruce: ['dark_oak', 'oak'], brick: ['mud_brick', 'granite'], mud_brick: ['brick', 'granite'], stone_brick: ['mossy_stone_brick', 'cobblestone'] }
 
 // Heights above pos (the ground block): plinth 1-2, ground floor at 2, stone storey 3-7, upper floor
 // (the jetty beam) at 8, timber storey 9-11, top plate 12, roofs start at 13.
@@ -88,7 +88,7 @@ export function hall(ctx, pos, facing, opts = {}) {
   const dir = (du, dd) => (du * M > 0 ? L.right : du * M < 0 ? L.left : dd > 0 ? L.out : L.back)
   const fam = id => {
     const m = kit.material(String(id).replace('minecraft:', ''))
-    return { stairs: m.stairs ?? m.substitutes?.stairs?.[0], slab: m.slab ?? m.substitutes?.slab?.[0] }
+    return { ...m, stairs: m.stairs ?? m.substitutes?.stairs?.[0], slab: m.slab ?? m.substitutes?.slab?.[0], wall: m.wall ?? 'minecraft:stone_brick_wall' }
   }
   const P = {
     masonry: kit.palette(masonry, { scale: 3, seed }),
@@ -99,7 +99,7 @@ export function hall(ctx, pos, facing, opts = {}) {
   }
   // a stair of whatever block the palette gives here (the clumps keep their colour in the trim)
   const shaped = (paint, state) => (x, y, z) => `${fam(paint(x, y, z)).stairs}[${state}]`
-  const st = (mat, f, half = 'bottom') => `minecraft:${mat}_stairs[facing=${f},half=${half}]`
+  const st = (mat, f, half = 'bottom') => `${fam(mat).stairs}[facing=${f},half=${half}]`
   const log = axis => `minecraft:${frame}_log[axis=${axis}]`
   const GLASS = `minecraft:${glass}`
   const BACKING = `minecraft:${backing}`
@@ -275,7 +275,7 @@ export function hall(ctx, pos, facing, opts = {}) {
       rset(r, s, 0, top, st(trim, r.neg, 'top'))
       rset(r, s + w - 1, 0, top, st(trim, r.pos, 'top'))
     }
-    if (w === 3) for (let h = h0; h < top; h += 1) rset(r, s + 1, 0, h, `minecraft:${trim}_wall`)
+    if (w === 3) for (let h = h0; h < top; h += 1) rset(r, s + 1, 0, h, `${fam(trim).wall}`)
     if (w % 2) rset(r, s + (w >> 1), 0, top + 1, 'minecraft:chiseled_stone_bricks')
   }
 
@@ -440,10 +440,10 @@ export function hall(ctx, pos, facing, opts = {}) {
     }
     for (const u of [c - 3, c + 3]) {
       for (const d of [f + 1, f + 2, f + 3]) { set(u, d, 1, P.plinth); set(u, d, 2, P.plinth) }
-      set(u, f + 3, 3, `minecraft:${trim}_wall`)
+      set(u, f + 3, 3, `${fam(trim).wall}`)
       set(u, f + 3, 4, 'minecraft:lantern')
-      set(u, f + 2, 3, `minecraft:${trim}_slab[type=bottom]`)
-      set(u, f + 1, 3, `minecraft:${trim}_slab[type=bottom]`)
+      set(u, f + 2, 3, `${fam(trim).slab}[type=bottom]`)
+      set(u, f + 1, 3, `${fam(trim).slab}[type=bottom]`)
     }
   }
 
@@ -465,7 +465,7 @@ export function hall(ctx, pos, facing, opts = {}) {
         set(u, f + k, H.plate, face ? log(k === 2 ? L.across : L.deep) : 'minecraft:spruce_planks')
       }
     for (let u = bay.u0; u <= bay.u1; u += 1) for (let h = 3; h < H.plate; h += 1) if (h !== H.course && h !== H.beam) set(u, f, h, 'minecraft:air')
-    for (let h = 4; h <= 6; h += 1) set(wc, f + 2, h, `minecraft:${trim}_wall`)
+    for (let h = 4; h <= 6; h += 1) set(wc, f + 2, h, `${fam(trim).wall}`)
     for (let h = H.beam + 1; h < H.plate; h += 1) set(wc, f + 2, h, log('y'))
     for (let u = bay.u0; u <= bay.u1; u += 1) set(u, f + 3, 2, st(trim, L.back))
     // the cap: a little hipped roof of the main slates under the gable
@@ -540,7 +540,7 @@ export function hall(ctx, pos, facing, opts = {}) {
       for (let d = mc[1] - 2; d <= mc[1] + 2; d += 1) {
         const r = Math.hypot(u - c, d - mc[1])
         if (r > 2.3) continue
-        if (r > 1.5) set(u, d, 1, `minecraft:${trim}_slab[type=bottom]`)
+        if (r > 1.5) set(u, d, 1, `${fam(trim).slab}[type=bottom]`)
         else {
           set(u, d, 0, 'minecraft:rooted_dirt')
           set(u, d, 1, r < 0.5 ? 'minecraft:flowering_azalea' : (u + d) % 2 ? 'minecraft:allium' : 'minecraft:cornflower')
@@ -551,7 +551,7 @@ export function hall(ctx, pos, facing, opts = {}) {
     for (const u of [court.u0 - 1, court.u1 + 1]) for (let d = court.d1; d <= court.d0; d += 1) set(u, d, 1, hedge)
     for (const u of [court.u0 - 1, court.u1 + 1])
       for (const d of [court.d1, court.d0]) {
-        set(u, d, 1, `minecraft:${trim}_wall`)
+        set(u, d, 1, `${fam(trim).wall}`)
         set(u, d, 2, 'minecraft:spruce_fence')
         set(u, d, 3, 'minecraft:spruce_fence')
         set(u, d, 4, 'minecraft:lantern')

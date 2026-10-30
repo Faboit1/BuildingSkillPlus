@@ -122,6 +122,14 @@ export function river(ctx, points, { width = [8, 14], depth = 3, bank = 4, level
     return -1
   })
   const widthAt = typeof width === 'function' ? width : Array.isArray(width) ? t => width[0] + (width[1] - width[0]) * kit.noise.coherent01(t * c.length, 0, 0, { scale: 20, grain: 0, seed }) : () => width
+  // every point of the course must be on the land: a source off the island would build water and
+  // banks in the air
+  const off = []
+  for (let i = 0; i <= 200; i += 1) {
+    const [x, z] = c.at(i / 200).map(Math.round)
+    if (x < 0 || z < 0 || x >= b.size[0] || z >= b.size[2] || groundAt(x, z) < 0) off.push(`${x},${z}`)
+  }
+  if (off.length) ctx.warn(`river: ${off.length} of 201 points along the course are off the land (e.g. ${off.slice(0, 3).join(' ')}): move its points onto the land`)
   const toT = at => (typeof at === 'number' ? at : c.nearest(at[0], at[1]).t)
   const drops = falls.map(f => ({ ...f, t: toT(f.at) })).sort((p, q) => p.t - q.t)
   const stretchOf = t => drops.filter(f => f.t <= t).length
@@ -180,6 +188,9 @@ export function river(ctx, points, { width = [8, 14], depth = 3, bank = 4, level
       }
       const wet = shapes.filter(sh => sh.s < 0)
       const land = groundAt(x, z)
+      // a lake (or other still water) already here: the river flows into it and leaves it alone
+      // (carving or banking inside it would open holes and build walls in the water)
+      if (b.nameAt(x, land + 1, z) === 'minecraft:water') continue
       if (wet.length) {
         // where two waters overlap, the lower one wins (a plunge pool cuts back under its fall)
         const k = Math.max(...wet.map(sh => sh.k))

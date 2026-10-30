@@ -407,17 +407,84 @@ which shows as a second layer in cutaways.
 | `b.leafBlob(c, [rx, ry, rz], leaves, { holes, roughness })` | custom canopies, hedges |
 | `b.forest({ x0, z0, x1, z1, ground, species, density, minSpacing, clearings, avoid, seed, sizes })` | whole woodland: Poisson placement thinned by clumping noise, species clumped (`[[6, 'oak'], [3, 'birch'], [1, 'colonized_dark_oak']]`; any `b.tree` preset, `'colonized[_oak\|birch\|dark_oak]'`, `'forester_round'`, `'forester_cone'` or a function), three size classes, bush-feathered edges, clearings `[[cx, cz, r]]`, `avoid(x, z)` for paths, stumps and fallen logs, podzol under big crowns. Keeps big trees ≥ 15 blocks from the canvas edge. Returns the placed trees |
 | `b.spaceColonizationTree(base, { height, crown, species \| log, wood, leaves })` | the most natural broadleaf crowns (branches grow toward points in a crown volume; pipe-model thickness) |
+| `b.autumn({ box, share, hues, seed, keep })` | autumn colour, once, after every tree is planted: oak, dark-oak, birch, jungle, acacia and mangrove leaves turn by whole clumps (never one block), tree-sized patches deciding how far a crown has turned, so some stay green and others go gold, orange or red all over. A turned clump is lighter where it meets the sky (honeycomb, yellow terracotta), darker inside (orange and red terracotta, nether wart), and keeps some leaves for texture and at its tips. `share` of the leaves turn (0.45), `hues` the mix (`{ gold: 3, orange: 4.5, red: 2.5 }`), `box` `[x0, z0, x1, z1]` (the canvas), `keep(x, y, z)` leaves a block alone. Birch only goes gold; spruce, pine, cherry and azalea stay. Returns `{ leaves, turned }` |
 | `b.foresterTree(base, { height, shape: 'round'\|'cone' })` | MCEdit Forester port; `cone` makes the best spruces |
 | `b.bush(base, { radius, leaves, log })` | |
 | `b.boulder(c, radii, paint, { roughness, mossTop })` | noise-displaced rock |
 | `b.terrain({ x0, z0, x1, z1, base, height: (x, z) => y, layers, surface })` | returns `(x, z) => surfaceY` |
 | `b.scatter({ x0, z0, x1, z1, on, density, paints, clump })` | grass/flowers on the walking surface (also under overhangs and canopies); tall plants get both halves |
-| `b.groundY(x, z, on?)` | walking surface of a column: highest terrain (or `on`) block with only air/plants above; -1 if none. Use it instead of `b.topY` to place props under canopies, brims and jetties |
+| `b.groundY(x, z, on?)` | walking surface of a column: highest terrain (or `on`) block with only air/plants above; -1 if none (also where something is built over the ground). Use it instead of `b.topY` to place props under canopies, brims and jetties |
+| `b.groundUnder(x, z, on?)` | the ground of a column even where something stands on it: the highest terrain block; -1 if none. For walls and buildings placed after others (or pass them an explicit `ground`, like `land.paint`'s `groundY`) |
 | `b.path(points2d, { width, paint, jitter, on })` | winding path on the walking surface: the highest terrain block with only air/plants above (continues under jetties and canopies, never repaints props or floors). `dirt_path` is 1/16 lower than full blocks: use it alone (lanes, ruts) or mix only full blocks (`coarse_dirt`, `gravel`, `packed_mud`, `rooted_dirt`), otherwise close-ups show a maze of tiny steps |
 | `b.pond([cx, level, cz], r, { depth, rim, bed })` | |
 | `b.overgrow(a, c, { amount, maxLength, moss, only })` | vines on exposed walls + moss carpet; `only` limits it to some blocks (stone, not sails or planks). Run it after the last dig, or vines may hang in air |
 | `b.island([cx, topY, cz], r, { depth, top, soil, rock })` | floating island |
 | `b.weather(a, c, { share, mossBias, scale, variants })` | swaps blocks for cracked/mossy/oxidized variants in organic patches; `share` is the exact fraction aged (0.1–0.3 typical), moss and cracks form their own clumps (`mossBias` = moss share). `variants: { 'minecraft:deepslate_tiles': ['minecraft:cracked_deepslate_tiles', 'minecraft:cobbled_deepslate'] }` turns it into a general patchy material swap (mottled roofs, worn floors). The older `amount` is a raw threshold on blocky noise (0.22 ≈ 10%, 0.38 ≈ 30%) |
+
+### `b.land(opts)` — landscapes: a heightfield you shape, erode, preview and paint
+
+For the land of a whole spawn (a valley, mountains round it, a river): `b.terrain` with a noise
+function gives lumps everywhere; this gives landforms. You design where everything is; the field
+does the arithmetic. Worked example: `references/spawns/elements/land.mjs` (manual §5.1); the
+numbers behind it: `references/spawns/terrain-research.md`.
+
+```js
+const land = b.land({ base: 70, seed: 5 })                 // heights start at y 70 (x0, z0, x1, z1: a part of the canvas)
+land.outline({ cx: 500, cz: 500, r: 470, wobble: 0.1 }, { fall: 50, rim: 70 }) // floating land: relief falls to the rim
+land.range([[60, 700], [120, 300], [400, 90], [800, 160]], { width: 260, height: 110, asym: -0.3 }) // a ridge with spurs
+land.peak([820, 560], { r: 100, height: 60, stretch: 1.5, summits: 2 })   // a lone mountain, never a cone
+land.valley([[300, 200], [420, 520], [700, 820]], { width: 70, floor: 71, shape: 'v' }) // a floodplain
+land.hills({ amp: 3, scale: 110 })                                         // a gentle roll
+const plazaY = land.pad({ cx: 520, cz: 520, r: 60 }, { y: 72, blend: 30 }) // flat, blended, kept from erosion
+land.erode({ strength: 1.5 })      // rain: gullies, sharp spurs, gravel fans (1-3 s on 1000 x 1000)
+land.thermal({ talus: 1.3 })       // scree under the cliffs
+land.preview('minecraft-builds/x/land.png')   // shaded map with contours, in a second or two: look before painting
+console.log(land.stats())          // { min, max, relief, flat, gentle, sloping, steep, cliff } (% of the land)
+const groundY = land.paint({ theme: 'autumn', underside: { depth: 60, ramp: 120 }, water: { level: 68, from: [640, 760] } })
+```
+
+| Method | What it does |
+| --- | --- |
+| `b.land({ x0, z0, x1, z1, base, seed })` | a field over the canvas (or a part), every column at `base` |
+| `land.outline(shape, { fall, rim, wobble })` | the edge of floating land: `{ cx, cz, r }`, `{ cx, cz, rx, rz }` or `(x, z) => bool`; outside gets no land; the relief above `rim` fades to it over the last `fall` blocks, so no wall shows at the edge |
+| `land.range(points, { width, height, sharp, rough, spurs, warp, vary, asym, taper, seed })` | a mountain range along a smooth path: the crest's height wanders (`vary`), the cross-section is steep at the crest and long at the foot (`sharp` 1.4-2), spurs every `spurs` blocks (default width × 0.22) run down to the foot with side valleys between, `asym` > 0 makes the right side (looking along the path) steeper, < 0 the left; `height` is added to the land there |
+| `land.peak([x, z], { r, height, sharp, rough, spurs, warp, stretch, angle, summits, seed })` | one mountain: stretched along `angle`, with `summits` lesser tops, curving spurs |
+| `land.valley(points, { width, floor, depth, flat, shape, warp, lock })` | lowers the land along a path to `floor` (a level or `t => level`, t 0-1 along it) or by `depth`; `flat` share of the width stays flat; `shape: 'u'` (steep sides) or `'v'`; it only lowers; its floor is kept from erosion (`lock: false` to let it weather) |
+| `land.hills({ amp, scale, octaves, mask, seed })` | fbm roll of `amp` blocks (2-4 on a valley floor), feature size `scale` |
+| `land.roughen({ amp, scale, steep })` | ridged texture only where it is already steep (ribs on cliffs) |
+| `land.pad(shape, { y, blend, wobble, lock })` | flattens `{ cx, cz, r }`, `{ x0, z0, x1, z1, round }` or `{ points }` to `y` (`'mean'`: its mean), blending out over `blend` with a wandering edge; returns the level; `lock` keeps it from erosion and smoothing |
+| `land.add(fn)`, `land.apply(fn)`, `land.clamp({ min, max })` | your own edits: `fn(x, z, h)` |
+| `land.smooth({ r, iterations, mask })` | box blur; locked columns stay |
+| `land.erode({ strength, res, radius, lifetime, seed, ... })` | hydraulic erosion (droplets); `strength` 1 normal, 2-3 deep gullies; nothing is carved below the lowest land, and it fades out at the outline's edge |
+| `land.thermal({ talus, iterations, rate })` | slopes steeper than `talus` (rise a block) slump into scree; 1.2-1.5 trims, 0.8 softens everything |
+| `land.preview(file, { theme, water, contour, px })` | the shaded relief map (north up, one pixel a block up to 1000 wide), coloured by what paint would place: build only once the map is right |
+| `land.stats()` | the relief and the share of flat (under 0.15 a block), gentle, sloping, steep and cliff (over 1.8) land |
+| `land.paint({ theme, bottom, underside, water, surface, tilt, seed })` | writes the blocks and returns `groundY(x, z)` (-1 off the land); see below |
+| `land.top(x, z)`, `land.get(x, z)`, `land.at(x, z)` | the top block's level; the field's float; between columns |
+| `land.slope(x, z)`, `land.wetness(x, z)`, `land.deposit(x, z)` | rise a block; 0-1 where water gathers; what erosion did (+ fans, - gullies) |
+| `land.where({ slope, y, dry, wet, unlocked, deposit })` | a test `(x, z) => bool` for `b.forest`'s `avoid`, scatter and your own placement |
+
+`paint` options:
+- `theme`: `temperate`, `autumn`, `alpine` (snow above 72% of the relief), `winter`, `desert`,
+  `mesa`, `tropical`, `dark`, or your own object overriding any part of `kit.land.THEMES.temperate`:
+  `{ grass, patches, patchShare, slope, soil, rock, pale, dark, scree, fan, beach, bed, snow }` (lists
+  are `[[block, weight], ...]`; `rock` is the strata).
+- Per column it picks: flats → grass with clumped patches; 30-44° → the slope mix; steeper → scree,
+  then bare rock in tilted, wandering strata with a pale band every 8-14 rows; erosion's fans →
+  gravel; a gully → stony; above the snow line → snow; next to water → beach; under it → bed. Soil
+  3-4 deep under flats, 1-2 under slopes, none under rock.
+- `bottom`: the lowest block of each column, a level or `(x, z, top) => level` (default: 6 under
+  the lowest neighbour).
+- `underside: { depth, ramp, ragged, y }`: floating land hangs to a ragged point `depth` deep,
+  reached `ramp` blocks in from the outline.
+- `water`: `{ level, from: [x, z] }` fills the basin round `from` below `level` (a list for several
+  lakes); `{ level, where }` fills every column below the level where `where` says (a sea). It
+  warns when the water would spill.
+- `surface({ x, z, y, slope, wet, deposit, kind })`: return a block to decide a column's top
+  yourself, or null to keep the theme's.
+- Rivers: shape the floodplain with `valley` (above the water level), paint, then cut the channel
+  with `river()` from `elements/river.mjs` (`ground: groundY`).
+- Under `focus`, `paint` writes only the focus box; the field (erosion included) is still the whole land.
 
 ### `b.texture(a, c, ramp, opts)` — gradient retexturing (the pro workflow)
 
@@ -508,7 +575,7 @@ its own places and records them with the marks above.
 
 | Method | Notes |
 | --- | --- |
-| `b.sign(text, at, facing, opts)` | block letters; `at` = top-left letter cell as the reader sees it (top-centre with `align: 'center'`, top-right with `'right'`); `font: 'small'` (3x5) \| `'medium'` (5 tall, default) \| `'large'` (5x7); `block` / `stairs` (quartz_block / quartz; any block with its own stairs smooths, others stay square); `depth`; `'\n'` for lines (`leading`). `board` adds a framed panel: the field `boardDepth` (2) deep sits 1 behind the letters inside a `frame` ring (polished_deepslate; `false` for a bare board with an optional flat `boardEdge`) with a stair cornice and sill, returned ends and a slab `cap`; `pad` (1) cells of field around the text. Returns `{ width, height, min, max }` |
+| `b.sign(text, at, facing, opts)` | block letters; `at` = top-left letter cell as the reader sees it (top-centre with `align: 'center'`, top-right with `'right'`); the text runs to the reader's right: facing south +x, north -x, east -z, west +z; `font: 'small'` (3x5) \| `'medium'` (5 tall, default) \| `'large'` (5x7); `block` / `stairs` (quartz_block / quartz; any block with its own stairs smooths, others stay square); `depth`; `'\n'` for lines (`leading`). `board` adds a framed panel: the field `boardDepth` (2) deep sits 1 behind the letters inside a `frame` ring (polished_deepslate; `false` for a bare board with an optional flat `boardEdge`) with a stair cornice and sill, returned ends and a slab `cap`; `pad` (1) cells of field around the text. Returns `{ width, height, min, max }` |
 | `kit.signWidth(text, font)` / `kit.signHeight(text, font)` | size of the lettering (widest line), to centre or fit it before drawing |
 | `b.npcSpot(pos, facing, { id, label, role, style })` | `pos` = the block the NPC stands on (feet at y + 1). `style`: `'pedestal'` (5x5, `size: 3`, or `shape: 'round'`), `'alcove'`, `'booth'`, `'kiosk'`, `'none'`. Keeps 2 + 1 blocks of head room and a 2-deep click stand-off clear (finish warns if a later edit fills them) |
 | `b.leaderboards(pos, facing, { count: 3, width: 5, height: 6, gap: 3, style, ids, labels, podium })` | framed hologram boards in a wall (`style: 'wall'`) or as steles (`'row'`); `pos` = floor block in the middle of the wall face (the wall lies 1-4 blocks behind it). The middle board of 3+ is the hero (2 wider, 1 taller, raised bay with a crest); `podium: true` adds 2nd/1st/3rd steps in front of it whose statues are recorded as NPC spots (`role: 'statue'`, `rank`). `backdrop` (polished_blackstone), `footlight`, `strip`, `podiumCaps` |

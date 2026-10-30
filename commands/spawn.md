@@ -26,7 +26,12 @@ Follow the minecraft-builder skill's "Server spawns and lobbies: build them your
 3. **Scaffold.** After a yes, call `new_spawn` (this plugin's `minecraft` MCP server). It gives
    `spawn.mjs` = the skeleton: the frame and one empty section per element group.
 4. **Build every element yourself, district by district, and cook until it is perfect** (manual
-   §2.1-§2.2: take the builds and tokens it needs; do the most, not the least; never skip a check).
+   §2.1-§2.2: take the builds and tokens it needs; do the most, not the least; never skip a check;
+   never stop to ask whether to carry on).
+   - The land first, as a landscape: `b.land` (manual §5.1, `elements/land.mjs`); look at
+     `land.preview()`'s map before painting.
+   - Every build prints the audit: fix each `audit: FIX` line (bare lawn, flat land, repeats, NPC
+     spacing, low decks, the build count).
    1. Read the element's chapter in manual §5 and its do / don't picture.
    2. Read its worked example in `elements/`.
    3. Write this spawn's own version, designed from the plan and the theme, at the sizes of manual
@@ -40,9 +45,13 @@ Follow the minecraft-builder skill's "Server spawns and lobbies: build them your
    - each element compared with its chapter's picture.
 
    Run the `spawn-critic` agent after every district and at the end, until it finds nothing above
-   minor; deliver only when the quality gate of manual §2.3 passes.
+   minor; deliver only when the audit passes and the quality gate of manual §2.3 holds (the export
+   refuses until the audit passes). Read every screenshot you take.
 6. **Deliver** (manual §11): `build_recipe` with `export: true`, `origin` and `world`. Send the .schem
    and .litematic, setup.md, screenshots, the paste corner and the world spawn.
+
+Done means exported: the export goes through only once the audit passes. Until then keep
+working; never stop with a list of open items or ask whether to continue.
 
 If the MCP tools are not available, use the scripts (`node "${CLAUDE_PLUGIN_ROOT}/scripts/new-spawn.mjs"`,
 `run-build.mjs`, `screenshot.mjs`, `isorender.mjs`; see the skill).

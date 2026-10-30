@@ -46,6 +46,7 @@ export function fountain(ctx, [cx, y, cz], {
   const set = (dx, h, dz, blk) => b.set(cx + dx, y + h, cz + dz, blk)
   const get = (dx, h, dz) => b.nameAt(cx + dx, y + h, cz + dz)
   for (const k of Object.keys(M)) M[k] = { stairs: M.stone.stairs, slab: M.stone.slab, ...M[k] } // no stairs or slab: the wall stone's (a copy: kit.material is cached)
+  const chiseledOf = () => M.stone.chiseled ?? M.carve.block
   const st = (m, f, half = 'bottom') => `${M[m].stairs}[facing=${f},half=${half}]`
   const wall = kit.palette({ stone_bricks: 6, cracked_stone_bricks: 1, mossy_stone_bricks: 2 }, { scale: 2.5, seed })
   const water = (dx, h, dz, level = 0) => set(dx, h, dz, `minecraft:water[level=${level}]`)
@@ -155,13 +156,13 @@ export function fountain(ctx, [cx, y, cz], {
   const rings = tiers >= 2 && R2 >= 2 ? [[7, R1], [11, R2]] : [[8, R1]] // [plate level, radius] per cup
   let shaft = 5
   for (const [h, R] of rings) {
-    for (let lv = shaft; lv < h - 1; lv += 1) set(0, lv, 0, lv === h - 2 && lv > shaft ? `minecraft:chiseled_${stone}s` : M.carve.block) // the stem
+    for (let lv = shaft; lv < h - 1; lv += 1) set(0, lv, 0, lv === h - 2 && lv > shaft ? chiseledOf(stone) : M.carve.block) // the stem
     cup(h, R)
     shaft = h + 1
   }
   // the top: the shaft through the last cup, a carved cap, a source on it
   set(0, shaft, 0, M.carve.block)
-  set(0, shaft + 1, 0, `minecraft:chiseled_${stone}s`)
+  set(0, shaft + 1, 0, chiseledOf(stone))
   water(0, shaft + 2, 0)
   if (falls)
     for (const [ux, uz] of AXES) {

@@ -28,7 +28,12 @@ const inward = (dx, dz) => (Math.abs(dx) >= Math.abs(dz) ? (dx > 0 ? 'west' : 'e
 // The dais. [cx, cz] = its middle, y = the floor level, R = the bottom tier's half-width.
 // tones = the medallion's colours, in order out from the middle. Places the world spawn on top.
 export function dais(ctx, { cx, cz, y = ctx.FY, R = 10, tiers = 3, body = 'polished_granite', stripe = 'smooth_sandstone', tones = ['smooth_sandstone', 'packed_mud', 'polished_granite', 'mud_bricks'], centre = 'light_blue_stained_glass', facing = 'north' }) {
-  const { b } = ctx
+  const { b, kit } = ctx
+  // a tier's edge stair of any stone (kit.material finds the real id; no stair: the block itself)
+  const edge = (mat, f) => {
+    const F = kit.material(mat)
+    return F.stairs ? `${F.stairs}[facing=${f},half=bottom]` : id(mat)
+  }
   for (let k = 0; k < tiers; k += 1) {
     const r = R - 2 * k
     const top = k === tiers - 1
@@ -38,7 +43,7 @@ export function dais(ctx, { cx, cz, y = ctx.FY, R = 10, tiers = 3, body = 'polis
         const onStripe = dx === 0 || dz === 0 || Math.abs(dx) === Math.abs(dz)
         const mat = onStripe ? stripe : body
         let block
-        if (ring === r) block = `minecraft:${mat}_stairs[facing=${inward(dx, dz)},half=bottom]` // the tier's edge
+        if (ring === r) block = edge(mat, inward(dx, dz)) // the tier's edge
         else if (!top) block = id(mat)
         else if (Math.abs(dx) + Math.abs(dz) <= 1) block = id(centre) // the glowing middle
         else {

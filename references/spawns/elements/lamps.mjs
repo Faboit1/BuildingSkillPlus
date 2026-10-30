@@ -26,7 +26,7 @@ export function lampPost(ctx, pos, armToward, { height = 4, wood = 'spruce', bas
   const set = (d, h, blk) => b.set(...L.at(0, d, h), blk)
   set(0, 1, `minecraft:${base}`)
   for (let h = 2; h <= height; h += 1) set(0, h, `minecraft:${wood}_fence[${L.out}=${h === height}]`)
-  set(0, height + 1, `minecraft:${wood}_slab[type=bottom]`) // the cap
+  set(0, height + 1, `${ctx.kit.material(wood).slab}[type=bottom]`) // the cap
   set(1, height, `minecraft:${wood}_fence[${L.back}=true]`) // the arm
   set(1, height - 1, 'minecraft:lantern[hanging=true]')
 }

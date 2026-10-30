@@ -358,9 +358,11 @@ function logFor(name) {
 const PLANT = /^minecraft:(short_grass|tall_grass|fern|large_fern|dandelion|poppy|blue_orchid|allium|azure_bluet|red_tulip|orange_tulip|white_tulip|pink_tulip|oxeye_daisy|cornflower|lily_of_the_valley|torchflower|sunflower|lilac|rose_bush|peony|dead_bush|pink_petals|moss_carpet|brown_mushroom|red_mushroom)$/
 const SOIL = ['minecraft:grass_block', 'minecraft:podzol', 'minecraft:coarse_dirt', 'minecraft:dirt', 'minecraft:moss_block', 'minecraft:rooted_dirt', 'minecraft:mycelium', 'minecraft:snow_block']
 
-function plantTree(b, name, base, size, seed, rng) {
-  const scale = [1.25, 1, 0.68][size]
-  if (typeof name === 'function') return name(b, base, { size, scale, seed, rng })
+function plantTree(b, name, base, size, seed, rng, big = 1) {
+  const scale = [1.25, 1, 0.68][size] * big
+  // the trunk thickens faster than the tree grows: big woods have trunks 2-5 across
+  const girth = big ** 1.25 * [1.2, 1, 0.85][size]
+  if (typeof name === 'function') return name(b, base, { size, scale, girth, seed, rng })
   if (name === 'colonized' || name === 'colonized_oak' || name === 'colonized_birch' || name === 'colonized_dark_oak') {
     const species = name === 'colonized' ? 'oak' : name.replace('colonized_', '')
     const h = Math.round(17 * scale)
@@ -371,8 +373,8 @@ function plantTree(b, name, base, size, seed, rng) {
   if (!TREE_SPECIES.includes(name)) throw new Error(`forest: unknown species "${name}"`)
   const preset = size === 2 && SMALLER[name] && SMALLER[name] !== name ? SMALLER[name] : name
   const h = Math.max(5, Math.round((PRESET_HEIGHT[preset] ?? 11) * scale * rng.range(0.9, 1.1)))
-  const extra = size === 2 ? { branches: [2, 3], blob: [2.0, 2.6] } : size === 0 && preset !== 'spruce' && preset !== 'pine' ? { blob: [3.0, 4.0] } : {}
-  return presetTree(b, base, preset, { seed, height: h, ...extra })
+  const extra = size === 2 ? { branches: [2, 3], blob: [2.0, 2.6].map(v => v * girth ** 0.5) } : size === 0 && preset !== 'spruce' && preset !== 'pine' ? { blob: [3.0, 4.0].map(v => v * girth ** 0.5) } : {}
+  return presetTree(b, base, preset, { seed, height: h, girth, ...extra })
 }
 
 // Woodland generator over [x0..x1] × [z0..z1].
@@ -382,6 +384,8 @@ function plantTree(b, name, base, size, seed, rng) {
 // ground(x, z) → y of the surface block (b.terrain's return value). Trees stand on soil only.
 // species: [[weight, name], ...]; name = a b.tree preset, 'colonized' / 'colonized_<oak|birch|dark_oak>',
 //   'forester_round' / 'forester_cone', or a function (b, base, { size, scale, seed, rng }).
+// scale: tree size (1 = the presets; default 1.6 on canvases 400+ wide, 1.3 from 150, else 1.1:
+// trunks 2-5 across in big woods), spacing grows with it.
 // density 0..1 (share of free Poisson-disc slots that get a tree; default 0.6), minSpacing (between
 // medium trees, default 7; large ×1.5, small ×0.65), sizes [large, medium, small] shares
 // (default [0.15, 0.45, 0.4]), clump (species/density patch size, default 18), feather (edge band
@@ -399,7 +403,11 @@ export function forest(b, opts = {}) {
   const ground = opts.ground ?? ((x, z) => b.topY(x, z))
   const species = (opts.species ?? [[6, 'oak'], [3, 'birch'], [1, 'dark_oak']]).map(e => (Array.isArray(e) ? e : [1, e]))
   const density = opts.density ?? 0.6
-  const spacing = opts.minSpacing ?? 7
+  // how big the trees are: 1 = the presets; by default bigger on bigger canvases (1.6 from 400
+  // wide, 1.3 from 150), since thin vanilla-sized trees read small and generated
+  const canvas = Math.max(b.size[0], b.size[2])
+  const big = opts.scale ?? (canvas >= 400 ? 1.6 : canvas >= 150 ? 1.3 : 1.1)
+  const spacing = (opts.minSpacing ?? 7) * Math.max(1, big * 0.85)
   const sizes = opts.sizes ?? [0.15, 0.45, 0.4]
   const clump = opts.clump ?? 18
   const feather = opts.feather ?? 6
@@ -445,8 +453,8 @@ export function forest(b, opts = {}) {
     }
     if (inClearing(x, z, 4)) w = [0, w[1] * 0.4, w[2] + w[0] + w[1] * 0.6]
     const ce = Math.min(x, b.size[0] - 1 - x, z, b.size[2] - 1 - z)   // keep big crowns inside the canvas
-    if (ce < 15) w = [0, w[1], w[2] + w[0]]
-    if (ce < 11) w = [0, 0, w[2] + w[1]]
+    if (ce < 15 * big) w = [0, w[1], w[2] + w[0]]
+    if (ce < 11 * big) w = [0, 0, w[2] + w[1]]
     const t = w[0] + w[1] + w[2]
     const u = rng() * t
     return u < w[0] ? 0 : u < w[0] + w[1] ? 1 : 2
@@ -493,7 +501,7 @@ export function forest(b, opts = {}) {
   if (opts.floor ?? true) {
     for (const t of placed) {
       if (t.kind !== 'tree' || t.size === 2) continue
-      const r = t.size === 0 ? 4 : 3
+      const r = Math.round((t.size === 0 ? 4 : 3) * big)
       for (let dx = -r; dx <= r; dx += 1)
         for (let dz = -r; dz <= r; dz += 1) {
           if (Math.hypot(dx, dz) > r || hash01(t.x + dx, 0, t.z + dz, seed + 61) > 0.4) continue
@@ -514,7 +522,7 @@ export function forest(b, opts = {}) {
       const leaves = SPECIES_LOOK[t.species]?.leaves ?? ['oak_leaves', 'azalea_leaves']
       bush(b, [t.x, t.y, t.z], { radius: rng.range(1.2, 2.0), leaves: [leaves[0], 'azalea_leaves'], log: SPECIES_LOOK[t.species]?.log ?? 'oak_log', seed: s })
     } else {
-      plantTree(b, t.species, [t.x, t.y, t.z], t.size, s, rng)
+      plantTree(b, t.species, [t.x, t.y, t.z], t.size, s, rng, big)
     }
   }
 

@@ -175,7 +175,9 @@ export function cliff(ctx, { x0, z0, x1, z1, y = ctx.FY, height = 30, face = 'so
 //   cracks   how many (default by size); cave: true for a mouth at the foot of the highest face
 //   snow     rows above y where snow starts on the tops (null: none); plants: false for bare rock
 //   trees    how many small trees on the ledges (default by ledge area); scree: false for none
-function rockMass(ctx, { F, box, y: base, seed, height, terrace, face, strata = 'grey', dip = [0.2, -0.06], cracks, cave = false, snow = null, plants = true, trees, scree = true }) {
+//   land     (x, z) => true where there is land to stand on (default: a block at the foot's level);
+//            rock and scree stop where it is false, so nothing hangs past an island's rim
+function rockMass(ctx, { F, box, y: base, seed, height, terrace, face, strata = 'grey', dip = [0.2, -0.06], cracks, cave = false, snow = null, plants = true, trees, scree = true, land }) {
   const { b, kit, S } = ctx
   const theme = typeof strata === 'string' ? STRATA[strata] : strata
   const rng = kit.rng(seed * 13 + 1)
@@ -394,13 +396,25 @@ function rockMass(ctx, { F, box, y: base, seed, height, terrace, face, strata = 
     for (let i = 0; i < solid.length; i += 1) if (!seen[i]) solid[i] = 0
   }
 
-  // 7. place the rock
+  // 7. place the rock, only where there is land under it (on a floating island the rock and its
+  // scree stop at the rim instead of hanging in the void); land(x, z) says where, by default
+  // anything solid at the foot's level or just under it
+  const onLand = land ?? ((x, z) => Boolean(b.get(x, base, z) || b.get(x, base - 1, z)))
+  const landMask = new Uint8Array(W * D)
+  for (let z = Z0; z <= Z1; z += 1) for (let x = X0; x <= X1; x += 1) landMask[col(x, z)] = onLand(x, z) ? 1 : 0
+  let offLand = 0
   for (let h = -2; h <= Hrock; h += 1)
     for (let z = Z0; z <= Z1; z += 1)
       for (let x = X0; x <= X1; x += 1) {
         const k = solid[at3(x, h, z)]
-        if (k && base + h >= 0 && base + h < ctx.H) b.set(x, base + h, z, paints[k - 1])
+        if (!k) continue
+        if (!landMask[col(x, z)]) {
+          if (h === 1) offLand += 1
+          continue
+        }
+        if (base + h >= 0 && base + h < ctx.H) b.set(x, base + h, z, paints[k - 1])
       }
+  if (offLand > 20) ctx.warn?.(`massif/cliff at ${box.join(',')}: ${offLand} columns of rock off the land were left out (it is cut at the rim): move it inward`)
 
   // the cave: gravel and moss underfoot, a worn track out of it, roots and glow berries under its lip
   if (caveAt) {
@@ -524,7 +538,7 @@ function rockMass(ctx, { F, box, y: base, seed, height, terrace, face, strata = 
     for (let z = Z0; z <= Z1; z += 1)
       for (let x = X0; x <= X1; x += 1) {
         const d = dist[col(x, z)]
-        if (d < 1 || d > reach + 4 || caveAt?.has(`${x},${z}`)) continue
+        if (d < 1 || d > reach + 4 || caveAt?.has(`${x},${z}`) || !landMask[col(x, z)]) continue
         // under a tall face there is more: the rock height a few blocks in
         const [gx, gz] = grad(x, z)
         const g = Math.hypot(gx, gz) || 1

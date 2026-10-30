@@ -59,9 +59,14 @@ generated and nothing is pasted from stock pieces:
    - the manual's element examples;
    - reference spawns to read.
 3. **Claude builds every element itself, district by district**:
-   - the island, the mountains and cliffs, the rivers, lakes and waterfalls;
+   - the land as a landscape (`b.land`): mountain ranges with spurs and foothills, valleys and
+     pads, real hydraulic erosion, a shaded map preview in seconds, blocks chosen by slope, height
+     and wetness, a floating island's hanging underside;
+   - the mountains and cliffs, the rivers, lakes and waterfalls;
    - the ground and the paving, the stepped spawn dais;
-   - every stone, tree and giant tree;
+   - every stone; big trees with trunks 2-5 across in all-bark wood, and giant landmark trees;
+   - streets lined with houses, shoulder to shoulder, each its own;
+   - the hero: a landmark 60-120 tall grown out of its ground;
    - every NPC stand, the boards and top-3 pillars, the crates and the gatehouses;
    - every big building, wall, tower, bridge, lamp and prop.
 
@@ -71,8 +76,20 @@ generated and nothing is pasted from stock pieces:
    screenshots** (`screenshot`, a CPU renderer: what a player sees from the spawn point or any
    spot) and fixes what it sees, round after round, until the quality gate passes: it is told to
    take the builds and tokens the spawn needs, not to stop at the first pass.
-4. It delivers `.schem` / `.litematic` and a setup sheet with the NPC, hologram, crate and
+4. Every build prints an **audit** measured from the blocks:
+   - bare lawn, flat land and lawn speckle;
+   - repeated buildings and low decks over water;
+   - NPC spacing and the views from the spawn;
+   - sand and gravel that would fall, cane that would break, water that would flow;
+   - the build count.
+
+   The export refuses until it passes, so a spawn is never delivered half done.
+5. It delivers `.schem` / `.litematic` and a setup sheet with the NPC, hologram, crate and
    WorldGuard commands.
+
+How the plugin was tuned: fresh Haiku and Sonnet agents built whole spawns from it, every build
+was judged the same way (`scripts/dev/judge.mjs`, `docs/judging.md`), and every correction they
+needed became a rule, a check or a tool (`docs/agent-test-log.md`).
 
 The craft is written down in the **spawn manual**, `references/spawns/build-guide.md`:
 
@@ -87,12 +104,14 @@ It sits on the spawn handbook (`references/spawns/README.md`: real spawns measur
 don't-look-AI checklist).
 
 Big builds are fast and fit in memory: the kit stores blocks in 16 x 16 x 16 sections and writes
-the structure as a stream, so a 1000-wide spawn of 30 million blocks builds in under two minutes,
+the structure as a stream, so a 1000-wide spawn of 30 million blocks builds in 2-4 minutes,
 and the scripts give themselves three quarters of the machine's memory. While it works on one
-district, Claude drafts just that box (`focus`) in 20-40 s.
+district, Claude drafts just that box (`focus`) in under a minute.
 
 | | |
 | --- | --- |
+| <img src="references/spawns/img/land.png" width="400" alt="The land: do and don't"> | <img src="references/spawns/img/trees.png" width="400" alt="Trees: do and don't"> |
+| <img src="references/spawns/img/town.png" width="400" alt="The town: do and don't"> | <img src="references/spawns/img/keep.png" width="400" alt="The hero: do and don't"> |
 | <img src="references/spawns/img/dais.png" width="400" alt="The spawn centre: do and don't"> | <img src="references/spawns/img/buildings.png" width="400" alt="Buildings: do and don't"> |
 | <img src="references/spawns/img/river.png" width="400" alt="Rivers: do and don't"> | <img src="references/spawns/img/bridge.png" width="400" alt="Bridges: do and don't"> |
 | <img src="references/spawns/img/cliffs.png" width="400" alt="Cliffs and mountains: do and don't"> | <img src="references/spawns/img/landmark-trees.png" width="400" alt="Giant trees: do and don't"> |

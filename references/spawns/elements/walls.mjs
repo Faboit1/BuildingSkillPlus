@@ -49,10 +49,11 @@ const masonryAt = (M, kit, ground, top) => kit.gradient([M.foot, M.body, M.body,
 // A curtain wall along a polyline. points = [[x, z], ...] (world), the wall's OUTER FACE line;
 // out = 'left' | 'right': the outside as you walk from the first point to the last.
 //   height     walk floor above the (smoothed) ground (7)       thickness   the body (3)
-//   towers     { every: 30 (the most blocks between two), project, list: [{ t, shape, r, rise, top }] }
+//   towers     { every: 30 (the most blocks between two), project, list: [{ t, shape, r, rise, top, roof, banner }] }
 //              or false; by default one at each end and corner, more where a run is longer
 //   foot, body, crown, dressed, floor: palettes (base, field, top courses, trim blocks, walk);
-//   trim: the stairs family; roof: the tower roofs
+//   trim: the stairs family; roof: the tower roofs (each tower's own `roof` in the list wins);
+//   banner: the flags' colour (the theme's accent; false for none)
 //   ground     (x, z) => y of the ground (default b.groundY: build the terrain first)
 // Returns { length, at(t) → { x, z, G, W, nx, nz }, towers }.
 export function wall(ctx, points, opts = {}) {
@@ -72,7 +73,11 @@ export function wall(ctx, points, opts = {}) {
     const zs0 = points.map(p => p[1])
     for (let x = Math.floor(Math.min(...xs0)) - T - 12; x <= Math.ceil(Math.max(...xs0)) + T + 12; x += 1)
       for (let z = Math.floor(Math.min(...zs0)) - T - 12; z <= Math.ceil(Math.max(...zs0)) + T + 12; z += 1) snap.set(`${x},${z}`, b.groundY(x, z))
-    groundOf = (x, z) => snap.get(`${x},${z}`) ?? b.groundY(x, z)
+    // (where something already stands, b.groundY finds no ground: the ground under it then)
+    groundOf = (x, z) => {
+      const g = snap.get(`${x},${z}`) ?? b.groundY(x, z)
+      return g >= 0 ? g : b.groundUnder(x, z)
+    }
   }
   // ------------------------------------------------------------ the line: segments, arc length
   const segs = []
@@ -118,8 +123,8 @@ export function wall(ctx, points, opts = {}) {
     const i = Math.max(0, Math.min(prof.length - 1, Math.round(t)))
     let sum = 0
     let n = 0
-    for (let k = i - 5; k <= i + 5; k += 1) if (k >= 0 && k < prof.length) { sum += prof[k]; n += 1 }
-    return Math.round(sum / n) + height
+    for (let k = i - 5; k <= i + 5; k += 1) if (k >= 0 && k < prof.length && prof[k] >= 0) { sum += prof[k]; n += 1 }
+    return (n ? Math.round(sum / n) : ctx.FY) + height
   }
 
   // ------------------------------------------------------------ the cells of the wall
@@ -127,6 +132,7 @@ export function wall(ctx, points, opts = {}) {
   const zs = points.map(p => p[1])
   const cells = []
   const byKey = new Map()
+  let offLand = 0
   for (let x = Math.floor(Math.min(...xs)) - T - 3; x <= Math.ceil(Math.max(...xs)) + T + 3; x += 1)
     for (let z = Math.floor(Math.min(...zs)) - T - 3; z <= Math.ceil(Math.max(...zs)) + T + 3; z += 1) {
       const n = near(x, z)
@@ -135,14 +141,21 @@ export function wall(ctx, points, opts = {}) {
       if (n.t <= 0.01 && segs[0] && ((x - segs[0].ax) * segs[0].dx + (z - segs[0].az) * segs[0].dz) < -0.5) continue
       const last = segs[segs.length - 1]
       if (n.t >= length - 0.01 && ((x - last.ax) * last.dx + (z - last.az) * last.dz) > last.len + 0.5) continue
-      const c = { x, z, ...n, layer: n.o <= 0 ? 'body' : n.o <= 1 ? 'outer' : 'batter', G: groundOf(x, z), W: walkAt(n.t), tt: Math.round(n.t) }
+      const G = groundOf(x, z)
+      // no wall over the void (a line that runs off the land's edge stops there)
+      if (G < 0) {
+        offLand += 1
+        continue
+      }
+      const c = { x, z, ...n, layer: n.o <= 0 ? 'body' : n.o <= 1 ? 'outer' : 'batter', G, W: walkAt(n.t), tt: Math.round(n.t) }
       c.in = FACE([-n.nx, -n.nz])
       cells.push(c)
       byKey.set(`${x},${z}`, c)
     }
+  if (offLand > 10) ctx.warn?.(`wall: ${offLand} cells of the wall's line are off the land and were left out: keep the line on the land`)
   const masonry = masonryAt(M, kit, (x, z) => byKey.get(`${x},${z}`)?.G ?? 0, (x, z) => byKey.get(`${x},${z}`)?.W ?? 8)
-  const st = (f, half = 'bottom', mat = trim) => `minecraft:${mat}_stairs[facing=${f},half=${half}]`
-  const slab = (type = 'bottom') => `minecraft:${trim}_slab[type=${type}]`
+  const st = (f, half = 'bottom', mat = trim) => `${kit.material(mat).stairs}[facing=${f},half=${half}]`
+  const slab = (type = 'bottom') => `${kit.material(trim).slab}[type=${type}]`
   const isButtress = tt => buttressEvery > 0 && tt > 4 && tt < length - 4 && (tt % buttressEvery === 0 || tt % buttressEvery === 1)
   const isSlit = tt => buttressEvery > 0 && tt > 4 && tt < length - 4 && tt % buttressEvery === Math.floor(buttressEvery / 2) + 1
   const merlon = tt => tt % 3 !== 2
@@ -226,7 +239,7 @@ export function wall(ctx, points, opts = {}) {
       const top = spec.top ?? (shape === 'square' ? 'pyramid' : i % 3 === 1 ? 'crenel' : 'cone')
       const rise = spec.rise ?? [6, 8, 5, 7][i % 4]
       const tw = tower(ctx, [cx, groundOf(cx, cz), cz], {
-        shape, r, top, walk: p.W, height: p.W - groundOf(cx, cz) + rise, roof, trim, seed: seed + i,
+        shape, r, top, walk: p.W, height: p.W - groundOf(cx, cz) + rise, roof: spec.roof ?? roof, trim, banner: spec.banner ?? opts.banner ?? 'red', seed: seed + i,
         out: FACE([p.nx, p.nz]), ground: groundOf, foot: opts.foot, body: opts.body, crown: opts.crown, dressed: opts.dressed, floor: opts.floor,
       })
       placed.push(tw)
@@ -251,19 +264,23 @@ export function wall(ctx, points, opts = {}) {
 //   top       'cone' (a cone over a corbelled parapet) | 'crenel' (an open deck behind merlons)
 //             | 'pyramid' (square towers: a steep pyramid over the parapet)
 //   out       the facing of the outside (its slits look that way)
+//   banner    the colour of the flag on a 'crenel' deck (the theme's accent; false for none)
 //   roof, trim, foot, body, crown, dressed, floor, ground, seed: as for wall()
 // Returns { x, z, top, inShell(x, z) }.
 export function tower(ctx, pos, opts = {}) {
   const { b, kit } = ctx
-  const { shape = 'round', r = 4.5, height = 14, walk, top = 'cone', roof = 'deepslate_tile', trim = 'stone_brick', out = 'south', seed = 1 } = opts
+  const { shape = 'round', r = 4.5, height = 14, walk, top = 'cone', roof = 'deepslate_tile', trim = 'stone_brick', out = 'south', banner = 'red', seed = 1 } = opts
   const M = materials(kit, { ...DEFAULTS, ...Object.fromEntries(['foot', 'body', 'crown', 'dressed', 'floor'].filter(k => opts[k]).map(k => [k, opts[k]])), seed })
   const [cx, gy, cz] = pos
   const TOP = gy + height
   const dist = shape === 'round' ? (x, z) => Math.hypot(x - cx, z - cz) : (x, z) => Math.max(Math.abs(x - cx), Math.abs(z - cz))
   const R = shape === 'round' ? r : Math.round(r)
-  const ground = opts.ground ?? ((x, z) => b.groundY(x, z))
+  const ground = opts.ground ?? ((x, z) => {
+    const g = b.groundY(x, z)
+    return g >= 0 ? g : Math.max(b.groundUnder(x, z), pos[1])
+  })
   const masonry = kit.gradient([M.foot, M.body, M.body, M.body, M.crown], { t: (x, y) => (y - gy + 1.5) / (height + 2), dither: 0.3, scale: 3 })
-  const st = (f, half = 'bottom') => `minecraft:${trim}_stairs[facing=${f},half=${half}]`
+  const st = (f, half = 'bottom') => `${kit.material(trim).stairs}[facing=${f},half=${half}]`
   const inward = (x, z) => FACE([cx - x, cz - z])
   const ring = (lo, hi) => {
     const list = []
@@ -294,7 +311,7 @@ export function tower(ctx, pos, opts = {}) {
     for (let y = low; y <= g + 2; y += 1) b.set(x, y, z, masonry)
     b.set(x, g + 3, z, st(inward(x, z)))
     // (top slabs on round towers: a ring of stairs turns into a sawtooth of corner shapes)
-    for (let y = gy + 9; y < TOP - 2; y += 6) b.set(x, y, z, shape === 'round' ? `minecraft:${trim}_slab[type=top]` : st(inward(x, z), 'top'))
+    for (let y = gy + 9; y < TOP - 2; y += 6) b.set(x, y, z, shape === 'round' ? `${kit.material(trim).slab}[type=top]` : st(inward(x, z), 'top'))
   }
   for (const [x, z] of ring(R + 1, R + 2)) {
     const g = ground(x, z)
@@ -333,7 +350,7 @@ export function tower(ctx, pos, opts = {}) {
     b.set(cx, TOP + 1, cz, 'minecraft:spruce_fence')
     b.set(cx, TOP + 2, cz, 'minecraft:spruce_fence')
     b.set(cx, TOP + 3, cz, 'minecraft:spruce_fence')
-    b.set(cx, TOP + 4, cz, 'minecraft:red_banner[rotation=0]')
+    if (banner) b.set(cx, TOP + 4, cz, `minecraft:${banner}_banner[rotation=0]`)
   }
   return { x: cx, z: cz, top: TOP, inShell: (x, z) => dist(x, z) > R - 2.5 && dist(x, z) <= R + 0.5 }
 }

@@ -307,3 +307,83 @@ export function readStructureGrid(bytes) {
   }
   return { pal: out, G, X, Y, Z, blocks: n, blockEntities, dataVersion }
 }
+
+// What a big schematic is without reading its blocks: walks the NBT and keeps only the small
+// facts (a .schem's Width/Height/Length, DataVersion and palette size; a .litematic's regions and
+// their sizes; a structure .nbt's size and palette), skipping the block arrays. For convert --info
+// on files too big to load (a 1000-wide spawn's .schem holds 200 million entries). A structure
+// .nbt's blocks are one compound each (60 million on a big spawn): the walk stops at a list that
+// long, keeping its length, and a big file is only unpacked as far as its first 24 MB (partial:
+// true; what comes after the blocks, like DataVersion, is then unknown).
+export function readHeader(bytes) {
+  const raw = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  const PART = 24 * 2 ** 20
+  const cut = raw.length > PART && raw[0] === 0x1f && raw[1] === 0x8b
+  const d = cut ? zlib.gunzipSync(raw.subarray(0, PART), { finishFlush: zlib.constants.Z_SYNC_FLUSH }) : inflate(bytes)
+  const view = new DataView(d.buffer, d.byteOffset, d.byteLength)
+  let o = 0
+  const u8 = () => d[o++]
+  const str = () => {
+    const n = view.getUint16(o)
+    o += 2
+    const s = d.toString('utf8', o, o + n)
+    o += n
+    return s
+  }
+  const out = { ints: {}, lists: {}, arrays: {}, compounds: {} }
+  // read a tag's payload; scalars are kept by their path, big arrays only by their length
+  const read = (type, at) => {
+    switch (type) {
+      case T.byte: return d.readInt8(o++)
+      case T.short: { const v = view.getInt16(o); o += 2; return v }
+      case T.int: { const v = view.getInt32(o); o += 4; return v }
+      case T.float: o += 4; return null
+      case T.long: o += 8; return null
+      case T.double: o += 8; return null
+      case T.string: return str()
+      case T.byteArray: { const n = view.getInt32(o); o += 4 + n; out.arrays[at] = n; return null }
+      case T.intArray: { const n = view.getInt32(o); o += 4 + 4 * n; out.arrays[at] = n; return null }
+      case T.longArray: { const n = view.getInt32(o); o += 4 + 8 * n; out.arrays[at] = n; return null }
+      case T.list: {
+        const t = u8()
+        const n = view.getInt32(o)
+        o += 4
+        out.lists[at] = n
+        if (t === T.compound && n > 100_000) throw STOP
+        const items = []
+        for (let i = 0; i < n; i += 1) {
+          const v = read(t, `${at}[${i}]`)
+          if (i < 3 && (t === T.int || t === T.short)) items.push(v)
+        }
+        return items
+      }
+      case T.compound: {
+        let keys = 0
+        for (;;) {
+          const t = u8()
+          if (t === T.end) break
+          const k = str()
+          keys += 1
+          const v = read(t, at ? `${at}.${k}` : k)
+          if (typeof v === 'number' || typeof v === 'string' || (Array.isArray(v) && v.length)) out.ints[at ? `${at}.${k}` : k] = v
+        }
+        out.compounds[at] = keys
+        return null
+      }
+      default: throw new Error(`header reader: unknown NBT tag ${type} at byte ${o}`)
+    }
+  }
+  const STOP = {}
+  const t = u8()
+  if (t !== T.compound) return null
+  str()
+  try {
+    read(T.compound, '')
+  } catch (err) {
+    // stopped at the blocks, or ran past the unpacked part: what was read so far is the header
+    if (err !== STOP && !(err instanceof RangeError)) throw err
+    out.partial = true
+  }
+  if (cut) out.partial = true
+  return out
+}

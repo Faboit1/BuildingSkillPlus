@@ -10,6 +10,12 @@ import { ensureHeap } from './lib/heap.mjs'
 
 ensureHeap()
 
+// the fewest builds a spawn 400+ wide has had before it may be exported (the manual asks for 40-100)
+const MIN_BUILDS = 15
+// and the fewest first-person screenshots, from how many distinct spots
+const MIN_SHOTS = 12
+const MIN_SPOTS = 8
+
 const { NbtFile, Structure } = lodestone
 
 function usage() {
@@ -242,6 +248,33 @@ async function main() {
     placementsOut = { count: placements.length, types: counts, origin: options.origin, world: options.world, jsonPath, setupPath }
   }
 
+  // the spawn audit (kit/audit.mjs) and the build log: how many builds this spawn has had, and
+  // whether it may be delivered (convert.mjs refuses to export a spawn that may not)
+  let audit
+  if (builderReport?.audit) {
+    const logPath = path.join(outDir, 'build-log.json')
+    let log = []
+    try {
+      log = JSON.parse(await fs.readFile(logPath, 'utf8'))
+    } catch {}
+    log.push({ at: new Date().toISOString(), blocks: stats.blockCount, focus: options.focus ?? null, passed: builderReport.audit.passed, failures: builderReport.audit.failures.length })
+    await fs.writeFile(logPath, `${JSON.stringify(log, null, 1)}\n`)
+    const builds = log.length
+    const minutes = Math.round((Date.parse(log.at(-1).at) - Date.parse(log[0].at)) / 60000)
+    const failures = [...builderReport.audit.failures]
+    const bigSpawn = Math.max(stats.size[0], stats.size[2]) >= 400
+    // the player's-eye screenshots taken of this spawn (screenshot.mjs logs them next to the build)
+    let shots = []
+    try {
+      shots = JSON.parse(await fs.readFile(path.join(outDir, 'shot-log.json'), 'utf8'))
+    } catch {}
+    const spots = new Set(shots.map(s => s.eye.map(v => Math.round(v / 8)).join(','))).size
+    if (bigSpawn && (shots.length < MIN_SHOTS || spots < MIN_SPOTS)) failures.push(`look: ${shots.length} screenshots from ${spots} spots so far (${MIN_SHOTS}+ from ${MIN_SPOTS}+ spots: the spawn view, the crates, the boards, each NPC group, the gates, the plaza rim looking back, each district, high views; manual §9.1). Read each one, then fix what it shows`)
+    if (bigSpawn && builds < MIN_BUILDS) failures.push(`effort: build ${builds} of the ${MIN_BUILDS}+ a spawn this size needs at the least (the manual asks for 40-100: draft each district with focus, look, fix, rebuild; §2.1-§2.2)`)
+    if (options.focus) failures.push('focus: this is a draft of one box; build the whole spawn without focus before delivering')
+    audit = { ...builderReport.audit, passed: failures.length === 0, failures, builds, minutes, shots: shots.length, spots }
+  }
+
   const summary = {
     name,
     dataVersion: options.dataVersion,
@@ -258,6 +291,7 @@ async function main() {
       ...(builderReport.spawnProof ? { spawnProof: builderReport.spawnProof } : {}),
     } } : {}),
     ...(placementsOut ? { placements: placementsOut } : {}),
+    ...(audit ? { audit } : {}),
     nbtPath,
     summaryPath: path.join(outDir, 'summary.json'),
     ...stats,
@@ -265,6 +299,12 @@ async function main() {
   }
   await fs.writeFile(summary.summaryPath, `${JSON.stringify(summary, null, 2)}\n`)
 
+  if (audit) {
+    const st = audit.stats
+    console.error(`audit (${st.region ?? 'whole canvas'}, build ${audit.builds}, ${audit.shots} screenshots): ${audit.passed ? 'PASSED' : `NOT READY, ${audit.failures.length} to fix`}; land ${st.land} columns, bare ${st.bare}%, far from anything ${st.farFromAnything}%, biggest bare stretch ${st.biggestBare}, trees ${st.trees}%, built ${st.built}%, flat ${st.flat}%, relief ${st.relief}${st.npcSpacing ? `, NPCs ${st.npcSpacing} apart` : ''}`)
+    for (const f of audit.failures) console.error(`audit: FIX ${f}`)
+    for (const w of audit.warnings) console.error(`audit: warning ${w}`)
+  }
   if (options.json) {
     console.log(JSON.stringify(summary, null, 2))
   } else {

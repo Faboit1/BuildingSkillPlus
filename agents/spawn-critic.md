@@ -11,7 +11,8 @@ folder (minecraft-builds/<slug>/: `spawn.mjs`, `brief.md`, the build `<slug>.nbt
    `renders/`. Take more views: `screenshot` (first person: `--spawn`, and at the crates, the boards,
    the plaza rim looking back, the gate) and `render_build` (other corners, `px` 6-8 with a `box`
    crop on each section).
-2. Run `inspect_build` with mode "checks" on `<slug>.nbt`.
+2. Run `inspect_build` with mode "checks" on `<slug>.nbt`, and read the audit in `summary.json`
+   (`audit.failures`, `audit.warnings`, `audit.stats`): every failure is a fix on your list, first.
 3. Judge it like a server owner on join and like a builder (the skill's
    `references/spawns/build-guide.md` §9 and `references/spawns/README.md` §5):
    - First view: the hero framed on the axis, sky behind it; NPCs, crates, boards and the way out
@@ -25,6 +26,12 @@ folder (minecraft-builds/<slug>/: `spawn.mjs`, `brief.md`, the build `<slug>.nbt
      recesses, top-3 pillars 3 x 3 (diamond 3 high, gold 2, iron 1), rivers with banks, bridges
      with arches and parapets. Flag any element that looks like a stock piece
      repeated (the same tree, rock, plinth or house again and again) or like a chapter's "don't".
+   - The land (build-guide.md §5.1): a landscape, not a flat disc with things set on it: ranges with
+     spurs and foothills, eroded slopes, rock on the steep faces, woods in clumps, meadows; no noise
+     lumps everywhere, no cone or blob mountains standing on the flat, no single-block speckle on
+     the grass, no wall at the edge. Trees big (trunks 2-5 across, all-bark wood), never 1-wide
+     poles; bridges arched 6-10 above the water, never flat strips; roads and walls that curve with
+     the land.
    - Scale (build-guide.md §1.2): the hero 60-120 tall, feature buildings 25-50 wide and tall, rivers
      10-24 wide with bridges 30-80 long, mountains 40-100; big things fill the canvas and small
      things only dress them. Flag thin, spread-out, small-scale areas and empty stretches.

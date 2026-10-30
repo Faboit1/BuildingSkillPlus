@@ -15,6 +15,7 @@
 //   Lights  — every component lights itself with a fixture or a light behind glass, never a bare
 //             light block in view; b.spawnProof fills what is left with invisible light blocks.
 
+import { auditSpawn } from './audit.mjs'
 import { DIR, HORIZONTAL, ccw, cw, isFullSolid, opposite, parseBlock } from './blocks.mjs'
 import { material } from './materials.mjs'
 
@@ -291,6 +292,8 @@ const sideFacing = (L, u) => (u < 0 ? L.left : L.right)
 
 function record(b, rec) {
   b.placements ??= []
+  // two places of one kind with one id would get one hologram / one NPC name in setup.md
+  if (rec.id && rec.type !== 'spawn' && b.placements.some(p => p.type === rec.type && p.id === rec.id)) b.warnings.push(`${rec.type} id "${rec.id}" is used twice: give each its own id (setup.md names holograms and NPCs by it)`)
   b.placements.push(rec)
   return rec
 }
@@ -309,7 +312,11 @@ const r2 = v => Math.round(v * 100) / 100
 // ------------------------------------------------------------------ b.sign
 
 // Block-letter signage. `facing` is the side the reader stands on; `at` is the top-left letter
-// cell as the reader sees it (top-centre with align: 'center', top-right with 'right').
+// cell as the reader sees it (top-centre with align: 'center', top-right with 'right'). The text
+// runs to the reader's right, which in world terms is:
+//   facing 'south' (reader south of it): +x    facing 'north': -x
+//   facing 'east'  (reader east of it):  -z    facing 'west':  +z
+// so for a sign read from the north, `at` is its east end; align: 'center' avoids the question.
 //   b.sign('CRATES', [x, y, z], 'south', { align: 'center', board: 'polished_blackstone' })
 // Options: font 'small' (3x5) | 'medium' (5 tall, default) | 'large' (5x7); block / stairs (face
 // block and its stair family: quartz_block / quartz by default; any block with stairs works,
@@ -1511,7 +1518,11 @@ export function installFinishHook(Builder) {
   const base = Builder.prototype.finish
   if (base.spawnHook) return
   function finish(opts = {}) {
-    const { spawnProof: sp, ...rest } = opts
+    const { spawnProof: sp, audit, ...rest } = opts
+    // the spawn audit (kit/audit.mjs) measures the finished blocks, before spawn-proofing adds lights
+    // (any spawn build: finishSpawn spawn-proofs; an older frame that passes no audit gets one too)
+    const auditOpts = audit ?? (sp ? { inside: sp.inside ?? (() => true) } : null)
+    const audited = auditOpts ? auditSpawn(this, auditOpts === true ? {} : auditOpts) : null
     if (sp) {
       const cfg = sp === true ? { min: [0, 0, 0], max: this.size.map(v => v - 1) } : Array.isArray(sp) ? { min: sp[0], max: sp[1] } : sp
       spawnProof(this, cfg.min, cfg.max, cfg)
@@ -1533,6 +1544,7 @@ export function installFinishHook(Builder) {
     })
     if (list.length) result.metadata.placements = list
     if (this.spawnProofReport) result.metadata.builderReport.spawnProof = this.spawnProofReport
+    if (audited) result.metadata.builderReport.audit = audited
     return result
   }
   finish.spawnHook = true

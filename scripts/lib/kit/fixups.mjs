@@ -6,6 +6,8 @@
 import { DIR, HORIZONTAL, isFullSolid, opposite } from './blocks.mjs'
 
 const TALL_PLANTS = /^minecraft:(tall_grass|large_fern|sunflower|lilac|rose_bush|peony|pitcher_plant|tall_seagrass|small_dripleaf)$/
+// the one-block plant a tall one becomes when there is no room for its upper half
+const SHORT_OF = { 'minecraft:tall_grass': 'minecraft:short_grass', 'minecraft:large_fern': 'minecraft:fern', 'minecraft:sunflower': 'minecraft:dandelion', 'minecraft:lilac': 'minecraft:allium', 'minecraft:rose_bush': 'minecraft:poppy', 'minecraft:peony': 'minecraft:pink_tulip', 'minecraft:pitcher_plant': 'minecraft:torchflower' }
 const isDoor = name => /_door$/.test(name)
 const isBed = name => /_bed$/.test(name)
 
@@ -25,7 +27,23 @@ export function completeBlocks(store) {
   for (const [x, y, z, block] of store.entriesWhere ? store.entriesWhere(wanted) : store.entries()) {
     const { name } = block
     const props = block.props ?? {}
-    if ((TALL_PLANTS.test(name) || isDoor(name)) && props.half === 'lower') {
+    if (TALL_PLANTS.test(name) && name !== 'minecraft:tall_seagrass' && name !== 'minecraft:small_dripleaf') {
+      // a two-block plant needs both halves: complete it where there is room, else shrink a lower
+      // half with something above it to its one-block kin, and drop an upper half with no lower
+      const above = store.get(x, y + 1, z)
+      const below = store.get(x, y - 1, z)
+      if (props.half === 'upper') {
+        if (!(below?.name === name && below.props?.half === 'lower')) {
+          if (store.remove) store.remove(x, y, z)
+          else store.put(x, y, z, null)
+          changed += 1
+        }
+      } else if (!above) place(x, y + 1, z, { name, props: { ...props, half: 'upper' } })
+      else if (!(above.name === name && above.props?.half === 'upper')) {
+        store.put(x, y, z, { name: SHORT_OF[name] ?? 'minecraft:short_grass', props: {} })
+        changed += 1
+      }
+    } else if ((TALL_PLANTS.test(name) || isDoor(name)) && props.half === 'lower') {
       place(x, y + 1, z, { name, props: { ...props, half: 'upper' } })
     } else if (isBed(name) && props.part) {
       const d = DIR[props.facing ?? 'north']

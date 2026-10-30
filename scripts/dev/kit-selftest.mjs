@@ -433,5 +433,73 @@ const stateAt = (b, x, y, z) => {
   fs.rmSync(dir, { recursive: true, force: true })
 }
 
+// --- landscapes (b.land) ---------------------------------------------------------------
+{
+  const b = kit.builder([160, 100, 160], { seed: 1 })
+  const land = b.land({ base: 30, seed: 2 })
+  land.outline({ cx: 80, cz: 80, r: 72 }, { fall: 16, rim: 30 })
+  check('land: outside the outline has no land', Number.isNaN(land.get(2, 2)) && !Number.isNaN(land.get(80, 80)))
+  land.range([[20, 40], [80, 20], [140, 50]], { width: 70, height: 40, seed: 3 })
+  const peak = Math.max(...Array.from({ length: 160 }, (_, x) => land.get(x, 30)).filter(v => !Number.isNaN(v)))
+  check('land: a range raises the land', peak > 50, `peak ${peak}`)
+  const lvl = land.pad({ cx: 80, cz: 110, r: 14 }, { y: 31, blend: 10 })
+  check('land: a pad is flat at its level', lvl === 31 && Math.abs(land.get(80, 110) - 31) < 0.01 && Math.abs(land.get(86, 112) - 31) < 0.01)
+  const before = land.get(80, 110)
+  land.erode({ strength: 1, seed: 4 })
+  land.thermal({ iterations: 4 })
+  const st = land.stats()
+  check('land: erosion keeps the pad', Math.abs(land.get(80, 110) - before) < 0.01)
+  check('land: erosion digs no pits below the base', st.min >= 27, JSON.stringify(st))
+  const groundY = land.paint({ theme: 'temperate', underside: { depth: 20, ramp: 30 }, water: { level: 29, from: [80, 110] } })
+  check('land: paint returns the top', groundY(80, 110) === 31 && b.nameAt(80, 31, 110) !== null)
+  check('land: paint leaves no land outside the outline', b.topY(2, 2) === -1)
+  check('land: steep faces are rock', [...Array(160).keys()].some(x => /stone|andesite|tuff|cobble|calcite|diorite|granite/.test(b.nameAt(x, groundY(x, 28), 28) ?? '')))
+  const { auditSpawn } = await import('../lib/kit/audit.mjs')
+  const a = auditSpawn(b)
+  check('land: painted land has no physics failures', !a.failures.some(f => /falling|water|cane/.test(f)), a.failures.join(' | '))
+}
+
+// --- the spawn audit ---------------------------------------------------------------------
+{
+  const { auditSpawn } = await import('../lib/kit/audit.mjs')
+  // a flat green disc with three houses of one size and NPCs far apart: everything fails
+  const b = kit.builder([300, 40, 300], { seed: 1 })
+  for (let x = 10; x < 290; x += 1) for (let z = 10; z < 290; z += 1) if (Math.hypot(x - 150, z - 150) < 140) b.set(x, 10, z, 'minecraft:grass_block')
+  for (const [hx, hz] of [[100, 100], [200, 100], [100, 200], [200, 200]]) b.box([hx, 11, hz], [hx + 7, 18, hz + 8], 'minecraft:oak_planks')
+  b.set(150, 11, 150, 'minecraft:sand') // on grass: fine
+  b.set(150, 14, 152, 'minecraft:gravel') // in the air: falls
+  b.set(160, 11, 160, 'minecraft:water') // on grass, open at the sides: leaks
+  b.placements = [{ type: 'spawn', pos: [150, 11, 150] }, ...[0, 1, 2, 3].map(k => ({ type: 'npc', id: `n${k}`, pos: [150 + 30 * Math.cos(k), 11, 150 + 30 * Math.sin(k)] }))]
+  const a = auditSpawn(b)
+  const has = re => a.failures.some(f => re.test(f))
+  check('audit: flat disc fails flat land', has(/^flat land/))
+  check('audit: bare lawn fails', has(/^bare land/))
+  check('audit: 4 clones fail repeats', has(/^repeats: 4 buildings/))
+  check('audit: gravel in the air fails', has(/^falling: 1 /))
+  check('audit: open water fails', has(/^water: 1 /))
+  check('audit: NPCs far apart fail', has(/^NPCs/))
+  check('audit: empty views fail', has(/^views/))
+  // a lawn salted with single dirt dots fails speckle; clumps do not
+  const c = kit.builder([300, 20, 300], { seed: 1 })
+  for (let x = 0; x < 300; x += 1) for (let z = 0; z < 300; z += 1) c.set(x, 5, z, (x * 7 + z * 13) % 17 === 0 ? 'minecraft:coarse_dirt' : 'minecraft:grass_block')
+  check('audit: dirt dots fail speckle', auditSpawn(c).failures.some(f => /^speckle/.test(f)))
+}
+
+// --- autumn: whole clumps turn, spruce stays, the share holds ---------------------------
+{
+  const b = kit.builder([120, 40, 120], { seed: 2 })
+  for (let x = 0; x < 120; x += 1) for (let z = 0; z < 120; z += 1) b.set(x, 3, z, 'minecraft:grass_block')
+  for (let i = 0; i < 16; i += 1) b.tree([12 + (i % 4) * 28, 4, 12 + Math.floor(i / 4) * 28], i % 5 === 0 ? 'spruce' : 'big_oak', { seed: i })
+  const before = b.count('minecraft:spruce_leaves')
+  const r = b.autumn({ seed: 1 })
+  check('autumn: turns about the share', r.leaves > 1000 && Math.abs(r.turned / r.leaves - 0.45) < 0.02, `${r.turned}/${r.leaves}`)
+  check('autumn: spruce stays green', b.count('minecraft:spruce_leaves') === before)
+  // clumps, not dots: most turned blocks touch another warm block
+  const WARM = /honeycomb_block|_terracotta|nether_wart_block/
+  const warm = b.entriesWhere(n => WARM.test(n))
+  const touching = warm.filter(([x, y, z]) => [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].some(([dx, dy, dz]) => WARM.test(b.nameAt(x + dx, y + dy, z + dz) ?? ''))).length
+  check('autumn: colour comes in clumps', warm.length > 500 && touching / warm.length > 0.85, `${touching}/${warm.length}`)
+}
+
 console.log(`kit self-test: ${passes} passed, ${failures} failed`)
 if (failures > 0) process.exitCode = 1

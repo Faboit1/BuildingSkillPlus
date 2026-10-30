@@ -5,12 +5,16 @@
 
 import { spawnSync } from 'node:child_process'
 import os from 'node:os'
+import path from 'node:path'
 import v8 from 'node:v8'
 
-// the heap to ask for, in MB: 3/4 of the machine's memory, at least 2 GB, at most 24 GB
+// the heap to ask for, in MB: 3/4 of the machine's memory, but no more than what is free now
+// (other builds may be running: a heap the machine cannot give gets the process killed, silently),
+// at least 2 GB, at most 24 GB
 export function heapTargetMb() {
   const total = Math.floor(os.totalmem() / 2 ** 20)
-  return Math.max(2048, Math.min(24576, Math.floor(total * 0.75)))
+  const free = Math.floor(os.freemem() / 2 ** 20)
+  return Math.max(2048, Math.min(24576, Math.floor(total * 0.75), Math.floor(free * 0.85)))
 }
 
 export function ensureHeap() {
@@ -24,5 +28,9 @@ export function ensureHeap() {
     env: { ...process.env, MC_HEAP_SET: '1' },
   })
   if (r.error) return // could not relaunch: carry on with the default heap
+  if (r.signal) {
+    console.error(`${path.basename(process.argv[1])}: killed by ${r.signal} (out of memory? ${target} MB heap asked, ${Math.floor(os.freemem() / 2 ** 20)} MB free now): close other big jobs, or give it --max-old-space-size explicitly`)
+    process.exit(1)
+  }
   process.exit(r.status ?? 1)
 }

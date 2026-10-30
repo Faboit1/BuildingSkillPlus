@@ -22,7 +22,7 @@ export function bench(ctx, pos, facing, { length = 3, wood = 'spruce', hedge = '
   const { b } = ctx
   const L = local(pos, facing)
   const half = Math.floor(length / 2)
-  for (let u = -half; u <= half; u += 1) b.set(...L.at(u, 0, 1), `minecraft:${wood}_stairs[facing=${L.back},half=bottom]`)
+  for (let u = -half; u <= half; u += 1) b.set(...L.at(u, 0, 1), `${ctx.kit.material(wood).stairs}[facing=${L.back},half=bottom]`)
   b.set(...L.at(-half - 1, 0, 1), `minecraft:${wood}_trapdoor[facing=${L.left},half=bottom,open=true]`)
   b.set(...L.at(half + 1, 0, 1), `minecraft:${wood}_trapdoor[facing=${L.right},half=bottom,open=true]`)
   for (let u = -half - 1; u <= half + 1; u += 1) for (let h = 1; h <= 2; h += 1) b.set(...L.at(u, -1, h), `minecraft:${hedge}[persistent=true]`)

@@ -15,7 +15,7 @@
 // - Noise hills all over the walking area (players want flat ground where the NPCs are).
 
 // Build the island and return groundY(x, z): the walking surface's block level there (-1 off it).
-export function island(ctx, { cx, cz, r, y = ctx.FY, depth = Math.round(r * 0.75), seed = 1, flat = 0.55, top = 'grass_block', soil = { dirt: 4, coarse_dirt: 1 }, rock = { stone: 6, andesite: 2, tuff: 1 } }) {
+export function island(ctx, { cx, cz, r, y = ctx.FY, depth = Math.min(Math.round(r * 0.75), y - 4), seed = 1, flat = 0.55, top = 'grass_block', soil = { dirt: 4, coarse_dirt: 1 }, rock = { stone: 6, andesite: 2, tuff: 1 } }) {
   const { b, kit } = ctx
   const soilPaint = kit.palette(soil, { scale: 3, seed })
   const rockPaint = kit.palette(rock, { scale: 3, seed: seed + 1 })
