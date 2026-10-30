@@ -567,9 +567,12 @@ export function autumn(b, { box, share = 0.45, hues = { gold: 3, orange: 4.5, re
       out.push([x, y, z, `minecraft:${H.leaf}[persistent=true]`])
       return
     }
-    out.push([x, y, z, `minecraft:${pick(open(x, y + 1, z) ? H.light : H.dark, hash01(x, y, z, s + 5))}`])
+    out.push([x, y, z, `minecraft:${pick(open(x, y + 1, z) ? H.light : H.dark, hash01(x, y, z, s + 5))}`, H.leaf])
   })
-  for (const [x, y, z, id] of out) b.set(x, y, z, id)
+  // a warm block with no warm neighbour is a dot, not a clump: it stays a leaf
+  const warm = new Set(out.filter(o => !/_leaves/.test(o[3])).map(([x, y, z]) => `${x},${y},${z}`))
+  const near = (x, y, z) => [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].some(([dx, dy, dz]) => warm.has(`${x + dx},${y + dy},${z + dz}`))
+  for (const [x, y, z, id, leaf] of out) b.set(x, y, z, /_leaves/.test(id) || near(x, y, z) ? id : `minecraft:${leaf}[persistent=true]`)
   return { leaves: leaves.length, turned: out.length }
 }
 
