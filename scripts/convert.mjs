@@ -16,7 +16,7 @@ import {
   summarizeStructure,
   writeStructure,
 } from './lib/formats.mjs'
-import { readStructureGrid } from './lib/structio.mjs'
+import { readHeader, readStructureGrid } from './lib/structio.mjs'
 import { ensureHeap } from './lib/heap.mjs'
 
 ensureHeap()
@@ -262,6 +262,30 @@ async function main() {
   }
 
   const bytes = new Uint8Array(await fs.readFile(inputPath))
+  // --info on a file too big to load: the facts from its header, without its blocks
+  // (gzip keeps the unpacked size, mod 4 GB, in its last 4 bytes)
+  const unpacked = bytes[0] === 0x1f && bytes[1] === 0x8b ? new DataView(bytes.buffer, bytes.byteOffset + bytes.length - 4, 4).getUint32(0, true) : bytes.length
+  if (options.info && !options.out && (unpacked > 60_000_000 || unpacked < bytes.length)) {
+    const h = readHeader(bytes)
+    if (h) {
+      const v = h.ints
+      const get = (...keys) => keys.map(k => Object.keys(v).find(p => p === k || p.endsWith(`.${k}`))).filter(Boolean).map(k => v[k])[0]
+      const regions = Object.keys(h.compounds).filter(k => /^Regions\.[^.]+$/.test(k))
+      const info = {
+        file: inputPath,
+        bytes: bytes.length,
+        dataVersion: get('DataVersion', 'MinecraftDataVersion'),
+        size: v.size ?? (get('Width') !== undefined ? [get('Width'), get('Height'), get('Length')] : regions.length ? regions.map(r => [v[`${r}.Size.x`], v[`${r}.Size.y`], v[`${r}.Size.z`]]) : undefined),
+        palette: h.compounds['Palette'] ?? h.compounds['Blocks.Palette'] ?? h.lists['palette'] ?? regions.map(r => h.lists[`${r}.BlockStatePalette`]),
+        regions: regions.map(r => r.slice('Regions.'.length)),
+        blockData: Object.fromEntries(Object.entries(h.arrays).filter(([k]) => /BlockData|BlockStates|Data$/.test(k))),
+        note: 'header only: the file is too big to load its blocks for --info',
+      }
+      if (options.json) console.log(JSON.stringify(info, null, 2))
+      else for (const [k, val] of Object.entries(info)) console.log(`${(k + ':').padEnd(13)}${typeof val === 'object' ? JSON.stringify(val) : val}`)
+      return
+    }
+  }
   let result
   const grid = inputExt === '.nbt' && options.out && outExt !== '.nbt' && !options.keepAir && options.paletteIndex === undefined ? readStructureGrid(bytes) : null
   if (grid && (grid.blocks > GRID_FROM || process.env.CONVERT_FAST)) {

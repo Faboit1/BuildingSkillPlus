@@ -111,6 +111,8 @@ What the old-plugin runs show:
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Cheese SMP | Haiku, high | new | 0 | 16 | 80 min | 57 | b.land relief, a walled town with streets of townHouses, the castle on the axis, buildings in every direction; woods over everything hide the land, the town only 256 across, a river-lake leak (the bug fixed later), NPCs 9 apart |
 
+| Cheese SMP | Sonnet, xhigh | new | 0 | 24 | 1 h 50 | 73 | eroded ranges and a valley, the river looping round the walled town, a 124-tall castle on its crag on the axis, harbour, mill, windmill, farms, an abbey; blocky terracotta autumn crowns, lawn speckle 3.4%, templated house streets, the river-lake leak |
+
 Against round 1, round B's Haiku (57, no corrections) beat round 1's Haiku (30, then 46 after four
 rounds of corrections). It did not stop early, and it ran 16 builds where round 1's ran 9 then
 stopped. But it took only two screenshots: the gate now asks for 12 from 8 spots.

@@ -427,7 +427,9 @@ export class Land {
   // A valley along a path, carved down to `floor` (a level, or t => level along the path, 0-1): a
   // flat floor over the middle `flat` share, sides that rise to the land at the edge of `width`.
   // shape 'u' (a glacier's valley: flat floor, steep sides) or 'v' (a river's).
-  valley(points, { width = 200, floor, depth = 20, flat = 0.35, shape = 'u', warp = 0.2, seed = this.seed + 61 } = {}) {
+  // The floor is kept from erosion (lock, default true), so the rain does not fill a river's
+  // floodplain back in with fans; lock: false lets it weather like the rest.
+  valley(points, { width = 200, floor, depth = 20, flat = 0.35, shape = 'u', warp = 0.2, lock = true, seed = this.seed + 61 } = {}) {
     const p = smoothPath(points)
     const hw = width / 2
     const near = pathDistance(this, p, hw * (1 + warp) + 2)
@@ -440,8 +442,10 @@ export class Land {
       const u = (near.d[i] * (1 + warp * fbm2(x, z, { scale: hw * 0.8, octaves: 3, seed }) * 2)) / hw
       if (u >= 1) continue
       const F = floor === undefined ? h[i] - depth : typeof floor === 'function' ? floor(near.t[i]) : floor
-      const carved = F + (h[i] - F) * smoothstep(flat, 1, u) ** power
+      const s = smoothstep(flat, 1, u)
+      const carved = F + (h[i] - F) * s ** power
       if (carved < h[i]) h[i] = carved
+      if (lock) this.lock[i] = Math.max(this.lock[i], 1 - s)
     }
     return this.changed()
   }

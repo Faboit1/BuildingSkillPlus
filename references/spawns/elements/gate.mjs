@@ -55,10 +55,13 @@ export function archOpening(span, jambTop) {
 //           sills); the arch rings (15+ L* off the wall, here darker: the frame round the portal);
 //           the plinth and podium. keystone = the block at the crown
 //   field   the wall's clumped mix (default: stone bricks, mossier in the bottom courses)
+//   record  true (a portal: its region and its title hologram are recorded for setup.md); false
+//           for a town gate that is only a building
 export function gate(ctx, pos, facing, {
   label = 'Random Teleport', portalId, kind = 'rtp',
   width = 7, height = 10, depth = 5, tower = 7, towerHeight, rise = 2, approach = 10, banner = 'red', field,
   stone = 'stone_brick', trim = 'polished_andesite', ring = 'deepslate_brick', base = 'polished_deepslate', keystone = 'chiseled_deepslate', seed = 1,
+  record = true,
 } = {}) {
   const { b, kit } = ctx
   const L = local(pos, facing)
@@ -232,6 +235,8 @@ export function gate(ctx, pos, facing, {
   // record the opening (the middle of the passage, below the portcullis) and the title over the arch
   const lo = at(-P.half, -3, 1)
   const hi = at(P.half, -2, P.jambTop - 1)
+  // a portal gate records its region and its title; a town gate (record: false) is only a building
+  if (!record) return { lo, hi }
   ctx.hologram(portalId ?? 'gate', label, at(0, 2, O.crown + 2)) // its top line under the machicolations, the dark ring below it
   return b.markPortal(lo, hi, { id: portalId, label, kind, facing })
 }

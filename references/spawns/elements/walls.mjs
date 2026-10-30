@@ -123,8 +123,8 @@ export function wall(ctx, points, opts = {}) {
     const i = Math.max(0, Math.min(prof.length - 1, Math.round(t)))
     let sum = 0
     let n = 0
-    for (let k = i - 5; k <= i + 5; k += 1) if (k >= 0 && k < prof.length) { sum += prof[k]; n += 1 }
-    return Math.round(sum / n) + height
+    for (let k = i - 5; k <= i + 5; k += 1) if (k >= 0 && k < prof.length && prof[k] >= 0) { sum += prof[k]; n += 1 }
+    return (n ? Math.round(sum / n) : ctx.FY) + height
   }
 
   // ------------------------------------------------------------ the cells of the wall
@@ -132,6 +132,7 @@ export function wall(ctx, points, opts = {}) {
   const zs = points.map(p => p[1])
   const cells = []
   const byKey = new Map()
+  let offLand = 0
   for (let x = Math.floor(Math.min(...xs)) - T - 3; x <= Math.ceil(Math.max(...xs)) + T + 3; x += 1)
     for (let z = Math.floor(Math.min(...zs)) - T - 3; z <= Math.ceil(Math.max(...zs)) + T + 3; z += 1) {
       const n = near(x, z)
@@ -140,11 +141,18 @@ export function wall(ctx, points, opts = {}) {
       if (n.t <= 0.01 && segs[0] && ((x - segs[0].ax) * segs[0].dx + (z - segs[0].az) * segs[0].dz) < -0.5) continue
       const last = segs[segs.length - 1]
       if (n.t >= length - 0.01 && ((x - last.ax) * last.dx + (z - last.az) * last.dz) > last.len + 0.5) continue
-      const c = { x, z, ...n, layer: n.o <= 0 ? 'body' : n.o <= 1 ? 'outer' : 'batter', G: groundOf(x, z), W: walkAt(n.t), tt: Math.round(n.t) }
+      const G = groundOf(x, z)
+      // no wall over the void (a line that runs off the land's edge stops there)
+      if (G < 0) {
+        offLand += 1
+        continue
+      }
+      const c = { x, z, ...n, layer: n.o <= 0 ? 'body' : n.o <= 1 ? 'outer' : 'batter', G, W: walkAt(n.t), tt: Math.round(n.t) }
       c.in = FACE([-n.nx, -n.nz])
       cells.push(c)
       byKey.set(`${x},${z}`, c)
     }
+  if (offLand > 10) ctx.warn?.(`wall: ${offLand} cells of the wall's line are off the land and were left out: keep the line on the land`)
   const masonry = masonryAt(M, kit, (x, z) => byKey.get(`${x},${z}`)?.G ?? 0, (x, z) => byKey.get(`${x},${z}`)?.W ?? 8)
   const st = (f, half = 'bottom', mat = trim) => `${kit.material(mat).stairs}[facing=${f},half=${half}]`
   const slab = (type = 'bottom') => `${kit.material(trim).slab}[type=${type}]`

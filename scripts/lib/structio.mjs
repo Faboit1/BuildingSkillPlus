@@ -307,3 +307,68 @@ export function readStructureGrid(bytes) {
   }
   return { pal: out, G, X, Y, Z, blocks: n, blockEntities, dataVersion }
 }
+
+// What a big schematic is without reading its blocks: walks the NBT and keeps only the small
+// facts (a .schem's Width/Height/Length, DataVersion and palette size; a .litematic's regions and
+// their sizes; a structure .nbt's size and palette), skipping the block arrays. For convert --info
+// on files too big to load (a 1000-wide spawn's .schem holds 200 million entries).
+export function readHeader(bytes) {
+  const d = inflate(bytes)
+  const view = new DataView(d.buffer, d.byteOffset, d.byteLength)
+  let o = 0
+  const u8 = () => d[o++]
+  const str = () => {
+    const n = view.getUint16(o)
+    o += 2
+    const s = d.toString('utf8', o, o + n)
+    o += n
+    return s
+  }
+  const out = { ints: {}, lists: {}, arrays: {}, compounds: {} }
+  // read a tag's payload; scalars are kept by their path, big arrays only by their length
+  const read = (type, at) => {
+    switch (type) {
+      case T.byte: return d.readInt8(o++)
+      case T.short: { const v = view.getInt16(o); o += 2; return v }
+      case T.int: { const v = view.getInt32(o); o += 4; return v }
+      case T.float: o += 4; return null
+      case T.long: o += 8; return null
+      case T.double: o += 8; return null
+      case T.string: return str()
+      case T.byteArray: { const n = view.getInt32(o); o += 4 + n; out.arrays[at] = n; return null }
+      case T.intArray: { const n = view.getInt32(o); o += 4 + 4 * n; out.arrays[at] = n; return null }
+      case T.longArray: { const n = view.getInt32(o); o += 4 + 8 * n; out.arrays[at] = n; return null }
+      case T.list: {
+        const t = u8()
+        const n = view.getInt32(o)
+        o += 4
+        out.lists[at] = n
+        const items = []
+        for (let i = 0; i < n; i += 1) {
+          const v = read(t, `${at}[${i}]`)
+          if (i < 3 && (t === T.int || t === T.short)) items.push(v)
+        }
+        return items
+      }
+      case T.compound: {
+        let keys = 0
+        for (;;) {
+          const t = u8()
+          if (t === T.end) break
+          const k = str()
+          keys += 1
+          const v = read(t, at ? `${at}.${k}` : k)
+          if (typeof v === 'number' || typeof v === 'string' || (Array.isArray(v) && v.length)) out.ints[at ? `${at}.${k}` : k] = v
+        }
+        out.compounds[at] = keys
+        return null
+      }
+      default: throw new Error(`header reader: unknown NBT tag ${type} at byte ${o}`)
+    }
+  }
+  const t = u8()
+  if (t !== T.compound) return null
+  str()
+  read(T.compound, '')
+  return out
+}
