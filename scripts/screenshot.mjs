@@ -38,6 +38,8 @@ options:
   --look-at x,y,z          aim at this point instead of yaw/pitch
   --fov 70                 vertical field of view (degrees)     --width 1280 --height 720
   --far 260                view distance in blocks              --sun 0|1 (shadows, default 1)
+  --night                  night: a dark sky, moonlight, and block light spreading from torches,
+                           lanterns, glowstone and light blocks like the game's (dark corners show)
   --out FILE.png           (single shot)  --out-dir DIR (shots; default <build dir>/renders)
   --no-log                 do not add these shots to <build dir>/shot-log.json (the audit counts them)
 Prints the PNG path(s). A 1280x720 view of a 300-block spawn takes a few seconds.`)
@@ -53,7 +55,8 @@ const vec = s => (s === undefined ? undefined : String(s).split(',').map(v => (v
 const W = Number(opt('--width', 1280))
 const H = Number(opt('--height', 720))
 const FAR = Number(opt('--far', 260))
-const SUN = Number(opt('--sun', 1)) !== 0
+const NIGHT = args.includes('--night')
+const SUN = !NIGHT && Number(opt('--sun', 1)) !== 0
 const stem = path.basename(input).replace(/\.[^.]+$/, '')
 const baseDir = fs.statSync(input).isDirectory() ? input : path.dirname(input)
 
@@ -100,6 +103,61 @@ const solidAt = (x, y, z) => {
   return id !== 0 && (SH[id] === 1 || SH[id] === 9) && !CUT[id] ? 1 : 0
 }
 
+// ------------------------------------------------------------------ block light (night)
+// Like the game: each light source has a level (0-15) that falls by 1 a block through anything
+// that lets light pass, and stops at full opaque blocks. A bucket queue from 15 down sets every
+// cell to its brightest source.
+const LIGHT = NIGHT ? new Uint8Array(X * Y * Z) : null
+if (NIGHT) {
+  const t0l = Date.now()
+  const emit = pal.map(st => {
+    const n = st.split('[')[0].replace('minecraft:', '')
+    const lit = !/lit=false/.test(st)
+    if (n === 'light') return Number(/level=(\d+)/.exec(st)?.[1] ?? 15)
+    if (/^(soul_torch|soul_wall_torch|soul_lantern|soul_campfire)$/.test(n)) return lit ? 10 : 0
+    if (/^(torch|wall_torch)$/.test(n)) return 14
+    if (/^(lantern|glowstone|sea_lantern|shroomlight|jack_o_lantern|beacon|conduit|end_gateway|lava|fire|.*froglight)$/.test(n)) return 15
+    if (/^(campfire|redstone_lamp|copper_bulb|.*_copper_bulb|respawn_anchor)$/.test(n)) return lit ? 15 : 0
+    if (n === 'end_rod') return 14
+    if (/candle$/.test(n)) return lit && /lit=true/.test(st) ? 3 * Number(/candles=(\d)/.exec(st)?.[1] ?? 1) : 0
+    if (/^(glow_lichen|cave_vines|cave_vines_plant)$/.test(n)) return /berries=true/.test(st) || n === 'glow_lichen' ? 7 : 0
+    if (n === 'magma_block' || n === 'redstone_torch' || n === 'redstone_wall_torch') return n === 'magma_block' ? 3 : 7
+    if (n === 'sea_pickle') return 6
+    return EMI[pal.indexOf(st)] ? 12 : 0
+  })
+  // what light passes through: air, plants, glass, slabs and stairs leak too (simplified), leaves
+  const passes = new Uint8Array(N)
+  for (let i = 0; i < N; i += 1) passes[i] = i === 0 || SH[i] !== 1 || CUT[i] || /glass|ice$|light/.test(pal[i]) ? 1 : 0
+  const buckets = Array.from({ length: 16 }, () => [])
+  for (let i = 0; i < G.length; i += 1) {
+    const e = emit[G[i]]
+    if (e > 0) {
+      LIGHT[i] = e
+      buckets[e].push(i)
+    }
+  }
+  const XZ = X * Z
+  for (let lv = 15; lv > 1; lv -= 1) {
+    const q = buckets[lv]
+    for (let k = 0; k < q.length; k += 1) {
+      const i = q[k]
+      if (LIGHT[i] !== lv) continue
+      const x = i % X
+      const z = Math.floor(i / X) % Z
+      const y = Math.floor(i / XZ)
+      for (const j of [x > 0 ? i - 1 : -1, x < X - 1 ? i + 1 : -1, z > 0 ? i - X : -1, z < Z - 1 ? i + X : -1, y > 0 ? i - XZ : -1, y < Y - 1 ? i + XZ : -1]) {
+        if (j < 0 || LIGHT[j] >= lv - 1 || !passes[G[j]]) continue
+        LIGHT[j] = lv - 1
+        buckets[lv - 1].push(j)
+      }
+    }
+    buckets[lv] = null
+  }
+  console.error(`screenshot: night light from ${emit.filter(e => e > 0).length} kinds of source in ${((Date.now() - t0l) / 1000).toFixed(1)}s`)
+}
+// the light a face receives: the level in the cell in front of it, as a brightness
+const lightIn = (x, y, z) => (x < 0 || y < 0 || z < 0 || x >= X || y >= Y || z >= Z ? 0 : LIGHT[(y * Z + z) * X + x])
+
 // ------------------------------------------------------------------ the shots
 let placements = null
 function spawnRecord() {
@@ -130,11 +188,17 @@ const SUNDIR = (() => {
 const FACE_LIGHT = [0.62, 0.62, 1.0, 0.5, 0.82, 0.82] // ±x, +y, -y, ±z (Minecraft's directional shade)
 const sky = (dy, out, o) => {
   const t = Math.max(0, Math.min(1, dy * 1.6 + 0.12))
+  if (NIGHT) {
+    out[o] = 30 - 22 * t
+    out[o + 1] = 36 - 24 * t
+    out[o + 2] = 62 - 34 * t
+    return
+  }
   out[o] = 196 - 86 * t
   out[o + 1] = 218 - 60 * t
   out[o + 2] = 236 - 20 * t
 }
-const HORIZON = [196, 218, 236]
+const HORIZON = NIGHT ? [30, 36, 62] : [196, 218, 236]
 
 // texture luminance at (u, v) in [0, 1)
 const texel = (tex, u, v) => {
@@ -425,9 +489,21 @@ function shade(id, face, hp, x, y, z, t, trans, ar, ag, ab, out, sprite = false)
     // ambient occlusion: darken toward edges that meet a solid block in front of the face
     if (!sprite) light *= ao(face, hp, x, y, z)
   }
-  let r = base[id * 3] * l * light
-  let g = base[id * 3 + 1] * l * light
-  let b = base[id * 3 + 2] * l * light
+  let tint = [1, 1, 1]
+  if (NIGHT && !EMI[id]) {
+    // moonlight (cool, dim) plus the block light in front of the face (warm), like the game
+    const n = sprite ? [0, 0, 0] : normalOf(face)
+    const lv = Math.max(lightIn(x + n[0], y + n[1], z + n[2]), sprite ? lightIn(x, y, z) : 0)
+    const blockLit = (lv / 15) ** 1.5
+    const moon = 0.13 * (light / 0.82)
+    const k = Math.max(moon, blockLit * 0.95 * (light / 0.82))
+    light = k
+    const warm = blockLit > moon ? Math.min(1, (blockLit - moon) * 2) : 0
+    tint = [0.78 + 0.22 * warm, 0.82 + 0.1 * warm, 1 - 0.25 * warm]
+  }
+  let r = base[id * 3] * l * light * tint[0]
+  let g = base[id * 3 + 1] * l * light * tint[1]
+  let b = base[id * 3 + 2] * l * light * tint[2]
   // distance fog toward the horizon colour
   const fog = Math.min(0.85, Math.max(0, (t - FAR * 0.42) / (FAR * 0.58)))
   r = r * (1 - fog) + HORIZON[0] * fog
@@ -510,6 +586,12 @@ for (const [i, s] of shots.entries()) {
     pitch = (-Math.atan2(ddy, Math.hypot(ddx, ddz)) * 180) / Math.PI
   }
   yaw ??= 180
+  // a camera inside a solid block sees only that block's inside: say so instead of a grey frame
+  {
+    const [ex, ey, ez] = eye.map(Math.floor)
+    const id = at(ex, ey, ez)
+    if (id && SH[id] === 1 && !CUT[id]) console.error(`screenshot: shot ${s.name ?? i + 1}: the camera at ${ex},${ey},${ez} is inside ${pal[id]}: move it (pos stands on the ground at x,z; eye is the exact camera point)`)
+  }
   const t1 = Date.now()
   const img = render({ eye, yaw, pitch, fov: Number(s.fov ?? 70) })
   const file = s.out || (shots.length === 1 && opt('--out')) || path.join(outDir, `${stem}-${s.name ?? `shot-${i + 1}`}.png`)

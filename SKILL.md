@@ -79,7 +79,8 @@ states, modules, and roof, window and door helpers): use it freely, the design i
 - **Scripts (the same results, when the tools are not listed, e.g. in claude.ai chat):**
   - `node "${CLAUDE_SKILL_DIR}/scripts/new-spawn.mjs" "<name>" --brief "<plan>"`
   - `run-build.mjs <spawn.mjs> --out-dir <folder> --json`
-  - `screenshot.mjs <file.nbt> --spawn` (or `--shots '<json>'`)
+  - `screenshot.mjs <file.nbt> --spawn` (or `--shots '<json>'`; `--night` for the night view with the
+    game's block light)
   - `isorender.mjs <file.nbt> --out x.png`
 
   They need Node 20.19+. The dependencies are bundled in `scripts/node_modules`, so there is nothing
@@ -382,8 +383,8 @@ exact numbers.
 - Output DataVersion defaults to 3955 (1.21.1); newer games upgrade it automatically. Use
   `--data-version` for older targets.
 - Entities (item frames, armor stands, paintings) are not exported. Sign text and banner patterns
-  render unreliably — build detail from blocks. The previewer does not propagate light; night mode
-  shows emissive blocks glowing.
+  render unreliably — build detail from blocks. The browser previewer does not propagate light (its night
+  mode shows emissive blocks glowing); `screenshot.mjs --night` does, like the game.
 - Standing sign/banner/head `rotation` previews mirrored east↔west; write the vanilla value anyway.
 - Vanilla structure blocks load at most 48×48×48; `/place template` and WorldEdit/Litematica have no
   such limit (`references/formats.md`).

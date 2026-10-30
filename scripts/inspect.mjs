@@ -32,6 +32,8 @@ Commands (combine freely):
   --find <id|substring>   List positions of matching blocks (exact id with namespace, or substring
                           of the full state such as "lantern" or "facing=north"); repeatable
   --checks                Quality lint with warnings and fix hints
+  --box x0,z0,x1,z1       Look only at these columns (one district of a big spawn); walls cut at
+                          the box's edge can show as flat planes
   --score                 Quality scorecard: metric, value, target band, fix hint, 0-100 total
   --style <name>          Compare --score composition against a style's norms (implies --score):
                           medieval, house, castle, fantasy, japanese, gothic, modern, ship, statue,
@@ -91,6 +93,11 @@ function parseArgs(argv) {
     '--examples': v => { options.examples = positiveInt('--examples', v) },
     '--palette': v => { options.palette = positiveInt('--palette', v) },
     '--style': v => { options.style = v; options.score = true },
+    '--box': v => {
+      const b = v.split(',').map(Number)
+      if (b.length !== 4 || b.some(n => !Number.isFinite(n))) throw new Error(`--box expects x0,z0,x1,z1 (got "${v}")`)
+      options.box = [Math.min(b[0], b[2]), Math.min(b[1], b[3]), Math.max(b[0], b[2]), Math.max(b[1], b[3])]
+    },
   }
   const boolFlags = {
     '-h': () => { options.help = true },
@@ -677,6 +684,7 @@ function loadStructure(root, options) {
     return intern(name, props)
   })
 
+  const boxCols = options?.box ?? null
   const n = root.blocks.length
   const bx = new Int32Array(n)
   const by = new Int32Array(n)
@@ -705,6 +713,8 @@ function loadStructure(root, options) {
       s = intern(parsed.name, parsed.props)
     }
     if (s >= 0 && EMPTY_IDS.has(states[s].name)) { airEntries += 1; s = -1 }
+    // --box: only the columns of one district (the rest counts as empty)
+    if (s >= 0 && boxCols && (x < boxCols[0] || x > boxCols[2] || z < boxCols[1] || z > boxCols[3])) s = -1
     if (x < 0 || y < 0 || z < 0 || x >= size[0] || y >= size[1] || z >= size[2]) outside += 1
     bx[k] = x
     by[k] = y

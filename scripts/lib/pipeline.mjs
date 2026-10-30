@@ -335,6 +335,19 @@ export function setupSheet({ name, origin, world, size, placements, changeHint =
   L.push('Commands are written for the server console (no leading slash; type `/` first in game). Syntax checked')
   L.push('against the plugin sources in October 2026: Citizens 2.0.44, FancyNpcs 2.12.1, DecentHolograms 2.10.3,')
   L.push('ExcellentCrates 6.6.1, CrazyCrates 5.2.0, WorldEdit 7.4.7, WorldGuard 7.0.21, vanilla Java 1.21.1.', '')
+  // a spawn-sized paste: what it takes on a server
+  const cells = size[0] * size[1] * size[2]
+  if (cells > 20_000_000) {
+    L.push('## Pasting a build this big', '')
+    L.push(`It is ${Math.round(cells / 1e6)} million cells: paste the .schem with **FastAsyncWorldEdit** (plain WorldEdit`)
+    L.push('runs out of memory or stalls the server), on a server started with plenty of heap (8 GB or more), ideally')
+    L.push('while no players are on. Stand on the paste corner (or `//pos1` it) and run:', '')
+    L.push('```', `//schem load ${name}`, '//paste -a', '```', '')
+    L.push('`-a` skips the air in the schematic, so the paste does not carve a box out of existing terrain; leave it')
+    L.push('off in an empty void world if you want the box cleared. Expect the paste to take minutes and the lighting')
+    L.push('to settle after it (`//fixlighting` in FAWE, or relog). The vanilla `/place template` route only works')
+    L.push('for structures up to 48 x 48 x 48 per piece, so it is not for this one.', '')
+  }
 
   L.push('## Placements', '', '| id | label | type | local | world |', '| --- | --- | --- | --- | --- |')
   for (const p of placements) {

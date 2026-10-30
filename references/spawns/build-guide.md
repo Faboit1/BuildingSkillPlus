@@ -1222,7 +1222,7 @@ Rules:
 | "Signs on the sections" | holograms by default; block letters only if they insist (§5.19) |
 | "A warzone", "a moshpit", "KOTH" | §5.20, with a sunken pit or a stepped hill and their regions |
 | "Another variation" | a new seed, and new designs for the places, not only new positions |
-| "A night look" | lamps along every walk; show it with `node scripts/render.mjs --nbt <file> --lighting night` |
+| "A night look" | lamps along every walk; show it with `screenshot.mjs <file> --spawn --night` (the game's block light, from the CPU; dark corners show as dark) |
 | "Make it more unique" | a hero only this server has, a set piece on a diagonal sightline, a story detail (a statue of the season-1 champion, a "coming soon" scaffold) |
 
 ---

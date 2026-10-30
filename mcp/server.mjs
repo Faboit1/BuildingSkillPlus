@@ -131,14 +131,16 @@ const TOOLS = [
         },
         width: { type: 'integer', description: 'Default 1280' },
         height: { type: 'integer', description: 'Default 720' },
+        night: { type: 'boolean', description: 'Night: a dark sky and the game\'s block light from lamps and light blocks (dark corners show)' },
+        far: { type: 'integer', description: 'View distance in blocks (default 260, about the game\'s; more for high overviews)' },
       },
       required: ['file'],
     },
-    run: async ({ file, shots, width, height }) => {
+    run: async ({ file, shots, width, height, night, far }) => {
       const f = outPath(file)
       if (!fs.existsSync(f)) return fail(`no such file: ${f}`)
       const list = shots?.length ? shots : [{ name: 'spawn-view', spawn: true }]
-      const r = await run('screenshot.mjs', [f, '--shots', JSON.stringify(list), ...(width ? ['--width', String(width)] : []), ...(height ? ['--height', String(height)] : [])], { heap: HEAP })
+      const r = await run('screenshot.mjs', [f, '--shots', JSON.stringify(list), ...(width ? ['--width', String(width)] : []), ...(height ? ['--height', String(height)] : []), ...(night ? ['--night'] : []), ...(far ? ['--far', String(far)] : [])], { heap: HEAP })
       if (r.code !== 0) return fail(`screenshot failed:\n${(r.err || r.out).slice(-3000)}`)
       const files = r.out.split('\n').map(l => l.split('  (')[0].trim()).filter(l => l.endsWith('.png'))
       const content = []
