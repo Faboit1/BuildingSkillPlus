@@ -515,7 +515,10 @@ and the weathering. The numbers below come from pro terraformers and geomorpholo
     roots and rock on the outside; a bed of gravel, sand, clay and mud in clumps;
   - sugar cane in clumps at the waterline, lily pads only in calm water, seagrass where it is 2+
     deep, mossy stones at the bends;
-  - the waterfall: a shallow rock lip, a curtain with rock either side, wet mossy rock round it.
+  - the waterfall: a shallow rock lip, a curtain with rock either side, wet mossy rock round it;
+  - a river that reaches a lake runs into it at the lake's level, its banks opening into the shore:
+    paint the lake first (`land.paint`'s `water`), then run `river()` on into it; it leaves the
+    lake's water alone. Never stop a river short of the lake to avoid a leak.
 - **Water rules:**
   - in a structure, still water is source blocks; anything that is not solid at its side or bed
     (air, a plant, a carpet, a lantern) lets it flood when pasted, so seal every side last;
@@ -671,10 +674,12 @@ and the weathering. The numbers below come from pro terraformers and geomorpholo
       as it is tall, with petals underneath;
     - a palm leans and has a fan of fronds;
     - a dead tree is bare limbs;
-  - **autumn:** vanilla has no orange leaves, so mix 20-40% orange, red or yellow blocks (honeycomb,
-    orange or red terracotta, shroomlight, nether wart blocks) into part of the oak and dark-oak
-    crowns, in clumps; keep birch and spruce as they are; podzol, coarse dirt and leaf carpets under
-    them;
+  - **autumn:** vanilla has no orange leaves. Plant every tree green, then call `b.autumn()` once,
+    after the last tree: it turns whole clumps gold, orange or red (honeycomb, terracotta, nether
+    wart), lighter where they meet the sky, and lets tree-sized patches decide how far each crown
+    has gone, so some trees stay green and some have turned all over. Never dot green crowns with
+    single orange cubes, and never build a crown from warm blocks alone. Spruce stays green; podzol,
+    coarse dirt and leaf carpets in drifts under the trees;
   - a hero tree 2-3 times the others for a landmark;
   - every tree its own seed, height and lean. Never the same tree twice in one view.
 - **Numbers:**
@@ -1179,7 +1184,7 @@ Some starting points:
 | Theme | Walls | Roofs | Trees | Accent |
 | --- | --- | --- | --- | --- |
 | Medieval | stone bricks and white terracotta plaster with spruce or dark oak timber | dark oak or deepslate tiles, steep gables | oak, birch | red or blue |
-| Autumn | stone bricks, spruce timber | steep dark oak | oaks with orange, red and yellow crowns (acacia, cherry, mangrove leaves mixed) | orange |
+| Autumn | stone bricks, spruce timber | steep dark oak | oaks turning gold, orange and red by the clump, some still green (`b.autumn()` after the last tree) | orange |
 | White town | smooth quartz with deepslate frames | deepslate tile hips | oak | blue |
 | Japanese | white plaster, dark oak | curved deepslate roofs | cherry, pine | red |
 | Winter | spruce log cabins | steep spruce under snow | snowy spruce | red |
@@ -1203,7 +1208,7 @@ Rules:
 | They ask | You build |
 | --- | --- |
 | "Make a winter version" | snow on every open top (snow layers, deeper in drifts, walks swept), snowy spruces, frozen water edges, log cabins with steep roofs; a decorated tree as the hero |
-| "Autumn feel" | autumn crowns, leaf litter (carpets in clumps on the ground), pumpkins and hay by doors |
+| "Autumn feel" | autumn crowns (`b.autumn()`), leaf litter (carpets in clumps on the ground), pumpkins and hay by doors |
 | "Christmas" | winter, plus a decorated tree on the axis (lights in the crown, presents under it), red and white accents |
 | "Halloween" | autumn, orange accent, jack o'lanterns, a dead tree on the axis, cobwebs in corners |
 | "Tropical / pirate" | a coast with a beach, palms, a ship moored at a jetty, a lighthouse |
@@ -1257,7 +1262,7 @@ Positions come from `<slug>.placements.json`, next to the .nbt, in local coordin
 
 `screenshot` takes up to 6 shots per call:
 
-- `pos: [x, z]` stands on the ground there (`[x, y, z]` = the feet block);
+- `pos: [x, z]` stands on the ground there, under any tree crown (`[x, y, z]` = the feet block);
 - `eye` places the camera exactly;
 - `lookAt`, or `yaw` and `pitch`, aims it;
 - `fov` defaults to 70.

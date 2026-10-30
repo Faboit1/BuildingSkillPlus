@@ -279,7 +279,8 @@ async function main() {
         palette: h.compounds['Palette'] ?? h.compounds['Blocks.Palette'] ?? h.lists['palette'] ?? regions.map(r => h.lists[`${r}.BlockStatePalette`]),
         regions: regions.map(r => r.slice('Regions.'.length)),
         blockData: Object.fromEntries(Object.entries(h.arrays).filter(([k]) => /BlockData|BlockStates|Data$/.test(k))),
-        note: 'header only: the file is too big to load its blocks for --info',
+        ...(h.lists.blocks !== undefined ? { blocks: h.lists.blocks } : {}),
+        note: `header only: the file is too big to load its blocks for --info${h.partial ? ' (read up to its blocks)' : ''}`,
       }
       if (options.json) console.log(JSON.stringify(info, null, 2))
       else for (const [k, val] of Object.entries(info)) console.log(`${(k + ':').padEnd(13)}${typeof val === 'object' ? JSON.stringify(val) : val}`)

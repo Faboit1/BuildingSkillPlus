@@ -511,5 +511,67 @@ export function groundUnder(b, x, z, on = TERRAIN) {
   return -1
 }
 
-export const NATURE_METHODS = { tree, bush, leafBlob, boulder, terrain, scatter, path, pond, overgrow, island, groundY, groundUnder }
+// Autumn, after the trees are planted: leaves turn by whole clumps (3-5 blocks), never one block
+// at a time, and how far a crown has turned is decided by tree-sized patches, so some trees stay
+// green, some are just turning and some have gone gold, orange or red all over.
+//   b.autumn()                                        // every tree on the canvas
+//   b.autumn({ box: [x0, z0, x1, z1], share: 0.5, hues: { gold: 3, orange: 5, red: 2 }, seed: 4 })
+// share (0..1, default 0.45): how much of the leaves turn. hues: the turned share's mix.
+// A turned clump is lighter where it meets the sky (honeycomb, yellow terracotta) and darker
+// inside (orange and red terracotta, nether wart), keeps a few leaves for texture (more at the
+// crown's edge), and birch only goes gold; spruce, pine, cherry and azalea stay as they are.
+// keep(x, y, z) -> true leaves a block alone (a plaza tree you want green). Returns { leaves, turned }.
+const AUTUMN = {
+  gold: { light: [['honeycomb_block', 2], ['yellow_terracotta', 2]], dark: [['yellow_terracotta', 3], ['orange_terracotta', 1]], leaf: 'birch_leaves' },
+  orange: { light: [['honeycomb_block', 3], ['orange_terracotta', 2]], dark: [['orange_terracotta', 3], ['red_terracotta', 1]], leaf: 'oak_leaves' },
+  red: { light: [['red_terracotta', 2], ['orange_terracotta', 1]], dark: [['nether_wart_block', 3], ['red_terracotta', 2]], leaf: 'dark_oak_leaves' },
+}
+const TURNS = /^minecraft:(oak|dark_oak|birch|jungle|acacia|mangrove)_leaves$/
+export function autumn(b, { box, share = 0.45, hues = { gold: 3, orange: 4.5, red: 2.5 }, seed = 0, keep } = {}) {
+  const [x0, z0, x1, z1] = box ?? [0, 0, b.size[0] - 1, b.size[2] - 1]
+  const s = (b.seed ?? 0) + seed * 7 + 401
+  const leaves = b.entriesWhere(n => TURNS.test(n)).filter(([x, y, z]) => x >= x0 && x <= x1 && z >= z0 && z <= z1 && !(keep && keep(x, y, z)))
+  // how ready to turn: the tree-sized patch (some crowns all turned, some all green) and the clump
+  const ranked = leaves.map(e => {
+    const [x, y, z] = e
+    const patch = coherent01(x, 0, z, { scale: 15, grain: 0, seed: s })
+    const clump = coherent01(x, y, z, { scale: 2.6, grain: 0.15, seed: s + 1 })
+    return [0.6 * patch + 0.4 * clump, e]
+  }).sort((p, q) => p[0] - q[0])
+  const turned = ranked.slice(0, Math.round(Math.min(1, Math.max(0, share)) * ranked.length)).map(r => r[1])
+  // the hue by bigger patches again (a gold tree, an orange one), wobbling a little inside a crown
+  const byHue = turned.map(e => [coherent01(e[0], 0, e[2], { scale: 22, grain: 0, seed: s + 2 }) * 0.8 + coherent01(e[0], e[1], e[2], { scale: 4, seed: s + 3 }) * 0.2, e]).sort((p, q) => p[0] - q[0])
+  const order = Object.entries(hues).filter(([k, w]) => AUTUMN[k] && w > 0)
+  const total = order.reduce((t, [, w]) => t + w, 0)
+  const pick = (list, u) => {
+    const sum = list.reduce((t, [, w]) => t + w, 0)
+    let acc = 0
+    for (const [id, w] of list) if (u * sum < (acc += w)) return id
+    return list[list.length - 1][0]
+  }
+  const open = (x, y, z) => {
+    const n = b.get(x, y, z)
+    return !n || !(isFullSolid(n.name) || /_leaves$/.test(n.name))
+  }
+  const out = []
+  byHue.forEach(([, [x, y, z, block]], i) => {
+    let hue = 'gold'
+    let acc = 0
+    for (const [k, w] of order) if (i < ((acc += w) / total) * byHue.length) { hue = k; break }
+    if (block.name === 'minecraft:birch_leaves') hue = 'gold'
+    const H = AUTUMN[hue]
+    const sides = [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0]].filter(([dx, dy, dz]) => open(x + dx, y + dy, z + dz)).length
+    // a few leaves stay in the clump: they keep the crown's texture and soften its edge; a lone
+    // tip (open on 5 sides) stays a leaf, never a cube hanging in the air
+    if (sides >= 5 || hash01(x, y, z, s + 4) < (sides >= 3 ? 0.3 : 0.12)) {
+      out.push([x, y, z, `minecraft:${H.leaf}[persistent=true]`])
+      return
+    }
+    out.push([x, y, z, `minecraft:${pick(open(x, y + 1, z) ? H.light : H.dark, hash01(x, y, z, s + 5))}`])
+  })
+  for (const [x, y, z, id] of out) b.set(x, y, z, id)
+  return { leaves: leaves.length, turned: out.length }
+}
+
+export const NATURE_METHODS = { tree, bush, leafBlob, boulder, terrain, scatter, path, pond, overgrow, island, groundY, groundUnder, autumn }
 export const TREE_SPECIES = Object.keys(SPECIES)

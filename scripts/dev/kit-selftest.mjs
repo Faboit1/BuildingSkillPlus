@@ -485,5 +485,21 @@ const stateAt = (b, x, y, z) => {
   check('audit: dirt dots fail speckle', auditSpawn(c).failures.some(f => /^speckle/.test(f)))
 }
 
+// --- autumn: whole clumps turn, spruce stays, the share holds ---------------------------
+{
+  const b = kit.builder([120, 40, 120], { seed: 2 })
+  for (let x = 0; x < 120; x += 1) for (let z = 0; z < 120; z += 1) b.set(x, 3, z, 'minecraft:grass_block')
+  for (let i = 0; i < 16; i += 1) b.tree([12 + (i % 4) * 28, 4, 12 + Math.floor(i / 4) * 28], i % 5 === 0 ? 'spruce' : 'big_oak', { seed: i })
+  const before = b.count('minecraft:spruce_leaves')
+  const r = b.autumn({ seed: 1 })
+  check('autumn: turns about the share', r.leaves > 1000 && Math.abs(r.turned / r.leaves - 0.45) < 0.02, `${r.turned}/${r.leaves}`)
+  check('autumn: spruce stays green', b.count('minecraft:spruce_leaves') === before)
+  // clumps, not dots: most turned blocks touch another warm block
+  const WARM = /honeycomb_block|_terracotta|nether_wart_block/
+  const warm = b.entriesWhere(n => WARM.test(n))
+  const touching = warm.filter(([x, y, z]) => [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].some(([dx, dy, dz]) => WARM.test(b.nameAt(x + dx, y + dy, z + dz) ?? ''))).length
+  check('autumn: colour comes in clumps', warm.length > 500 && touching / warm.length > 0.85, `${touching}/${warm.length}`)
+}
+
 console.log(`kit self-test: ${passes} passed, ${failures} failed`)
 if (failures > 0) process.exitCode = 1

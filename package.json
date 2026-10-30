@@ -1,6 +1,6 @@
 {
   "name": "minecraft-builder-skill",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Agent skill for designing high-quality Minecraft builds: a JavaScript building kit, vanilla structure/schematic export, headless renders and a builder's handbook.",
   "license": "Apache-2.0",
   "type": "module",

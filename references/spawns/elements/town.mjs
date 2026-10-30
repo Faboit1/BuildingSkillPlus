@@ -25,7 +25,9 @@ const OPP = { north: 'south', south: 'north', east: 'west', west: 'east' }
 
 // The looks of the houses of a district: the town picks one per house, never the same as its
 // neighbour's. base: the ground storey (a palette), upper: the plaster, frame: the timber, roof:
-// a family with stairs and slabs, trim: the stone of the sills and the plinth.
+// a family with stairs and slabs, trim: the stone of the sills and the plinth. A look may also set
+// the roof's shape: roofType ('gable', 'hip', 'mansard'; gable), pitch (b.roof's, [1, 1, 2, 1]),
+// overhang (1), so a district's roofs differ from the next district's.
 export const LOOKS = [
   { base: { stone_bricks: 5, cobblestone: 2, andesite: 2, mossy_stone_bricks: 1 }, upper: { calcite: 5, white_terracotta: 2, white_concrete_powder: 1 }, frame: 'dark_oak', roof: 'deepslate_tile', trim: 'stone_brick' },
   { base: { bricks: 6, granite: 1, terracotta: 1 }, upper: { smooth_sandstone: 3, birch_planks: 2, calcite: 1 }, frame: 'spruce', roof: 'dark_oak', trim: 'brick' },
@@ -174,7 +176,7 @@ export function townHouse(ctx, pos, facing, { width = 7, depth = 11, deep, store
   const z1 = Math.max(corners[0][2], corners[1][2])
   const ridgeAlongStreet = front === 'eaves'
   const axis = ridgeAlongStreet ? L.across : L.deep
-  const roof = b.roof({ x0, z0, x1, z1, y: pos[1] + top + 1, type: 'gable', axis, material: look.roof, pitch: [1, 1, 2, 1], overhang: 1, gableOverhang: 1, gable: upper, eaveTrim: true })
+  const roof = b.roof({ x0, z0, x1, z1, y: pos[1] + top + 1, type: look.roofType ?? 'gable', axis, material: look.roof, pitch: look.pitch ?? [1, 1, 2, 1], overhang: look.overhang ?? 1, gableOverhang: look.overhang ?? 1, gable: upper, eaveTrim: true })
   // 5. a chimney at the back, above the ridge
   const [cx, , cz] = L.at(rng() < 0.5 ? uL + 1 : uR - 1, -(D - 2), 0)
   b.chimney([cx, pos[1] + top + 1, cz], Math.max(3, roof.topY - (pos[1] + top + 1) + 2), { paint: kit.palette(look.base, { scale: 2, seed: seed + 5 }) })
@@ -204,7 +206,9 @@ export function townHouse(ctx, pos, facing, { width = 7, depth = 11, deep, store
 
 // A street lined on both sides: lots from kit.plan.lotsAlongRoad, a house on each, every house
 // different from its neighbours; shops in the first `shops` lots from the start (the plaza end).
-export function townStreet(ctx, st, { ground, looks = LOOKS, occupied = new Set(), shops = 4, frontage = [6, 10], depth = [12, 16], seed = 1 } = {}) {
+// ground(x, z): the ground as it is now; by default b.groundUnder, which sees what you paved,
+// flattened or raised after the land was painted (a height map saved before that does not).
+export function townStreet(ctx, st, { ground = (x, z) => ctx.b.groundUnder(x, z), looks = LOOKS, occupied = new Set(), shops = 4, frontage = [6, 10], depth = [12, 16], seed = 1 } = {}) {
   const { kit, S } = ctx
   const heightFn = Object.assign((x, z) => ground(x, z), { size: [S, S] })
   const lots = kit.plan.lotsAlongRoad(st.path, { roadWidth: st.width + 2, frontage, depth, setback: [0, 0], gap: [0, 1], heightFn, occupied, roads: st.cells, margin: 0, seed })

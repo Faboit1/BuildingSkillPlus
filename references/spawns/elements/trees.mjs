@@ -16,13 +16,14 @@
 // - A landmark (giantTree, img/landmark-trees.png): 25-60 tall, a trunk 3-6 across with buttress
 //   roots running out over the ground, 5-7 big limbs that fork 2-3 times, a crown 1-1.5 of its
 //   height across, layered, with gaps, its hem drooping. One per view.
-// - Autumn: vanilla has no orange leaves, so mix 20-40% orange, red or yellow blocks (honeycomb,
-//   orange or red terracotta, shroomlight, nether wart blocks) into part of the crowns, in clumps,
-//   with birch and spruce kept as they are.
+// - Autumn: vanilla has no orange leaves, so plant every tree green and call b.autumn() once at
+//   the end: whole clumps turn gold, orange or red (honeycomb, terracotta, nether wart), lighter on
+//   top, tree-sized patches deciding how far each crown has gone; spruce stays green.
 // DON'T
 // - The lollipop: a one-block pole with a ball of leaves on top.
 // - Perfect spheres or cubes of leaves, every tree the same height, trees in a row at equal steps.
-// - A crown made only of wool, concrete or terracotta.
+// - A crown made only of wool, concrete or terracotta; or green crowns dotted with single orange
+//   cubes (colour turns by the clump and the tree, not by the block).
 // - A giant made by scaling the lollipop up: a thick pole with a ball on top.
 
 import { groundPatch } from './_scene.mjs'

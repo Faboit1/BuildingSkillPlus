@@ -38,7 +38,7 @@ your first spawn, and read an element's chapter in §5 before you write that ele
 | Bridges | §5.5 | stone arches on piers with cutwaters, a humped deck 6-10 above the water, parapets, ramps into the banks; never a flat strip on the water |
 | Cliffs and mountains | §5.6 | strata, ledges with plants, overhangs, scree, a varied skyline; not a noise blob or a cone |
 | Stones and rocks | §5.7 | groups, sunk into the ground, noisy shapes, moss on top, not spheres |
-| Trees, bushes, giant trees | §5.8 | big thick trees (14-26 tall, trunks 2-5 across, all-bark wood), forking limbs, lumpy crowns with gaps, three sizes, giant landmarks; not lollipops or 1-wide poles |
+| Trees, bushes, giant trees | §5.8 | big thick trees (14-26 tall, trunks 2-5 across, all-bark wood), forking limbs, lumpy crowns with gaps, three sizes, giant landmarks; autumn by `b.autumn()` after the last tree (whole clumps turn, some trees stay green); not lollipops, 1-wide poles or green crowns dotted with orange cubes |
 | The spawn centre (the dais) | §5.9 | a stepped dais with stripes and a medallion on a grid plaza, the NPC ring round it |
 | NPC stands | §5.10 | a 1-block stand (a barrel), a soul lantern post, a ring turned to the middle; not pillars or glass boxes |
 | Leaderboards, top-3 pillars | §5.11 | framed recesses; 3 x 3 pillars, diamond 3 high, gold 2, iron 1, beside the boards |

@@ -52,6 +52,30 @@ Bugs and gaps the agents reported in the plugin:
 | B9 | Choosing screenshot spots is slow without a map with coordinates | |
 | B10 | The MCP-first wording in the skill needs a clear fallback when the tools are missing | |
 
+Round B's Sonnet, one round of corrections (C20-C25 below), went from 73 to 78, the best so far.
+Every correction landed. One overcorrected the other way: told "leaves the body of the crown, warm
+colour in small clumps", it put single orange cubes in green crowns, which reads less autumn than
+the blocky crowns before. Colour has to turn by the clump and the tree, which is now a kit pass
+(`b.autumn`).
+
+| # | What was wrong | Correction sent |
+| --- | --- | --- |
+| C20 | Autumn crowns of terracotta blocks only: blocky | "Leaves the body of the crown, warm colour in clumps, about half the oaks mostly green" |
+| C21 | Water touching air at the river mouth and under gravity blocks | "Seal every water block; the river ends in the lake" |
+| C22 | Lawn speckle 3.4% | "Soft patches 20-40 across, no dither, litter in drifts" |
+| C23 | Streets of one house template | "District looks, one-off buildings at corners and squares" |
+| C24 | The plaza field bare | "Planters with trees, benches, stalls, a well, banners" |
+| C25 | Eye-level checks only from the plaza | "Stand at every gate, bridge, street and feature front" |
+
+| # | Problem the agent reported | Fixed by |
+| --- | --- | --- |
+| B11 | `screenshot` "on the ground at x, z" stood on tree crowns | it now passes through crowns (leaves, logs, blocks set among leaves) and moves out of trunks |
+| B12 | No way to colour autumn crowns by the clump | `b.autumn()`: one pass after the last tree |
+| B13 | `townStreet` lots used a height map taken before the streets were paved | `ground` defaults to `b.groundUnder` (the ground as it is now) |
+| B14 | Town-house roofs fixed to one shape | a look may set `roofType`, `pitch`, `overhang` |
+| B15 | `convert --info` timed out on a 1000-wide `.nbt` (60 million block entries) | the header reader stops at the block list and unpacks only the start |
+| B16 | `inspect --checks` crashed, `gate` always recorded a portal, the river had no end at a lake | already fixed in 2.1 (the agent's copy was older) |
+
 ## Round 2-3 (the same two Haiku agents, corrected)
 
 Both got much better with the corrections (a ridge with foothills, woods, curving streets, a
@@ -78,7 +102,7 @@ coast), but kept two habits and made new mistakes:
 | U3, C4 | SKILL.md and §5.5: bridges arched 6-10 above the water, never flat strips; the audit warns about low decks over water |
 | C3, C19 | A town chapter (§5.22) with `elements/town.mjs` (`street`, `townHouse`, `townStreet`) and its picture; the audit fails 4+ buildings of one size and bare stretches over 48 |
 | C10 | The audit fails NPC stands more than 12 apart |
-| C11, C16 | §5.8: autumn crowns mixed 20-40% into part of the oaks only |
+| C11, C16, C20 | §5.8 and `b.autumn()`: leaves turn by whole clumps, tree-sized patches decide how far each crown has gone, some trees stay green |
 | C17 + the user's request | Big trees: `bigTree` (trunks 2-4 across), giant trees and all kit trees with thick limbs in all-bark wood, `b.forest` bigger by default (scale 1.6 from 400 wide), the cherry reshaped |
 | B1, B2 | Element ids from `kit.material`; unknown ids reported with a count, a location and "did you mean" |
 | B3-B6, B8 | Leaf states only on leaves; island underside capped; no duplicate spawn point in the skeleton; a river warns when its course leaves the land |
@@ -111,9 +135,9 @@ What the old-plugin runs show:
 | Build | Model, effort | Plugin | Rounds | Builds | Time | Score | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Cheese SMP | Haiku, high | new | 0 | 16 | 80 min | 57 | b.land relief, a walled town with streets of townHouses, the castle on the axis, buildings in every direction; woods over everything hide the land, the town only 256 across, a river-lake leak (the bug fixed later), NPCs 9 apart |
-
 | Cheese SMP | Haiku, high | new | 1 | 31 | 2 h 10 | 60 | woods down to 30% with clearings, the ridges show, farms, a mill, a hamlet, a lake village, a lumber camp, a shrine, NPCs 6.3 apart, 34 screenshots read; the town still compact, the districts small next to the woods |
 | Cheese SMP | Sonnet, xhigh | new | 0 | 24 | 1 h 50 | 73 | eroded ranges and a valley, the river looping round the walled town, a 124-tall castle on its crag on the axis, harbour, mill, windmill, farms, an abbey; blocky terracotta autumn crowns, lawn speckle 3.4%, templated house streets, the river-lake leak |
+| Cheese SMP | Sonnet, xhigh | new | 1 | 32 | 3 h 20 | 78 | the audit passes (no leaks, speckle down to 0.3%), six district looks and 14 one-off buildings (74 distinct), market stalls, planters, a well, braziers and banners on the plaza, thick bark trunks; green crowns dotted with single orange cubes (less autumn than before), woods 40% in an even blanket over the ranges, the river stopping 7 short of the lake, the plaza field still wide and bare |
 
 Against round 1, round B's Haiku (57, no corrections) beat round 1's Haiku (30, then 46 after four
 rounds of corrections). It did not stop early, and it ran 16 builds where round 1's ran 9 then

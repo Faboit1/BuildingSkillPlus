@@ -28,7 +28,8 @@ if (!args.length || args.includes('--help') || args.includes('-h')) {
 camera (one of):
   --spawn                  stand on the world spawn (from <build>.placements.json), look its way
   --pos x,y,z              stand on this block (feet); with --yaw/--pitch or --look-at x,y,z
-  --pos x,z                stand on the ground at this column (the height is found for you)
+  --pos x,z                stand on the ground at this column (the height is found for you; tree
+                           crowns are passed through, and a column inside a trunk moves to open ground)
   --eye x,y,z              put the camera exactly here (e.g. high above the plaza)
   --shots FILE|JSON        several shots in one run: [{"name":"crates","pos":[x,y,z],"lookAt":[x,y,z]},
                            {"name":"spawn","spawn":true}, {"name":"top","eye":[x,y,z],"yaw":0,"pitch":60},
@@ -547,14 +548,46 @@ function finishColor(ar, ag, ab, out) {
 }
 
 // the feet block for a pos: [x, y, z] as given, or [x, z] / [x, null, z] = standing on the highest
-// walkable block of that column
+// walkable block of that column. Tree crowns are not ground: leaves, logs and the blocks set among
+// leaves (autumn colour, shroomlight) are passed through, and a stand needs two free blocks above it.
+// A column inside a trunk or a bush moves to the nearest open column (up to 8 away).
+const TREE = new Uint8Array(N)
+for (let i = 0; i < N; i += 1) TREE[i] = CUT[i] || /_(log|wood|stem|hyphae)\b|mushroom_block|honeycomb_block|nether_wart_block|shroomlight|^minecraft:vine/.test(pal[i]) ? 1 : 0
+const solid = id => id && (SH[id] === 1 || SH[id] === 7)
+// a block set among leaves (an autumn crown's terracotta): 4+ leaves within 2 of it
+function amongLeaves(x, y, z) {
+  let n = 0
+  for (let dy = -2; dy <= 2; dy += 1)
+    for (let dz = -2; dz <= 2; dz += 1)
+      for (let dx = -2; dx <= 2; dx += 1) if (CUT[at(x + dx, y + dy, z + dz)] && (n += 1) >= 4) return true
+  return false
+}
+function standOn(x, z) {
+  for (let yy = Y - 1; yy >= 0; yy -= 1) {
+    const id = at(x, yy, z)
+    if (!id || SH[id] === 5 || SH[id] === 4 || SH[id] === 3 || TREE[id]) continue
+    if (SH[id] === 1 && amongLeaves(x, yy, z)) continue
+    if (solid(at(x, yy + 1, z)) || solid(at(x, yy + 2, z))) continue
+    return yy + 1
+  }
+  return -1
+}
 function feet(pos) {
   const p = pos.length === 2 ? [pos[0], null, pos[1]] : pos
   const [x, y, z] = [Math.floor(Number(p[0])), p[1], Math.floor(Number(p[2]))]
   if (y !== null && y !== undefined && y !== '~') return [x, Number(y), z]
-  for (let yy = Y - 1; yy >= 0; yy -= 1) {
-    const id = at(x, yy, z)
-    if (id && SH[id] !== 5 && SH[id] !== 4 && SH[id] !== 3) return [x, yy + 1, z]
+  for (let r = 0; r <= 8; r += 1) {
+    let best = null
+    for (let dz = -r; dz <= r; dz += 1)
+      for (let dx = -r; dx <= r; dx += 1) {
+        if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue
+        const fy = standOn(x + dx, z + dz)
+        if (fy >= 0 && (!best || dx * dx + dz * dz < best[3])) best = [x + dx, fy, z + dz, dx * dx + dz * dz]
+      }
+    if (best) {
+      if (r) console.error(`screenshot: ${x},${z} is inside a tree or a wall: standing at ${best[0]},${best[2]} instead`)
+      return best.slice(0, 3)
+    }
   }
   return [x, 0, z]
 }

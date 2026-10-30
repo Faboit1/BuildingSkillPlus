@@ -311,9 +311,15 @@ export function readStructureGrid(bytes) {
 // What a big schematic is without reading its blocks: walks the NBT and keeps only the small
 // facts (a .schem's Width/Height/Length, DataVersion and palette size; a .litematic's regions and
 // their sizes; a structure .nbt's size and palette), skipping the block arrays. For convert --info
-// on files too big to load (a 1000-wide spawn's .schem holds 200 million entries).
+// on files too big to load (a 1000-wide spawn's .schem holds 200 million entries). A structure
+// .nbt's blocks are one compound each (60 million on a big spawn): the walk stops at a list that
+// long, keeping its length, and a big file is only unpacked as far as its first 24 MB (partial:
+// true; what comes after the blocks, like DataVersion, is then unknown).
 export function readHeader(bytes) {
-  const d = inflate(bytes)
+  const raw = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  const PART = 24 * 2 ** 20
+  const cut = raw.length > PART && raw[0] === 0x1f && raw[1] === 0x8b
+  const d = cut ? zlib.gunzipSync(raw.subarray(0, PART), { finishFlush: zlib.constants.Z_SYNC_FLUSH }) : inflate(bytes)
   const view = new DataView(d.buffer, d.byteOffset, d.byteLength)
   let o = 0
   const u8 = () => d[o++]
@@ -343,6 +349,7 @@ export function readHeader(bytes) {
         const n = view.getInt32(o)
         o += 4
         out.lists[at] = n
+        if (t === T.compound && n > 100_000) throw STOP
         const items = []
         for (let i = 0; i < n; i += 1) {
           const v = read(t, `${at}[${i}]`)
@@ -366,9 +373,17 @@ export function readHeader(bytes) {
       default: throw new Error(`header reader: unknown NBT tag ${type} at byte ${o}`)
     }
   }
+  const STOP = {}
   const t = u8()
   if (t !== T.compound) return null
   str()
-  read(T.compound, '')
+  try {
+    read(T.compound, '')
+  } catch (err) {
+    // stopped at the blocks, or ran past the unpacked part: what was read so far is the header
+    if (err !== STOP && !(err instanceof RangeError)) throw err
+    out.partial = true
+  }
+  if (cut) out.partial = true
   return out
 }

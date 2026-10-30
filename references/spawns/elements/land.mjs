@@ -32,7 +32,8 @@
 import { river } from './river.mjs'
 
 // Builds the valley of the picture: a range round the north and west, a lone mountain east, a
-// river from the range's foot to a lake, woods and meadows. Returns { land, groundY }.
+// river from the range's foot to a lake, woods and meadows. Returns { land, groundY }. With the
+// autumn theme, call b.autumn() once after the last tree of the spawn is planted.
 export function valleyLand(ctx, { seed = 5, floor = 70, theme = 'autumn' } = {}) {
   const { b, kit, S } = ctx
   const land = b.land({ base: floor, seed })
@@ -123,6 +124,8 @@ function noiseLandBad(ctx, { floor = 70 } = {}) {
 export const figure = { size: 560, height: 200, floorY: 70, camera: { eye: [330, 118, 470], lookAt: [200, 104, 120], fov: 66, width: 640, height: 400, far: 520 } }
 
 export function demo(ctx, which) {
-  if (which === 'good') valleyLand(ctx)
-  else noiseLandBad(ctx)
+  if (which === 'good') {
+    valleyLand(ctx)
+    ctx.b.autumn()
+  } else noiseLandBad(ctx)
 }
